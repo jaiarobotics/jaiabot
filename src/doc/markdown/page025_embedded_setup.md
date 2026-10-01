@@ -113,7 +113,11 @@ cd /path/to/boot/jaiabot/init
 ssh-keygen -f id_vpn_tmp -t ed25519 -N "" -C "id_vpn_tmp"
 ```
 
-  The authorization expires (30 days by default, settable as `VPN_ENROLLMENT_VALID_DAYS` in `vpc.conf`). To image a node after that, extend the `expiry-time` of the entry in `/etc/jaiabot/ssh/tmp_authorized_keys` on the CloudHub, reached over the VPN with `jaia ssh chf5`.
+  The authorization expires (30 days by default, settable as `VPN_ENROLLMENT_VALID_DAYS` in `vpc.conf`). To add a bot or hub to the fleet after that, renew it first — over the VPN, so the CloudHub must already be reachable:
+```
+jaia admin fleet vpn_authorize private_jaia/fleet_config/fleet5.cfg
+jaia admin fleet vpn_authorize private_jaia/fleet_config/fleet5.cfg --rm   # when done
+```
 
 
 The template of the text file `first-boot.preseed.yml` is provided on the image as `/boot/firmware/jaiabot/init/first-boot.preseed.yml.j2` (This is a jinja2 template file used by `jaia fleet admin generate`).

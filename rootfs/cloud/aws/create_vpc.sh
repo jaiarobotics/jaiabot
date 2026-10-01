@@ -316,6 +316,8 @@ cp ${USER_DATA_SCRIPT_IN} ${USER_DATA_SCRIPT}
 declare -A replacements=(
     ["{{CLIENT_VPN_WIREGUARD_PUBKEY}}"]="$CLIENT_VPN_WIREGUARD_PUBKEY"
     ["{{FLEET_ID}}"]="$FLEET_ID"
+    ["{{VPN_TMP_PUBKEY}}"]="$(cat ${USER_DATA_FIRST_BOOT_DIR}/jaiabot/init/id_vpn_tmp.pub)"
+    ["{{VPN_ENROLLMENT_VALID_DAYS}}"]="$VPN_ENROLLMENT_VALID_DAYS"
 )
 
 for placeholder in "${!replacements[@]}"; do
@@ -340,18 +342,6 @@ EOF
 cat <<EOF > \${PRESEED_DIR}/cloudhub_env.sh
 $(cat ${USER_DATA_FIRST_BOOT_DIR}/jaiabot/init/cloudhub_env.sh)
 EOF
-EOFF
-
-# Each node enrols itself on the VPN with this key on first boot. It is pinned to
-# that one command and expires, so the copy on every node's boot media is not a
-# way into the CloudHub; 'jaia admin ssh add' re-arms it over the VPN afterwards.
-cat <<EOFF >> ${USER_DATA_SCRIPT}
-## Authorize the fleet bootstrap key for VPN enrollment
-mkdir -p /etc/jaiabot/ssh
-cat <<EOF > /etc/jaiabot/ssh/tmp_authorized_keys
-restrict,expiry-time="\$(date -u -d '+${VPN_ENROLLMENT_VALID_DAYS} days' +%Y%m%d)",command="/usr/bin/jaia-vpn-enroll.sh" $(cat ${USER_DATA_FIRST_BOOT_DIR}/jaiabot/init/id_vpn_tmp.pub)
-EOF
-chmod 600 /etc/jaiabot/ssh/tmp_authorized_keys
 EOFF
 
 # Install Iridium configuration if it exists

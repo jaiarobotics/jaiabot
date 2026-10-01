@@ -5,3 +5,6 @@
 SERVER_VPN_PUBKEY=$(cat /etc/wireguard/publickey)
 
 jaia admin vpn server_init {{FLEET_ID}} {{CLIENT_VPN_WIREGUARD_PUBKEY}}
+
+## Let each node enroll itself on the VPN with the fleet's bootstrap key
+jaia-vpn-authorize.sh "{{VPN_TMP_PUBKEY}}" {{VPN_ENROLLMENT_VALID_DAYS}}

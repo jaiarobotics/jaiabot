@@ -186,3 +186,15 @@ fleet, so on the CloudHub it is authorized with `restrict`, an expiry, and
 key buys a peer entry on `wg_cloudhub` and nothing else - no shell, no other
 interface, and no way to read what another node was given. A re-imaged node
 comes back with a new key, so enrolling one that is already a peer replaces it.
+
+`create_vpc.sh` writes that entry when the CloudHub is built, and
+`jaia admin fleet vpn_authorize fleetN.cfg` renews it afterwards, which is what a
+node added to the fleet months later needs. Both go through
+`jaia-vpn-authorize.sh` on the CloudHub, so the entry has one author; it replaces
+its own line and leaves the temporary keys of whoever `jaia admin ssh add` has let
+into the same file alone. `--rm` takes the authorization back.
+
+A node whose enrollment is refused keeps `id_vpn_tmp` in `/home/jaia/.ssh`, so
+once the authorization is renewed the node can be made to run
+`configure-wireguard-service-vpn.sh` again rather than be re-imaged. The key is
+deleted only once a config has been installed.
