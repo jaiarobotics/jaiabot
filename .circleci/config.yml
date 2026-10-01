@@ -248,8 +248,6 @@ filter-template-debian-builds: &filter-template-debian-builds
     branches:
       only:
         - "3.y"
-        - "task/3.y/merge-2.y-4d29b33"
-        - "feature/3.y/cloudhub-major-upgrade/sw-2333"
 
 # which branches to run the normal source build
 filter-template-normal-builds: &filter-template-normal-builds
@@ -257,8 +255,6 @@ filter-template-normal-builds: &filter-template-normal-builds
     branches:
       ignore:
         - "3.y"
-        - "task/3.y/merge-2.y-4d29b33"
-        - "feature/3.y/cloudhub-major-upgrade/sw-2333"
 
 # which branches to run the pi-zero filesystem builds
 filter-template-pi0-rootfs-builds: &filter-template-pi0-rootfs-builds
@@ -268,7 +264,6 @@ filter-template-pi0-rootfs-builds: &filter-template-pi0-rootfs-builds
     branches:
       only:
         - "3.y"
-        - "task/3.y/merge-2.y-4d29b33"
         
 # which branches to run the rootfs filesystem builds
 filter-template-rootfs-builds: &filter-template-rootfs-builds
@@ -278,8 +273,6 @@ filter-template-rootfs-builds: &filter-template-rootfs-builds
     branches:
       only:
         - "3.y"
-        - "task/3.y/merge-2.y-4d29b33"
-        - "feature/3.y/cloudhub-major-upgrade/sw-2333"
 
 # which branches to run the AWS virtual machine conversion (must be same as or subset of filter-template-rootfs-builds)
 filter-template-aws-rootfs-builds: &filter-template-aws-rootfs-builds
@@ -289,8 +282,6 @@ filter-template-aws-rootfs-builds: &filter-template-aws-rootfs-builds
     branches:
       only:
         - "3.y"
-        - "task/3.y/merge-2.y-4d29b33"
-        - "feature/3.y/cloudhub-major-upgrade/sw-2333"
 
 # which branches to build Docker simulator
 filter-template-docker-sim-builds: &filter-template-docker-sim-builds
@@ -300,7 +291,6 @@ filter-template-docker-sim-builds: &filter-template-docker-sim-builds
     branches:
       only:
         - "3.y"
-        - "task/3.y/merge-2.y-4d29b33"
 
 ## Begin actual config
 version: 2.1
