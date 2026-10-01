@@ -206,6 +206,11 @@
         for (var n = 0; n < signedInEls.length; n++) {
             signedInEls[n].hidden = !identity.signedIn;
         }
+        // Stay hidden until whoami answers so a signed-in user never sees "Log in" flash
+        var signedOutEls = document.querySelectorAll("[data-jaia-signed-out]");
+        for (var p = 0; p < signedOutEls.length; p++) {
+            signedOutEls[p].hidden = identity.signedIn || identity.groups === null;
+        }
         var userEls = document.querySelectorAll("[data-jaia-user]");
         for (var k = 0; k < userEls.length; k++) {
             userEls[k].textContent = identity.user;
@@ -213,6 +218,10 @@
         var logoutEls = document.querySelectorAll("[data-jaia-logout]");
         for (var m = 0; m < logoutEls.length; m++) {
             logoutEls[m].href = LOGOUT_URL;
+        }
+        var loginEls = document.querySelectorAll("[data-jaia-login]");
+        for (var q = 0; q < loginEls.length; q++) {
+            loginEls[q].href = LOGIN_URL;
         }
     }
 
