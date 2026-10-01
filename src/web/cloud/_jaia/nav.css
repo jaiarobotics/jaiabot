@@ -5,6 +5,11 @@
     box-sizing: border-box;
 }
 
+/* Beat host pages that style * and a:link directly (liaison) */
+.jaia-nav * {
+    font-family: inherit;
+}
+
 .jaia-nav {
     position: fixed;
     left: 8px;
@@ -134,22 +139,23 @@
     gap: 2px;
 }
 
-.jaia-nav-link {
+.jaia-nav a.jaia-nav-link {
     display: inline-block;
     padding: 8px 8px;
+    border: 0;
     border-left: 3px solid transparent;
     border-radius: 6px;
     color: #fff;
     text-decoration: none;
 }
 
-.jaia-nav-link:hover,
-.jaia-nav-link:focus-visible {
+.jaia-nav a.jaia-nav-link:hover,
+.jaia-nav a.jaia-nav-link:focus-visible {
     background: rgba(255, 255, 255, 0.12);
     outline: none;
 }
 
-.jaia-nav-current {
+.jaia-nav a.jaia-nav-current {
     border-left-color: #5aa9ff;
     font-weight: 600;
 }
@@ -158,9 +164,10 @@
     border-top: 1px solid rgba(255, 255, 255, 0.15);
 }
 
-.jaia-nav-button {
+.jaia-nav a.jaia-nav-button {
     display: block;
     padding: 8px 12px;
+    border: 0;
     border-radius: 6px;
     background: #5aa9ff;
     color: #000;
@@ -169,8 +176,8 @@
     text-decoration: none;
 }
 
-.jaia-nav-button:hover,
-.jaia-nav-button:focus-visible {
+.jaia-nav a.jaia-nav-button:hover,
+.jaia-nav a.jaia-nav-button:focus-visible {
     background: #7dbcff;
     outline: none;
 }
