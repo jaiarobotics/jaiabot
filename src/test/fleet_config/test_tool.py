@@ -7,12 +7,14 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 SOURCE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 TOOL = os.path.join(SOURCE_DIR, "src", "sh", "fleet", "jaia-fleet-config.py")
 PROTO = os.path.join(SOURCE_DIR, "src", "lib", "messages", "fleet_config.proto")
 MESSAGES_DIR = os.path.join(SOURCE_DIR, "src", "lib", "messages")
 TEMPLATE = os.path.join(SOURCE_DIR, "rootfs", "customization", "includes.chroot", "etc", "jaiabot", "init", "first-boot.preseed.yml.j2")
+NEW_HUB_TEMPLATE = os.path.join(SOURCE_DIR, "config", "ansible", "files", "new_hub.sh.j2")
 FIXTURES = os.path.join(os.path.dirname(__file__), "fixtures")
 
 spec = importlib.util.spec_from_file_location("jaia_fleet_config", TOOL)
@@ -49,7 +51,7 @@ class Env:
         fake_bin = os.path.join(self.dir, "bin")
         os.makedirs(fake_bin)
         fakes = {
-            "jaia_ip": 'case "$*" in *gateway*) echo 10.23.7.1 ;; *) echo 10.23.7.100 ;; esac',
+            "jaia_ip": 'case "$*" in *gateway*) echo 10.23.7.1 ;; *cloudhub_vpn*) echo fd0f:77ac:4fdf:7::1:1e ;; *) echo 10.23.7.100 ;; esac',
             "jaia_bounds": 'case "$*" in *--min*) echo 0 ;; *fleet_id*) echo 4000 ;; *hub_id*) echo 30 ;; *bot_id*) echo 150 ;; esac',
             "ykman": "echo 12345678",
             # writes the key files ssh-keygen would, without a real key or Yubikey
@@ -70,7 +72,27 @@ class Env:
         init = os.path.join(bootdir, "jaiabot", "init")
         os.makedirs(init)
         shutil.copyfile(TEMPLATE, os.path.join(init, "first-boot.preseed.yml.j2"))
+        shutil.copyfile(NEW_HUB_TEMPLATE, os.path.join(bootdir, "new_hub.sh.j2"))
         return bootdir
+
+    def without_cloudhub_key(self):
+        """A copy of v2_no_permanent_keys.cfg (fleet 6, hubs 1 and 30) as create now writes it,
+        before create_cloudhub has recorded the CloudHub's key."""
+        path = os.path.join(self.dir, "fleet6.cfg")
+        with open(fixture("v2_no_permanent_keys.cfg")) as f:
+            lines = [line for line in f if "hub { id: 30" not in line]
+        text = "".join(lines).replace("hubs: 30", "hubs: [1, 30]").replace(
+            "ssh {\n", 'ssh {\n  hub { id: 1 private_key: "handle\\n" public_key: "no-touch-required '
+                       'sk-ssh-ed25519@openssh.com AAAAhub1 hub1_fleet6" }\n')
+        with open(path, "w") as f:
+            f.write(text)
+        return path
+
+    def pubkey_file(self, text):
+        path = os.path.join(self.dir, "hub30_fleet6.pub")
+        with open(path, "w") as f:
+            f.write(text)
+        return path
 
     def cleanup(self):
         shutil.rmtree(self.dir)
@@ -290,6 +312,33 @@ class MigrationFailureTest(unittest.TestCase):
         self.assertIn("cloudhub: set, but hub 30 (CloudHub) is not in the fleet",
                       fc.validate(SCHEMA, cfg))
 
+    def test_only_the_cloudhub_may_go_without_a_private_key(self):
+        cfg = SCHEMA.FleetConfig()
+        fc.text_format.Merge(
+            'version: 2\n'
+            'fleet: 7\n'
+            'hubs: [1, 2, 30]\n'
+            'ssh {\n'
+            '  hub { id: 1 private_key: "" public_key: "ssh-ed25519 AAAA hub1_fleet7" }\n'
+            '  hub { id: 30 private_key: "" public_key: "ssh-ed25519 AAAA hub30_fleet7" }\n'
+            '}\n'
+            'wlan_password: "x"\n'
+            'service_vpn_enabled: false\n'
+            'cloudhub { base_uri: "a" admin_email: "b" smtp_address: "c" }\n', cfg)
+        problems = fc.validate(SCHEMA, cfg)
+        self.assertIn("ssh: hub 1: private_key must be set (only the CloudHub keeps its key to itself)", problems)
+        self.assertIn("ssh: no hub key for hub 2", problems)
+        self.assertEqual([p for p in problems if "30" in p], [])
+
+        del cfg.ssh.hub[1]
+        self.assertEqual([p for p in fc.validate(SCHEMA, cfg) if "30" in p], [],
+                         "the CloudHub's key is recorded only once the CloudHub exists")
+
+    def test_cloudhub_vpn_address_without_jaia_ip(self):
+        with mock.patch.object(fc.shutil, "which", return_value=None):
+            self.assertEqual(fc.jaia_ip("addr", "hub", 3, 30, net="cloudhub_vpn"), "fd0f:77ac:4fdf:3::1:1e")
+            self.assertEqual(fc.jaia_ip("addr", "hub", 1000, 30, net="cloudhub_vpn"), "fd0f:77ac:4fdf:3e8::1:1e")
+
     def test_newer_than_tool_is_refused(self):
         with tempfile.NamedTemporaryFile("w", suffix=".cfg", delete=False) as f:
             f.write("version: 99\nfleet: 1\nssh {}\nwlan_password: \"x\"\nservice_vpn_enabled: false\n")
@@ -435,6 +484,81 @@ class CommandTest(unittest.TestCase):
                              ["jaia-ip.py addr --net wlan --fleet_id 7 --ipv4 --node hub --node_id 1",
                               "jaia-ip.py addr --net wlan --fleet_id 7 --ipv4 --node gateway"])
 
+    @needs_render_deps
+    def test_generate_accepts_the_cloudhub_key_only_from_its_vpn_address(self):
+        bootdir = self.env.bootdir()
+        result = self.env.run("generate", fixture("v1_fleet7.cfg"), "--bootdir", bootdir, "hub", "1",
+                              "--action", "first_boot", "--action", "new_hub_script")
+        self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+        cloudhub = 'from="fd0f:77ac:4fdf:7::1:1e" ssh-ed25519 AAAAhub30 hub30_fleet7'
+        with open(os.path.join(bootdir, "jaiabot", "init", "first-boot.preseed.yml")) as f:
+            preseed = yaml.safe_load(f)
+        authorized = next(w["content"] for w in preseed["write_files"]
+                          if w["path"] == "/etc/jaiabot/ssh/hub_authorized_keys").splitlines()
+        self.assertEqual(authorized, ["no-touch-required sk-ssh-ed25519@openssh.com AAAAhub1 hub1_fleet7", cloudhub])
+        with open(os.path.join(bootdir, "new_hub.sh")) as f:
+            self.assertIn("\n" + cloudhub + "\n", f.read())
+
+    def test_set_cloudhub_key_records_only_the_public_key(self):
+        path = self.env.without_cloudhub_key()
+        self.assertEqual(self.env.run("validate", path).returncode, 0)
+        result = self.env.run("set_cloudhub_key", path, self.env.pubkey_file("ssh-ed25519 AAAAnew hub30_fleet6\n"))
+        self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+        self.assertNotIn("Replacing", result.stdout)
+        cfg = fc.parse_fleet_config(SCHEMA, path)
+        self.assertEqual(fc.validate(SCHEMA, cfg), [])
+        key = next(k for k in cfg.ssh.hub if k.id == 30)
+        self.assertEqual((key.private_key, key.public_key), ("", "ssh-ed25519 AAAAnew hub30_fleet6"))
+
+        result = self.env.run("set_cloudhub_key", path, self.env.pubkey_file("ssh-ed25519 AAAAnewer hub30_fleet6\n"))
+        self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+        self.assertIn("Replacing the CloudHub's previous key", result.stdout)
+        cfg = fc.parse_fleet_config(SCHEMA, path)
+        self.assertEqual([k.public_key for k in cfg.ssh.hub if k.id == 30], ["ssh-ed25519 AAAAnewer hub30_fleet6"])
+
+    def test_set_cloudhub_key_refuses_a_fleet_without_a_cloudhub(self):
+        pubkey = self.env.pubkey_file("ssh-ed25519 AAAAnew hub30_fleet6\n")
+        no_cloudhub = os.path.join(self.env.dir, "no_cloudhub.cfg")
+        with open(no_cloudhub, "w") as f:
+            f.write('version: 2\nfleet: 6\nfleet_type: FLEET_TYPE_SIMULATION\nhubs: [1]\n'
+                    'ssh { hub { id: 1 private_key: "handle\\n" public_key: "ssh-ed25519-sk AAAA hub1_fleet6" } }\n'
+                    'wlan_password: "x"\nservice_vpn_enabled: false\n')
+        self.assertEqual(self.env.run("validate", no_cloudhub).returncode, 0)
+        result = self.env.run("set_cloudhub_key", no_cloudhub, pubkey)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("hub 30 (CloudHub) is not in", result.stderr)
+        path = self.env.without_cloudhub_key()
+        result = self.env.run("set_cloudhub_key", path, self.env.pubkey_file("one\ntwo\n"))
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("expected one public key line", result.stderr)
+
+    @needs_render_deps
+    def test_generate_for_a_cloudhub_writes_no_private_key(self):
+        path = self.env.without_cloudhub_key()
+        bootdir = self.env.bootdir()
+        init = os.path.join(bootdir, "jaiabot", "init")
+        result = self.env.run("generate", path, "--bootdir", bootdir, "hub", "30", "--action", "hub_ssh_keys")
+        self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+        self.assertIn("it makes its own at first boot", result.stdout)
+        self.assertEqual([f for f in os.listdir(init) if f.startswith("hub")], [])
+
+        self.env.run("set_cloudhub_key", path, self.env.pubkey_file("ssh-ed25519 AAAAnew hub30_fleet6\n"))
+        result = self.env.run("generate", path, "--bootdir", bootdir, "hub", "30", "--hub-ssh-keys-only")
+        self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+        self.assertEqual([f for f in os.listdir(init) if f.startswith("hub")], ["hub30_fleet6.pub"])
+        with open(os.path.join(init, "hub30_fleet6.pub")) as f:
+            self.assertEqual(f.read(), "ssh-ed25519 AAAAnew hub30_fleet6\n")
+
+    @needs_render_deps
+    def test_generate_warns_when_the_cloudhub_has_no_key_yet(self):
+        path = self.env.without_cloudhub_key()
+        bootdir = self.env.bootdir()
+        result = self.env.run("generate", path, "--bootdir", bootdir, "bot", "1")
+        self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+        self.assertIn("WARNING: no key for the CloudHub (hub 30) yet", result.stdout)
+        with open(os.path.join(bootdir, "jaiabot", "init", "first-boot.preseed.yml")) as f:
+            self.assertNotIn("hub30", f.read())
+
     def test_generate_refuses_invalid_config_before_writing(self):
         bootdir = self.env.bootdir()
         result = self.env.run("generate", fixture("v1_bad_values.cfg"), "--bootdir", bootdir, "bot", "1")
@@ -541,7 +665,7 @@ class CreateTest(unittest.TestCase):
                          (SCHEMA.version, 7, [1, 2, 30], [1, 2]))
         keys = {k.id: k for k in cfg.ssh.hub}
         self.assertEqual(keys[1].public_key, "no-touch-required ssh-ed25519-sk AAAAhub1_fleet7 hub1_fleet7")
-        self.assertEqual(keys[30].public_key, "ssh-ed25519 AAAAhub30_fleet7 hub30_fleet7")
+        self.assertNotIn(30, keys, "the CloudHub makes its own key")
         self.assertEqual(keys[1].private_key, "PRIVATE hub1_fleet7\n")
         self.assertEqual(cfg.ssh.vpn_tmp.public_key, "ssh-ed25519 AAAAid_vpn_tmp id_vpn_tmp")
         self.assertEqual(list(cfg.ssh.permanent_authorized_keys), ["ssh-ed25519 AAAAperm me"])

@@ -3,7 +3,8 @@
 # Writes a fleet config for a CI fleet, with SSH keys generated fresh for this run.
 #
 # `jaia admin fleet create` is interactive, and a checked-in config would mean checked-in
-# private keys, so CI generates both here and throws them away with the fleet.
+# private keys, so CI generates both here and throws them away with the fleet. The CloudHub's
+# key is not among them: it makes its own and create_cloudhub adds the public half.
 
 usage() {
     cat <<EOF
@@ -78,7 +79,6 @@ function escaped_private_key() {
 }
 
 generate_key "hub${VIRTUALHUB_ID}"
-generate_key "hub${CLOUDHUB_ID}"
 generate_key "vpn_tmp"
 
 {
@@ -90,13 +90,11 @@ generate_key "vpn_tmp"
     for key in "${AUTHORIZED_KEYS[@]}"; do
         echo "  permanent_authorized_keys: \"${key}\""
     done
-    for id in "${VIRTUALHUB_ID}" "${CLOUDHUB_ID}"; do
-        echo "  hub {"
-        echo "    id: ${id}"
-        echo "    private_key: \"$(escaped_private_key "hub${id}")\""
-        echo "    public_key: \"$(cat "${KEYDIR}/hub${id}.pub")\""
-        echo "  }"
-    done
+    echo "  hub {"
+    echo "    id: ${VIRTUALHUB_ID}"
+    echo "    private_key: \"$(escaped_private_key "hub${VIRTUALHUB_ID}")\""
+    echo "    public_key: \"$(cat "${KEYDIR}/hub${VIRTUALHUB_ID}.pub")\""
+    echo "  }"
     echo "  vpn_tmp {"
     echo "    private_key: \"$(escaped_private_key vpn_tmp)\""
     echo "    public_key: \"$(cat "${KEYDIR}/vpn_tmp.pub")\""

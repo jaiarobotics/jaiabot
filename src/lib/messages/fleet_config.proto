@@ -370,6 +370,7 @@ message FleetConfig
         message HubKey
         {
             required int32 id = 1;
+            // The Yubikey's key handle; empty for the CloudHub, whose key never leaves it
             required string private_key = 2;
             required string public_key = 3;
         }

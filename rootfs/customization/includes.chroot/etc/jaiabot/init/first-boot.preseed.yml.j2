@@ -26,8 +26,8 @@ write_files:
   # hub keys
   - path: /etc/jaiabot/ssh/hub_authorized_keys
     content: |
-{%- for h in ssh.hub %}
-      {{ h.publicKey }}
+{%- for k in hub_authorized_keys %}
+      {{ k }}
 {%- endfor %}
   # permanent keys - gets moved to /home/jaia/.ssh/authorized_keys after jaia user is created
   - path: /etc/jaiabot/ssh/jaia_authorized_keys

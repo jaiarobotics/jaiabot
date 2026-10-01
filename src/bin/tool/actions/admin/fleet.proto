@@ -92,6 +92,11 @@ message FleetTool
             external_command: "jaia-fleet-config.py",
             external_help_param: "--help"
         }];
+        set_cloudhub_key = 11 [(goby.ev).cfg = {
+            short_help_msg: "Record the public SSH key a CloudHub made for itself",
+            external_command: "jaia-fleet-config.py",
+            external_help_param: "--help"
+        }];
     }
 
     optional Action action = 2 [
