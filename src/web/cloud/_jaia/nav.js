@@ -71,10 +71,13 @@
         if (item.children) {
             return item.children.some(isAllowed);
         }
-        if (item.groups === null || identity.groups === null) {
+        if (identity.groups === null) {
             return true;
         }
-        if (identity.groups.indexOf(GROUPS_SUPER_ADMIN) >= 0) {
+        if (!identity.signedIn) {
+            return false;
+        }
+        if (item.groups === null || identity.groups.indexOf(GROUPS_SUPER_ADMIN) >= 0) {
             return true;
         }
         return item.groups.some(function (g) {
@@ -140,7 +143,7 @@
             }
             list.appendChild(li);
         });
-        menu.appendChild(list);
+        if (list.children.length) menu.appendChild(list);
 
         var footer = el("div", "jaia-nav-footer");
         var action = el("a", "jaia-nav-button", identity.signedIn ? "Log out" : "Log in");
