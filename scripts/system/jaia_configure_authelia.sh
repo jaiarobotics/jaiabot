@@ -127,7 +127,7 @@ caddy_has_plugin() {
     # list-modules prints "http.handlers.replace_response <version>" and build-info
     # prints "dep <module> <version>"; either confirms the pinned plugin
     [ -x "$1" ] && { "$1" list-modules --versions; "$1" build-info; } 2>/dev/null \
-        | grep -qE "replace[-_]response[[:space:]]+${caddy_plugin_version}([[:space:]]|$)"
+        | grep -E "replace[-_]response[[:space:]]+${caddy_plugin_version}([[:space:]]|$)" >/dev/null
 }
 
 if ! caddy_has_plugin "$caddy_custom"; then
@@ -138,7 +138,7 @@ if ! caddy_has_plugin "$caddy_custom"; then
             && chmod 0755 "$caddy_download" && caddy_has_plugin "$caddy_download"; then
         mv "$caddy_download" "$caddy_custom"
         caddy_binary_changed=true
-    elif [ -x "$caddy_custom" ] && "$caddy_custom" list-modules 2>/dev/null | grep -q '^http.handlers.replace_response$'; then
+    elif [ -x "$caddy_custom" ] && "$caddy_custom" list-modules 2>/dev/null | grep '^http.handlers.replace_response$' >/dev/null; then
         echo "WARNING: Could not download Caddy with ${caddy_plugin}@${caddy_plugin_version}; keeping the existing $caddy_custom" >&2
     else
         echo "ERROR: Could not download Caddy with ${caddy_plugin}@${caddy_plugin_version} from caddyserver.com and no usable $caddy_custom exists" >&2
