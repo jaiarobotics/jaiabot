@@ -387,7 +387,7 @@ WHOAMI 200
         # Public (nothing sensitive) so the sign-in page can show the menu too
         handle /_jaia/* {
                 root * $jaia_cloud_web_dir
-                header Cache-Control "public, max-age=300"
+                header Cache-Control no-cache
                 file_server
         }
 }
@@ -413,6 +413,8 @@ $base_uri {
         import jaia_nav
         handle {
                 import authelia_forward_auth
+                # Never serve a stored copy to someone who has since signed out
+                header Cache-Control no-store
                 root * $jaia_cloud_web_dir
                 encode zstd gzip
                 file_server
