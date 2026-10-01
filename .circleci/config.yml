@@ -296,6 +296,7 @@ filter-template-docker-sim-builds: &filter-template-docker-sim-builds
     branches:
       only:
         - "3.y"
+        - "claude/gps-ntpsec-sync-a29l4c"
 
 ## Begin actual config
 version: 2.1
