@@ -57,7 +57,10 @@
         { id: "users", text: "Users", href: url("users"), groups: ["lldap_admin"] },
         { id: "auth", text: "Account", href: url("auth", "/settings"), groups: null },
     ];
-    var LOGIN_URL = url("auth");
+    var LOGIN_URL = url(
+        "auth",
+        "/?rd=" + encodeURIComponent(site === "auth" ? url("", "/") : location.href)
+    );
     var LOGOUT_URL = url("auth", "/logout?rd=" + encodeURIComponent(url("", "/")));
 
     // Who the user is, per Caddy's /_jaia/whoami. groups === null means unknown
@@ -268,6 +271,15 @@
         }).observe(document.documentElement, { childList: true, subtree: true });
         applyToPage();
         loadIdentity();
+        // The portal signs in and out without reloading the page
+        if (site === "auth" && window.PerformanceObserver) {
+            new PerformanceObserver(function (list) {
+                var changed = list.getEntries().some(function (entry) {
+                    return /\/api\/(firstfactor|secondfactor|logout)/.test(entry.name);
+                });
+                if (changed) loadIdentity();
+            }).observe({ type: "resource" });
+        }
     }
 
     if (document.body) {
