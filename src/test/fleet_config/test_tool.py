@@ -486,7 +486,7 @@ class CommandTest(unittest.TestCase):
         pubkey = self.env.pubkey_file("ssh-ed25519 AAAAnew hub30_fleet6\n")
         no_cloudhub = os.path.join(self.env.dir, "no_cloudhub.cfg")
         with open(no_cloudhub, "w") as f:
-            f.write('version: 2\nfleet: 6\nhubs: [1]\n'
+            f.write('version: 2\nfleet: 6\nfleet_type: FLEET_TYPE_SIMULATION\nhubs: [1]\n'
                     'ssh { hub { id: 1 private_key: "handle\\n" public_key: "ssh-ed25519-sk AAAA hub1_fleet6" } }\n'
                     'wlan_password: "x"\nservice_vpn_enabled: false\n')
         self.assertEqual(self.env.run("validate", no_cloudhub).returncode, 0)
