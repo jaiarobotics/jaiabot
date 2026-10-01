@@ -72,6 +72,7 @@ file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/rest_api DESTINATION ${project_SHARE_DIR}/
 
 # Copy the CloudHub landing page and shared navigation (static, served by Caddy)
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/cloud DESTINATION ${project_SHARE_DIR}/jaiabot/web)
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/jcc/public/favicon.png DESTINATION ${project_SHARE_DIR}/jaiabot/web/cloud/_jaia)
 
 ###############################################################################
 
