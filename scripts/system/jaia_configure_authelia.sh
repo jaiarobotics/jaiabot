@@ -379,6 +379,9 @@ cat <<EOF > /etc/caddy/Caddyfile
         forward_auth localhost:$authelia_port {
                 uri /api/authz/forward-auth
                 copy_headers Remote-User Remote-Groups Remote-Email Remote-Name
+                # A denial carries a fresh anonymous session cookie, which would
+                # replace a sign-in that completed while the request was in flight
+                header_down -Set-Cookie
         }
 }
 
