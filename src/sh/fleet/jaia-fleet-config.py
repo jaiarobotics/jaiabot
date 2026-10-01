@@ -12,6 +12,7 @@
 
 import argparse
 import io
+import ipaddress
 import json
 import os
 import re
@@ -496,8 +497,12 @@ def validate(schema, cfg):
 
     hub_keys = {k.id for k in cfg.ssh.hub}
     for hub in cfg.hubs:
-        if hub not in hub_keys:
+        # The CloudHub makes its own key at first boot and create_cloudhub records it here
+        if hub not in hub_keys and hub != CLOUDHUB_ID:
             problems.append("ssh: no hub key for hub {}".format(hub))
+    for key in cfg.ssh.hub:
+        if not key.private_key and key.id != CLOUDHUB_ID:
+            problems.append("ssh: hub {}: private_key must be set (only the CloudHub keeps its key to itself)".format(key.id))
     if CLOUDHUB_ID in cfg.hubs:
         if not cfg.HasField("cloudhub"):
             problems.append("cloudhub: required when hub {} (CloudHub) is in the fleet".format(CLOUDHUB_ID))
@@ -603,6 +608,29 @@ def cmd_migrate(schema, args):
     return 0
 
 
+def cmd_set_cloudhub_key(schema, args):
+    cfg = load_migrated(schema, args.fleetcfg)
+    if CLOUDHUB_ID not in cfg.hubs:
+        raise FleetConfigError("hub {} (CloudHub) is not in {}".format(CLOUDHUB_ID, args.fleetcfg))
+    with open(args.public_key_file) as f:
+        public_key = f.read().strip()
+    if not public_key or "\n" in public_key:
+        raise FleetConfigError("expected one public key line, as in hub{}_fleet{}.pub".format(CLOUDHUB_ID, cfg.fleet))
+    key = next((k for k in cfg.ssh.hub if k.id == CLOUDHUB_ID), None)
+    if key is None:
+        key = cfg.ssh.hub.add()
+        key.id = CLOUDHUB_ID
+    elif key.public_key != public_key:
+        print("Replacing the CloudHub's previous key: nodes configured with it accept the new one only "
+              "after being paired again with this fleet config")
+    key.private_key = ""
+    key.public_key = public_key
+    with open(args.fleetcfg, "w") as f:
+        f.write(fleet_config_text(cfg))
+    print("wrote the CloudHub's public key to {}".format(args.fleetcfg))
+    return 0
+
+
 # --- generate: the first-boot files for one node ----------------------------
 
 def render_template(template_path, context):
@@ -642,12 +670,15 @@ def find_bootdir(label):
     return mount_point
 
 
-def jaia_ip(query_type, node_type, fleet, node_id=None):
+def jaia_ip(query_type, node_type, fleet, node_id=None, net="wlan"):
     if shutil.which("jaia_ip"):
-        cmd = ["jaia_ip", "--query_type", query_type, "--node_type", node_type, "--ip_net", "wlan",
+        cmd = ["jaia_ip", "--query_type", query_type, "--node_type", node_type, "--ip_net", net,
                "--fleet_id", str(fleet)]
         if node_id is not None:
             cmd += ["--node_id", str(node_id)]
+    elif net == "cloudhub_vpn" and query_type == "addr" and node_type == "hub":
+        # The address in the release being generated for (src/lib/utils/ip.h), not whatever 2.y used
+        return str(ipaddress.IPv6Address("fd0f:77ac:4fdf:{:x}::".format(fleet)) + (1 << 16) + node_id)
     else:
         # 2.y has no jaia_ip (the major upgrade runs this tool there), and its fleets are IPv4
         cmd = ["jaia-ip.py", query_type, "--net", "wlan", "--fleet_id", str(fleet), "--ipv4"]
@@ -656,6 +687,15 @@ def jaia_ip(query_type, node_type, fleet, node_id=None):
         if node_id is not None:
             cmd += ["--node_id", str(node_id)]
     return subprocess.run(cmd, capture_output=True, text=True, check=True).stdout.strip()
+
+
+def hub_authorized_key(cfg, hub_key):
+    """The hub_authorized_keys line for a hub. The CloudHub's key is a file rather than
+    a Yubikey, so it is accepted only from the CloudHub's own address on its VPN."""
+    if hub_key.id != CLOUDHUB_ID:
+        return hub_key.public_key
+    return 'from="{}" {}'.format(jaia_ip("addr", "hub", cfg.fleet, CLOUDHUB_ID, net="cloudhub_vpn"),
+                                 hub_key.public_key)
 
 
 def cmd_generate(schema, args):
@@ -693,6 +733,12 @@ def cmd_generate(schema, args):
         "ip": jaia_ip("addr", args.type, cfg.fleet, args.id),
         "gateway_ip": jaia_ip("addr", "gateway", cfg.fleet),
     }
+    context["hub_authorized_keys"] = [hub_authorized_key(cfg, k) for k in cfg.ssh.hub]
+    if CLOUDHUB_ID in cfg.hubs and not any(k.id == CLOUDHUB_ID for k in cfg.ssh.hub) \
+            and not (node_type == "hub" and args.id == CLOUDHUB_ID):
+        print("WARNING: no key for the CloudHub (hub {}) yet, so this {} will not accept it until it is "
+              "paired with a fleet config that has one ('jaia admin fleet create_cloudhub' adds it)".format(
+                  CLOUDHUB_ID, node_type))
     context[TEMPLATE_SENTINEL] = {"v{}".format(v): "" for v in range(1, schema.version + 1)}
 
     init_dir = os.path.join(bootdir, "jaiabot", "init")
@@ -735,13 +781,18 @@ def cmd_generate(schema, args):
             for hub_key in cfg.ssh.hub:
                 if hub_key.id == args.id:
                     hub_key_priv = os.path.join(init_dir, "hub{}_fleet{}".format(args.id, cfg.fleet))
-                    with open(hub_key_priv, "w") as f:
-                        f.write(hub_key.private_key)
                     with open(hub_key_priv + ".pub", "w") as f:
                         f.write(hub_key.public_key + "\n")
-                    print("Wrote SSH key pair: {} and {}.pub".format(hub_key_priv, hub_key_priv))
+                    if hub_key.private_key:
+                        with open(hub_key_priv, "w") as f:
+                            f.write(hub_key.private_key)
+                        print("Wrote SSH key pair: {} and {}.pub".format(hub_key_priv, hub_key_priv))
+                    else:
+                        print("Wrote SSH public key: {}.pub (the private key stays on the hub)".format(hub_key_priv))
                     key_found = True
-            if not key_found:
+            if not key_found and args.id == CLOUDHUB_ID:
+                print("No key for the CloudHub in the fleet config: it makes its own at first boot")
+            elif not key_found:
                 print("WARNING: No hub key provided for hub {}".format(args.id))
 
         if "store_fleet_cfg" in actions:
@@ -1007,9 +1058,6 @@ def yubikey_present():
 
 def hub_key(ui, fleet, hub):
     comment = "hub{}_fleet{}".format(hub, fleet)
-    if hub == CLOUDHUB_ID:
-        # no USB port in the cloud, so a file key
-        return ssh_keygen(comment)
     ui.msgbox("Hub {} SSH Private Key: insert the Yubikey for hub {} into a USB port to generate its SSH key, "
               "then press OK".format(hub, hub))
     while not yubikey_present():
@@ -1201,6 +1249,9 @@ def create(schema, ui, banner=None, existing=None):
         cfg.ssh.ClearField("hub")
         for hub in cfg.hubs:
             if hub not in state["keys"]:
+                if hub == CLOUDHUB_ID:
+                    # no USB port for a Yubikey, so it makes its own key and create_cloudhub records it
+                    continue
                 state["keys"][hub] = hub_key(ui, cfg.fleet, hub)
             key = cfg.ssh.hub.add()
             key.id = hub
@@ -1471,6 +1522,11 @@ def build_parser():
     p.add_argument("type", choices=["bot", "hub", "rpicam"], help="Type of system to generate for")
     p.add_argument("id", type=int, help="ID of bot or hub")
     p.set_defaults(func=cmd_generate)
+
+    p = sub.add_parser("set_cloudhub_key", help="Record the public SSH key a CloudHub made for itself")
+    p.add_argument("fleetcfg", help="Path to the fleet configuration file to update")
+    p.add_argument("public_key_file", help="A copy of /home/jaia/.ssh/hub30_fleetN.pub from the CloudHub")
+    p.set_defaults(func=cmd_set_cloudhub_key)
     return parser
 
 

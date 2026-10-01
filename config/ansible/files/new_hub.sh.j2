@@ -5,7 +5,7 @@
 
 ## Regenerate hub authorized keys
 cat <<EOF > /etc/jaiabot/ssh/hub_authorized_keys
-{%- for h in ssh.hub %}
-{{ h.publicKey }}
+{%- for k in hub_authorized_keys %}
+{{ k }}
 {%- endfor %}
 EOF

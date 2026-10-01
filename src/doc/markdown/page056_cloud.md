@@ -219,7 +219,31 @@ or from a tag lookup within the fleet's VPC.
 
 **Carried across the upgrade**: `/etc/wireguard`. The CloudHub's VPN private key cannot
 be regenerated without every client peer, including the login server, having to be
-reissued.
+reissued. The same goes for its SSH key, `/home/jaia/.ssh/hub30_fleetN`, which no fleet
+config holds (see below).
+
+## CloudHub SSH key
+
+A physical hub's SSH key lives on its Yubikey, so the key handle in the fleet config is
+of no use without the hub itself. A CloudHub has no USB port for one, and its key is an
+ordinary file instead, so it is made on the CloudHub and never leaves it:
+
+1. `jaia admin fleet create` writes no key for hub 30.
+2. On first boot the CloudHub finds no key in its preseed and generates
+   `/home/jaia/.ssh/hub30_fleetN`, nothing secret having been put in its EC2 user data.
+3. `create_cloudhub` copies the public half back and records it in the fleet config it
+   was given (`jaia admin fleet set_cloudhub_key fleetN.cfg hub30_fleetN.pub`), with an
+   empty `private_key`.
+
+Create the CloudHub before generating the boot files of the other nodes. A node
+configured from a fleet config without the key prints a warning and does not accept the
+CloudHub until it is paired again (the "Pair new hub" playbook) with the updated config.
+The same applies to a CloudHub that is deleted and created again, since the new one has
+a new key.
+
+Every node's `/etc/jaiabot/ssh/hub_authorized_keys` accepts the CloudHub's key only from
+its address on the CloudHub VPN (`from="fd0f:77ac:4fdf:N::1:1e"`, where N is the fleet
+in hex), so a copy of the key is of no use without also being the CloudHub on that VPN.
 
 **Neither stored nor carried**: which repository the VirtualFleet AMI comes from, and its
 version. `create_cloudhub --repo` picks the repository at creation, defaulting to
