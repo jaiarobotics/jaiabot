@@ -74,7 +74,6 @@ Address = fd0f:77ac:4fdf:7::1e/64
 ListenPort = 51821
 PrivateKey = qJ8KZ1cMOBuEMBXmcL5pcOT8MQQ6YtGxYlfxrTPLKmc=
 PostUp = iptables -w 60 -A FORWARD -i wg_cloudhub -j ACCEPT
-PostUp = jaia-vpn-peers.sh apply %i
 PostDown = iptables -w 60 -D FORWARD -i wg_cloudhub -j ACCEPT
 """
 
@@ -110,6 +109,7 @@ class Env:
         self.dir = tempfile.mkdtemp()
         self.wg_dir = os.path.join(self.dir, "wireguard")
         os.makedirs(self.wg_dir, mode=0o700)
+        self.systemd_dir = os.path.join(self.dir, "systemd")
 
         self.calls = os.path.join(self.dir, "calls")
         self.running = os.path.join(self.dir, "running.conf")
@@ -129,6 +129,7 @@ class Env:
             os.environ,
             PATH=fake_bin + os.pathsep + os.environ["PATH"],
             JAIA_WG_DIR=self.wg_dir,
+            JAIA_SYSTEMD_DIR=self.systemd_dir,
             JAIA_TEST_CALLS=self.calls,
             JAIA_TEST_RUNNING=self.running,
             JAIA_TEST_UP=self.up_marker,
@@ -176,6 +177,14 @@ class Env:
         with open(self.calls) as f:
             return [line.strip() for line in f if line.strip()]
 
+    def drop_in(self, interface=INTERFACE):
+        path = os.path.join(self.systemd_dir, "wg-quick@{}.service.d".format(interface),
+                            "jaia-peers.conf")
+        if not os.path.exists(path):
+            return None
+        with open(path) as f:
+            return f.read()
+
     def cleanup(self):
         shutil.rmtree(self.dir, ignore_errors=True)
 
@@ -189,7 +198,7 @@ class PeersTest(unittest.TestCase):
     def assertNothingRestarted(self):
         for call in self.env.recorded():
             self.assertFalse(
-                call.startswith("systemctl"),
+                call.startswith("systemctl") and call != "systemctl daemon-reload",
                 "a peer change invoked '{}'; restarting the interface drops "
                 "HUB2HUB and every live session".format(call))
             self.assertNotIn(
@@ -342,14 +351,21 @@ class MigrateTest(PeersTest):
                      "PostDown = iptables -w 60 -D FORWARD -i wg_cloudhub -j ACCEPT"):
             self.assertIn(line, config)
 
-    def test_migrate_adds_the_boot_hook(self):
-        self.assertIn("PostUp = jaia-vpn-peers.sh apply %i", self.env.config())
+    def test_migrate_has_the_unit_load_the_directory(self):
+        drop_in = self.env.drop_in()
+        self.assertIsNotNone(drop_in, "a migrated interface would come up with no peers")
+        self.assertIn("ExecStartPost=/usr/bin/jaia-vpn-peers.sh apply %i", drop_in)
+
+    def test_reloading_the_unit_keeps_the_directory_peers(self):
+        """The stock ExecReload syncs to the config alone, which no longer holds them."""
+        drop_in = self.env.drop_in()
+        self.assertIn("ExecReload=\n", drop_in, "the stock ExecReload was not cleared")
+        self.assertIn("ExecReload=/usr/bin/jaia-vpn-peers.sh apply %i", drop_in)
 
     def test_migrate_is_idempotent(self):
-        before = (self.env.config(), self.env.peer_files())
+        before = (self.env.config(), self.env.peer_files(), self.env.drop_in())
         self.assertEqual(self.env.run("migrate", INTERFACE).returncode, 0)
-        self.assertEqual((self.env.config(), self.env.peer_files()), before)
-        self.assertEqual(self.env.config().count("jaia-vpn-peers.sh apply"), 1)
+        self.assertEqual((self.env.config(), self.env.peer_files(), self.env.drop_in()), before)
 
     def test_migrate_does_not_touch_the_interface(self):
         self.assertNothingRestarted()
@@ -367,9 +383,33 @@ class MigrateTest(PeersTest):
         self.assertIn("to migrate", result.stderr)
 
 
+class MigrateStaleHookTest(PeersTest):
+    """An earlier build of this script put its apply in the config's PostUp, where
+    wg-quick's AppArmor profile refuses to execute it and the interface is deleted."""
+
+    def test_migrate_removes_it(self):
+        self.env.write_config(INTERFACE_ONLY_CONFIG.replace(
+            "PostDown", "PostUp = jaia-vpn-peers.sh apply %i\nPostDown"))
+        self.assertEqual(self.env.run("migrate", INTERFACE).returncode, 0)
+        self.assertNotIn("jaia-vpn-peers.sh", self.env.config())
+        self.assertIn("PostUp = iptables -w 60 -A FORWARD -i wg_cloudhub -j ACCEPT",
+                      self.env.config(), "removing the hook took another PostUp with it")
+        self.assertIsNotNone(self.env.drop_in())
+
+
+class EnableTest(PeersTest):
+    def test_enable_writes_the_drop_in(self):
+        self.assertEqual(self.env.run("enable", INTERFACE).returncode, 0)
+        self.assertIn("ExecStartPost=/usr/bin/jaia-vpn-peers.sh apply %i", self.env.drop_in())
+
+    def test_enable_reloads_systemd_and_restarts_nothing(self):
+        self.env.run("enable", INTERFACE)
+        self.assertIn("systemctl daemon-reload", self.env.recorded())
+        self.assertNothingRestarted()
+
+
 class MigrateUnparsedPeerTest(PeersTest):
-    """A section header the splitter does not recognise keeps its peer where it
-    is, which puts the boot hook's placement under the same rule."""
+    """A section header the splitter does not recognise keeps its peer where it is."""
 
     ODD_CONFIG = """[Interface]
 Address = fd0f:77ac:4fdf:7::1e/64
@@ -390,20 +430,6 @@ AllowedIPs = fd0f:77ac:4fdf:7::101/128
         self.assertIn(KEY_HUB1, self.env.config())
         self.assertEqual(self.env.peer_files(), [])
 
-    def test_the_boot_hook_lands_in_the_interface_section(self):
-        config = self.env.config()
-        hook = config.index("PostUp = jaia-vpn-peers.sh apply %i")
-        self.assertLess(
-            hook, config.index("[Peer]"),
-            "the boot hook was written below a section header, which makes it "
-            "a key of that section rather than of [Interface]")
-
-    def test_migrate_refuses_a_config_with_no_interface_section(self):
-        self.env.write_config("[Peer] # left as it was\nPublicKey = {}\n".format(KEY_HUB1))
-        result = self.env.run("migrate", INTERFACE)
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn("[Interface]", result.stderr)
-
 
 class SourceTest(unittest.TestCase):
     """Neither script is compiled or linted anywhere else."""
@@ -414,6 +440,16 @@ class SourceTest(unittest.TestCase):
                                     capture_output=True, text=True)
             self.assertEqual(result.returncode, 0,
                              "{}: {}".format(script.name, result.stderr))
+
+    def test_no_wireguard_config_runs_the_helper_from_postup(self):
+        """Ubuntu confines wg-quick with AppArmor, which denies executing the helper
+        from a hook; the interface is deleted when a hook fails."""
+        for script in (SCRIPT, GENERATOR):
+            for n, line in enumerate(script.read_text().splitlines(), 1):
+                self.assertFalse(
+                    line.lstrip().startswith(("PostUp", "PreUp", "PostDown", "PreDown"))
+                    and "jaia-vpn-peers" in line,
+                    "{}:{} runs the helper from a wg-quick hook".format(script.name, n))
 
     def test_the_peers_script_is_executable(self):
         self.assertTrue(os.stat(SCRIPT).st_mode & stat.S_IXUSR,

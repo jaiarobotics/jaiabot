@@ -10,8 +10,9 @@
 
 set -u -e
 
-# Overridable so this can be run against a directory other than the live one.
+# Overridable so this can be run against directories other than the live ones.
 WG_DIR="${JAIA_WG_DIR:-/etc/wireguard}"
+SYSTEMD_DIR="${JAIA_SYSTEMD_DIR:-/etc/systemd/system}"
 
 # Named here rather than in the function that makes it, because the trap body
 # runs once that function has returned.
@@ -25,13 +26,14 @@ Usage: ${0##*/} add <interface> <name> <public key> <allowed ips>
        ${0##*/} remove <interface> <name>
        ${0##*/} list <interface>
        ${0##*/} apply <interface>
+       ${0##*/} enable <interface>
        ${0##*/} migrate <interface>
 
 Names a peer file, so <name> may hold only letters, digits, '-' and '_'.
-"apply" reloads the directory onto a running interface and is what the
-interface's PostUp runs; it does nothing if the interface is down.
-"migrate" moves the peers of an interface still kept in one flat config
-into the directory.
+"apply" reloads the directory onto a running interface; it does nothing if
+the interface is down. "enable" has the interface's wg-quick unit run it
+once the interface is up and on reload. "migrate" moves the peers of an
+interface still kept in one flat config into the directory, and enables it.
 EOF
     exit 1
 }
@@ -61,8 +63,8 @@ assemble()
     done
 }
 
-# A peer added while the interface is down needs no apply: PostUp reads the
-# directory when it comes up.
+# A peer added while the interface is down needs no apply: the unit reads the
+# directory when the interface comes up.
 cmd_apply()
 {
     local iface=$1 assembled
@@ -180,27 +182,32 @@ cmd_migrate()
         END { flush() }
     ' "$conf" > "$TMPFILE"
 
-    # Into [Interface], not at the end: a peer this did not understand is still
-    # down there, and a PostUp below it would belong to that peer instead.
-    if ! grep -q 'jaia-vpn-peers.sh apply' "$TMPFILE"; then
-        if ! awk '
-            { print }
-            /^[ \t]*\[[Ii]nterface\][ \t]*$/ && !added {
-                print "PostUp = jaia-vpn-peers.sh apply %i"
-                added = 1
-            }
-            END { exit added ? 0 : 1 }
-        ' "$TMPFILE" > "${TMPFILE}.hook"; then
-            rm -f "${TMPFILE}.hook"
-            echo "ERROR: ${conf} has no [Interface] section" >&2
-            exit 1
-        fi
-        mv "${TMPFILE}.hook" "$TMPFILE"
-    fi
+    # A hook left by an earlier build of this script, which wg-quick cannot run
+    sed -i '/^[[:space:]]*PostUp[[:space:]]*=[[:space:]]*jaia-vpn-peers\.sh apply %i[[:space:]]*$/d' "$TMPFILE"
 
     chmod --reference="$conf" "$TMPFILE"
     mv "$TMPFILE" "$conf"
     TMPFILE=""
+
+    cmd_enable "$iface"
+}
+
+# Run by systemd rather than from the config's PostUp: Ubuntu confines wg-quick
+# with an AppArmor profile that will not let it execute this script, and the
+# stock ExecReload syncs the config alone, which would drop every directory peer.
+cmd_enable()
+{
+    local iface=$1 dir
+    dir="${SYSTEMD_DIR}/wg-quick@${iface}.service.d"
+    mkdir -p "$dir"
+    cat > "${dir}/jaia-peers.conf" <<EOF
+[Service]
+ExecStartPost=/usr/bin/jaia-vpn-peers.sh apply %i
+ExecReload=
+ExecReload=/usr/bin/jaia-vpn-peers.sh apply %i
+EOF
+    # The unit reads the drop-in at the next boot regardless
+    systemctl daemon-reload 2>/dev/null || true
 }
 
 [ $# -ge 1 ] || usage
@@ -211,6 +218,7 @@ case "$action" in
     add)     [ $# -eq 4 ] || usage; cmd_add "$@" ;;
     remove)  [ $# -eq 2 ] || usage; cmd_remove "$@" ;;
     list)    [ $# -eq 1 ] || usage; cmd_list "$@" ;;
+    enable)  [ $# -eq 1 ] || usage; cmd_enable "$@" ;;
     apply)   [ $# -eq 1 ] || usage; cmd_apply "$@" ;;
     migrate) [ $# -eq 1 ] || usage; cmd_migrate "$@" ;;
     *)       usage ;;
