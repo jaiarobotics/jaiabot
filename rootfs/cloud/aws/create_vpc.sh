@@ -71,6 +71,7 @@ set -a; source $1; set +a
 OUTPUT_JSON=${OUTPUT_JSON:-}
 CLOUDHUB_PERMISSIONS_BOUNDARY=${CLOUDHUB_PERMISSIONS_BOUNDARY:-}
 WAIT_TIMEOUT_SECONDS=${WAIT_TIMEOUT_SECONDS:-1800}
+VPN_ENROLLMENT_VALID_DAYS=${VPN_ENROLLMENT_VALID_DAYS:-30}
 
 # An unattended run has to fail rather than hang, so every wait below is bounded
 function abort_if_timed_out() {
@@ -341,6 +342,18 @@ $(cat ${USER_DATA_FIRST_BOOT_DIR}/jaiabot/init/cloudhub_env.sh)
 EOF
 EOFF
 
+# Each node enrols itself on the VPN with this key on first boot. It is pinned to
+# that one command and expires, so the copy on every node's boot media is not a
+# way into the CloudHub; 'jaia admin ssh add' re-arms it over the VPN afterwards.
+cat <<EOFF >> ${USER_DATA_SCRIPT}
+## Authorize the fleet bootstrap key for VPN enrollment
+mkdir -p /etc/jaiabot/ssh
+cat <<EOF > /etc/jaiabot/ssh/tmp_authorized_keys
+restrict,expiry-time="\$(date -u -d '+${VPN_ENROLLMENT_VALID_DAYS} days' +%Y%m%d)",command="/usr/bin/jaia-vpn-enroll.sh" $(cat ${USER_DATA_FIRST_BOOT_DIR}/jaiabot/init/id_vpn_tmp.pub)
+EOF
+chmod 600 /etc/jaiabot/ssh/tmp_authorized_keys
+EOFF
+
 # Install Iridium configuration if it exists
 if [ -e ${USER_DATA_FIRST_BOOT_DIR}/jaiabot/init/iridium.json ]; then 
 cat <<EOFF >> ${USER_DATA_SCRIPT}
@@ -480,11 +493,8 @@ done
 AUTHELIA_ADMIN_PASSWORD=$(ssh "${SSH_OPTS[@]}" jaia@${PUBLIC_IPV4_ADDRESS} "sudo grep lldap_admin_password /var/log/jaiabot/auth/authelia/secrets | cut -d = -f2")
 echo ">>>>>> Fetched Authelia initial admin password"
 
-ssh "${SSH_OPTS[@]}" jaia@${PUBLIC_IPV4_ADDRESS} "sudo ufw allow in on eth0 proto udp to any port 51820; sudo ufw allow in on eth0 proto udp to any port 51821; sudo ufw allow in on wg_cloudhub; sudo ufw --force enable"
+ssh "${SSH_OPTS[@]}" jaia@${PUBLIC_IPV4_ADDRESS} "sudo ufw allow in on eth0 proto tcp to any port 22; sudo ufw allow in on eth0 proto udp to any port 51820; sudo ufw allow in on eth0 proto udp to any port 51821; sudo ufw allow in on wg_cloudhub; sudo ufw --force enable"
 echo ">>>>>> Updated CloudHub ufw firewall rules to exclude connecting on VirtualFleet VPN"
-
-run "" aws ec2 revoke-security-group-ingress --group-id $CLOUDHUB_SECURITY_GROUP_ID --ip-permissions IpProtocol=tcp,FromPort=22,ToPort=22,IpRanges='[{CidrIp=0.0.0.0/0}]',Ipv6Ranges='[{CidrIpv6=::/0}]'
-echo ">>>>>> Removed SSH (port 22) on Security Group"
 
 exit_if_interrupted
 # CloudHub is fully set up in AWS; failures after this point only affect local client configuration

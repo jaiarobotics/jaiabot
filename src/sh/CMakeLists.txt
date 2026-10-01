@@ -31,6 +31,7 @@ set(scripts_to_install
   utils/jaia-doc.py
   utils/jaia-vpn-gen.sh
   utils/jaia-vpn-peers.sh
+  utils/jaia-vpn-enroll.sh
   # System scripts
   system/jaiabot-checkloadavg.py
   system/jaia-debconf.sh

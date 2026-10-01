@@ -12,14 +12,11 @@ Flash this to as many SD cards as you have bots plus hubs:
 gunzip -c jaiabot__rootfs-jammy-v1.16.0__code-v1.16.0.img.gz | sudo dd of=/dev/sdd bs=1M status=progress
 ```
 
-Create a fleet, authorize the fleet to self-configure the service VPN (vpn.jaia.tech), generate first-boot configurations, and boot:
+Create a fleet, generate first-boot configurations, and boot:
 
 ```
 # Create the Fleet
 jaia admin fleet create private_jaia/fleet_config/fleet5.cfg
-
-# Authorize temporary key on vpn.jaia.tech
-jaia admin fleet vpn_authorize private_jaia/fleet_config/fleet5.cfg
 
 # insert flashed SD card for Hub 1
 jaia admin fleet generate private_jaia/fleet_config/fleet5.cfg hub 1
@@ -31,9 +28,6 @@ jaia admin fleet generate private_jaia/fleet_config/fleet5.cfg bot 1
 jaia admin fleet generate private_jaia/fleet_config/fleet5.cfg bot 2
 
 # Insert all the SD cards and boot all the bots and hubs and allow to fully first boot configure
-
-# Optionally deauthorize temp VPN key
-jaia admin fleet vpn_authorize private_jaia/fleet_config/fleet5.cfg --rm
 ```
 
 
@@ -113,12 +107,13 @@ cd /path/to/boot/jaiabot/init
 HUB=1; FLEET=5; ssh-keygen -f hub${HUB}_fleet${FLEET} -t ed25519 -N "" -C "hub${HUB}_fleet${FLEET}"
 ```
 
-- For Wireguard setup: A key called `id_vpn_tmp` (private) / `id_vpn_tmp.pub` (public) can be provided. This key must first be added to `vpn.jaia.tech` as a temporary access key (e.g. for 1 day of validity) using `jaia admin ssh add`. It will then be used by the first-boot setup to configure both the server and client sides of the service (fleet) VPN. This key can be generated and provisioned using:
+- For Wireguard setup: A key called `id_vpn_tmp` (private) / `id_vpn_tmp.pub` (public) can be provided. `jaia admin fleet create` generates it, and `jaia admin fleet create_cloudhub` authorizes it on the fleet's CloudHub, where it may do nothing but enroll one node on the service VPN (see [VPN](page055_vpn.md)). The first-boot setup uses it once and deletes it. To make one by hand:
 ```
 cd /path/to/boot/jaiabot/init
 ssh-keygen -f id_vpn_tmp -t ed25519 -N "" -C "id_vpn_tmp"
-jaia admin ssh add --user=ubuntu vpn.jaia.tech "$(cat id_vpn_tmp.pub)" 1d
 ```
+
+  The authorization expires (30 days by default, settable as `VPN_ENROLLMENT_VALID_DAYS` in `vpc.conf`). To image a node after that, extend the `expiry-time` of the entry in `/etc/jaiabot/ssh/tmp_authorized_keys` on the CloudHub, reached over the VPN with `jaia ssh chf5`.
 
 
 The template of the text file `first-boot.preseed.yml` is provided on the image as `/boot/firmware/jaiabot/init/first-boot.preseed.yml.j2` (This is a jinja2 template file used by `jaia fleet admin generate`).
