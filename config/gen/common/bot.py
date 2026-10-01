@@ -25,17 +25,21 @@ def gpsd_port(node_id):
         default_gpsd_port=2947
         return default_gpsd_port
 
-def serial_camera_port(bot_id: int):
+def serial_camera_port(bot_id: int, jaia_iridium_enabled: bool) -> str:
     """Get the device path to the serial port connected to the Pi Zero device running the camera driver.
 
     Args:
         bot_id (int): The bot id.
+        jaia_iridium_enabled (bool): Whether Iridium is enabled on the bot.
 
     Returns:
         str: Path to the serial port, i.e. "/dev/ttyAMA5"
     """
     if is_simulation():
         return f"/tmp/bot{bot_id}_camera_0"
+
+    if jaia_iridium_enabled:
+        return '/dev/ttyAMA3'
     else:
         return '/dev/ttyAMA5' # TODO: Change to /dev/rpicam when camera udev rules are updated
 
@@ -75,5 +79,10 @@ def arduino_bounds():
 def xbee_info():
     return config.read_pb_cfg_block('/etc/jaiabot/xbee_info.pb.cfg', 'xbee')
 
+# bots provisioned before dual fluorometer support have a single unnumbered file, which
+# belongs to the first fluorometer
 def fluorometer_coefficients():
     return config.read_pb_cfg_block('/etc/jaiabot/fluorometer_coefficients.pb.cfg', 'fluorometer_coefficients')
+
+def fluorometer_coefficients_2():
+    return config.read_pb_cfg_block('/etc/jaiabot/fluorometer_coefficients_2.pb.cfg', 'fluorometer_coefficients')

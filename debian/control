@@ -22,7 +22,10 @@ Build-Depends: debhelper-compat (= 13),
 Build-Depends-Indep:
                goby3-clang-tool [amd64] <!nodoc>,
                goby3-interfaces [amd64] <!nodoc>,
-               dccl5-apps [amd64]
+               dccl5-apps [amd64],
+               gcc-arm-none-eabi [amd64],
+               libnewlib-arm-none-eabi [amd64],
+               curl [amd64]
 Standards-Version: 3.9.6
 Section: libs
 Homepage: https://github.com/jaiarobotics/jaiabot
@@ -130,6 +133,13 @@ Architecture: all
 Description: Compiled Arduino sketches for the Jaiabot Project
  The jaiabot project provides binaries and libraries for the Jaiabot Autonomous Underwater Vehicle: https://www.jaia.tech/
 
+Package: jaiabot-stm32
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Section: science
+Architecture: all
+Description: Compiled STM32 firmware and flashing tools for the Jaiabot Project
+ The jaiabot project provides binaries and libraries for the Jaiabot Autonomous Underwater Vehicle: https://www.jaia.tech/
+
 Package: jaiabot-config
 Depends: ${shlibs:Depends}, ${misc:Depends}, python3-netifaces
 Section: science
@@ -156,7 +166,7 @@ Description: Interfaces definition files for the Jaiabot Project
 Package: jaiabot-embedded
 Depends: debconf, debconf-utils,
          goby3-apps, goby3-moos, goby3-gui,
-         jaiabot-apps, jaiabot-python, jaiabot-config, jaiabot-arduino, jaiabot-web,
+         jaiabot-apps, jaiabot-python, jaiabot-config, jaiabot-arduino, jaiabot-stm32, jaiabot-web,
          moos-ivp-apps, moosdb10, libmoos-ivp,
          gpsd, chrony,
          dnsmasq-base,
