@@ -10,7 +10,8 @@ SSH_DIR="${JAIA_SSH_DIR:-/home/jaia/.ssh}"
 WG_DIR="${JAIA_WG_DIR:-/etc/wireguard}"
 DEBCONF_SH="${JAIA_DEBCONF_SH:-/usr/bin/jaia-debconf.sh}"
 
-PRIVATE_KEY=${BOOT_DIR}/jaiabot/init/id_vpn_tmp
+BOOT_KEY=${BOOT_DIR}/jaiabot/init/id_vpn_tmp
+PRIVATE_KEY=${SSH_DIR}/id_vpn_tmp
 
 # What the CloudHub leaves in the config in place of a key it never holds
 PLACEHOLDER="REPLACE_WITH_THE_CONTENTS_OF_/etc/wireguard/privatekey"
@@ -20,8 +21,8 @@ if [ -z "${CLOUDHUB_HOST}" ]; then
     exit 0
 fi
 
-if [ ! -e "${PRIVATE_KEY}" ]; then
-    echo "No ${PRIVATE_KEY} private key provided, not configuring Wireguard service VPN"
+if [ ! -e "${BOOT_KEY}" ] && [ ! -e "${PRIVATE_KEY}" ]; then
+    echo "No id_vpn_tmp private key provided, not configuring Wireguard service VPN"
     exit 0
 fi
 
@@ -30,17 +31,16 @@ if ! timeout 10 bash -c "until ping -c1 1.1.1.1 >/dev/null 2>&1; do :; done"; th
     exit 1
 fi
 
-sudo mount -o remount,rw ${BOOT_DIR}
-sudo mv ${PRIVATE_KEY} ${SSH_DIR}/
-sudo mount -o remount,ro ${BOOT_DIR}
-PRIVATE_KEY=${SSH_DIR}/id_vpn_tmp
-sudo chown jaia:jaia ${PRIVATE_KEY}
-chmod 700 ${PRIVATE_KEY}
+if [ -e "${BOOT_KEY}" ]; then
+    sudo mount -o remount,rw ${BOOT_DIR}
+    sudo mv ${BOOT_KEY} ${PRIVATE_KEY}
+    sudo mount -o remount,ro ${BOOT_DIR}
+    sudo chown jaia:jaia ${PRIVATE_KEY}
+    chmod 700 ${PRIVATE_KEY}
+fi
 
 CONF=$(mktemp)
-# The bootstrap key is good for one enrollment, so it goes whether this run
-# succeeds or not, rather than staying behind on a node that failed to enroll.
-trap 'rm -f ${CONF} ${PRIVATE_KEY}' EXIT
+trap 'rm -f ${CONF}' EXIT
 
 source ${DEBCONF_SH}
 
@@ -66,3 +66,7 @@ fi
 
 sed -i "s|^PrivateKey =.*|PrivateKey = $(sudo cat ${WG_DIR}/privatekey)|" ${CONF}
 sudo install -m 600 ${CONF} ${WG_DIR}/${WG_PROFILE}.conf
+
+# Spent only now: a run that could not enroll leaves the key where this one
+# found it, so the node can be made to try again without being re-imaged.
+rm -f ${PRIVATE_KEY}

@@ -69,6 +69,7 @@ class NodeEnrollTest(unittest.TestCase):
         os.makedirs(self.wg_dir)
 
         self.bootstrap_key = os.path.join(self.boot, "jaiabot", "init", "id_vpn_tmp")
+        self.moved_key = os.path.join(self.ssh_dir, "id_vpn_tmp")
         with open(self.bootstrap_key, "w") as f:
             f.write("-----BEGIN OPENSSH PRIVATE KEY-----\nbootstrap\n")
 
@@ -149,18 +150,28 @@ class NodeEnrollTest(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIsNone(self.installed_config())
 
-    def assertBootstrapKeyIsGone(self):
-        self.assertFalse(os.path.exists(self.bootstrap_key))
-        self.assertFalse(os.path.exists(os.path.join(self.ssh_dir, "id_vpn_tmp")))
-
-    def test_the_bootstrap_key_is_spent_by_enrolling(self):
+    def test_enrolling_spends_the_bootstrap_key(self):
         self.assertEqual(self.run_script().returncode, 0)
-        self.assertBootstrapKeyIsGone()
+        self.assertFalse(os.path.exists(self.bootstrap_key))
+        self.assertFalse(os.path.exists(self.moved_key))
 
-    def test_the_bootstrap_key_does_not_outlive_a_failed_attempt(self):
+    def test_a_failed_attempt_leaves_the_key_for_another_try(self):
+        """The authorization on the CloudHub expires, so a node imaged long after the
+        fleet was set up is refused. Burning the key then would mean re-imaging it."""
         self.write_answer("Permission denied (publickey).\n")
         self.assertNotEqual(self.run_script().returncode, 0)
-        self.assertBootstrapKeyIsGone()
+        self.assertTrue(os.path.exists(self.moved_key))
+
+    def test_a_node_that_was_refused_can_be_run_again(self):
+        self.write_answer("Permission denied (publickey).\n")
+        self.assertNotEqual(self.run_script().returncode, 0)
+        self.write_answer(CLOUDHUB_ANSWER)
+        result = self.run_script()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        config = self.installed_config()
+        self.assertIsNotNone(config, "the second attempt did not find the key left behind")
+        self.assertIn("PrivateKey = " + NODE_PRIVKEY, config)
+        self.assertFalse(os.path.exists(self.moved_key))
 
     def test_nothing_happens_without_a_cloudhub(self):
         result = self.run_script("")
