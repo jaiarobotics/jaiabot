@@ -325,6 +325,12 @@ def node_type_name(schema, cfg_node_type):
     return enum.values_by_number[cfg_node_type].name.lower()
 
 
+def is_simulation(cfg):
+    """A VirtualFleet or VirtualBox fleet, which has no CloudHub to require."""
+    enum = cfg.DESCRIPTOR.fields_by_name["fleet_type"].enum_type
+    return cfg.fleet_type == enum.values_by_name["FLEET_TYPE_SIMULATION"].number
+
+
 def apply_settings(merged, settings):
     """Fields set in settings replace those in merged (repeated ones wholesale)."""
     for field, value in settings.ListFields():
@@ -511,6 +517,11 @@ def validate(schema, cfg):
     elif cfg.HasField("cloudhub"):
         problems.append(
             "cloudhub: set, but hub {} (CloudHub) is not in the fleet".format(CLOUDHUB_ID))
+    if CLOUDHUB_ID not in cfg.hubs and not is_simulation(cfg):
+        problems.append(
+            "hubs: a real fleet must include hub {} (CloudHub); add it with "
+            "'jaia admin fleet edit', or set fleet_type: FLEET_TYPE_SIMULATION if this "
+            "describes a VirtualFleet or VirtualBox fleet".format(CLOUDHUB_ID))
     if cfg.HasField("customer") and not cfg.customer:
         problems.append("customer: must not be empty; omit it to use the default")
     return problems
@@ -1035,8 +1046,9 @@ def current_answer(q, settings):
     return q.default
 
 
-def ask_question(ui, q, current):
-    text = q.description
+def ask_question(ui, q, current, subject=None):
+    # A per-node question is asked once per bot or hub, so it has to say which one
+    text = "{}: {}".format(subject, q.description) if subject else q.description
     if q.extended_description:
         text += "\n\n" + q.extended_description
     if q.type == "select":
@@ -1164,6 +1176,7 @@ def create(schema, ui, banner=None, existing=None):
         cfg.CopyFrom(existing)
     cfg.version = schema.version
     state = {
+        "simulation": is_simulation(cfg),
         "cloudhub": CLOUDHUB_ID in cfg.hubs,
         "hubs": [h for h in cfg.hubs if h != CLOUDHUB_ID],
         # by hub: a key that already exists is never generated again, so editing
@@ -1178,6 +1191,17 @@ def create(schema, ui, banner=None, existing=None):
     def choose_fleet():
         cfg.fleet = ask_id(ui, "fleet_id", "Which fleet is this?",
                            cfg.fleet if cfg.HasField("fleet") else None)
+
+    def choose_fleet_type():
+        enum = cfg.DESCRIPTOR.fields_by_name["fleet_type"].enum_type
+        state["simulation"] = ui.yesno(
+            "Is this a simulation (VirtualFleet or VirtualBox) rather than real hardware?",
+            default="yes" if state["simulation"] else "no")
+        cfg.fleet_type = enum.values_by_name[
+            "FLEET_TYPE_SIMULATION" if state["simulation"] else "FLEET_TYPE_REAL"].number
+        # Every real fleet ships with a CloudHub, so there is nothing to ask
+        if not state["simulation"]:
+            state["cloudhub"] = True
 
     def choose_cloudhub():
         state["cloudhub"] = ui.yesno(
@@ -1317,7 +1341,8 @@ def create(schema, ui, banner=None, existing=None):
         def ask(node_type, node_id, q):
             def run():
                 current = answers.get((node_type, node_id), {}).get(q.name, q.default or "")
-                answers.setdefault((node_type, node_id), {})[q.name] = ask_question(ui, q, current)
+                answers.setdefault((node_type, node_id), {})[q.name] = ask_question(
+                    ui, q, current, subject="{} {}".format(node_type, node_id))
             return run
 
         steps = []
@@ -1380,7 +1405,8 @@ def create(schema, ui, banner=None, existing=None):
 
     run_steps([
         Step("Choose fleet", choose_fleet),
-        Step("CloudHub", choose_cloudhub),
+        Step("Fleet type", choose_fleet_type),
+        Step("CloudHub", choose_cloudhub, enabled=lambda: state["simulation"]),
         Step("Choose hubs", choose_hubs),
         Step("Choose bots", choose_bots),
         Step("Generating hub SSH keys", generate_keys, revisit=False),
