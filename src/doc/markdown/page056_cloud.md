@@ -352,9 +352,11 @@ You can use `https://www.mail-tester.com/` to check the likelihood that your ema
 
 #### jaia.tech Domains
 
-CloudHub access (https://fleetN.jaia.tech or https://run.fleetN.jaia.tech):
+CloudHub access (https://fleetN.jaia.tech):
 
-- https://run.fleetN.jaia.tech: JCC for Fleet N (e.g., https://run.fleet1.jaia.tech for fleet 1). https://fleetN.jaia.tech also redirects to this URL.
+- https://fleetN.jaia.tech: Landing page listing the sites below that the signed-in user can open, with a link to log out.
+	+ Groups: any signed-in user
+- https://run.fleetN.jaia.tech: JCC for Fleet N (e.g., https://run.fleet1.jaia.tech for fleet 1).
 	+ Groups: 'run'
 - https://run.fleetN.jaia.tech/jcu: JCU for Fleet N.
  	+ Groups: 'jcu_user', 'jcu_advanced', 'jcu_developer' (correspond to JCU roles: USER, ADVANCED, DEVELOPER)
@@ -380,3 +382,9 @@ Supporting web pages:
 #### Custom Domains
 
 Replace `.fleetN.jaia.tech` with your custom domain in the examples above, where your custom domain might be `jaiafleet6.mybusiness.com` or `jaiaf3.university.edu`, as you prefer.
+
+#### Navigation menu
+
+Every page on these sites shows a floating Jaia button in the bottom left corner with the login name of the signed-in user. It opens a menu linking to the landing page, Run (JCC, JCU, JDV), Sim (JCC, JCU, JDV), Users and Account, showing only the sites the user's groups allow, plus a Log out button.
+
+Caddy injects the menu into every HTML page, including the third-party Authelia and LLDAP pages, using the [replace-response](https://github.com/caddyserver/replace-response) plugin. Ubuntu's `caddy` package doesn't include it, so `jaia_configure_authelia.sh` downloads a build with the plugin from the Caddy download service, installs it as `/usr/bin/caddy.custom` and selects it with `dpkg-divert` and `update-alternatives` (the apt binary becomes `/usr/bin/caddy.default`), so package upgrades don't undo it. The plugin version is pinned in `common-versions.env` (`jaia_version_caddy_replace_response`). The menu (`/_jaia/nav.js`, `/_jaia/nav.css`) and the landing page are static files from `src/web/cloud`, installed by `jaiabot-web` to `/usr/share/jaiabot/web/cloud`; the menu learns who is signed in from `/_jaia/whoami`, which Caddy answers from the headers Authelia returns.
