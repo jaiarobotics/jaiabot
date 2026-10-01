@@ -335,6 +335,7 @@ session:
   cookies:
      - domain: '$base_uri'
        authelia_url: 'https://auth.$base_uri'
+       default_redirection_url: 'https://$base_uri/'
 storage:
   encryption_key: '$storage_encryption_key'
   local:
