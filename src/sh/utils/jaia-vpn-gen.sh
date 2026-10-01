@@ -72,11 +72,11 @@ ListenPort = ${port}
 PrivateKey = $(sudo cat /etc/wireguard/privatekey)
 
 PostUp = iptables -w 60 -A FORWARD -i wg_${vpn_type} -j ACCEPT; iptables -w 60 -t nat -A POSTROUTING -o eth0 -j MASQUERADE; ip6tables -A FORWARD -i eth0 -o wg_${vpn_type} -j ACCEPT; ip6tables -A FORWARD -i wg_${vpn_type} -j ACCEPT;
-PostUp = jaia-vpn-peers.sh apply %i
 PostDown = iptables -w 60 -D FORWARD -i wg_${vpn_type} -j ACCEPT; iptables -w 60 -t nat -D POSTROUTING -o eth0 -j MASQUERADE; ip6tables -D FORWARD -i eth0 -o wg_${vpn_type} -j ACCEPT; ip6tables -D FORWARD -i wg_${vpn_type} -j ACCEPT;
 EOF
 
         sudo jaia-vpn-peers.sh add wg_${vpn_type} desktop${INITIAL_CLIENT_NODE_ID} "${INITIAL_CLIENT_PUBKEY}" "${client_ipv6}/128"
+        sudo jaia-vpn-peers.sh enable wg_${vpn_type}
         sudo systemctl enable "wg-quick@wg_${vpn_type}"
     done
     exit 0
