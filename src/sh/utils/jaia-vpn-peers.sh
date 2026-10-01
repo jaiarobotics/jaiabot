@@ -70,9 +70,9 @@ cmd_apply()
     local iface=$1 assembled
     wg show "$iface" >/dev/null 2>&1 || return 0
 
-    # Kept in memory: this runs from the interface's PostUp, so writing it would
-    # make the interface depend on /etc being writable to come up at all, and the
-    # text carries the private key.
+    # Kept in memory: the text carries the private key, and this runs as the
+    # interface comes up, when a write would make its peers depend on /etc being
+    # writable.
     assembled=$(assemble "$iface")
     wg syncconf "$iface" <(printf '%s\n' "${assembled}")
 }
