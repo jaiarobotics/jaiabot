@@ -102,18 +102,15 @@ export async function pollTaskPackets() {
     try {
         taskPacketRequestInFlight = true;
 
-        // Refetch when the filter window changes, even if the server version is unchanged
-        const windowKey = getTaskPacketWindowKey();
-        let forceFetch = false;
-        if (windowKey !== lastFetchedWindowKey) {
-            forceFetch = true;
-        }
-
         const versionRes = await fetch(TASK_PACKET_VERSION_URL);
         if (!versionRes.ok) {
             console.error(`Task packet response status: ${versionRes.status}`);
         } else {
             const version = await versionRes.json();
+            // Refetch when the filter window changes, even if the server version is unchanged.
+            // Read after the awaits above so the key matches the window the fetch below uses.
+            const windowKey = getTaskPacketWindowKey();
+            const forceFetch = windowKey !== lastFetchedWindowKey;
             // A superseded fetch records nothing, so the next poll fetches again.
             if (
                 (forceFetch || version !== taskPackets.getVersion()) &&

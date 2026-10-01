@@ -61,6 +61,23 @@ function flushPromises() {
     return new Promise((resolve) => setTimeout(resolve, 0));
 }
 
+/**
+ * Runs a poll after one task packet fetch has completed and checks it doesn't fetch again. Any
+ * unexpected fetch is resolved so the poll finishes instead of hanging the test.
+ *
+ * @returns {Promise<void>}
+ */
+async function expectPollSkipsFetch() {
+    const poll = pollTaskPackets();
+    await flushPromises();
+    const fetchCount = pendingResponses.length;
+    pendingResponses
+        .slice(1)
+        .forEach((response) => response.resolve({ result: { included: [], excluded: [] } }));
+    await poll;
+    expect(fetchCount).toBe(1);
+}
+
 beforeEach(() => {
     pendingResponses = [];
     taskPacketFilter.clear();
@@ -146,5 +163,56 @@ describe("pollTaskPackets", () => {
         // Leaving the version unrecorded makes the next poll fetch again.
         expect(taskPackets.getVersion()).toBe(0);
         expect(taskPackets.getIncludedTaskPackets()).toEqual([]);
+    });
+
+    // Each test below uses its own filter window, since the last fetched window persists across
+    // tests in the polling module.
+
+    test("refetches when the filter window changes, even with an unchanged version", async () => {
+        taskPacketFilter.setSearchWindow(
+            new Date("2026-06-01T00:00:00"),
+            new Date("2026-06-01T23:59:59"),
+        );
+        taskPackets.setVersion(5);
+
+        const poll = pollTaskPackets();
+        await flushPromises();
+        expect(pendingResponses).toHaveLength(1);
+        pendingResponses[0].resolve({ result: { included: [], excluded: [] } });
+        await poll;
+
+        const taskPacketUrl = (global.fetch as jest.Mock).mock.calls
+            .map(([url]) => url as string)
+            .find((url) => !url.includes("task-packets-version"));
+        expect(taskPacketUrl).toContain("startDate=");
+        expect(taskPacketUrl).toContain("endDate=");
+    });
+
+    test("skips the fetch when neither the window nor the version has changed", async () => {
+        taskPacketFilter.setSearchWindow(
+            new Date("2026-06-02T00:00:00"),
+            new Date("2026-06-02T23:59:59"),
+        );
+
+        const first = pollTaskPackets();
+        await flushPromises();
+        pendingResponses[0].resolve({ result: { included: [], excluded: [] } });
+        await first;
+        await expectPollSkipsFetch();
+    });
+
+    test("records the window it fetched when the filter changes during the version check", async () => {
+        const poll = pollTaskPackets();
+        // The poll is now waiting on the version endpoint.
+        taskPacketFilter.setSearchWindow(
+            new Date("2026-06-03T00:00:00"),
+            new Date("2026-06-03T23:59:59"),
+        );
+        await flushPromises();
+        pendingResponses[0].resolve({ result: { included: [], excluded: [] } });
+        await poll;
+
+        // The first poll fetched the new window, so the second has nothing to refetch.
+        await expectPollSkipsFetch();
     });
 });
