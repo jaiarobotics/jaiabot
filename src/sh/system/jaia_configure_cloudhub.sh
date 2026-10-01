@@ -217,7 +217,10 @@ fi
 # their keys and find nothing listening.
 for conf in /etc/wireguard/wg_cloudhub.conf /etc/wireguard/wg_virtualfleet.conf; do
     [ -f "$conf" ] || continue
-    unit="wg-quick@$(basename "$conf" .conf)"
+    iface=$(basename "$conf" .conf)
+    unit="wg-quick@${iface}"
+    # Moved before the restart, so the interface comes up on the directory.
+    jaia-vpn-peers.sh migrate "$iface" || echo "WARNING: could not move ${iface} peers into a peers directory"
     systemctl enable "$unit" || echo "WARNING: could not enable ${unit}"
     systemctl restart "$unit" || echo "WARNING: could not start ${unit}"
 done
