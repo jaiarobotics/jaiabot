@@ -71,8 +71,25 @@ static volatile uint8_t reed_wake_flag = 0;
 
 /* LSI ~32 kHz, LPTIM prescaler /128 -> 250 Hz. */
 #define LPTIM_TICK_HZ            250U
-#define LPTIM_MAX_COUNTS         65536U
 #define SLEEP_INTERVAL_MS        10000U
+
+/* IWDG: LSI ~32 kHz, prescaler /256, reload 4095 -> 4096 / 125 Hz ~= 32.8 s.
+ * Must match MX_IWDG_Init(). */
+#define IWDG_TIMEOUT_MS          32768U
+
+/* The IWDG keeps counting in STOP2 and is only refreshed when the LPTIM
+ * wakes us, so a long sleep is split into chunks that each finish well
+ * before the watchdog expires. A single 16-bit LPTIM period (~262 s) would
+ * let the IWDG reset the MCU ~33 s into the sleep, which re-enables
+ * external power and wakes the Pi early. Both clocks run off the LSI, so
+ * LSI tolerance does not erode this margin. */
+#define SLEEP_CHUNK_MAX_MS       20000U
+#define LPTIM_SLEEP_CHUNK_COUNTS ((SLEEP_CHUNK_MAX_MS * LPTIM_TICK_HZ) / 1000U)
+
+_Static_assert(SLEEP_CHUNK_MAX_MS < IWDG_TIMEOUT_MS,
+               "sleep chunk must be shorter than the IWDG timeout");
+_Static_assert(LPTIM_SLEEP_CHUNK_COUNTS <= 65536U,
+               "sleep chunk must fit in a 16-bit LPTIM period");
 
 uint8_t bits_in_byte = 8;
 bool usb_tx_busy = false;
@@ -310,7 +327,7 @@ static void sleep_for_ms(uint32_t duration_ms)
 
   while (remaining_counts > 0U)
   {
-    uint32_t chunk_counts = (remaining_counts > LPTIM_MAX_COUNTS) ? LPTIM_MAX_COUNTS : (uint32_t)remaining_counts;
+    uint32_t chunk_counts = (remaining_counts > LPTIM_SLEEP_CHUNK_COUNTS) ? LPTIM_SLEEP_CHUNK_COUNTS : (uint32_t)remaining_counts;
     sleep_until_lptim_wake_counts((uint16_t)(chunk_counts - 1U));
     if (low_power_request_pending())
     {
@@ -789,10 +806,10 @@ static void MX_IWDG_Init(void)
 
   /* USER CODE END IWDG_Init 1 */
   hiwdg.Instance = IWDG;
-  /* Main loop sleeps ~10s per iteration (LPTIM_10SEC_PERIOD) waiting on the
-   * low-power timer, refreshing the watchdog once per wake. PRESCALER_256
-   * gives a ~32.7s timeout (4096 / (32kHz LSI / 256)), comfortably covering
-   * that sleep with margin. */
+  /* PRESCALER_256 gives a ~32.8s timeout (4096 / (32kHz LSI / 256)); keep
+   * IWDG_TIMEOUT_MS in sync. The watchdog is refreshed once per LPTIM wake:
+   * every SLEEP_INTERVAL_MS (10s) while waiting on the reed switch, and every
+   * SLEEP_CHUNK_MAX_MS (20s) during a host-requested low power sleep. */
   hiwdg.Init.Prescaler = IWDG_PRESCALER_256;
   hiwdg.Init.Window = 4095;
   hiwdg.Init.Reload = 4095;
