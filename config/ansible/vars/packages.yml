@@ -1,6 +1,7 @@
 jaiabot_packages:
   - jaiabot-apps
   - jaiabot-arduino
+  - jaiabot-stm32
   - jaiabot-config
   - jaiabot-embedded
   - jaiabot-python

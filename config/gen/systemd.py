@@ -399,6 +399,12 @@ else:
 camera_positions_in_use = dc_multi('camera_positions')
 jaia_additional_sensors = dc_multi('additional_sensors')
 
+# a second fluorometer implies the first: the channels are numbered, not independent, so
+# selecting only turner_c_fluor_2 would otherwise leave the base fluorometer unconfigured
+if 'turner_c_fluor_2' in jaia_additional_sensors and \
+   not ('turner_c_fluor' in jaia_additional_sensors):
+    jaia_additional_sensors = jaia_additional_sensors + ['turner_c_fluor']
+
 # previously done by preseed.goby
 os.makedirs(args.log_dir, exist_ok=True)
 
@@ -689,8 +695,7 @@ jaiabot_apps = [
      'error_on_fail': 'ERROR__FAILED__MOOS_SIM_MOOSDB',
      'runs_on': [Type.BOT],
      'runs_when': Mode.SIMULATION,
-     'service': 'jaiabot_moosdb_sim' # override default service name to avoid conflict with jaiabot_moosdb
-    },
+     'service': 'jaiabot_moosdb_sim'}, # override default service name to avoid conflict with jaiabot_moosdb
     {'exe': 'uSimMarine',
      'description': 'uSimMarine marine vehicle simulator',
      'template': 'moos-app-sim.service.in',
@@ -791,7 +796,9 @@ if 'none' not in camera_positions_in_use:
     ]
     jaiabot_apps.extend(jaiabot_apps_camera)
 
-if 'turner_c_flour' in jaia_additional_sensors:
+# on BIO bots the fluorometers are read through the payload board by jaiabot_sensors, so this
+# standalone analog driver would publish a second, indistinguishable stream on the same group
+if ('turner_c_fluor' in jaia_additional_sensors) and jaia_bot_type != BOT_TYPE.BIO:
     jaiabot_turner_c_fluor = [
         {'exe': 'jaiabot_turner_c_fluor_sensor_driver',
         'description': 'JaiaBot Turner C Fluor Sensor Driver',
@@ -814,6 +821,7 @@ if 'aml' in jaia_additional_sensors:
         'wanted_by': 'jaiabot_health.service'},
     ]
     jaiabot_apps.extend(jaiabot_aml_sensor)
+    
 if 'ppk' in jaia_additional_sensors:
     jaiabot_ubx_ppk = {
         'exe': 'jaiabot_ppk_logger.py',
@@ -828,7 +836,9 @@ if 'ppk' in jaia_additional_sensors:
 
     jaiabot_apps.append(jaiabot_ubx_ppk)
 
-if jaia_temperature_sensor_type.value == 'tsys01':
+# BIO bots read the TSYS01 through the payload board, so skip the Python driver there to
+# avoid double-publishing (checked here since 'runs_on' can't express "bot AND not BIO").
+if jaia_temperature_sensor_type.value == 'tsys01' and jaia_bot_type != BOT_TYPE.BIO:
     jaiabot_apps_tsys01 = [
         {'exe': 'jaiabot_driver_tsys01.py',
          'description': 'JaiaBot TSYS01 Temperature Sensor Python Driver',

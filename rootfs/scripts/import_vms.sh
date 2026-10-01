@@ -189,6 +189,7 @@ done)
 }
 wlan_password: "dummy"
 service_vpn_enabled: false
+fleet_type: FLEET_TYPE_SIMULATION
 
 settings {
   warp: 10

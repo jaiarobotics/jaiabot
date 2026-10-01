@@ -48,6 +48,7 @@ constexpr goby::middleware::Group dissolved_oxygen{"jaiabot::dissolved_oxygen"};
 constexpr goby::middleware::Group ph{"jaiabot::ph"};
 constexpr goby::middleware::Group fluorometer{"jaiabot::fluorometer"};
 constexpr goby::middleware::Group pam{"jaiabot::pam"};
+constexpr goby::middleware::Group fluorometer_2{"jaiabot::fluorometer_2"};
 constexpr goby::middleware::Group tsys01{"jaiabot::tsys01"};
 constexpr goby::middleware::Group ctd{"jaiabot::ctd"};
 

@@ -317,7 +317,9 @@ message NodeSettings
 
     enum AdditionalSensor
     {
-        ADDITIONAL_SENSOR_TURNER_C_FLOUR = 0;
+        ADDITIONAL_SENSOR_TURNER_C_FLOUR = 0 [deprecated = true, (jaia.ev).debconf.replaced_by = "turner_c_fluor"];
+        ADDITIONAL_SENSOR_TURNER_C_FLUOR = 4;
+        ADDITIONAL_SENSOR_TURNER_C_FLUOR_2 = 5;
         ADDITIONAL_SENSOR_AML = 1;
         ADDITIONAL_SENSOR_PPK = 2;
         ADDITIONAL_SENSOR_NONE = 3;
@@ -326,6 +328,7 @@ message NodeSettings
         group: BOT
         default: "none"
         description: "Which additional sensors?"
+        extended_description: "Select turner_c_fluor_2 only if a second fluorometer is physically installed:\nthe BIO payload board announces two fluorometer channels regardless of what is\nwired, so an unselected second channel is not read or reported."
     }];
 
     optional int32 hub_id = 22 [default = 0, (jaia.field).debconf = {
@@ -479,4 +482,14 @@ message FleetConfig
 
     // Value of the jaia_customer tag on every AWS resource the fleet owns
     optional string customer = 14 [default = "jaia"];
+
+    // A simulation has no CloudHub to reach, so the rule requiring one applies
+    // only to real fleets. Inferring this from the absence of hub 30 would make
+    // a misconfigured real fleet indistinguishable from a VirtualFleet.
+    enum FleetType
+    {
+        FLEET_TYPE_REAL = 0;
+        FLEET_TYPE_SIMULATION = 1;
+    }
+    optional FleetType fleet_type = 15 [default = FLEET_TYPE_REAL];
 }

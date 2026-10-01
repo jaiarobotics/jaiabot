@@ -101,7 +101,8 @@ class Env:
 class SchemaTest(unittest.TestCase):
     def test_enum_value_strings_follow_the_prefix_convention(self):
         q = SCHEMA.questions_by_name["additional_sensors"]
-        self.assertEqual([v.value for v in q.enum_values], ["turner_c_flour", "aml", "ppk", "none"])
+        self.assertEqual([v.value for v in q.enum_values],
+                         ["turner_c_flour", "turner_c_fluor", "turner_c_fluor_2", "aml", "ppk", "none"])
         self.assertEqual(SCHEMA.questions_by_name["type"].choices, ["bot", "hub"])
 
     def test_identity_questions(self):
@@ -205,6 +206,27 @@ class MigrationTest(unittest.TestCase):
         self.assertEqual(fc.migrate(SCHEMA, again), ([], []))
 
 
+class FluorometerMigrationTest(unittest.TestCase):
+    """2.y renamed turner_c_flour, so a v1 file may carry either spelling."""
+
+    def setUp(self):
+        self.cfg = fc.parse_fleet_config(SCHEMA, fixture("v1_fluorometers.cfg"))
+        self.notes, self.problems = fc.migrate(SCHEMA, self.cfg)
+
+    def test_both_spellings_migrate(self):
+        NS = SCHEMA.NodeSettings
+        self.assertEqual(self.problems, [])
+        self.assertEqual(list(self.cfg.settings.additional_sensors),
+                         [NS.ADDITIONAL_SENSOR_TURNER_C_FLUOR, NS.ADDITIONAL_SENSOR_AML])
+        self.assertEqual(list(self.cfg.override[0].settings.additional_sensors),
+                         [NS.ADDITIONAL_SENSOR_TURNER_C_FLUOR, NS.ADDITIONAL_SENSOR_TURNER_C_FLUOR_2])
+
+    def test_selections_use_the_new_spelling(self):
+        bot1 = fc.node_settings_for(SCHEMA, self.cfg, "bot", 1)
+        sel = {d["key"]: d for d in fc.debconf_selections(SCHEMA, bot1)}
+        self.assertEqual(sel["jaiabot-embedded/additional_sensors"]["value"], "turner_c_fluor, aml")
+
+
 class MigrationFailureTest(unittest.TestCase):
     def test_unknown_and_invalid_values_are_reported_by_name(self):
         cfg = fc.parse_fleet_config(SCHEMA, fixture("v1_bad_values.cfg"))
@@ -248,6 +270,29 @@ class MigrationFailureTest(unittest.TestCase):
         self.assertEqual(cfg.customer, "acme")
         self.assertEqual(cfg.cloudhub.data_bucket, "acme-fleet9")
         self.assertEqual(cfg.cloudhub.base_uri, "fleet9.example")
+
+    def real_fleet_without_cloudhub(self, extra=""):
+        """v1_retired_imu has hubs: [1], so with no marker it is a real fleet lacking a CloudHub."""
+        cfg = fc.parse_fleet_config(SCHEMA, fixture("v1_retired_imu.cfg"))
+        fc.text_format.Merge("version: {}\n".format(SCHEMA.version) + extra, cfg)
+        return cfg
+
+    def test_real_fleet_without_a_cloudhub_is_refused(self):
+        problems = fc.validate(SCHEMA, self.real_fleet_without_cloudhub())
+        self.assertTrue(
+            any(p.startswith("hubs: a real fleet must include hub 30 (CloudHub)") for p in problems),
+            problems)
+
+    def test_a_simulation_may_have_no_cloudhub(self):
+        """The rule that broke the VirtualFleet before: it must not fire on a simulation."""
+        cfg = self.real_fleet_without_cloudhub("fleet_type: FLEET_TYPE_SIMULATION\n")
+        self.assertEqual([p for p in fc.validate(SCHEMA, cfg) if p.startswith("hubs:")], [])
+
+    def test_fleet_type_defaults_to_real(self):
+        """An existing file says nothing, so it is held to the real-fleet rule."""
+        cfg = self.real_fleet_without_cloudhub()
+        self.assertFalse(cfg.HasField("fleet_type"))
+        self.assertFalse(fc.is_simulation(cfg))
 
     def test_cloudhub_settings_refuse_blanks(self):
         cfg = self.cloudhub_cfg('customer: ""\ncloudhub { data_bucket: "" }\n')
@@ -560,7 +605,7 @@ class CreateTest(unittest.TestCase):
     def test_creates_a_valid_current_version_file(self):
         answers = [
             "abc", "7",                      # fleet id: re-asked until it is in range
-            "yes",                           # CloudHub in the fleet
+            "no",                            # a simulation? no, so real: the CloudHub is implied
             "1, 2", "1, 2",                  # physical hubs, bots
             "ssh-ed25519 AAAAperm me", "",   # permanent keys
             "wifipass", "yes",               # wlan password, service vpn
@@ -629,8 +674,8 @@ class CreateTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_no_cloudhub_means_no_auth_and_no_hub_30(self):
-        """A VirtualFleet has no CloudHub, so hub 30 stays optional."""
-        answers = ["7", "no", "1", "1", "", "wifipass", "no"]
+        """A VirtualFleet has no CloudHub, and has to say so to be allowed none."""
+        answers = ["7", "yes", "no", "1", "1", "", "wifipass", "no"]
         answers += settings_answers(ALL_GROUPS, {})
         answers += ["yes", "", "1"] + settings_answers({"ALL", "BOT"}, {}) + ["no"]
         answers += node_answers([1], [1])
@@ -646,8 +691,8 @@ class CreateTest(unittest.TestCase):
     def test_back_returns_to_the_previous_question(self):
         back = fc.SCRIPTED_BACK
         answers = [
-            "8", back, "7",          # fleet id, then back from the CloudHub question
-            "no", back, "yes",       # CloudHub: answered no, back, then yes
+            "8", back, "7",          # fleet id, then back from the fleet type question
+            "yes", back, "no",       # fleet type: simulation, back, then real
             "1", "2",                # physical hubs, bots
             back,                    # from the permanent keys, back past key generation to bots
             "1, 2",                  # bots again
@@ -671,7 +716,7 @@ class CreateTest(unittest.TestCase):
         back = fc.SCRIPTED_BACK
         # back from the CloudHub authentication all the way to the CloudHub question,
         # answered no the second time round
-        answers = ["7", "yes", "1", "1", "", "wifipass", "no"] + [back] * 6
+        answers = ["7", "yes", "yes", "1", "1", "", "wifipass", "no"] + [back] * 6
         answers += ["no", "1", "1", "", "wifipass", "no"]
         answers += settings_answers(ALL_GROUPS, {}) + ["no"] + node_answers([1], [1])
         result, out = self.run_create(answers)
@@ -729,6 +774,8 @@ class CreateTest(unittest.TestCase):
         loaded = SCHEMA.NodeSettings()
         fc.fill_defaults(SCHEMA, loaded)
         answers = ["<default>"] * 4 + ["", "<default>", "<default>"]
+        # a real fleet gains its CloudHub in the edit, so the auth block is asked too
+        answers += ["<default>", "admin@example.com", "<default>"]
         answers += settings_answers(ALL_GROUPS, {"bot_type": "bio"})
         answers += ["no"] + node_answers([1], [1])
         result, _ = self.run_edit(out, answers)
@@ -808,8 +855,18 @@ class CreateTest(unittest.TestCase):
         self.assertEqual(open(src).read(), open(fixture("v2_no_permanent_keys.cfg")).read())
         self.assertEqual(fc.validate(SCHEMA, fc.parse_fleet_config(SCHEMA, dst)), [])
 
+    def test_per_node_questions_name_the_node(self):
+        """Answering a VIN is meaningless without knowing which bot it is for."""
+        answers = ["7", "no", "1", "1, 2", "", "wifipass", "no",
+                   "<default>", "admin@example.com", "<default>"]
+        answers += settings_answers(ALL_GROUPS, {}) + ["no"]
+        answers += node_answers([1, 30], [])          # hubs, then bot 1 runs out of answers
+        result, _ = self.run_create(answers)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("no scripted answer for: bot 1: ", result.stderr)
+
     def test_nothing_written_when_answers_run_out(self):
-        result, out = self.run_create(["7", "yes", "1"])
+        result, out = self.run_create(["7", "no", "1"])
         self.assertEqual(result.returncode, 1)
         self.assertIn("no scripted answer", result.stderr)
         self.assertFalse(os.path.exists(out))
