@@ -1046,8 +1046,9 @@ def current_answer(q, settings):
     return q.default
 
 
-def ask_question(ui, q, current):
-    text = q.description
+def ask_question(ui, q, current, subject=None):
+    # A per-node question is asked once per bot or hub, so it has to say which one
+    text = "{}: {}".format(subject, q.description) if subject else q.description
     if q.extended_description:
         text += "\n\n" + q.extended_description
     if q.type == "select":
@@ -1340,7 +1341,8 @@ def create(schema, ui, banner=None, existing=None):
         def ask(node_type, node_id, q):
             def run():
                 current = answers.get((node_type, node_id), {}).get(q.name, q.default or "")
-                answers.setdefault((node_type, node_id), {})[q.name] = ask_question(ui, q, current)
+                answers.setdefault((node_type, node_id), {})[q.name] = ask_question(
+                    ui, q, current, subject="{} {}".format(node_type, node_id))
             return run
 
         steps = []

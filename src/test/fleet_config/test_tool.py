@@ -709,6 +709,16 @@ class CreateTest(unittest.TestCase):
         self.assertEqual(open(src).read(), open(fixture("v2_no_permanent_keys.cfg")).read())
         self.assertEqual(fc.validate(SCHEMA, fc.parse_fleet_config(SCHEMA, dst)), [])
 
+    def test_per_node_questions_name_the_node(self):
+        """Answering a VIN is meaningless without knowing which bot it is for."""
+        answers = ["7", "no", "1", "1, 2", "", "wifipass", "no",
+                   "<default>", "admin@example.com", "<default>"]
+        answers += settings_answers(ALL_GROUPS, {}) + ["no"]
+        answers += node_answers([1, 30], [])          # hubs, then bot 1 runs out of answers
+        result, _ = self.run_create(answers)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("no scripted answer for: bot 1: ", result.stderr)
+
     def test_nothing_written_when_answers_run_out(self):
         result, out = self.run_create(["7", "no", "1"])
         self.assertEqual(result.returncode, 1)
