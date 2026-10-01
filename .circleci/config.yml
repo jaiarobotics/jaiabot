@@ -248,6 +248,7 @@ filter-template-debian-builds: &filter-template-debian-builds
       only:
         - "3.y"
         - "feature/3.y/cloudhub-major-upgrade/sw-2333"
+        - "claude/gps-ntpsec-sync-a29l4c"
 
 # which branches to run the normal source build
 filter-template-normal-builds: &filter-template-normal-builds
@@ -256,6 +257,7 @@ filter-template-normal-builds: &filter-template-normal-builds
       ignore:
         - "3.y"
         - "feature/3.y/cloudhub-major-upgrade/sw-2333"
+        - "claude/gps-ntpsec-sync-a29l4c"
 
 # which branches to run the pi-zero filesystem builds
 filter-template-pi0-rootfs-builds: &filter-template-pi0-rootfs-builds
