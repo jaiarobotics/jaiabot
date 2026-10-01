@@ -46,7 +46,10 @@ function(stm32_sketch sketchname nickname device interface programmer baudrate)
   add_custom_command(
     OUTPUT ${hex_output}
     COMMAND ${CMAKE_COMMAND} -E make_directory ${outdir}
-    COMMAND make
+    # the Makefile appends to CFLAGS, so host flags from the environment (e.g. dpkg-buildflags
+    # under debian/rules) would otherwise reach the bare-metal cross compiler
+    COMMAND ${CMAKE_COMMAND} -E env --unset=CFLAGS --unset=CPPFLAGS --unset=ASFLAGS --unset=LDFLAGS
+      make
       -C ${STM32_SOURCE_DIR}
       -j
       BUILD_DIR=${outdir}
