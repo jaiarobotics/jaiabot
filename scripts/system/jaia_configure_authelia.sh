@@ -330,6 +330,8 @@ access_control:
 
 session:
   secret: '$session_secret'
+  inactivity: '15m'
+  expiration: '2h'
   cookies:
      - domain: '$base_uri'
        authelia_url: 'https://auth.$base_uri'
