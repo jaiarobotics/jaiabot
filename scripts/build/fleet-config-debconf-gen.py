@@ -159,7 +159,19 @@ def question_arm(schema, q, next_state, menu):
     body = []
     body.append("if debconf_input_and_go {} {}; then".format(q.priority.lower(), q.key))
     arms = normalisation_arms(q)
-    if arms:
+    if arms and q.repeated:
+        # a multiselect answer is a comma separated list, so map each choice in it
+        body.append("    db_get {}".format(q.key))
+        body.append('    normalised=""')
+        body.append("    for choice in $(echo \"$RET\" | sed 's/,/ /g'); do")
+        body.append('        case "$choice" in')
+        for old, new in arms:
+            body.append("            {}) choice={} ;;".format(old, new))
+        body.append("        esac")
+        body.append('        normalised="${normalised:+$normalised, }$choice"')
+        body.append("    done")
+        body.append('    db_set {} "$normalised"'.format(q.key))
+    elif arms:
         body.append("    db_get {}".format(q.key))
         body.append('    case "$RET" in')
         for old, new in arms:
