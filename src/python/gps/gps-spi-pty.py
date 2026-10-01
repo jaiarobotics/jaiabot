@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 """
-Create a PTY that gpsd can open, configure a u-blox over SPI to output
-UBX NAV-PVT and NAV-SAT at 5 Hz, and stream raw bytes to the PTY so gpsd emits
-one TPV per epoch.
+Configure a u-blox over SPI to output UBX NAV-PVT and NAV-SAT at 5 Hz and
+stream the raw bytes to gpsd over localhost UDP, so gpsd emits one TPV per
+epoch. A PTY is also created as a debugging tap.
+
+The UDP feed is what allows gpsd to serve GPS time to chrony: gpsd refuses to
+export time for a PTY-backed device, treating it as a test harness.
 
 Default SPI device is bus 1, device 1, mode 0, 1 MHz. You can override via args.
 
@@ -40,6 +43,8 @@ import pty
 import signal
 import argparse
 import tty
+import fcntl
+import socket
 from typing import Optional, Tuple
 import io
 
@@ -404,8 +409,17 @@ def setup_pty(symlink_path: str) -> Tuple[int, int, io.BufferedWriter, str]:
                          stat.S_IRGRP | stat.S_IWGRP |
                          stat.S_IROTH | stat.S_IWOTH)
     tty.setraw(slave_fd)
+    # nothing has to be reading the debug tap, so never let a full buffer stall
+    # the SPI loop
+    fcntl.fcntl(master_fd, fcntl.F_SETFL,
+                fcntl.fcntl(master_fd, fcntl.F_GETFL) | os.O_NONBLOCK)
     out = os.fdopen(master_fd, "wb", buffering=0)
     return master_fd, slave_fd, out, slave_name
+
+# ------------- UDP helpers -------------
+
+def setup_udp(host: str, port: int) -> Tuple[socket.socket, Tuple[str, int]]:
+    return socket.socket(socket.AF_INET, socket.SOCK_DGRAM), (host, port)
 
 # ------------- SPI setup -------------
 
@@ -458,9 +472,11 @@ def connect_spi(bus: int, dev: int, max_hz: int, meas_ms: int) -> spidev.SpiDev:
 def handle_ctrl_c(signum, frame):
     sys.exit(0)
 
-def run(pty_path: str, bus: int, dev: int, max_hz: int, meas_ms: int,
-        read_size: int, tick_ms: int, notify_ready: bool):
+def run(pty_path: str, udp_host: str, udp_port: int, bus: int, dev: int,
+        max_hz: int, meas_ms: int, read_size: int, tick_ms: int,
+        notify_ready: bool):
     master_fd, slave_fd, out, slave_name = setup_pty(pty_path)
+    sock, udp_addr = setup_udp(udp_host, udp_port)
 
     if notify_ready:
         try:
@@ -489,7 +505,11 @@ def run(pty_path: str, bus: int, dev: int, max_hz: int, meas_ms: int,
             if raw_bytes:
                 data = bytes(raw_bytes).rstrip(b'\xFF')
                 if data:
-                    out.write(data)
+                    sock.sendto(data, udp_addr)
+                    try:
+                        out.write(data)
+                    except BlockingIOError:
+                        pass
     finally:
         try:
             spi.close()
@@ -499,11 +519,17 @@ def run(pty_path: str, bus: int, dev: int, max_hz: int, meas_ms: int,
             out.close()
         except Exception:
             pass
+        try:
+            sock.close()
+        except Exception:
+            pass
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Bridge u-blox SPI UBX NAV-PVT and NAV-SAT to a PTY for gpsd")
-    parser.add_argument("pty_path",    help="Path to create the PTY symlink, e.g. /dev/ttyGPS0")
+        description="Bridge u-blox SPI UBX NAV-PVT and NAV-SAT to gpsd over UDP")
+    parser.add_argument("pty_path",    help="Path to create the PTY debug tap symlink, e.g. /dev/ttyGPS0")
+    parser.add_argument("--udp-host",  default="127.0.0.1",     help="Host running gpsd (default 127.0.0.1)")
+    parser.add_argument("--udp-port",  type=int, default=32100, help="UDP port gpsd is listening on (default 32100)")
     parser.add_argument("--bus",       type=int, default=1,         help="SPI bus number (default 1)")
     parser.add_argument("--dev",       type=int, default=1,         help="SPI device number (default 1)")
     parser.add_argument("--hz",        type=int, default=1_000_000, help="SPI clock Hz (default 1 MHz)")
@@ -516,6 +542,8 @@ def main():
 
     run(
         pty_path=args.pty_path,
+        udp_host=args.udp_host,
+        udp_port=args.udp_port,
         bus=args.bus,
         dev=args.dev,
         max_hz=args.hz,

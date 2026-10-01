@@ -21,7 +21,7 @@ RUN echo "deb [signed-by=/etc/apt/keyrings/gobysoft.gpg] http://packages.jaia.te
 RUN echo "deb [signed-by=/etc/apt/keyrings/jaiabot.gpg] http://packages.jaia.tech/ubuntu/$JAIABOT_APT_REPO/@JAIA_VERSION_RELEASE_BRANCH@ `lsb_release -c -s`/" | tee /etc/apt/sources.list.d/jaiabot.list
 RUN apt-get -y update
 # Install the required packages   
-RUN apt-get install -y goby3-gui goby3-apps goby3-moos jaiabot-apps jaiabot-python jaiabot-config jaiabot-web moos-ivp-apps moosdb10 libmoos-ivp gpsd wireguard ntpsec ntpstat python3-systemd ansible rsync socat
+RUN apt-get install -y goby3-gui goby3-apps goby3-moos jaiabot-apps jaiabot-python jaiabot-config jaiabot-web moos-ivp-apps moosdb10 libmoos-ivp gpsd wireguard chrony python3-systemd ansible rsync socat
 RUN useradd -mUs /bin/bash jaia
 COPY ./entrypoint.sh /entrypoint.sh
 ENTRYPOINT ["/bin/bash", "-li", "/entrypoint.sh"]

@@ -13,3 +13,20 @@ Guidance for Claude when working in this repository.
 ## Github PR
 
 - When replying to Github PRs, prefix each comment with `# Claude` so the other users can clearly see it is your text.
+
+## Pull request descriptions
+
+Structure the description so the author's own notes come first, and write only
+your own section:
+
+```markdown
+# <github username of the person the PR is for>
+
+# Claude
+
+<your description>
+```
+
+- Leave the author's section empty for them to fill in. Never write in it, and
+  never remove text already there.
+- When updating a PR description, rewrite only the `# Claude` section.
