@@ -260,12 +260,6 @@ if [ ! $IS_CLOUDHUB ]; then
     fi
 fi
 
-if [ -f /etc/jaiabot/cloud.env ]; then
-    echo ">>>>> Configuring Authelia (CloudHub) ... "
-    /usr/bin/jaia_configure_authelia.sh
-    echo "<<<<< Configuring Authelia complete!"
-fi
-
 #DEBHELPER#
 
 exit 0
