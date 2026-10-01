@@ -300,7 +300,7 @@ USER_DATA_COMMON=$(realpath ${SCRIPT_PATH}/../../customization/includes.chroot/e
 USER_DATA_FIRST_BOOT_J2=$(realpath ${SCRIPT_PATH}/../../customization/includes.chroot/etc/jaiabot/init/first-boot.preseed.yml.j2)
 
 cp ${USER_DATA_FIRST_BOOT_J2} ${USER_DATA_FIRST_BOOT_DIR}/jaiabot/init
-jaia admin fleet generate ${FLEET_CONFIG} --bootdir ${USER_DATA_FIRST_BOOT_DIR} hub ${CLOUDHUB_ID} --action hub_ssh_keys --action vpn_key --action first_boot --action store_fleet_cfg --action write_cloudhub_env
+jaia admin fleet generate ${FLEET_CONFIG} --bootdir ${USER_DATA_FIRST_BOOT_DIR} hub ${CLOUDHUB_ID} --action vpn_key --action first_boot --action store_fleet_cfg --action write_cloudhub_env
 
 # The closing summary reports the DNS and SMTP entries the operator still has to make
 set -a; source <(grep '^AUTH_' ${USER_DATA_FIRST_BOOT_DIR}/jaiabot/init/cloudhub_env.sh); set +a
@@ -322,18 +322,10 @@ for placeholder in "${!replacements[@]}"; do
     sed -i "s|$placeholder|$value|g" "${USER_DATA_SCRIPT}"
 done
 
-# Append SSH keys to user data script so they get installed
+# No SSH key here: the CloudHub makes its own at first boot so that its private key is never in the user data
 cat <<EOFF >> ${USER_DATA_SCRIPT}
-## Install SSH keys
 PRESEED_DIR="/boot/firmware/jaiabot/init"
 mount -o remount,rw /boot/firmware
-cat <<EOF > \${PRESEED_DIR}/hub${CLOUDHUB_ID}_fleet${FLEET_ID}
-$(cat ${USER_DATA_FIRST_BOOT_DIR}/jaiabot/init/hub${CLOUDHUB_ID}_fleet${FLEET_ID})
-EOF
-
-cat <<EOF > \${PRESEED_DIR}/hub${CLOUDHUB_ID}_fleet${FLEET_ID}.pub
-$(cat ${USER_DATA_FIRST_BOOT_DIR}/jaiabot/init/hub${CLOUDHUB_ID}_fleet${FLEET_ID}.pub)
-EOF
 
 ## Values for cloud.env that AWS cannot be asked for
 cat <<EOF > \${PRESEED_DIR}/cloudhub_env.sh
@@ -476,6 +468,11 @@ while ! ssh "${SSH_OPTS[@]}" jaia@${PUBLIC_IPV4_ADDRESS} "mount | grep -q overla
     exit_if_interrupted
     sleep 5
 done
+
+CLOUDHUB_SSH_PUBKEY=${TMPDIR}/hub${CLOUDHUB_ID}_fleet${FLEET_ID}.pub
+ssh "${SSH_OPTS[@]}" jaia@${PUBLIC_IPV4_ADDRESS} "cat /home/jaia/.ssh/hub${CLOUDHUB_ID}_fleet${FLEET_ID}.pub" > ${CLOUDHUB_SSH_PUBKEY}
+jaia admin fleet set_cloudhub_key ${FLEET_CONFIG} ${CLOUDHUB_SSH_PUBKEY}
+echo ">>>>>> Recorded the CloudHub's SSH public key in ${FLEET_CONFIG}"
 
 AUTHELIA_ADMIN_PASSWORD=$(ssh "${SSH_OPTS[@]}" jaia@${PUBLIC_IPV4_ADDRESS} "sudo grep lldap_admin_password /var/log/jaiabot/auth/authelia/secrets | cut -d = -f2")
 echo ">>>>>> Fetched Authelia initial admin password"

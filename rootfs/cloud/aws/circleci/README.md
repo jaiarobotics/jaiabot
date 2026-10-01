@@ -99,8 +99,9 @@ mean private keys checked into the repository, so CI writes one per run:
 ./make-ci-fleet-config.sh --fleet 9 --bots 2 --warp 5 /tmp/ci-fleet9.cfg
 ```
 
-It generates the hub keys and, unless given `--authorized-key`, the runner's own key, so
-the fleet is reachable only by the run that created it and the keys go away with it.
+It generates the virtual hub's key and, unless given `--authorized-key`, the runner's own key, so
+the fleet is reachable only by the run that created it and the keys go away with it. The
+CloudHub makes its own key, and `create_cloudhub` writes its public half into this file.
 
 ## Sharing one fleet
 

@@ -9,6 +9,13 @@
     tar -xz -f {{ upgrade_dir }}/{{ major_upgrade_rootfs_version }}.boot.tar.gz -C {{ upgrade_boot_dir }}
     # the tool from the release being installed, so this works whatever release this node runs today
     python3 {{ upgrade_boot_dir }}/jaiabot/init/fleet_config/jaia-fleet-config.py generate --mode {{ jaiabot_embedded_mode | default('runtime') }} --bootdir {{ upgrade_boot_dir }} {{ upgrade_dir }}/fleet{{ jaiabot_embedded_fleet_id }}.cfg {{ jaiabot_embedded_type }} {{ jaiabot_embedded_hub_id if jaiabot_embedded_type == 'hub' else jaiabot_embedded_bot_id }} {{ '--action hub_ssh_keys --action vpn_key --action first_boot --action store_fleet_cfg --action write_cloudhub_env' if is_cloudhub | default(false) | bool else '' }}
+    {% if jaiabot_embedded_type == 'hub' %}
+    # The private key of a CloudHub is in no fleet config, only on the CloudHub, so it comes across from there
+    hub_key=hub{{ jaiabot_embedded_hub_id }}_fleet{{ jaiabot_embedded_fleet_id }}
+    if [ ! -e {{ upgrade_boot_dir }}/jaiabot/init/${hub_key} ] && [ -e /home/jaia/.ssh/${hub_key} ]; then
+      cp /home/jaia/.ssh/${hub_key} /home/jaia/.ssh/${hub_key}.pub {{ upgrade_boot_dir }}/jaiabot/init/
+    fi
+    {% endif %}
     rm -f {{ upgrade_boot_dir }}/jaiabot/init/id_vpn_tmp*
 
 # Nothing after this point reports a boot filesystem that was never written, and by then

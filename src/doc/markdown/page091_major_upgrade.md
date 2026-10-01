@@ -188,6 +188,7 @@ The build writes `share/jaiabot/fleet_config/fleet_config.desc` (a protobuf `Fil
 | `jaia admin fleet create` | interactive creation; writes the current version |
 | `jaia admin fleet edit fleetN.cfg [-o out.cfg]` | re-ask every question with the file's answers filled in; whatever a failed migration could not carry over is reported and starts at its default |
 | `jaia admin fleet update_iso` | migrate and validate with the tool of the release *on the ISO*, then embed |
+| `jaia admin fleet set_cloudhub_key fleetN.cfg hub30_fleetN.pub` | record the public key a CloudHub made for itself (`create_cloudhub` runs it) |
 
 It is copied into the boot partition of every image (`jaiabot/init/fleet_config/`, next to `first-boot.preseed.yml.j2`) together with `fleet_config.desc`, so the major upgrade runs the new release's tool from the new boot tarball, on the hub and on every node. It renders the first-boot template with Jinja2's `StrictUndefined`, so a missing value is an error rather than a blank line, and the template's first line dereferences a variable only this tool defines, so an older generator fails on it instead of writing a broken preseed.
 

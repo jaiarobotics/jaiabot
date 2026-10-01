@@ -29,6 +29,10 @@ Each hub ships with its own Yubikey permanently installed into the USB port of t
 
 Re-running fleet configuration with a new key will the key for that hub on all bots.
 
+### CloudHub key
+
+The CloudHub has no Yubikey. It generates its own key on first boot, the private half never leaves it, and the fleet config records only the public half. Every node accepts that key only from the CloudHub's address on the CloudHub VPN. See [CloudHub SSH key](page056_cloud.md#cloudhub-ssh-key).
+
 ## Temporary Yubikeys
 
 For various reasons (repairs, debugging, etc.), keys may need to be temporarily authorized that belong to JaiaBot employees, repair facilities, etc. These keys are stored in `/etc/jaiabot/ssh/tmp_authorized_keys` and are set with a timeout corresponding to the required time to perform the necessary activities.
