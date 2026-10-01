@@ -166,6 +166,8 @@
     logo.src = "/_jaia/favicon.png";
     logo.alt = "Jaia";
     toggle.appendChild(logo);
+    var toggleFleet = el("span", "jaia-nav-toggle-fleet");
+    toggle.appendChild(toggleFleet);
     var toggleUser = el("span", "jaia-nav-toggle-user");
     toggle.appendChild(toggleUser);
     root.appendChild(toggle);
@@ -261,6 +263,18 @@
             .then(applyToPage);
     }
 
+    function loadFleet() {
+        fetch("/_jaia/fleet", { cache: "no-cache" })
+            .then(function (response) {
+                return response.ok ? response.text() : "";
+            })
+            .then(function (text) {
+                var fleet = text.trim();
+                if (/^\d+$/.test(fleet)) toggleFleet.textContent = "Fleet " + fleet;
+            })
+            .catch(function () {});
+    }
+
     function start() {
         document.body.appendChild(root);
         // Apps that mount on <body> (LLDAP) clear it after this runs
@@ -268,6 +282,7 @@
             if (!root.isConnected && document.body) document.body.appendChild(root);
         }).observe(document.documentElement, { childList: true, subtree: true });
         applyToPage();
+        loadFleet();
         loadIdentity();
         // The portal signs in and out without reloading the page
         if (site === "auth" && window.PerformanceObserver) {

@@ -40,6 +40,7 @@ vh1_ip=$(jaia-ip.py --net=vfleet_vpn --fleet_id=${jaia_fleet_index} --node=hub -
 
 # Landing page and shared navigation (static, from jaiabot-web)
 jaia_cloud_web_dir=/usr/share/jaiabot/web/cloud
+authelia_asset_dir=/etc/authelia/assets
 
 # Persistent directories (between major upgrades)
 auth_persistent_dir=/var/log/jaiabot/auth
@@ -227,10 +228,22 @@ else
     rm -f "$smtp_password_file"
 fi
 
+# Portal branding. Authelia serves an override instead of its own file, but
+# portal.json keys are the English text, so keys left out still read correctly.
+# Authelia rejects a value that drops a placeholder the key has.
+mkdir -p $authelia_asset_dir/locales/en
+cp $jaia_cloud_web_dir/authelia/logo.png $jaia_cloud_web_dir/authelia/favicon.ico $authelia_asset_dir/
+cat <<EOF > $authelia_asset_dir/locales/en/portal.json
+{
+    "Login - {{authelia}}": "Jaia Cloud Fleet ${jaia_fleet_index} - {{authelia}}"
+}
+EOF
+
 cat <<EOF > /etc/authelia/configuration.yml
 ---
 server:
   address: 'tcp://:$authelia_port'
+  asset_path: '$authelia_asset_dir'
 default_2fa_method: 'webauthn'
 webauthn:
   disable: false
@@ -382,6 +395,12 @@ cat <<EOF > /etc/caddy/Caddyfile
 {http.request.header.Remote-Name}
 {http.request.header.Remote-Groups}
 WHOAMI 200
+        }
+
+        handle /_jaia/fleet {
+                header Cache-Control no-cache
+                header Content-Type "text/plain; charset=utf-8"
+                respond "${jaia_fleet_index}" 200
         }
 
         # Public (nothing sensitive) so the sign-in page can show the menu too
