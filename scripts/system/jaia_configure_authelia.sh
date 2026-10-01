@@ -177,6 +177,15 @@ EOF
     systemctl restart docker
 fi
 
+# Everything Authelia reads at startup, so we can restart it below only when
+# this run changed something (a restart signs everyone out: sessions are in memory)
+authelia_inputs_fingerprint() {
+    cat /etc/authelia/configuration.yml \
+        /etc/systemd/system/authelia.service.d/override.conf \
+        /etc/authelia/smtp_password 2>/dev/null | sha256sum || true
+}
+authelia_inputs_before=$(authelia_inputs_fingerprint)
+
 # Authelia configuration
 mv /etc/authelia/configuration.yml /etc/authelia/configuration.yml.ex
 
@@ -565,9 +574,14 @@ RestartSec=10s
 $smtp_password_env
 EOF
 
-# Picks up the override without restarting anything already running
 systemctl daemon-reload
-systemctl start authelia
+# Authelia only reads its configuration at startup, so 'start' alone would leave a
+# running instance enforcing the old access_control rules
+if [ "$(authelia_inputs_fingerprint)" != "$authelia_inputs_before" ]; then
+    systemctl restart authelia
+else
+    systemctl start authelia
+fi
 
 
 ##############
