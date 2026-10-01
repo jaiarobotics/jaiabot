@@ -68,8 +68,11 @@ message AdminTool
             short_help_msg: "VPN configuration",
             external_command: "jaia-vpn-gen.sh",
             full_help_msg: "VPN configuration tool.\n"
-                           "Usage: \"jaia admin vpn cloudhub_vpn|vfleet_vpn|fleet_vpn bot|hub|desktop node_id [fleet_id]\"\n"
-                           "       \"jaia admin vpn server_init fleet_id initial_client_pubkey\""
+                           "Usage: \"jaia admin vpn cloudhub_vpn|vfleet_vpn bot|hub|desktop node_id client_pubkey\"\n"
+                           "       \"jaia admin vpn fleet_vpn bot|hub|desktop node_id fleet_id [client_pubkey]\"\n"
+                           "       \"jaia admin vpn server_init fleet_id initial_client_pubkey\"\n"
+                           "\n"
+                           "client_pubkey is 'wg genkey | wg pubkey' run on the node being added, so that its private half never leaves it.\n"
         }];
     }
     optional Action action = 2 [
