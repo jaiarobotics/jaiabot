@@ -30,6 +30,7 @@ set(scripts_to_install
   utils/jaia-geotiff-scan.sh
   utils/jaia-doc.py
   utils/jaia-vpn-gen.sh
+  utils/jaia-vpn-peers.sh
   # System scripts
   system/jaiabot-checkloadavg.py
   system/jaia-debconf.sh

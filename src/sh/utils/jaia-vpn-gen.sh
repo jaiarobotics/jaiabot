@@ -73,13 +73,10 @@ PrivateKey = $(sudo cat /etc/wireguard/privatekey)
 
 PostUp = iptables -w 60 -A FORWARD -i wg_${vpn_type} -j ACCEPT; iptables -w 60 -t nat -A POSTROUTING -o eth0 -j MASQUERADE; ip6tables -A FORWARD -i eth0 -o wg_${vpn_type} -j ACCEPT; ip6tables -A FORWARD -i wg_${vpn_type} -j ACCEPT;
 PostDown = iptables -w 60 -D FORWARD -i wg_${vpn_type} -j ACCEPT; iptables -w 60 -t nat -D POSTROUTING -o eth0 -j MASQUERADE; ip6tables -D FORWARD -i eth0 -o wg_${vpn_type} -j ACCEPT; ip6tables -D FORWARD -i wg_${vpn_type} -j ACCEPT;
-
-[Peer]
-# Initial Setup Client
-PublicKey = ${INITIAL_CLIENT_PUBKEY}
-AllowedIPs = ${client_ipv6}/128
 EOF
 
+        sudo jaia-vpn-peers.sh add wg_${vpn_type} desktop${INITIAL_CLIENT_NODE_ID} "${INITIAL_CLIENT_PUBKEY}" "${client_ipv6}/128"
+        sudo jaia-vpn-peers.sh enable wg_${vpn_type}
         sudo systemctl enable "wg-quick@wg_${vpn_type}"
     done
     exit 0
@@ -168,15 +165,19 @@ EOF
     fi
 fi
 
-sudo grep -q "${CLIENT_IP}/${SUBNET_BITS}" /etc/wireguard/${WG_SERVER_PROFILE}.conf && (echo "${NODE_TYPE} ${NODE_ID} is already configured in /etc/wireguard/${WG_SERVER_PROFILE}.conf. If you wish to continue, manually remove this Peer entry" && exit 1)
+if [[ "$VPN_TYPE" = "fleet_vpn" ]]; then
+    sudo grep -q "${CLIENT_IP}/${SUBNET_BITS}" /etc/wireguard/${WG_SERVER_PROFILE}.conf && (echo "${NODE_TYPE} ${NODE_ID} is already configured in /etc/wireguard/${WG_SERVER_PROFILE}.conf. If you wish to continue, manually remove this Peer entry" && exit 1)
 
-cat <<EOF | sudo tee -a /etc/wireguard/${WG_SERVER_PROFILE}.conf
+    cat <<EOF | sudo tee -a /etc/wireguard/${WG_SERVER_PROFILE}.conf
 # BEGIN PEER ${NODE_TYPE} ${NODE_ID}: CONFIGURED BY vpn_gen.sh
 [Peer]
 PublicKey = $PUBKEY
 AllowedIPs = ${CLIENT_IP}/${SUBNET_BITS}
 # END PEER ${NODE_TYPE} ${NODE_ID}: CONFIGURED BY vpn_gen.sh
 EOF
+else
+    sudo jaia-vpn-peers.sh add ${WG_SERVER_PROFILE} ${NODE_TYPE}${NODE_ID} "$PUBKEY" "${CLIENT_IP}/${SUBNET_BITS}"
+fi
 
 ## Generate client config
 mkdir -p /tmp/${NODE_TYPE}${NODE_ID}
@@ -203,8 +204,12 @@ PersistentKeepalive = 52
 EOF
 echo ">>> SECURELY move /tmp/${NODE_TYPE}${NODE_ID}/${WG_CLIENT_PROFILE}.conf to client machine at /etc/wireguard/${WG_CLIENT_PROFILE}.conf and run:"
 echo "sudo systemctl enable wg-quick@${WG_CLIENT_PROFILE} && sudo systemctl start wg-quick@${WG_CLIENT_PROFILE}"
-echo ">>> Manually restart the server VPN (this may disconnect you!):"
-echo "sudo systemctl restart wg-quick@${WG_SERVER_PROFILE}"
+if [[ "$VPN_TYPE" = "fleet_vpn" ]]; then
+    echo ">>> Manually restart the server VPN (this may disconnect you!):"
+    echo "sudo systemctl restart wg-quick@${WG_SERVER_PROFILE}"
+else
+    echo ">>> The peer is already live on ${WG_SERVER_PROFILE}; no restart is needed."
+fi
 
 
 if [[ "$VPN_TYPE" = "cloudhub_vpn" ]]; then

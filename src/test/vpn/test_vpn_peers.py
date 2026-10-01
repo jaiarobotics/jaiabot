@@ -1,0 +1,446 @@
+#!/usr/bin/env python3
+
+"""Adding a peer must not restart the interface it is added to.
+
+The CloudHub VPN carries HUB2HUB (config/gen/common/comms.py asks for a
+cloudhub_vpn address, and config/gen/hub.py enables the link because that
+interface exists), so bouncing wg_cloudhub takes the fleet's inter-hub link
+down and every support session with it. Once a node enrols itself at first
+boot that stops being a rare supervised act, which is what these tests pin:
+a peer reaches a running interface through 'wg syncconf' - documented as
+applying only the differences - and nothing in the path restarts anything.
+
+wg(8) and a WireGuard interface are not available to the build, so wg,
+wg-quick and systemctl are stubs that record what they were asked to do.
+"""
+
+import os
+import pathlib
+import shutil
+import stat
+import subprocess
+import tempfile
+import unittest
+
+SOURCE_DIR = pathlib.Path(__file__).resolve().parents[3]
+SCRIPT = SOURCE_DIR / "src" / "sh" / "utils" / "jaia-vpn-peers.sh"
+GENERATOR = SOURCE_DIR / "src" / "sh" / "utils" / "jaia-vpn-gen.sh"
+
+INTERFACE = "wg_cloudhub"
+
+KEY_CLIENT = "yZ0oFZ1mYOkCL7OeGBZ0z6mXgQZ0nMhHPZ1kWJ6kSng="
+KEY_HUB1 = "mE7v1qCg0eQ0v8rJ5kKX1Z6pQ2fT3uY4wA5sD6fG7hI="
+KEY_BOT3 = "aB1cD2eF3gH4iJ5kL6mN7oP8qR9sT0uV1wX2yZ3aB4c="
+KEY_NEW = "Zz9yY8xX7wW6vV5uU4tT3sS2rR1qQ0pP9oO8nN7mM6l="
+
+# The shape a CloudHub created before the peers directory is left holding: the
+# config server_init wrote, with peers appended to it by the generator.
+FLAT_CONFIG = """##########################
+#### CloudHub VPN #########
+###########################
+
+[Interface]
+
+# VPN Address for server
+Address = fd0f:77ac:4fdf:7::1e/64
+
+# VPN Server Port
+ListenPort = 51821
+
+# PrivateKey (contents of /etc/wireguard/privatekey)
+PrivateKey = qJ8KZ1cMOBuEMBXmcL5pcOT8MQQ6YtGxYlfxrTPLKmc=
+
+PostUp = iptables -w 60 -A FORWARD -i wg_cloudhub -j ACCEPT
+PostDown = iptables -w 60 -D FORWARD -i wg_cloudhub -j ACCEPT
+
+[Peer]
+# Initial Setup Client
+PublicKey = {client}
+AllowedIPs = fd0f:77ac:4fdf:7::d01/128
+# BEGIN PEER hub 1: CONFIGURED BY vpn_gen.sh
+[Peer]
+PublicKey = {hub1}
+AllowedIPs = fd0f:77ac:4fdf:7::101/128
+# END PEER hub 1: CONFIGURED BY vpn_gen.sh
+# BEGIN PEER bot 3: CONFIGURED BY vpn_gen.sh
+[Peer]
+PublicKey = {bot3}
+AllowedIPs = fd0f:77ac:4fdf:7::203/128
+# END PEER bot 3: CONFIGURED BY vpn_gen.sh
+""".format(client=KEY_CLIENT, hub1=KEY_HUB1, bot3=KEY_BOT3)
+
+INTERFACE_ONLY_CONFIG = """[Interface]
+Address = fd0f:77ac:4fdf:7::1e/64
+ListenPort = 51821
+PrivateKey = qJ8KZ1cMOBuEMBXmcL5pcOT8MQQ6YtGxYlfxrTPLKmc=
+PostUp = iptables -w 60 -A FORWARD -i wg_cloudhub -j ACCEPT
+PostDown = iptables -w 60 -D FORWARD -i wg_cloudhub -j ACCEPT
+"""
+
+# "strip" drops the keys wg-quick handles itself and keeps everything wg reads.
+STUBS = {
+    "wg": """
+echo "wg $*" >> "$JAIA_TEST_CALLS"
+case "$1" in
+    show) [ -e "$JAIA_TEST_UP" ] || exit 1 ;;
+    syncconf) cp "$3" "$JAIA_TEST_RUNNING" ;;
+esac
+exit 0
+""",
+    "wg-quick": """
+echo "wg-quick $*" >> "$JAIA_TEST_CALLS"
+case "$1" in
+    strip) grep -v -E '^[[:space:]]*(Address|MTU|DNS|Table|PreUp|PostUp|PreDown|PostDown|SaveConfig)[[:space:]]*=' "$2" ;;
+    *) exit 1 ;;
+esac
+exit 0
+""",
+    "systemctl": """
+echo "systemctl $*" >> "$JAIA_TEST_CALLS"
+exit 0
+""",
+}
+
+
+class Env:
+    """A scratch /etc/wireguard with stubbed wg, wg-quick and systemctl."""
+
+    def __init__(self, up=True):
+        self.dir = tempfile.mkdtemp()
+        self.wg_dir = os.path.join(self.dir, "wireguard")
+        os.makedirs(self.wg_dir, mode=0o700)
+        self.systemd_dir = os.path.join(self.dir, "systemd")
+
+        self.calls = os.path.join(self.dir, "calls")
+        self.running = os.path.join(self.dir, "running.conf")
+        self.up_marker = os.path.join(self.dir, "up")
+        if up:
+            open(self.up_marker, "w").close()
+
+        fake_bin = os.path.join(self.dir, "bin")
+        os.makedirs(fake_bin)
+        for name, body in STUBS.items():
+            path = os.path.join(fake_bin, name)
+            with open(path, "w") as f:
+                f.write("#!/bin/sh\n" + body)
+            os.chmod(path, 0o755)
+
+        self.env = dict(
+            os.environ,
+            PATH=fake_bin + os.pathsep + os.environ["PATH"],
+            JAIA_WG_DIR=self.wg_dir,
+            JAIA_SYSTEMD_DIR=self.systemd_dir,
+            JAIA_TEST_CALLS=self.calls,
+            JAIA_TEST_RUNNING=self.running,
+            JAIA_TEST_UP=self.up_marker,
+        )
+
+    def run(self, *args):
+        return subprocess.run(
+            ["bash", str(SCRIPT)] + list(args),
+            capture_output=True, text=True, env=self.env)
+
+    def write_config(self, text, interface=INTERFACE):
+        path = os.path.join(self.wg_dir, interface + ".conf")
+        with open(path, "w") as f:
+            f.write(text)
+        os.chmod(path, 0o600)
+        return path
+
+    def config(self, interface=INTERFACE):
+        with open(os.path.join(self.wg_dir, interface + ".conf")) as f:
+            return f.read()
+
+    def peers_dir(self, interface=INTERFACE):
+        return os.path.join(self.wg_dir, interface + ".peers.d")
+
+    def peer_files(self, interface=INTERFACE):
+        directory = self.peers_dir(interface)
+        if not os.path.isdir(directory):
+            return []
+        return sorted(f for f in os.listdir(directory) if f.endswith(".conf"))
+
+    def peer(self, name, interface=INTERFACE):
+        with open(os.path.join(self.peers_dir(interface), name + ".conf")) as f:
+            return f.read()
+
+    def applied(self):
+        """What the interface was last told to run."""
+        if not os.path.exists(self.running):
+            return ""
+        with open(self.running) as f:
+            return f.read()
+
+    def recorded(self):
+        if not os.path.exists(self.calls):
+            return []
+        with open(self.calls) as f:
+            return [line.strip() for line in f if line.strip()]
+
+    def drop_in(self, interface=INTERFACE):
+        path = os.path.join(self.systemd_dir, "wg-quick@{}.service.d".format(interface),
+                            "jaia-peers.conf")
+        if not os.path.exists(path):
+            return None
+        with open(path) as f:
+            return f.read()
+
+    def cleanup(self):
+        shutil.rmtree(self.dir, ignore_errors=True)
+
+
+class PeersTest(unittest.TestCase):
+    def setUp(self):
+        self.env = Env()
+        self.env.write_config(INTERFACE_ONLY_CONFIG)
+        self.addCleanup(self.env.cleanup)
+
+    def assertNothingRestarted(self):
+        for call in self.env.recorded():
+            self.assertFalse(
+                call.startswith("systemctl") and call != "systemctl daemon-reload",
+                "a peer change invoked '{}'; restarting the interface drops "
+                "HUB2HUB and every live session".format(call))
+            self.assertNotIn(
+                " setconf ", " " + call + " ",
+                "a peer change used 'wg setconf', which resets peers that "
+                "did not change; 'wg syncconf' applies only the differences")
+            for verb in ("up", "down"):
+                self.assertNotEqual(
+                    call, "wg-quick {} {}".format(verb, INTERFACE),
+                    "a peer change brought the interface {}".format(verb))
+
+
+class AddTest(PeersTest):
+    def setUp(self):
+        super().setUp()
+        self.assertEqual(self.env.run("add", INTERFACE, "desktop1", KEY_CLIENT,
+                                      "fd0f:77ac:4fdf:7::d01/128").returncode, 0)
+
+    def test_adding_a_peer_does_not_restart_the_interface(self):
+        self.env.run("add", INTERFACE, "bot3", KEY_BOT3, "fd0f:77ac:4fdf:7::203/128")
+        self.assertNothingRestarted()
+        self.assertIn("wg syncconf " + INTERFACE,
+                      " ".join(self.env.recorded()),
+                      "the peer never reached the running interface")
+
+    def test_an_added_peer_reaches_the_running_interface(self):
+        result = self.env.run("add", INTERFACE, "bot3", KEY_BOT3,
+                              "fd0f:77ac:4fdf:7::203/128")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn(KEY_BOT3, self.env.applied())
+        self.assertIn("fd0f:77ac:4fdf:7::203/128", self.env.applied())
+
+    def test_an_add_leaves_the_existing_peers_in_place(self):
+        self.env.run("add", INTERFACE, "bot3", KEY_BOT3, "fd0f:77ac:4fdf:7::203/128")
+        self.assertIn(KEY_CLIENT, self.env.applied(),
+                      "enrolling a bot dropped the peer that was already there")
+
+    def test_the_applied_config_keeps_the_interface_settings(self):
+        self.env.run("add", INTERFACE, "bot3", KEY_BOT3, "fd0f:77ac:4fdf:7::203/128")
+        applied = self.env.applied()
+        self.assertIn("PrivateKey = ", applied)
+        self.assertIn("ListenPort = 51821", applied)
+
+    def test_a_duplicate_peer_is_refused(self):
+        result = self.env.run("add", INTERFACE, "desktop1", KEY_NEW,
+                              "fd0f:77ac:4fdf:7::d01/128")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("already a peer", result.stderr)
+        self.assertNotIn(KEY_NEW, self.env.peer("desktop1"),
+                         "a refused add overwrote the peer it collided with")
+
+    def test_a_peer_name_may_not_escape_the_directory(self):
+        for name in ("../evil", "a/b", "a b", "", "."):
+            result = self.env.run("add", INTERFACE, name, KEY_NEW, "10.0.0.1/32")
+            self.assertNotEqual(result.returncode, 0,
+                                "'{}' was accepted as a peer name".format(name))
+        self.assertEqual(self.env.peer_files(), ["desktop1.conf"])
+
+    def test_a_peer_added_while_the_interface_is_down_is_applied_when_it_comes_up(self):
+        down = Env(up=False)
+        self.addCleanup(down.cleanup)
+        down.write_config(INTERFACE_ONLY_CONFIG)
+
+        result = down.run("add", INTERFACE, "bot3", KEY_BOT3, "fd0f:77ac:4fdf:7::203/128")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(down.applied(), "", "syncconf ran against a down interface")
+        self.assertIn(KEY_BOT3, down.peer("bot3"))
+
+        open(down.up_marker, "w").close()
+        self.assertEqual(down.run("apply", INTERFACE).returncode, 0)
+        self.assertIn(KEY_BOT3, down.applied(),
+                      "the boot hook did not load the peers directory")
+
+
+class RemoveTest(PeersTest):
+    def setUp(self):
+        super().setUp()
+        self.env.run("add", INTERFACE, "desktop1", KEY_CLIENT, "fd0f:77ac:4fdf:7::d01/128")
+        self.env.run("add", INTERFACE, "bot3", KEY_BOT3, "fd0f:77ac:4fdf:7::203/128")
+
+    def test_removing_a_peer_takes_it_off_the_running_interface(self):
+        result = self.env.run("remove", INTERFACE, "bot3")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotIn(KEY_BOT3, self.env.applied())
+        self.assertIn(KEY_CLIENT, self.env.applied(),
+                      "revoking one peer took another with it")
+
+    def test_removing_a_peer_does_not_restart_the_interface(self):
+        self.env.run("remove", INTERFACE, "bot3")
+        self.assertNothingRestarted()
+
+    def test_removing_an_unknown_peer_is_an_error(self):
+        result = self.env.run("remove", INTERFACE, "bot9")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("not a peer", result.stderr)
+
+    def test_list_names_the_peers(self):
+        result = self.env.run("list", INTERFACE)
+        self.assertEqual(sorted(result.stdout.split()), ["bot3", "desktop1"])
+
+
+class MigrateTest(PeersTest):
+    def setUp(self):
+        super().setUp()
+        self.env.write_config(FLAT_CONFIG)
+        result = self.env.run("migrate", INTERFACE)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_migrate_moves_every_peer_into_the_directory(self):
+        self.assertNotIn("[Peer]", self.env.config(),
+                         "a peer was left behind in the flat config")
+        for key in (KEY_CLIENT, KEY_HUB1, KEY_BOT3):
+            self.assertIn(
+                key,
+                "".join(self.env.peer(f[: -len(".conf")]) for f in self.env.peer_files()),
+                "migrating lost the peer holding {}".format(key))
+
+    def test_migrate_names_a_marked_peer_after_its_node(self):
+        self.assertEqual(self.env.peer_files(),
+                         ["bot3.conf", "hub1.conf", "peer-1.conf"])
+        self.assertIn(KEY_HUB1, self.env.peer("hub1"))
+        self.assertIn(KEY_BOT3, self.env.peer("bot3"))
+        self.assertIn(KEY_CLIENT, self.env.peer("peer-1"))
+
+    def test_migrate_keeps_the_marker_comments_out_of_the_fragments(self):
+        self.assertNotIn("BEGIN PEER", self.env.peer("hub1"))
+        self.assertNotIn("END PEER", self.env.peer("hub1"))
+        self.assertTrue(self.env.peer("hub1").startswith("[Peer]"))
+
+    def test_migrate_keeps_the_interface_settings(self):
+        config = self.env.config()
+        for line in ("Address = fd0f:77ac:4fdf:7::1e/64",
+                     "ListenPort = 51821",
+                     "PrivateKey = qJ8KZ1cMOBuEMBXmcL5pcOT8MQQ6YtGxYlfxrTPLKmc=",
+                     "PostUp = iptables -w 60 -A FORWARD -i wg_cloudhub -j ACCEPT",
+                     "PostDown = iptables -w 60 -D FORWARD -i wg_cloudhub -j ACCEPT"):
+            self.assertIn(line, config)
+
+    def test_migrate_has_the_unit_load_the_directory(self):
+        drop_in = self.env.drop_in()
+        self.assertIsNotNone(drop_in, "a migrated interface would come up with no peers")
+        self.assertIn("ExecStartPost=/usr/bin/jaia-vpn-peers.sh apply %i", drop_in)
+
+    def test_reloading_the_unit_keeps_the_directory_peers(self):
+        """The stock ExecReload syncs to the config alone, which no longer holds them."""
+        drop_in = self.env.drop_in()
+        self.assertIn("ExecReload=\n", drop_in, "the stock ExecReload was not cleared")
+        self.assertIn("ExecReload=/usr/bin/jaia-vpn-peers.sh apply %i", drop_in)
+
+    def test_migrate_is_idempotent(self):
+        before = (self.env.config(), self.env.peer_files(), self.env.drop_in())
+        self.assertEqual(self.env.run("migrate", INTERFACE).returncode, 0)
+        self.assertEqual((self.env.config(), self.env.peer_files(), self.env.drop_in()), before)
+
+    def test_migrate_does_not_touch_the_interface(self):
+        self.assertNothingRestarted()
+        self.assertEqual(self.env.applied(), "",
+                         "migrating applied a config; the restart that follows it does that")
+
+    def test_a_migrated_interface_serves_every_peer_at_boot(self):
+        self.assertEqual(self.env.run("apply", INTERFACE).returncode, 0)
+        for key in (KEY_CLIENT, KEY_HUB1, KEY_BOT3):
+            self.assertIn(key, self.env.applied())
+
+    def test_migrate_refuses_an_interface_with_no_config(self):
+        result = self.env.run("migrate", "wg_nope")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("to migrate", result.stderr)
+
+
+class MigrateStaleHookTest(PeersTest):
+    """An earlier build of this script put its apply in the config's PostUp, where
+    wg-quick's AppArmor profile refuses to execute it and the interface is deleted."""
+
+    def test_migrate_removes_it(self):
+        self.env.write_config(INTERFACE_ONLY_CONFIG.replace(
+            "PostDown", "PostUp = jaia-vpn-peers.sh apply %i\nPostDown"))
+        self.assertEqual(self.env.run("migrate", INTERFACE).returncode, 0)
+        self.assertNotIn("jaia-vpn-peers.sh", self.env.config())
+        self.assertIn("PostUp = iptables -w 60 -A FORWARD -i wg_cloudhub -j ACCEPT",
+                      self.env.config(), "removing the hook took another PostUp with it")
+        self.assertIsNotNone(self.env.drop_in())
+
+
+class EnableTest(PeersTest):
+    def test_enable_writes_the_drop_in(self):
+        self.assertEqual(self.env.run("enable", INTERFACE).returncode, 0)
+        self.assertIn("ExecStartPost=/usr/bin/jaia-vpn-peers.sh apply %i", self.env.drop_in())
+
+    def test_enable_reloads_systemd_and_restarts_nothing(self):
+        self.env.run("enable", INTERFACE)
+        self.assertIn("systemctl daemon-reload", self.env.recorded())
+        self.assertNothingRestarted()
+
+
+class MigrateUnparsedPeerTest(PeersTest):
+    """A section header the splitter does not recognise keeps its peer where it is."""
+
+    ODD_CONFIG = """[Interface]
+Address = fd0f:77ac:4fdf:7::1e/64
+ListenPort = 51821
+PrivateKey = qJ8KZ1cMOBuEMBXmcL5pcOT8MQQ6YtGxYlfxrTPLKmc=
+
+[Peer] # left as it was
+PublicKey = {hub1}
+AllowedIPs = fd0f:77ac:4fdf:7::101/128
+""".format(hub1=KEY_HUB1)
+
+    def setUp(self):
+        super().setUp()
+        self.env.write_config(self.ODD_CONFIG)
+        self.assertEqual(self.env.run("migrate", INTERFACE).returncode, 0)
+
+    def test_the_peer_is_not_lost(self):
+        self.assertIn(KEY_HUB1, self.env.config())
+        self.assertEqual(self.env.peer_files(), [])
+
+
+class SourceTest(unittest.TestCase):
+    """Neither script is compiled or linted anywhere else."""
+
+    def test_the_vpn_scripts_parse(self):
+        for script in (SCRIPT, GENERATOR):
+            result = subprocess.run(["bash", "-n", str(script)],
+                                    capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0,
+                             "{}: {}".format(script.name, result.stderr))
+
+    def test_no_wireguard_config_runs_the_helper_from_postup(self):
+        """Ubuntu confines wg-quick with AppArmor, which denies executing the helper
+        from a hook; the interface is deleted when a hook fails."""
+        for script in (SCRIPT, GENERATOR):
+            for n, line in enumerate(script.read_text().splitlines(), 1):
+                self.assertFalse(
+                    line.lstrip().startswith(("PostUp", "PreUp", "PostDown", "PreDown"))
+                    and "jaia-vpn-peers" in line,
+                    "{}:{} runs the helper from a wg-quick hook".format(script.name, n))
+
+    def test_the_peers_script_is_executable(self):
+        self.assertTrue(os.stat(SCRIPT).st_mode & stat.S_IXUSR,
+                        "{} is installed with install(PROGRAMS)".format(SCRIPT.name))
+
+
+if __name__ == "__main__":
+    unittest.main()
