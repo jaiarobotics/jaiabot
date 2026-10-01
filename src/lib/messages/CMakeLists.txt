@@ -16,6 +16,7 @@ set(SENSOR_PROTOS
   sensor/atlas_scientific__oem_ph.proto
   sensor/turner__c_fluor.proto
   sensor/aml.proto
+  sensor/tsys01.proto
 )
 
 # All messages used by microcontrollers (C code)

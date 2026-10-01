@@ -235,8 +235,9 @@ function GridConfigs(props: Props) {
 
         switch (inputType) {
             case GridInputs.NUM_OF_LANES:
-                setNumOfLanes(input);
                 gridPlan.setNumOfLanes(input);
+                gridPlan.clampNumOfLanesToBots();
+                setNumOfLanes(gridPlan.getNumOfLanes());
                 gridPlan.calculateMaxPointsPerLane();
                 break;
             case GridInputs.NUM_OF_BOTS:
@@ -261,6 +262,22 @@ function GridConfigs(props: Props) {
         gridLayer.createGrid();
     };
 
+    /**
+     * Clamps the lane count once the bot count has finished being edited
+     *
+     * Clamping on each keystroke would discard a valid lane count while a multi-digit
+     * number is being typed, since "10" passes through "1" and the lower ceiling is
+     * committed before the second digit arrives.
+     *
+     * @returns {void}
+     */
+    const handleNumOfBotsBlur = () => {
+        gridPlan.clampNumOfLanesToBots();
+        setNumOfLanes(gridPlan.getNumOfLanes());
+        gridPlan.calculateMaxPointsPerLane();
+        gridLayer.createGrid();
+    };
+
     return (
         <div className="jaia-panel survey">
             <div className="jaia-panel-title">Survey Planner</div>
@@ -270,6 +287,7 @@ function GridConfigs(props: Props) {
                 <div>Number of Lanes:</div>
                 <input
                     type="number"
+                    aria-label="number-of-lanes"
                     value={formatNumericalInput(numOfLanes)}
                     onChange={(evt: ChangeEvent<HTMLInputElement>) =>
                         handleInputChange(evt.target.value, GridInputs.NUM_OF_LANES)
@@ -278,10 +296,12 @@ function GridConfigs(props: Props) {
                 <div>Number of Bots:</div>
                 <input
                     type="number"
+                    aria-label="number-of-bots"
                     value={formatNumericalInput(numOfBots)}
                     onChange={(evt: ChangeEvent<HTMLInputElement>) =>
                         handleInputChange(evt.target.value, GridInputs.NUM_OF_BOTS)
                     }
+                    onBlur={handleNumOfBotsBlur}
                 />
                 <div>Lane Spacing:</div>
                 <div className="input-group">
