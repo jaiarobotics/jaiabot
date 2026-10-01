@@ -57,6 +57,11 @@ class MissionManager : public goby::zeromq::MultiThreadApplication<config::Missi
         return test_modes_.count(mode);
     }
 
+    bool is_delegated(jaiabot::protobuf::MissionState state) const
+    {
+        return delegated_states_.count(state);
+    }
+
   private:
     void initialize() override;
     void finalize() override;

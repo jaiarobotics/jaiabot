@@ -271,4 +271,11 @@ message MissionManager
     // improve a degraded fix by maneuvering.
     optional int32 reacquire_gps_timeout = 100
         [default = 0, (dccl.field).units = { base_dimensions: "T" }];
+
+    // while in a delegated PRE_DEPLOYMENT__SELF_TEST, re-send the delegate request at this
+    // interval. The request is otherwise only sent once on entering SELF_TEST, so a delegate
+    // that already finished (and responded) before this app got there would never respond
+    // again, leaving the bot stuck in SELF_TEST. 0 disables.
+    optional double self_test_delegate_retry_interval = 101
+        [default = 10, (dccl.field).units = { base_dimensions: "T" }];
 }
