@@ -1,7 +1,7 @@
 import cloneDeep from "lodash/cloneDeep";
 import Task from "../tasks/task";
 import Mission from "../mission_set/mission";
-import { UNASSIGNED_ID, MAX_WAYPOINTS } from "../../utils/constants";
+import { UNASSIGNED_ID, MAX_WAYPOINTS, MAX_LANES_PER_BOT } from "../../utils/constants";
 import { GeographicCoordinate } from "@proto/jaiabot/messages/geographic_coordinate";
 import { BottomDepthSafetyParams, MissionPlan_Segment } from "@proto/jaiabot/messages/mission";
 
@@ -187,6 +187,19 @@ export class GridPlan {
         this.missions = missions;
     }
 
+    /**
+     * Caps the number of lanes so no Bot is assigned more than MAX_LANES_PER_BOT lanes,
+     * the most lane starts a mission plan can carry. A Bot count of 0 is left unclamped,
+     * since it only occurs while the input is being edited.
+     *
+     * @returns {void}
+     */
+    clampNumOfLanesToBots() {
+        if (this.numOfBots > 0) {
+            this.numOfLanes = Math.min(this.numOfLanes, this.numOfBots * MAX_LANES_PER_BOT);
+        }
+    }
+
     getMaxWaypointsPerLane() {
         return this.maxWaypointsPerLane;
     }
@@ -239,9 +252,10 @@ export class GridPlan {
                 const mission = this.missions.get(i + 1);
                 // Do not count start + end points
                 nextLaneStartIndex += mission.getWaypoints().length - 2;
-                // Remove mission end location if not last lane in group
+                // Remove mission end location and mark where the next lane starts if not last lane in group
                 if (i + 1 < lanesCovered + updatedLanesPerBot) {
                     mission.getWaypoints().pop();
+                    segment.lane_start_goal_indices.push(nextLaneStartIndex);
                 }
 
                 // Remove mission start location if not first lane in group
@@ -249,7 +263,6 @@ export class GridPlan {
                     mission.getWaypoints().shift();
                 }
 
-                segment.lane_start_goal_indices.push(nextLaneStartIndex);
                 baseMission.addWaypoints(cloneDeep(mission.getWaypoints()));
                 baseMission.setSegments([segment]);
                 this.missions.delete(mission.getMissionID());

@@ -79,6 +79,8 @@ class GeneratedFilesTest(unittest.TestCase):
         self.assertIn("echo) db_set jaiabot-embedded/bot_type pam ;;", config)
         self.assertIn("none) db_set jaiabot-embedded/bot_type hydro ;;", config)
         self.assertIn("usb_old) db_set jaiabot-embedded/arduino_type usb ;;", config)
+        # a multiselect answer is normalised choice by choice
+        self.assertIn("turner_c_flour) choice=turner_c_fluor ;;", config)
         # hubs never answer bot_type
         self.assertIn("configure_hub() {\n    local state=\"hub_id\"\n    db_set jaiabot-embedded/bot_type none", config)
         # warp only in simulation, pam connection only for pam bots
