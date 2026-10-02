@@ -10,6 +10,7 @@ set -u -e -o pipefail
 ##############
 
 jaia_auth_lldap_bootstrap_completed=false
+jaia_auth_lldap_bootstrap_generation=0
 
 set -a
 source "/etc/jaiabot/jaia.env"
@@ -101,7 +102,7 @@ Pin: version ${jaia_version_authelia_series}.*
 Pin-Priority: 990
 EOF
 
-apt-get update && apt-get install -y authelia caddy docker-compose-v2 fuse-overlayfs
+apt-get update && apt-get install -y authelia caddy docker-compose-v2 fuse-overlayfs ldap-utils
 
 
 ##############
@@ -329,6 +330,20 @@ EOF
 # Caddy starts with its stock Caddyfile when installed, so reload to apply ours (graceful if running)
 systemctl reload-or-restart caddy
 
+##################
+## Support keys ##
+##################
+
+# Written here rather than into the image's jaia_sshd.conf: the directory it
+# queries is on this machine's loopback, so this is the one node where an
+# LDAP-backed sshd is not something to be reached across the link being
+# debugged.
+cat <<EOF > /etc/ssh/sshd_config.d/jaia_support.conf
+AuthorizedKeysCommand /usr/bin/jaia-support-authorized-keys.sh %u
+AuthorizedKeysCommandUser root
+EOF
+sshd -t && systemctl reload-or-restart ssh
+
 ###########
 ## LLDAP ##
 ###########
@@ -347,6 +362,7 @@ groups=(
     super_admin
     rest_api_read
     rest_api_all
+    jaia_support
 )
 
 # Create group config files
@@ -357,6 +373,30 @@ for group in "${groups[@]}"; do
 }
 EOF
 done
+
+# LLDAP's own name for this attribute (example_configs/pam). bootstrap.sh defaults
+# USER_SCHEMAS_DIR to /bootstrap/user-schemas, which the existing mount covers.
+mkdir -p /etc/lldap/bootstrap/user-schemas
+cat > /etc/lldap/bootstrap/user-schemas/sshPublicKey.json <<EOF
+{
+  "name": "sshPublicKey",
+  "attributeType": "STRING",
+  "isEditable": true,
+  "isList": true,
+  "isVisible": true
+}
+EOF
+
+# Groupless: the account exists so a key can hang off it and the customer has
+# someone to add, but it reaches nothing until they put it in jaia_support.
+# No "groups" key rather than an empty one, so no reading of this file can
+# revoke a grant the customer has made.
+cat > /etc/lldap/bootstrap/user-configs/jaia_support.json <<EOF
+{
+  "id": "jaia_support",
+  "email": "support@jaia.tech"
+}
+EOF
 
 # Create jaia_admin user config
 cat > /etc/lldap/bootstrap/user-configs/jaia_admin.json <<EOF
@@ -421,12 +461,23 @@ EOF
 systemctl enable lldap
 systemctl start lldap
 
-if ! $jaia_auth_lldap_bootstrap_completed; then
+# Bump when the groups, users or schemas above change: the guard below records
+# which set was applied, so a CloudHub bootstrapped before a new one existed
+# runs bootstrap.sh once more rather than never seeing it.
+lldap_bootstrap_generation=1
+
+# Superseded by the generation; true means generation 0 was applied
+if $jaia_auth_lldap_bootstrap_completed; then
+    sed -i '/^jaia_auth_lldap_bootstrap_completed=/d' /etc/jaiabot/cloud.env
+fi
+
+if (( ${jaia_auth_lldap_bootstrap_generation:-0} < lldap_bootstrap_generation )); then
     # -T because cloud-init gives this no TTY, and bounded because a first boot that
     # never returns leaves the machine without the reboot that mounts overlayroot
     for attempt in $(seq 1 120); do
         if docker compose -f /etc/lldap/docker-compose.yaml exec -T lldap /app/bootstrap.sh; then
-            echo "jaia_auth_lldap_bootstrap_completed=true" >> /etc/jaiabot/cloud.env
+            sed -i '/^jaia_auth_lldap_bootstrap_generation=/d' /etc/jaiabot/cloud.env
+            echo "jaia_auth_lldap_bootstrap_generation=${lldap_bootstrap_generation}" >> /etc/jaiabot/cloud.env
             break
         fi
         if (( attempt == 120 )); then

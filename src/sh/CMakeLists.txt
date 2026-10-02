@@ -41,6 +41,7 @@ set(scripts_to_install
   system/jaia-update-dns.sh
   system/jaia-iridium-tunnel.sh
   system/jaia_configure_authelia.sh
+  system/jaia-support-authorized-keys.sh
   system/jaia_configure_cloudhub.sh
   # Fleet config
   fleet/jaia-fleet-config.py
