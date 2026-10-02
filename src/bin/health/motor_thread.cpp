@@ -66,45 +66,55 @@ jaiabot::apps::MotorStatusThread::MotorStatusThread(const jaiabot::config::Motor
             last_motor_rpm_report_time_ = goby::time::SteadyClock::now();
         });
 
+    // the STM32 power board and the (older) Arduino driver publish equivalent
+    // response messages on different groups; only one of the two drivers runs
+    // on a given bot, so we subscribe to both to support either configuration
+    interprocess().subscribe<jaiabot::groups::power_board_pb_data_in>(
+        [this](const jaiabot::protobuf::PowerBoardResponse& power_board_response)
+        { handle_motor_response(power_board_response); });
+
     interprocess().subscribe<jaiabot::groups::arduino_to_pi>(
-        [this](const jaiabot::protobuf::ArduinoResponse& arduino_response) {
-            if (arduino_response.has_thermistor_voltage())
-            {
-                float voltage = arduino_response.thermistor_voltage();
-                float resistance =
-                    thermistor_ohms_neutral * voltage / (thermistor_voltage - voltage);
-                float temperature =
-                    goby::util::linear_interpolate(resistance, resistance_to_temperature_);
-                float temperature_celsius = (temperature - 32) / 1.8;
+        [this](const jaiabot::protobuf::ArduinoResponse& arduino_response)
+        { handle_motor_response(arduino_response); });
+}
 
-                status_.mutable_thermistor()->set_temperature(temperature_celsius);
-                status_.mutable_thermistor()->set_resistance(resistance);
-                status_.mutable_thermistor()->set_voltage(voltage);
+template <typename Response>
+void jaiabot::apps::MotorStatusThread::handle_motor_response(const Response& response)
+{
+    if (response.has_thermistor_voltage())
+    {
+        float voltage = response.thermistor_voltage();
+        float resistance = thermistor_ohms_neutral * voltage / (thermistor_voltage - voltage);
+        float temperature = goby::util::linear_interpolate(resistance, resistance_to_temperature_);
+        float temperature_celsius = (temperature - 32) / 1.8;
 
-                last_motor_thermistor_report_time_ = goby::time::SteadyClock::now();
-            }
+        status_.mutable_thermistor()->set_temperature(temperature_celsius);
+        status_.mutable_thermistor()->set_resistance(resistance);
+        status_.mutable_thermistor()->set_voltage(voltage);
 
-            if (arduino_response.has_motor())
-            {
-                if (arduino_response.motor() > MOTOR_OFF_MICROS)
-                {
-                    // motor is spinning in forward direction
-                    status_.set_rpm(std::abs(rpm_value_));
-                }
-                else if (arduino_response.motor() < MOTOR_OFF_MICROS)
-                {
-                    // motor is spinning in reverse direction
-                    status_.set_rpm(-std::abs(rpm_value_));
-                }
-                else
-                {
-                    // motor is off
-                    status_.set_rpm(0);
-                }
-            }
+        last_motor_thermistor_report_time_ = goby::time::SteadyClock::now();
+    }
 
-            log_usage(arduino_response);
-        });
+    if (response.has_motor())
+    {
+        if (response.motor() > MOTOR_OFF_MICROS)
+        {
+            // motor is spinning in forward direction
+            status_.set_rpm(std::abs(rpm_value_));
+        }
+        else if (response.motor() < MOTOR_OFF_MICROS)
+        {
+            // motor is spinning in reverse direction
+            status_.set_rpm(-std::abs(rpm_value_));
+        }
+        else
+        {
+            // motor is off
+            status_.set_rpm(0);
+        }
+    }
+
+    log_usage(response);
 }
 
 void jaiabot::apps::MotorStatusThread::issue_status_summary()
@@ -339,14 +349,14 @@ void jaiabot::apps::MotorStatusThread::update_total_motor_usage()
     interprocess().publish<jaiabot::groups::motor_usage_report>(usage_report);
 }
 
-void jaiabot::apps::MotorStatusThread::log_usage(
-    const jaiabot::protobuf::ArduinoResponse& arduino_response)
+template <typename Response>
+void jaiabot::apps::MotorStatusThread::log_usage(const Response& response)
 {
     // Log the motor usage
-    static jaiabot::protobuf::ArduinoResponse previous_response;
+    static Response previous_response;
     static int64_t previous_response_time = 0;
 
-    if (arduino_response.has_motor())
+    if (response.has_motor())
     {
         if (previous_response_time != 0 && previous_response.has_motor())
         {
@@ -355,7 +365,7 @@ void jaiabot::apps::MotorStatusThread::log_usage(
             log_motor(previous_response.motor(), previous_response_duration_seconds, rpm_value_);
         }
 
-        previous_response = arduino_response;
+        previous_response = response;
         previous_response_time = now_microseconds();
     }
 }
