@@ -1,0 +1,31 @@
+---
+# A view, not a grant: support access is given and taken away by the customer's
+# own directory administrator at https://support.<fleet base uri>. An operator
+# about to start an upgrade has a legitimate reason to know whether Jaia is
+# connected, which is all this answers.
+- name: Check Jaia support access
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  tasks:
+    - name: Ask the CloudHub what it is granting
+      shell: |
+        set -e
+        source /usr/bin/jaia-debconf.sh
+        cloudhub=$(jaia_ip chf$(jaia_debconf_get fleet_id))
+        ssh -o BatchMode=yes -o ConnectTimeout=10 "jaia@${cloudhub}" jaia-support-access.py list
+      args:
+        executable: /bin/bash
+      register: support_access
+      failed_when: false
+      changed_when: false
+
+    - name: Set facts for support access
+      set_fact:
+        jaia_support_access: >-
+          {{ support_access.stdout if support_access.rc == 0
+             else 'could not reach the CloudHub to ask' }}
+
+    - name: Display Jaia support access
+      debug:
+        var: jaia_support_access

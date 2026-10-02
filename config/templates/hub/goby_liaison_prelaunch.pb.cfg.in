@@ -139,35 +139,14 @@ upper_right_logo_link: "https://www.jaia.tech/"
 
     
     ansible_playbook {
-        file: "check-vpn-status.yml" 
-        name: "Check for VPN Status"
+        file: "check-support-access.yml" 
+        name: "Check Jaia Support Access"
         section: "Security"
         role: USER
         output_var {
-            name: "jaiabot_vpn_active_state"
-            display_name: "Check VPN Active State?"
+            name: "jaia_support_access"
+            display_name: "Jaia Support Access"
         }
-        output_var {
-            name: "jaiabot_vpn_enable_state"
-            display_name: "Check VPN Enable State?"
-        }
-        $limit
-    }
-
-    ansible_playbook {
-        file: "change-vpn-state.yml" 
-        name: "Change VPN State"
-        section: "Security"
-        role: USER
-        input_var {
-            name: "state"
-            display_name: "State"
-            value: "start"
-            value: "stop"
-            value: "enable"
-            value: "disable"
-        }
-        $limit
     }
     
     ansible_playbook {
