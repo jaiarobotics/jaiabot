@@ -45,7 +45,14 @@ message VPNAuthorizeTool
     optional bool rm = 3 [
         default = false,
         (goby.field) = {
-            description: "If true, remove the key rather than add it (the default)"
+            description: "If true, remove the authorization rather than add it (the default)"
+        }
+    ];
+
+    optional uint32 valid_for_days = 4 [
+        default = 30,
+        (goby.field) = {
+            description: "Days the authorization remains valid"
         }
     ];
 }

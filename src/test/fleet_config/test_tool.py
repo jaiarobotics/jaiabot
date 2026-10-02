@@ -420,6 +420,40 @@ class CommandTest(unittest.TestCase):
         self.assertIn("jaiabot-embedded/bot_id string 2", preseed)
 
     @needs_render_deps
+    def test_generate_points_a_node_at_its_own_cloudhub(self):
+        bootdir = self.env.bootdir()
+        result = self.env.run("generate", fixture("v1_fleet7.cfg"), "--bootdir", bootdir, "bot", "2")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        with open(os.path.join(bootdir, "jaiabot", "init", "first-boot.preseed.yml")) as f:
+            preseed = f.read()
+        self.assertIn("configure-wireguard-service-vpn.sh fleet7.jaia.tech", preseed)
+        self.assertIn("enable wg-quick@wg_jaia_ch7", preseed)
+
+    @needs_render_deps
+    def test_generate_leaves_the_cloudhub_nothing_to_enroll_with(self):
+        """Hub 30 is the server: given its own base URI it would enroll with itself."""
+        bootdir = self.env.bootdir()
+        result = self.env.run("generate", fixture("v1_fleet7.cfg"), "--bootdir", bootdir, "hub", "30")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        with open(os.path.join(bootdir, "jaiabot", "init", "first-boot.preseed.yml")) as f:
+            preseed = f.read()
+        self.assertNotIn("fleet7.jaia.tech", preseed)
+        self.assertIn("disable wg-quick@wg_jaia_ch7", preseed)
+        yaml.safe_load(preseed)
+
+    @needs_render_deps
+    def test_generate_for_a_simulation_with_no_cloudhub(self):
+        """A simulation may ask for the service VPN with no CloudHub to reach, which
+        the template has to render rather than fail on."""
+        bootdir = self.env.bootdir()
+        result = self.env.run("generate", fixture("v2_simulation.cfg"), "--bootdir", bootdir, "hub", "1")
+        self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+        with open(os.path.join(bootdir, "jaiabot", "init", "first-boot.preseed.yml")) as f:
+            preseed = f.read()
+        self.assertIn("disable wg-quick@wg_jaia_ch6", preseed)
+        yaml.safe_load(preseed)
+
+    @needs_render_deps
     def test_generate_without_permanent_keys_or_overrides(self):
         bootdir = self.env.bootdir()
         result = self.env.run("generate", fixture("v2_no_permanent_keys.cfg"), "--bootdir", bootdir, "hub", "30")

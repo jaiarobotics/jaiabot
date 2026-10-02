@@ -1,13 +1,7 @@
-#include <chrono>
-#include <ctime>
-#include <iomanip>
-#include <iostream>
-#include <sstream>
 #include <string>
 
 #include "../../common.h"
-#include "../ssh/add.h"
-#include "../ssh/rm.h"
+#include "../../ssh.h"
 #include "common.h"
 #include "config.pb.h"
 #include "vpn_authorize.h"
@@ -26,26 +20,22 @@ jaiabot::apps::admin::fleet::VPNAuthorizeTool::VPNAuthorizeTool()
 
     auto pubkey = fleet_cfg.ssh().vpn_tmp().public_key();
 
-    glog.is_verbose() && glog << "Authorizing key for 1 day: " << pubkey << std::endl;
-
-    // Run 'jaia admin ssh' with command to add this key
-    goby::middleware::protobuf::AppConfig::Tool subtool_cfg;
-
-    subtool_cfg.add_extra_cli_param("vpn.jaia.tech");
-    subtool_cfg.add_extra_cli_param(pubkey);
-
+    std::string command = "sudo jaia-vpn-authorize.sh ";
+    if (app_cfg().rm())
+        command += "--rm ";
+    command += "'" + pubkey + "'";
     if (!app_cfg().rm())
-        subtool_cfg.add_extra_cli_param("1d");
+        command += " " + std::to_string(app_cfg().valid_for_days());
+
+    // The CloudHub is only reachable over the VPN it is the server for, so this
+    // renews an authorization but cannot create the first one.
+    goby::middleware::protobuf::AppConfig::Tool subtool_cfg;
+    subtool_cfg.add_extra_cli_param("chf" + std::to_string(fleet_cfg.fleet()));
+    subtool_cfg.add_extra_cli_param(command);
 
     goby::middleware::ToolHelper tool_helper(app_cfg().app().binary(), subtool_cfg,
                                              jaiabot::config::Tool::Action_descriptor());
-
-    if (!app_cfg().rm())
-        tool_helper.run_subtool<jaiabot::apps::admin::ssh::AddTool,
-                                jaiabot::apps::admin::ssh::AddToolConfigurator>();
-    else
-        tool_helper.run_subtool<jaiabot::apps::admin::ssh::RemoveTool,
-                                jaiabot::apps::admin::ssh::RemoveToolConfigurator>();
+    tool_helper.run_subtool<jaiabot::apps::SshTool, jaiabot::apps::SshToolConfigurator>();
 
     quit(0);
 }

@@ -190,16 +190,6 @@ if [ "$JAIA_TYPE" = "bot" ]; then
 fi
 
 
-echo ">>>>> Installing (but not enabling) Wireguard VPN ... "
-
-/usr/share/jaiabot/config/gen/wireguard.py ${JAIA_TYPE} \
-                                         --name wg_jaia \
-                                         --bot_id=${BOT_OR_HUB_INDEX} \
-                                         --hub_id=${BOT_OR_HUB_INDEX} \
-                                         --fleet_id=${FLEET_INDEX}
-
-echo ">>>>> Installing Wireguard VPN complete!"
-
 # Upgrades carry a ~/.bashrc that sources /etc/jaiabot/runtime.env, and the file
 # itself, which nothing regenerates any more - left in place it would export a
 # stale identity into every login shell, overriding /etc/profile.d/jaia.sh.
