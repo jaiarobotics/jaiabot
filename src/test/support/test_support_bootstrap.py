@@ -125,6 +125,17 @@ class BootstrapTest(unittest.TestCase):
         self.assertTrue(all(line.startswith("jaia-support sk-ssh-ed25519@openssh.com ")
                             for line in emitted))
 
+    def test_the_tool_can_name_every_root_key(self):
+        """These two lists drifted once already: a key in the file but not the
+        tool is one 'jaia admin ssh add' cannot name."""
+        compiled = (SOURCE_DIR / "src" / "bin" / "tool" / "actions" / "admin" / "ssh"
+                    / "pubkeys.cpp").read_text()
+        keys = SOURCE_DIR / "config" / "ssh" / "root_authorized_keys"
+        for line in keys.read_text().splitlines():
+            if not line.strip() or line.startswith("#"):
+                continue
+            self.assertIn(line.split()[1], compiled)
+
 
 if __name__ == "__main__":
     unittest.main()

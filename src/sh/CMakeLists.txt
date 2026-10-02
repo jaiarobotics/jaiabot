@@ -44,6 +44,7 @@ set(scripts_to_install
   system/jaia_configure_authelia.sh
   system/jaia-support-authorized-keys.sh
   system/jaia-support-portal.py
+  system/jaia-support-access.py
   system/jaia_configure_cloudhub.sh
   # Fleet config
   fleet/jaia-fleet-config.py
