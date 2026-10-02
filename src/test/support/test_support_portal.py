@@ -3,13 +3,13 @@
 """Neither Jaia nor the customer can grant support access alone.
 
 The portal is the customer's half of that: it draws an approve button only for a
-request that ssh-keygen verifies against Jaia's root keys, for this fleet, inside
-the window it was signed for. These tests drive the real service over HTTP with
-real signatures against a stand-in user directory, so a forged, altered, stale,
-over-long or misaddressed request is tested against the code that answers it.
+request that ssh-keygen verifies against Jaia's root keys, for this fleet,
+inside the window it was signed for. These tests drive the real service over
+HTTP, with real signatures, against a stand-in CloudHub - so a forged, altered,
+stale, over-long or misaddressed request is tested against the code that
+answers it, and an approval is followed all the way into the directory.
 """
 
-import http.server
 import json
 import os
 import pathlib
@@ -17,18 +17,18 @@ import shutil
 import socket
 import subprocess
 import tempfile
-import threading
 import time
 import unittest
 import urllib.error
 import urllib.parse
 import urllib.request
 
+from support_stubs import FLEET, CloudHub, FakeLldap, free_port
+
 SOURCE_DIR = pathlib.Path(__file__).resolve().parents[3]
 PORTAL = SOURCE_DIR / "src" / "sh" / "system" / "jaia-support-portal.py"
+ACCESS = SOURCE_DIR / "src" / "sh" / "system" / "jaia-support-access.py"
 
-FLEET = 7
-ADMIN_PASSWORD = "e3b0c44298fc1c149afbf4c8996fb924"
 BEGIN = "-----BEGIN JAIA SUPPORT REQUEST-----"
 END = "-----END JAIA SUPPORT REQUEST-----"
 
@@ -36,75 +36,12 @@ END = "-----END JAIA SUPPORT REQUEST-----"
 NO_PROXY = urllib.request.build_opener(urllib.request.ProxyHandler({}))
 
 
-def free_port():
-    with socket.socket() as s:
-        s.bind(("127.0.0.1", 0))
-        return s.getsockname()[1]
-
-
-class FakeLldap(http.server.BaseHTTPRequestHandler):
-    """Just enough of LLDAP's API to answer the three calls the portal makes."""
-
-    members = set()
-    groups = [{"id": 3, "displayName": "jaia_support"}, {"id": 1, "displayName": "lldap_admin"}]
-
-    def log_message(self, fmt, *args):
-        pass
-
-    def do_POST(self):
-        body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
-
-        if self.path == "/auth/simple/login":
-            ok = body.get("password") == ADMIN_PASSWORD
-            self.answer({"token": "a-token"} if ok else {"error": "bad password"},
-                        200 if ok else 401)
-            return
-
-        if self.headers.get("Authorization") != "Bearer a-token":
-            self.answer({"errors": [{"message": "unauthorized"}]}, 401)
-            return
-
-        query, variables = body["query"], body["variables"]
-        if "groups { id displayName }" in query:
-            self.answer({"data": {"groups": self.groups}})
-        elif "user(userId:" in query:
-            held = [g for g in self.groups if g["displayName"] in FakeLldap.members]
-            self.answer({"data": {"user": {"groups": held}}})
-        elif "addUserToGroup" in query:
-            FakeLldap.members.add(self.group_name(variables["group"]))
-            self.answer({"data": {"addUserToGroup": {"ok": True}}})
-        elif "removeUserFromGroup" in query:
-            FakeLldap.members.discard(self.group_name(variables["group"]))
-            self.answer({"data": {"removeUserFromGroup": {"ok": True}}})
-        else:
-            self.answer({"errors": [{"message": "unknown query"}]})
-
-    def group_name(self, group_id):
-        return next(g["displayName"] for g in self.groups if g["id"] == group_id)
-
-    def answer(self, payload, status=200):
-        raw = json.dumps(payload).encode()
-        self.send_response(status)
-        self.send_header("Content-Type", "application/json")
-        self.send_header("Content-Length", str(len(raw)))
-        self.end_headers()
-        self.wfile.write(raw)
-
-
 class PortalTest(unittest.TestCase):
     def setUp(self):
         self.dir = tempfile.mkdtemp()
         self.addCleanup(shutil.rmtree, self.dir, True)
-
-        FakeLldap.members = set()
-        self.lldap = http.server.ThreadingHTTPServer(("127.0.0.1", 0), FakeLldap)
-        threading.Thread(target=self.lldap.serve_forever, daemon=True).start()
-        self.addCleanup(self.lldap.server_close)
-        self.addCleanup(self.lldap.shutdown)
-
-        self.secrets = os.path.join(self.dir, "secrets")
-        with open(self.secrets, "w") as f:
-            f.write("jwt_secret=irrelevant\nlldap_admin_password={}\n".format(ADMIN_PASSWORD))
+        self.hub = CloudHub(self.dir)
+        self.addCleanup(self.hub.close)
 
         self.key = os.path.join(self.dir, "root_key")
         self.keygen(self.key)
@@ -112,11 +49,9 @@ class PortalTest(unittest.TestCase):
         self.keygen(self.stranger)
 
         self.allowed_signers = os.path.join(self.dir, "allowed_signers")
-        with open(self.allowed_signers, "w") as f:
-            with open(self.key + ".pub") as pub:
-                f.write("jaia-support {}\n".format(" ".join(pub.read().split()[:2])))
+        with open(self.allowed_signers, "w") as f, open(self.key + ".pub") as pub:
+            f.write("jaia-support {}\n".format(" ".join(pub.read().split()[:2])))
 
-        self.state = os.path.join(self.dir, "state")
         self.port = free_port()
         self.start()
 
@@ -125,14 +60,10 @@ class PortalTest(unittest.TestCase):
                         "-f", path], check=True)
 
     def start(self):
-        environment = dict(os.environ,
-                           JAIA_FLEET_ID=str(FLEET),
-                           JAIA_SUPPORT_ALLOWED_SIGNERS=self.allowed_signers,
-                           JAIA_SUPPORT_STATE_DIR=self.state,
-                           JAIA_AUTH_SECRETS=self.secrets,
-                           JAIA_LLDAP_URL="http://127.0.0.1:{}".format(
-                               self.lldap.server_address[1]),
-                           JAIA_SUPPORT_PORTAL_PORT=str(self.port))
+        environment = self.hub.environment(
+            JAIA_SUPPORT_ALLOWED_SIGNERS=self.allowed_signers,
+            JAIA_SUPPORT_ACCESS=str(ACCESS),
+            JAIA_SUPPORT_PORTAL_PORT=str(self.port))
         self.portal = subprocess.Popen(["python3", str(PORTAL)], env=environment,
                                        stderr=subprocess.DEVNULL)
         self.addCleanup(self.stop)
@@ -196,12 +127,8 @@ class PortalTest(unittest.TestCase):
             return refused.code, refused.read().decode()
 
     def grant(self):
-        with open(os.path.join(self.state, "grant.json")) as f:
+        with open(os.path.join(self.hub.state, "grant.json")) as f:
             return json.load(f)
-
-    def audit(self):
-        with open(os.path.join(self.state, "audit.log")) as f:
-            return [json.loads(line) for line in f if line.strip()]
 
     ## Tests
 
@@ -246,8 +173,7 @@ class PortalTest(unittest.TestCase):
         self.assertIn("not a Jaia support request", page)
 
     def test_approving_puts_the_support_account_in_the_group(self):
-        pasted = self.sign(days=3, reason="Pump fault on bot 3")
-        status, page = self.post("approve", pasted)
+        status, page = self.post("approve", self.sign(days=3, reason="Pump fault on bot 3"))
         self.assertEqual(200, status)
         self.assertEqual({"jaia_support"}, FakeLldap.members)
 
@@ -265,7 +191,7 @@ class PortalTest(unittest.TestCase):
         pasted = self.sign(days=1, tamper=lambda p: p.replace('"days":1', '"days":14'))
         self.post("approve", pasted)
         self.assertEqual(set(), FakeLldap.members)
-        self.assertFalse(os.path.exists(os.path.join(self.state, "grant.json")))
+        self.assertFalse(os.path.exists(os.path.join(self.hub.state, "grant.json")))
 
     def test_revoking_takes_the_account_back_out_of_the_group(self):
         self.post("approve", self.sign())
@@ -274,18 +200,24 @@ class PortalTest(unittest.TestCase):
         status, page = self.post("revoke")
         self.assertEqual(200, status)
         self.assertEqual(set(), FakeLldap.members)
-        self.assertFalse(os.path.exists(os.path.join(self.state, "grant.json")))
+        self.assertFalse(os.path.exists(os.path.join(self.hub.state, "grant.json")))
         self.assertIn("Jaia has no access to this fleet", self.get())
 
-    def test_every_decision_is_written_down(self):
+    def test_the_page_shows_what_has_been_granted(self):
         self.post("approve", self.sign(reason="Pump fault on bot 3"))
         self.post("revoke")
+        page = self.get()
+        self.assertIn("tier2_grant", page)
+        self.assertIn("Pump fault on bot 3", page)
+        self.assertIn("tier2_end", page)
 
-        entries = self.audit()
-        self.assertEqual(["approve", "revoke"], [e["action"] for e in entries])
-        self.assertEqual("Pump fault on bot 3", entries[0]["reason"])
-        self.assertEqual("operator", entries[0]["approved_by"])
-        self.assertEqual("operator", entries[1]["revoked_by"])
+    def test_the_page_shows_what_tier_three_reaches(self):
+        self.post("approve", self.sign(days=7))
+        subprocess.run(["python3", str(ACCESS), "grant", "--desktop", "9",
+                        "--wg-key", "CkA5z9dOczQFFX+l3jKFc+SKrFys0ePoHFnErg+Y8Ec=",
+                        "--ssh-key", "ssh-ed25519 AAAAC3Nza= jaia@root_yubikey1"],
+                       env=self.hub.environment(), check=True, stdout=subprocess.DEVNULL)
+        self.assertIn("support9 until", self.get())
 
     def test_a_post_from_another_site_is_refused(self):
         status, _ = self.post("approve", self.sign(), csrf="not-the-token")

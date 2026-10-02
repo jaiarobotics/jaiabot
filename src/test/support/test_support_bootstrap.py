@@ -136,6 +136,26 @@ class BootstrapTest(unittest.TestCase):
                 continue
             self.assertIn(line.split()[1], compiled)
 
+    def test_a_grant_expires_with_nobody_acting(self):
+        """Group membership and a WireGuard peer both last until something takes
+        them away, so the timer is the whole of the expiry mechanism."""
+        timer = heredoc(SCRIPT, "/etc/systemd/system/jaia_support_reconcile.timer")
+        self.assertIn("OnUnitActiveSec=", timer)
+        # a CloudHub switched off over an expiry must not come back still granting
+        self.assertIn("OnBootSec=", timer)
+        self.assertIn("systemctl enable --now jaia_support_reconcile.timer", self.text)
+
+        unit = heredoc(SCRIPT, "/etc/systemd/system/jaia_support_reconcile.service")
+        self.assertIn("ExecStart=/usr/bin/jaia-support-access.py reconcile", unit)
+        self.assertIn("Environment=JAIA_FLEET_ID=$jaia_fleet_id", unit)
+
+    def test_ending_a_grant_can_still_reach_the_fleet(self):
+        """The portal runs the access script, which reaches bots and hubs with
+        the key in the jaia user's home, so ProtectHome would strand a
+        revocation at the CloudHub."""
+        unit = heredoc(SCRIPT, "/etc/systemd/system/jaia_support_portal.service")
+        self.assertNotIn("ProtectHome", unit)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -4,9 +4,13 @@
 
 Jaia asks for access by signing a request with one of its root keys; this serves
 the page where the customer reads that request and decides. Neither side can act
-alone: a request that ssh-keygen cannot verify against the keys compiled into the
-jaia tool is drawn with no approve button, and a verified one still does nothing
+alone: a request that ssh-keygen cannot verify against the root keys on this
+image is drawn with no approve button, and a verified one still does nothing
 until someone who can log in here presses it.
+
+Deciding is all this does. Every grant, and everything a grant carries, is held
+and applied by jaia-support-access.py, which the timer runs too - so what the
+page shows is what the fleet actually has, not a second account of it.
 """
 
 import html
@@ -21,11 +25,8 @@ import sys
 import tempfile
 import time
 import urllib.parse
-import urllib.request
 
 MAX_DAYS = 14
-ACCOUNT = "jaia_support"
-GROUP = "jaia_support"
 NAMESPACE = "jaia-support"
 PRINCIPAL = "jaia-support"
 
@@ -33,15 +34,14 @@ BEGIN_MARKER = "-----BEGIN JAIA SUPPORT REQUEST-----"
 END_MARKER = "-----END JAIA SUPPORT REQUEST-----"
 
 CSRF_COOKIE = "jaia_support_csrf"
+AUDIT_SHOWN = 25
 
 ALLOWED_SIGNERS = os.environ.get("JAIA_SUPPORT_ALLOWED_SIGNERS",
                                  "/etc/jaiabot/support/allowed_signers")
 STATE_DIR = os.environ.get("JAIA_SUPPORT_STATE_DIR", "/var/log/jaiabot/auth/support")
-SECRETS = os.environ.get("JAIA_AUTH_SECRETS", "/var/log/jaiabot/auth/authelia/secrets")
-LLDAP_URL = os.environ.get("JAIA_LLDAP_URL", "http://127.0.0.1:17170")
+ACCESS = os.environ.get("JAIA_SUPPORT_ACCESS", "/usr/bin/jaia-support-access.py")
 LISTEN_PORT = int(os.environ.get("JAIA_SUPPORT_PORTAL_PORT", "9992"))
 
-GRANT_FILE = os.path.join(STATE_DIR, "grant.json")
 AUDIT_FILE = os.path.join(STATE_DIR, "audit.log")
 
 
@@ -108,7 +108,7 @@ def check(payload, fleet, now):
     if not 1 <= asked["days"] <= MAX_DAYS:
         raise Refused("This request asks for {} days of access; {} is the most that can be "
                       "granted.".format(asked["days"], MAX_DAYS))
-    # Jaia's own window, not the grant's: a request left unapproved for long enough
+    # Jaia's own window, not the grant's: a request left unapproved long enough
     # to lapse is one whose reason has had time to go stale
     if asked["expires_at"] <= now:
         raise Refused("This request lapsed on {}; ask Jaia for a new one."
@@ -117,117 +117,35 @@ def check(payload, fleet, now):
     return asked
 
 
-###########
-## LLDAP ##
-###########
+############
+## State  ##
+############
 
-# Loopback only, so nothing on the way can see the admin password or the answer
-_opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
-
-
-def lldap_post(path, payload, token=None):
-    headers = {"Content-Type": "application/json"}
-    if token:
-        headers["Authorization"] = "Bearer " + token
-    request = urllib.request.Request(LLDAP_URL + path, data=json.dumps(payload).encode(),
-                                     headers=headers, method="POST")
-    with _opener.open(request, timeout=15) as answer:
-        return json.loads(answer.read().decode())
+def access(*args):
+    done = subprocess.run([ACCESS] + list(args), stdout=subprocess.PIPE,
+                          stderr=subprocess.PIPE, text=True)
+    if done.returncode != 0:
+        raise RuntimeError(done.stderr.strip() or "jaia-support-access.py failed")
+    return done.stdout.strip()
 
 
-def lldap_login():
-    with open(SECRETS) as f:
-        secrets_read = dict(line.strip().split("=", 1) for line in f if "=" in line)
-    password = secrets_read.get("lldap_admin_password")
-    if not password:
-        raise RuntimeError("no lldap_admin_password in {}".format(SECRETS))
-    return lldap_post("/auth/simple/login",
-                      {"username": "jaia_admin", "password": password})["token"]
+def state():
+    return json.loads(access("status"))
 
 
-def graphql(token, query, variables):
-    answer = lldap_post("/api/graphql", {"query": query, "variables": variables}, token)
-    if answer.get("errors"):
-        raise RuntimeError(answer["errors"][0].get("message", "LLDAP refused the request"))
-    return answer["data"]
-
-
-def in_support_group(token):
-    groups = graphql(token,
-                     "query($user: String!) { user(userId: $user) { groups { displayName } } }",
-                     {"user": ACCOUNT})["user"]["groups"]
-    return any(group["displayName"] == GROUP for group in groups)
-
-
-def support_group_id(token):
-    for group in graphql(token, "query { groups { id displayName } }", {})["groups"]:
-        if group["displayName"] == GROUP:
-            return group["id"]
-    raise RuntimeError("LLDAP has no '{}' group".format(GROUP))
-
-
-def set_membership(member):
-    token = lldap_login()
-    if in_support_group(token) == member:
-        return
-
-    mutation = ("mutation($user: String!, $group: Int!) "
-                "{ addUserToGroup(userId: $user, groupId: $group) { ok } }" if member else
-                "mutation($user: String!, $group: Int!) "
-                "{ removeUserFromGroup(userId: $user, groupId: $group) { ok } }")
-    graphql(token, mutation, {"user": ACCOUNT, "group": support_group_id(token)})
-
-
-###########
-## State ##
-###########
-
-def read_grant():
+def recent_decisions():
     try:
-        with open(GRANT_FILE) as f:
-            return json.load(f)
-    except (OSError, ValueError):
-        return None
-
-
-def write_grant(grant):
-    pending = GRANT_FILE + ".new"
-    with open(os.open(pending, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600), "w") as f:
-        json.dump(grant, f, sort_keys=True)
-        f.write("\n")
-    os.replace(pending, GRANT_FILE)
-
-
-def audit(action, detail):
-    entry = dict(detail)
-    entry["action"] = action
-    entry["at"] = int(time.time())
-    with open(os.open(AUDIT_FILE, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o600), "a") as f:
-        f.write(json.dumps(entry, sort_keys=True) + "\n")
-
-
-def approve(asked, signer, by, now):
-    # The clock starts when the customer approves, not when Jaia asked, and the cap
-    # is applied here as well as where the request was made
-    granted = dict(asked)
-    granted["expires_at"] = now + min(asked["days"], MAX_DAYS) * 86400
-    granted["approved_at"] = now
-    granted["approved_by"] = by
-    granted["signer"] = signer
-
-    set_membership(True)
-    write_grant(granted)
-    audit("approve", granted)
-    return granted
-
-
-def revoke(by):
-    set_membership(False)
-    try:
-        os.unlink(GRANT_FILE)
+        with open(AUDIT_FILE) as f:
+            lines = f.readlines()[-AUDIT_SHOWN:]
     except OSError:
-        pass
-    audit("revoke", {"revoked_by": by})
+        return []
+    entries = []
+    for line in reversed(lines):
+        try:
+            entries.append(json.loads(line))
+        except ValueError:
+            continue
+    return entries
 
 
 ##########
@@ -235,18 +153,22 @@ def revoke(by):
 ##########
 
 STYLE = """
-body { font-family: sans-serif; margin: 0 auto; max-width: 48rem; padding: 2rem 1rem;
+body { font-family: sans-serif; margin: 0 auto; max-width: 52rem; padding: 2rem 1rem;
        color: #202020; }
 h1 { font-size: 1.4rem; }
+h2 { font-size: 1.1rem; margin-top: 2rem; }
 textarea { width: 100%; height: 12rem; font-family: monospace; font-size: 0.8rem; }
-table { border-collapse: collapse; margin: 1rem 0; }
+table { border-collapse: collapse; margin: 1rem 0; width: 100%; }
 th { text-align: left; padding: 0.3rem 1rem 0.3rem 0; vertical-align: top;
      font-weight: normal; color: #606060; }
-td { padding: 0.3rem 0; }
+td { padding: 0.3rem 1rem 0.3rem 0; vertical-align: top; }
+table.log { font-size: 0.85rem; }
+table.log td { border-top: 1px solid #e8e8e8; }
 .banner { padding: 0.8rem 1rem; border-radius: 4px; margin: 1rem 0; }
 .granted { background: #e8f4e8; border: 1px solid #93c293; }
 .none { background: #f0f0f0; border: 1px solid #c8c8c8; }
 .refused { background: #f8e8e8; border: 1px solid #c29393; }
+.quiet { color: #707070; font-size: 0.85rem; }
 button { font-size: 1rem; padding: 0.5rem 1.2rem; }
 """
 
@@ -258,33 +180,58 @@ def page(title, body):
             .format(html.escape(title), STYLE, body))
 
 
-def rows(pairs):
-    return "<table>{}</table>".format("".join(
+def rows(pairs, css=""):
+    return "<table{}>{}</table>".format(" class=\"{}\"".format(css) if css else "", "".join(
         "<tr><th>{}</th><td>{}</td></tr>".format(html.escape(name), html.escape(str(value)))
         for name, value in pairs))
 
 
-def status_banner(grant, member, trouble):
-    if trouble:
-        return "<p class=\"banner refused\">{}</p>".format(html.escape(trouble))
-    if not member:
+def banner(now, current):
+    if current["trouble"]:
+        return "<p class=\"banner refused\">The user directory could not be reached, so this " \
+               "may be out of date: {}</p>".format(html.escape(current["trouble"]))
+
+    grant = current["grant"]
+    if not current["member"] and not grant:
         return "<p class=\"banner none\">Jaia has no access to this fleet.</p>"
     if not grant:
         return ("<p class=\"banner refused\">Jaia's support account is in the "
-                "<code>jaia_support</code> group with no grant on record. It will be removed "
-                "when the next reconciliation runs.</p>")
+                "<code>jaia_support</code> group with no grant on record. The next "
+                "reconciliation will take it back out.</p>")
 
-    return ("<p class=\"banner granted\">Jaia has access to this fleet until {}.</p>{}"
-            .format(html.escape(stamp(grant["expires_at"])),
-                    rows([("Reason", grant.get("reason", "")),
-                          ("Approved", stamp(grant.get("approved_at", 0))),
-                          ("Approved by", grant.get("approved_by", "")),
-                          ("Signed with", grant.get("signer", ""))])))
+    carried = "".join(
+        "<tr><th>Reaches the fleet</th><td>support{} until {}</td></tr>".format(
+            html.escape(str(held["desktop"])), html.escape(stamp(held["expires_at"])))
+        for held in current["tier3"])
+
+    return ("<p class=\"banner granted\">Jaia has access to this fleet until {}.</p>"
+            "<table>{}{}</table>".format(
+                html.escape(stamp(grant["expires_at"])),
+                "".join("<tr><th>{}</th><td>{}</td></tr>".format(html.escape(name),
+                                                                 html.escape(str(value)))
+                        for name, value in [("Reason", grant.get("reason", "")),
+                                            ("Approved", stamp(grant.get("approved_at", 0))),
+                                            ("Approved by", grant.get("approved_by", "")),
+                                            ("Signed with", grant.get("signer", ""))]),
+                carried))
+
+
+def log_table():
+    entries = recent_decisions()
+    if not entries:
+        return ""
+    return "<h2>What has been granted</h2><table class=\"log\">{}</table>".format("".join(
+        "<tr><td>{}</td><td>{}</td><td>{}</td></tr>".format(
+            html.escape(stamp(entry.get("at", 0))),
+            html.escape(entry.get("action", "")),
+            html.escape(entry.get("reason") or entry.get("why") or
+                        ("support{}".format(entry["desktop"]) if "desktop" in entry else "")))
+        for entry in entries))
 
 
 def form(token, pasted="", problem=""):
-    banner = ("<p class=\"banner refused\">{}</p>".format(html.escape(problem))
-              if problem else "")
+    warning = ("<p class=\"banner refused\">{}</p>".format(html.escape(problem))
+               if problem else "")
     return ("""{}<h2>Grant access</h2>
 <p>Paste the request Jaia sent you. It is checked against Jaia's own keys before
 anything is shown.</p>
@@ -292,21 +239,26 @@ anything is shown.</p>
 <input type="hidden" name="csrf" value="{}">
 <textarea name="request" placeholder="{}" required>{}</textarea>
 <p><button type="submit" name="action" value="review">Check this request</button></p>
-</form>""".format(banner, html.escape(token), BEGIN_MARKER, html.escape(pasted)))
+</form>""".format(warning, html.escape(token), BEGIN_MARKER, html.escape(pasted)))
 
 
-def status_page(token, grant, member, trouble, pasted="", problem=""):
-    revoke_form = ""
-    if member:
-        revoke_form = ("""<form method="post" action="/">
+def status_page(token, now, current, pasted="", problem=""):
+    ending = ""
+    if current["grant"] or current["member"]:
+        ending = ("""<form method="post" action="/">
 <input type="hidden" name="csrf" value="{}">
 <p><button type="submit" name="action" value="revoke">End Jaia's access now</button></p>
 </form>""".format(html.escape(token)))
 
+    last = current.get("last_reconcile")
+    footer = "<p class=\"quiet\">Last checked {}.</p>".format(
+        html.escape(stamp(last))) if last else \
+        "<p class=\"quiet\">Access has not been checked since this CloudHub started.</p>"
+
     return page("Jaia support access",
-                "<h1>Jaia support access</h1>{}{}{}".format(
-                    status_banner(grant, member, trouble), revoke_form,
-                    form(token, pasted, problem)))
+                "<h1>Jaia support access</h1>{}{}{}{}{}".format(
+                    banner(now, current), ending, form(token, pasted, problem),
+                    log_table(), footer))
 
 
 def review_page(token, asked, signer, pasted, now):
@@ -314,7 +266,7 @@ def review_page(token, asked, signer, pasted, now):
     return page("Approve Jaia support access", """<h1>Approve Jaia support access</h1>
 <p class="banner granted">This request is signed by a Jaia root key.</p>
 {}
-<p>Approving lets Jaia log in to this CloudHub, and only this CloudHub, until
+<p>Approving lets Jaia log in to this CloudHub, and reach the fleet from it, until
 {}. You can end it here at any time before that.</p>
 <form method="post" action="/">
 <input type="hidden" name="csrf" value="{}">
@@ -375,13 +327,13 @@ class Portal(http.server.BaseHTTPRequestHandler):
         # nothing but Caddy is in a position to assert it
         return self.headers.get("Remote-User", "")
 
-    def directory_state(self):
+    def current(self):
         try:
-            return in_support_group(lldap_login()), ""
+            return state()
         except Exception as problem:
-            self.log_message("LLDAP unreachable: %s", problem)
-            return False, "The user directory could not be reached, so what is shown here may " \
-                          "be out of date: {}".format(problem)
+            self.log_message("could not read the grant: %s", problem)
+            return {"grant": None, "member": False, "tier3": [], "last_reconcile": None,
+                    "trouble": str(problem)}
 
     def do_GET(self):
         if urllib.parse.urlparse(self.path).path != "/":
@@ -391,8 +343,7 @@ class Portal(http.server.BaseHTTPRequestHandler):
         token = self.cookie_token()
         fresh = token is None
         token = token or secrets.token_hex(16)
-        member, trouble = self.directory_state()
-        self.reply(status_page(token, read_grant(), member, trouble),
+        self.reply(status_page(token, int(time.time()), self.current()),
                    cookie=token if fresh else None)
 
     def do_POST(self):
@@ -423,7 +374,8 @@ class Portal(http.server.BaseHTTPRequestHandler):
         pasted = field("request")
 
         if action == "revoke":
-            self.act(lambda: revoke(self.who()), "Jaia's access has ended.", token, pasted)
+            self.act(lambda: access("revoke", "--by", self.who()),
+                     "Jaia's access has ended.", token, pasted)
             return
 
         try:
@@ -431,13 +383,14 @@ class Portal(http.server.BaseHTTPRequestHandler):
             signer = verify(payload, signature)
             asked = check(payload, self.fleet, now)
         except Refused as refusal:
-            member, trouble = self.directory_state()
-            self.reply(status_page(token, read_grant(), member, trouble, pasted, str(refusal)))
+            self.reply(status_page(token, now, self.current(), pasted, str(refusal)))
             return
 
         if action == "approve":
             ends = now + min(asked["days"], MAX_DAYS) * 86400
-            self.act(lambda: approve(asked, signer, self.who(), now),
+            self.act(lambda: access("approve", "--fleet", str(asked["fleet"]),
+                                    "--days", str(asked["days"]), "--reason", asked["reason"],
+                                    "--by", self.who(), "--signer", signer),
                      "Jaia has access to this fleet until {}.".format(stamp(ends)),
                      token, pasted)
         else:
@@ -448,8 +401,7 @@ class Portal(http.server.BaseHTTPRequestHandler):
             action()
         except Exception as problem:
             self.log_message("action failed: %s", problem)
-            member, trouble = self.directory_state()
-            self.reply(status_page(token, read_grant(), member, trouble, pasted,
+            self.reply(status_page(token, int(time.time()), self.current(), pasted,
                                    "That did not work: {}".format(problem)), status=500)
             return
         self.reply(done_page(message))

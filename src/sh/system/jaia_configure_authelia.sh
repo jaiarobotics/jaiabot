@@ -551,10 +551,11 @@ ExecStart=/usr/bin/jaia-support-portal.py
 Environment=JAIA_FLEET_ID=$jaia_fleet_id
 Environment=JAIA_SUPPORT_PORTAL_PORT=$support_portal_port
 
-# Root for the directory password, and nothing else it does not need
+# Root for the directory password, and nothing else it does not need. /home
+# stays visible: ending a grant reaches the fleet over the CloudHub's own SSH
+# key, which lives in the jaia user's home.
 NoNewPrivileges=true
 ProtectSystem=strict
-ProtectHome=true
 PrivateTmp=true
 ReadWritePaths=$support_persistent_dir
 
@@ -565,9 +566,38 @@ RestartSec=5s
 WantedBy=multi-user.target
 EOF
 
+# Group membership has no expiry of its own, and neither does a WireGuard peer,
+# so this is the one mechanism that ends a grant nobody remembers to end.
+cat > /etc/systemd/system/jaia_support_reconcile.service <<EOF
+[Unit]
+Description=Bring Jaia's support access back in line with what the customer granted
+After=lldap.service
+Wants=lldap.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/jaia-support-access.py reconcile
+Environment=JAIA_FLEET_ID=$jaia_fleet_id
+EOF
+
+cat > /etc/systemd/system/jaia_support_reconcile.timer <<EOF
+[Unit]
+Description=Bring Jaia's support access back in line with what the customer granted
+
+[Timer]
+# On boot as well as on the interval: a grant must not outlive a CloudHub that
+# happened to be switched off when it expired
+OnBootSec=2min
+OnUnitActiveSec=5min
+
+[Install]
+WantedBy=timers.target
+EOF
+
 systemctl daemon-reload
 systemctl enable jaia_support_portal
 systemctl restart jaia_support_portal
+systemctl enable --now jaia_support_reconcile.timer
 
 ##############
 ## Firewall ##
