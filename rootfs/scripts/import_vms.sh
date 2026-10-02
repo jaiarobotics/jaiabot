@@ -102,6 +102,9 @@ if [[ "${FLEET_WLAN_NET}" == *:* ]]; then
     # (checked against 7.0.16, which rejects an option it does not know)
     vboxmanage natnetwork add --netname ${NATNET_NAME} --network ${NATNET_IPV4} --enable --dhcp on \
                               --ipv6 on --ipv6-prefix ${FLEET_WLAN_NET}
+    # 7.2 creates the DHCP server only when the network first starts, and the fixed addresses
+    # below need it to exist
+    vboxmanage natnetwork start --netname ${NATNET_NAME}
 else
     vboxmanage natnetwork add --netname ${NATNET_NAME} --network ${NATNET_IPV4} --enable --dhcp off
 fi
