@@ -634,8 +634,11 @@ jobs:
           name: Install the jaiabot tooling this commit built
           command: rootfs/cloud/aws/circleci/install-jaiabot-tooling.sh
       - run:
+          # An hour, because a job cannot outlive CircleCI's 60 minute cap: a fleet
+          # older than that is one nothing is coming back for. A trial holds its
+          # fleet for about a quarter of an hour, so this still leaves a wide margin.
           name: Reap any CI fleet a killed build left behind
-          command: rootfs/cloud/aws/reap_ci_fleets.sh --max-age-hours 4
+          command: rootfs/cloud/aws/reap_ci_fleets.sh --max-age-hours 1
       - run:
           # a CI fleet is one reserved id, so overlapping runs queue rather than the
           # later one failing outright; the reaper above has already taken any fleet
