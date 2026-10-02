@@ -95,7 +95,15 @@ NATNET_NAME=$(printf 'jaiafleet%02d' ${FLEET})
 FLEET_WLAN_NET=$(jaia_ip --query_type net --ip_net wlan --fleet_id ${FLEET})
 NATNET_IPV4=$(jaia_ip --query_type net --ip_net vfleet_wlan --fleet_id ${FLEET} --ip_version ipv4)
 
-vboxmanage list natnets | grep -q ${NATNET_NAME} && vboxmanage natnetwork remove --netname ${NATNET_NAME}
+if vboxmanage list natnets | grep -q "^Name: *${NATNET_NAME}$"; then
+    vboxmanage natnetwork stop --netname ${NATNET_NAME} || true
+    vboxmanage natnetwork remove --netname ${NATNET_NAME}
+fi
+# removing the network leaves its DHCP server behind, still running with the old nodes' addresses
+if vboxmanage list dhcpservers | grep -q "^NetworkName: *${NATNET_NAME}$"; then
+    vboxmanage dhcpserver stop --network=${NATNET_NAME} || true
+    vboxmanage dhcpserver remove --network=${NATNET_NAME}
+fi
 
 if [[ "${FLEET_WLAN_NET}" == *:* ]]; then
     # --ipv6-prefix is missing from 'VBoxManage natnetwork --help' but is accepted and applied
