@@ -27,6 +27,7 @@ lldap_ldap_port=3890
 lldap_web_port=17170
 jcc_port=8080
 authelia_port=9991
+support_portal_port=9992
 
 ## IP/URLs
 base_uri=$jaia_auth_base_uri
@@ -40,6 +41,7 @@ vh1_ip=$(jaia_ip --query_type addr --ip_net vfleet_vpn --fleet_id ${jaia_fleet_i
 auth_persistent_dir=/var/log/jaiabot/auth
 authelia_persistent_dir=$auth_persistent_dir/authelia
 lldap_persistent_dir=$auth_persistent_dir/lldap
+support_persistent_dir=$auth_persistent_dir/support
 
 
 if [ ! -d "$lldap_persistent_dir" ]; then
@@ -258,6 +260,13 @@ access_control:
         - 'group:lldap_admin'
         - 'group:super_admin'
 
+    # Whoever administers the directory is who decides on Jaia's access to the fleet
+    - domain: support.$base_uri
+      policy: 'two_factor'
+      subject:
+        - 'group:lldap_admin'
+        - 'group:super_admin'
+
 session:
   secret: '$session_secret'
   cookies:
@@ -309,6 +318,13 @@ users.$base_uri {
         $caddy_tls
         import authelia_forward_auth
         reverse_proxy :$lldap_web_port
+}
+
+# Jaia support access
+support.$base_uri {
+        $caddy_tls
+        import authelia_forward_auth
+        reverse_proxy :$support_portal_port
 }
 
 # Runtime JCC
@@ -504,6 +520,51 @@ EOF
 systemctl daemon-reload
 systemctl start authelia
 
+
+####################
+## Support portal ##
+####################
+
+if [ ! -d "$support_persistent_dir" ]; then
+    mkdir -p $support_persistent_dir
+    chmod 0700 $support_persistent_dir
+fi
+
+# The portal's trust root. Written whole so a request is never checked against a
+# half-written file, and from the jaia tool so there is one list of Jaia's root
+# keys rather than a copy of it here.
+mkdir -p /etc/jaiabot/support
+jaia admin ssh signers > /etc/jaiabot/support/allowed_signers.new
+mv /etc/jaiabot/support/allowed_signers.new /etc/jaiabot/support/allowed_signers
+
+cat > /etc/systemd/system/jaia_support_portal.service <<EOF
+[Unit]
+Description=Jaia support access portal
+After=lldap.service
+Wants=lldap.service
+
+[Service]
+ExecStart=/usr/bin/jaia-support-portal.py
+Environment=JAIA_FLEET_ID=$jaia_fleet_id
+Environment=JAIA_SUPPORT_PORTAL_PORT=$support_portal_port
+
+# Root for the directory password, and nothing else it does not need
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=$support_persistent_dir
+
+Restart=always
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+systemctl daemon-reload
+systemctl enable jaia_support_portal
+systemctl restart jaia_support_portal
 
 ##############
 ## Firewall ##

@@ -77,6 +77,38 @@ class BootstrapTest(unittest.TestCase):
         self.assertIn("AuthorizedKeysCommand /usr/bin/jaia-support-authorized-keys.sh %u",
                       self.text)
 
+    def test_the_support_portal_is_behind_the_login(self):
+        """It trusts whoever reaches it, so serving the site without the forward
+        auth would hand the decision to anyone who can resolve the name."""
+        site = re.search(r"\nsupport\.\$base_uri \{(.*?)\n\}", self.text, re.DOTALL)
+        self.assertIsNotNone(site)
+        self.assertIn("import authelia_forward_auth", site.group(1))
+        self.assertIn("reverse_proxy :$support_portal_port", site.group(1))
+
+    def test_only_directory_administrators_may_decide(self):
+        rule = re.search(r"- domain: support\.\$base_uri\n(.*?)\nsession:",
+                         self.text, re.DOTALL)
+        self.assertIsNotNone(rule)
+        self.assertIn("policy: 'two_factor'", rule.group(1))
+        self.assertIn("group:lldap_admin", rule.group(1))
+        self.assertIn("group:super_admin", rule.group(1))
+
+    def test_the_portal_answers_only_through_caddy(self):
+        portal = (SOURCE_DIR / "src" / "sh" / "system" / "jaia-support-portal.py").read_text()
+        self.assertIn('ThreadingHTTPServer(("127.0.0.1", LISTEN_PORT)', portal)
+
+    def test_the_portal_is_told_which_fleet_it_serves(self):
+        """A request names the fleet it is for; without this the portal has
+        nothing to compare that against."""
+        unit = heredoc(SCRIPT, "/etc/systemd/system/jaia_support_portal.service")
+        self.assertIn("Environment=JAIA_FLEET_ID=$jaia_fleet_id", unit)
+
+    def test_the_trust_root_is_the_keys_compiled_into_the_jaia_tool(self):
+        self.assertIn("jaia admin ssh signers > /etc/jaiabot/support/allowed_signers.new",
+                      self.text)
+        self.assertIn("mv /etc/jaiabot/support/allowed_signers.new "
+                      "/etc/jaiabot/support/allowed_signers", self.text)
+
 
 if __name__ == "__main__":
     unittest.main()
