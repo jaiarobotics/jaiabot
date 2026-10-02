@@ -15,6 +15,7 @@ add_jaiabot_application(TARGET jaia
     actions/admin/ssh/list.proto
     actions/admin/ssh/clear.proto
     actions/admin/ssh/known.proto
+    actions/admin/ssh/signers.proto
     actions/admin/fleet.proto
     actions/admin/fleet/vpn_authorize.proto
     actions/dev.proto
@@ -40,6 +41,7 @@ add_jaiabot_application(TARGET jaia
     actions/admin/ssh/list.cpp
     actions/admin/ssh/clear.cpp
     actions/admin/ssh/known.cpp
+    actions/admin/ssh/signers.cpp
     actions/admin/fleet.cpp
     actions/admin/fleet/vpn_authorize.cpp
     actions/dev.cpp

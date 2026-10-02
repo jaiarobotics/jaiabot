@@ -58,6 +58,9 @@ message SSHTool
         known = 5 [(goby.ev).cfg = {
             short_help_msg: "Display information on known SSH keys"
         }];
+        signers = 6 [(goby.ev).cfg = {
+            short_help_msg: "Write an ssh-keygen allowed_signers file for Jaia's root keys"
+        }];
     }
     optional Action action = 2 [
         default = help,
