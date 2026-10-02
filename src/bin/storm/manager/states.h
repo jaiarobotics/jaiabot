@@ -31,6 +31,7 @@
 
 // Protobuf
 #include <google/protobuf/util/json_util.h>
+#include <unistd.h> // sync()
 
 // Jaiabot
 #include "jaiabot/intervehicle.h"

@@ -52,6 +52,15 @@ struct Wrapup : boost::statechart::state<Wrapup, SleepPrep>,
         request.set_time_with_units(goby::time::SystemClock::now<goby::time::MicroTime>());
         request.mutable_low_power_request()->set_duration_seconds(
             this->machine().sleep_duration_seconds());
+
+        // The power board cuts power to the Pi as soon as it accepts this request, and the
+        // log filesystem only commits dirty data every ~30 s, so without a sync the last
+        // ~30-60 s of every app's logs (including this state's entry) is lost on each sleep.
+        goby::glog.is_verbose() &&
+            goby::glog << group("statechart") << "Syncing filesystems before requesting "
+                       << request.low_power_request().duration_seconds() << " s sleep" << std::endl;
+        ::sync();
+
         this->interprocess().template publish<::jaiabot::groups::power_board_command>(request);
     }
 
