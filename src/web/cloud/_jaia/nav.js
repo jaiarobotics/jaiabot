@@ -163,7 +163,7 @@
     toggle.setAttribute("aria-expanded", "false");
     toggle.setAttribute("aria-controls", "jaia-nav-menu");
     var logo = el("img", "jaia-nav-logo");
-    logo.src = "/_jaia/favicon.png";
+    logo.src = "/_jaia/cloud.svg";
     logo.alt = "Jaia";
     toggle.appendChild(logo);
     var toggleFleet = el("span", "jaia-nav-toggle-fleet");
