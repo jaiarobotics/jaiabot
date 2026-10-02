@@ -1,4 +1,5 @@
 #include <string>
+#include <tuple>
 
 #include "../../common.h"
 #include "../../ssh.h"
@@ -27,7 +28,9 @@ jaiabot::apps::admin::fleet::SupportAuthorizeTool::SupportAuthorizeTool()
     std::string command = "sudo jaia-support-access.py ";
     if (app_cfg().rm())
     {
-        command += "revoke --desktop " + std::to_string(key->second.desktop_id);
+        // "end", not "revoke": revoking is the customer's word for their own
+        // grant, and this ends only what this desktop was given
+        command += "end --desktop " + std::to_string(key->second.desktop_id);
     }
     else
     {

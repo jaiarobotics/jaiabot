@@ -551,13 +551,11 @@ ExecStart=/usr/bin/jaia-support-portal.py
 Environment=JAIA_FLEET_ID=$jaia_fleet_id
 Environment=JAIA_SUPPORT_PORTAL_PORT=$support_portal_port
 
-# Root for the directory password, and nothing else it does not need. /home
-# stays visible: ending a grant reaches the fleet over the CloudHub's own SSH
-# key, which lives in the jaia user's home.
-NoNewPrivileges=true
-ProtectSystem=strict
+# Root for the directory password. Ending a grant has to reach /etc/wireguard,
+# and the fleet over the CloudHub's own SSH key in the jaia user's home, so
+# only what it never writes is made read-only.
+ProtectSystem=true
 PrivateTmp=true
-ReadWritePaths=$support_persistent_dir
 
 Restart=always
 RestartSec=5s

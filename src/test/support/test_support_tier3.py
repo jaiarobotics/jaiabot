@@ -210,6 +210,30 @@ class Tier3Test(unittest.TestCase):
         self.assertEqual(["tier2_grant", "tier3_grant", "tier3_end"], actions)
         self.assertEqual("ended by Jaia", self.hub.audit()[-1]["why"])
 
+    def test_an_expiry_still_happens_with_the_directory_down(self):
+        """Expiry is the whole point of the timer, and the peers and the keys
+        do not need the directory to be reachable."""
+        self.approve(days=14)
+        self.grant(days=7)
+
+        forged = self.record()
+        forged["granted_at"] = int(time.time()) - 20 * DAY
+        self.write_record(forged)
+
+        self.hub.forget_pushes()
+        self.hub.close()
+        self.run_script("reconcile", expect=1)
+        self.assertEqual([], self.hub.peer_names())
+        self.assertEqual(sorted(NODES), self.hub.hosts_told_to_drop_it())
+
+    def test_a_key_that_could_escape_the_shell_is_refused(self):
+        """It is interpolated into a command run on every bot and hub."""
+        self.approve()
+        self.run_script("grant", "--desktop", "9", "--wg-key", WG_KEY, "--ssh-key",
+                        "ssh-ed25519 AAAA= x'; rm -rf /; echo '", expect=1)
+        self.assertEqual([], self.hub.peer_names())
+        self.assertEqual([], self.hub.pushed())
+
 
 if __name__ == "__main__":
     unittest.main()

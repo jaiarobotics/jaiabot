@@ -272,7 +272,15 @@ def reconcile():
     if not approved and os.path.exists(GRANT_FILE):
         os.unlink(GRANT_FILE)
         audit("tier2_end", {"why": "expired"})
-    set_membership(bool(approved))
+
+    # Expiry is the whole point of this run, and the peers and keys below do not
+    # need the directory, so a directory that is down delays the group alone
+    directory_trouble = None
+    try:
+        set_membership(bool(approved))
+    except Exception as problem:
+        directory_trouble = problem
+        print("could not reach the user directory: {}".format(problem), file=sys.stderr)
 
     live = {}
     for desktop, record in records().items():
@@ -302,6 +310,9 @@ def reconcile():
     os.makedirs(STATE_DIR, exist_ok=True)
     with open(LAST_RUN_FILE, "w") as f:
         f.write("{}\n".format(now))
+
+    if directory_trouble:
+        sys.exit("could not reach the user directory: {}".format(directory_trouble))
     return approved, live
 
 
@@ -340,8 +351,12 @@ def cmd_grant(args):
     if not tier2_window(now):
         sys.exit("the customer has granted no support access to this fleet, so there is "
                  "nothing for this to ride on")
-    if len(args.ssh_key.split()) < 2:
-        sys.exit("--ssh-key must be a full public key")
+    # The key is interpolated into a shell command on every node, so it is held
+    # to the shape of an authorized_keys line rather than merely split
+    if not re.fullmatch(r"[A-Za-z0-9@.-]+ [A-Za-z0-9+/=]+( [^\s'\"]+)?", args.ssh_key):
+        sys.exit("--ssh-key must be a bare public key: '<type> <key> [comment]'")
+    if not 1 <= args.desktop <= 9:
+        sys.exit("--desktop must be between 1 and 9")
 
     record = {"desktop": args.desktop, "wg_pubkey": args.wg_key, "ssh_pubkey": args.ssh_key,
               "granted_at": now, "expires_at": now + args.days * 86400,
