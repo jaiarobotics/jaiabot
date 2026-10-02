@@ -67,6 +67,10 @@
     // (endpoint unreachable), in which case every link is shown.
     var identity = { user: "", name: "", groups: null, signedIn: false };
 
+    // On the portal: who has given a password but not yet a second factor,
+    // e.g. after registering their first device.
+    var partialUser = "";
+
     // Whether the VirtualFleet answers, per /_jaia/sim; null until known.
     // It only runs once someone starts it from JCU.
     var simRunning = null;
@@ -133,6 +137,10 @@
         if (identity.signedIn) {
             header.appendChild(el("span", "jaia-nav-header-label", "Signed in as"));
             header.appendChild(el("span", "jaia-nav-user", identity.user));
+        } else if (partialUser) {
+            header.appendChild(el("span", "jaia-nav-header-label", "Signing in as"));
+            header.appendChild(el("span", "jaia-nav-user", partialUser));
+            header.appendChild(el("span", "jaia-nav-header-label", "Two-factor step not done yet"));
         } else {
             header.appendChild(el("span", "jaia-nav-header-label", "Not signed in"));
         }
@@ -168,7 +176,15 @@
         var footer = el("div", "jaia-nav-footer");
         var action = el("a", "jaia-nav-button", identity.signedIn ? "Log out" : "Log in");
         action.href = identity.signedIn ? LOGOUT_URL : LOGIN_URL;
-        footer.appendChild(action);
+        if (partialUser && !identity.signedIn) {
+            action.textContent = "Finish signing in";
+            footer.appendChild(action);
+            var logout = el("a", "jaia-nav-secondary", "Log out");
+            logout.href = LOGOUT_URL;
+            footer.appendChild(logout);
+        } else {
+            footer.appendChild(action);
+        }
         menu.appendChild(footer);
         return menu;
     }
@@ -222,7 +238,8 @@
             location.replace(LOGIN_URL);
             return;
         }
-        toggleUser.textContent = identity.signedIn ? identity.user : "";
+        toggleUser.textContent = identity.signedIn ? identity.user : partialUser;
+        applyFinishBanner();
         if (menu) {
             root.removeChild(menu);
             menu = null;
@@ -288,6 +305,42 @@
         }
     }
 
+    // Registering a first device leaves the user on the portal's settings
+    // page, still short of the second factor the sites need.
+    var banner = null;
+    function applyFinishBanner() {
+        var show = !identity.signedIn && !!partialUser && path.indexOf("/settings") === 0;
+        if (show && !banner) {
+            banner = el("div", "jaia-finish");
+            banner.appendChild(
+                el(
+                    "span",
+                    "jaia-finish-text",
+                    "Once you've added your security key, use it to finish signing in."
+                )
+            );
+            var go = el("a", "jaia-finish-button", "Finish signing in");
+            go.href = LOGIN_URL;
+            banner.appendChild(go);
+            root.appendChild(banner);
+        } else if (!show && banner) {
+            root.removeChild(banner);
+            banner = null;
+        }
+    }
+
+    function loadPartial() {
+        return fetch("/api/state", { cache: "no-store" })
+            .then(function (response) {
+                return response.ok ? response.json() : null;
+            })
+            .then(function (state) {
+                var data = (state && state.data) || {};
+                partialUser = data.authentication_level === 1 ? data.username || "" : "";
+            })
+            .catch(function () {});
+    }
+
     function loadSim() {
         fetch("/_jaia/sim", { cache: "no-store" })
             .then(function (response) {
@@ -336,6 +389,10 @@
                 }
             })
             .catch(function () {})
+            .then(function () {
+                if (site === "auth" && !identity.signedIn) return loadPartial();
+                partialUser = "";
+            })
             .then(applyToPage);
     }
 
