@@ -530,11 +530,14 @@ if [ ! -d "$support_persistent_dir" ]; then
     chmod 0700 $support_persistent_dir
 fi
 
-# The portal's trust root. Written whole so a request is never checked against a
-# half-written file, and from the jaia tool so there is one list of Jaia's root
-# keys rather than a copy of it here.
+# The portal's trust root, in the form ssh-keygen -Y verify reads. Derived from
+# the root keys the image already carries rather than from a list kept here, so
+# adding or retiring a Yubikey is the one edit it has always been. Written whole
+# so a request is never checked against a half-written file.
 mkdir -p /etc/jaiabot/support
-jaia admin ssh signers > /etc/jaiabot/support/allowed_signers.new
+awk '$1 ~ /^(ssh|sk-ssh|ecdsa|sk-ecdsa)-/ { print "jaia-support", $1, $2 }' \
+    /etc/jaiabot/ssh/root_authorized_keys > /etc/jaiabot/support/allowed_signers.new
+[ -s /etc/jaiabot/support/allowed_signers.new ]
 mv /etc/jaiabot/support/allowed_signers.new /etc/jaiabot/support/allowed_signers
 
 cat > /etc/systemd/system/jaia_support_portal.service <<EOF

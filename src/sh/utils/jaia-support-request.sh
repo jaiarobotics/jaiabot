@@ -19,7 +19,7 @@ Usage: ${0##*/} --fleet <id> --key <signing key> --reason <text> [--days <n>]
 
   --fleet <id>      The fleet this asks for access to
   --key <path>      Jaia root key to sign with, e.g. ~/.ssh/id_ed25519_sk.
-                    Its public half must be one 'jaia admin ssh signers' emits.
+                    Its public half must be in config/ssh/root_authorized_keys.
   --reason <text>   Shown to the customer, in their terms, not ours
   --days <n>        Days of access asked for (default 7, at most ${MAX_DAYS})
 

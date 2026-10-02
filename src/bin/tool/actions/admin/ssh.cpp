@@ -6,7 +6,6 @@
 #include "ssh/known.h"
 #include "ssh/list.h"
 #include "ssh/rm.h"
-#include "ssh/signers.h"
 
 #include <boost/filesystem.hpp>
 
@@ -55,12 +54,6 @@ jaiabot::apps::admin::SSHTool::SSHTool()
                                 action_for_help);
                             break;
 
-                        case jaiabot::config::admin::SSHTool::signers:
-                            tool_helper.help<jaiabot::apps::admin::ssh::SignersTool,
-                                             jaiabot::apps::admin::ssh::SignersToolConfigurator>(
-                                action_for_help);
-                            break;
-
                         default:
                             throw(goby::Exception(
                                 "Help was expected to be handled by external tool"));
@@ -92,11 +85,6 @@ jaiabot::apps::admin::SSHTool::SSHTool()
             case jaiabot::config::admin::SSHTool::known:
                 tool_helper.run_subtool<jaiabot::apps::admin::ssh::KnownTool,
                                         jaiabot::apps::admin::ssh::KnownToolConfigurator>();
-                break;
-
-            case jaiabot::config::admin::SSHTool::signers:
-                tool_helper.run_subtool<jaiabot::apps::admin::ssh::SignersTool,
-                                        jaiabot::apps::admin::ssh::SignersToolConfigurator>();
                 break;
 
             default:

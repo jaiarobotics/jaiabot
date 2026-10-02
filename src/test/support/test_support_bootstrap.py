@@ -103,11 +103,27 @@ class BootstrapTest(unittest.TestCase):
         unit = heredoc(SCRIPT, "/etc/systemd/system/jaia_support_portal.service")
         self.assertIn("Environment=JAIA_FLEET_ID=$jaia_fleet_id", unit)
 
-    def test_the_trust_root_is_the_keys_compiled_into_the_jaia_tool(self):
-        self.assertIn("jaia admin ssh signers > /etc/jaiabot/support/allowed_signers.new",
-                      self.text)
+    def test_the_trust_root_is_every_root_key_on_the_image(self):
+        """The compiled-in key list is a subset of root_authorized_keys, so deriving
+        the signers from it would silently refuse the people it leaves out."""
+        self.assertIn("/etc/jaiabot/ssh/root_authorized_keys > "
+                      "/etc/jaiabot/support/allowed_signers.new", self.text)
         self.assertIn("mv /etc/jaiabot/support/allowed_signers.new "
                       "/etc/jaiabot/support/allowed_signers", self.text)
+
+    def test_every_root_key_can_sign_a_request(self):
+        """Derived with the same awk the CloudHub runs, so this fails if the two
+        ever stop agreeing on what a key line looks like."""
+        keys = SOURCE_DIR / "config" / "ssh" / "root_authorized_keys"
+        import subprocess
+        awk = re.search(r"awk '(.*?)' \\\n", self.text).group(1)
+        emitted = subprocess.run(["awk", awk, str(keys)], check=True,
+                                 stdout=subprocess.PIPE).stdout.decode().splitlines()
+        expected = [line for line in keys.read_text().splitlines()
+                    if line.strip() and not line.startswith("#")]
+        self.assertEqual(len(expected), len(emitted))
+        self.assertTrue(all(line.startswith("jaia-support sk-ssh-ed25519@openssh.com ")
+                            for line in emitted))
 
 
 if __name__ == "__main__":
