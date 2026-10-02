@@ -103,7 +103,7 @@ if [[ "${FLEET_WLAN_NET}" == *:* ]]; then
     vboxmanage natnetwork add --netname ${NATNET_NAME} --network ${NATNET_IPV4} --enable --dhcp on \
                               --ipv6 on --ipv6-prefix ${FLEET_WLAN_NET}
     # 7.2 creates the DHCP server only when the network first starts, and the fixed addresses
-    # below need it to exist
+    # below need it to exist; it is restarted once they are added
     vboxmanage natnetwork start --netname ${NATNET_NAME}
 else
     vboxmanage natnetwork add --netname ${NATNET_NAME} --network ${NATNET_IPV4} --enable --dhcp off
@@ -221,6 +221,11 @@ for n in "${ALL_HUBS[@]}"; do
     if [ -z "$n" ]; then continue; fi
     network_bot_or_hub hub $n
 done
+
+if [[ "${FLEET_WLAN_NET}" == *:* ]]; then
+    # the running DHCP server only reads its configuration at startup
+    vboxmanage dhcpserver restart --network=${NATNET_NAME}
+fi
 
 rm -rf ${HUB_KEY_DIR}
 
