@@ -40,11 +40,12 @@ vh1_ip=$(jaia-ip.py --net=vfleet_vpn --fleet_id=${jaia_fleet_index} --node=hub -
 
 # Landing page and shared navigation (static, from jaiabot-web)
 jaia_cloud_web_dir=/usr/share/jaiabot/web/cloud
-authelia_asset_dir=/etc/authelia/assets
 
 # Persistent directories (between major upgrades)
 auth_persistent_dir=/var/log/jaiabot/auth
 authelia_persistent_dir=$auth_persistent_dir/authelia
+# Not under /etc/authelia: the package's tmpfiles.d rule sets 0640 on everything there, directories included
+authelia_asset_dir=$authelia_persistent_dir/assets
 lldap_persistent_dir=$auth_persistent_dir/lldap
 
 
