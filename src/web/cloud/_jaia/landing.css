@@ -129,3 +129,43 @@ body {
 .site-links a:hover {
     background: #dde9fa;
 }
+
+.site-status {
+    margin-left: 8px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: #e6e9ee;
+    color: #5c6675;
+    font-size: 12px;
+    font-weight: 600;
+    vertical-align: 2px;
+}
+
+.site-status::before {
+    content: "\25CF\00A0";
+    color: #9aa3af;
+}
+
+.site-status-up {
+    background: #e3f4e8;
+    color: #1e7a3c;
+}
+
+.site-status-up::before {
+    color: #2ea44f;
+}
+
+.site-notice {
+    margin: 0;
+    color: #1d2330;
+}
+
+.site-notice a {
+    color: #0b5fcc;
+}
+
+.site-off .site-title a,
+.site-off .site-links a {
+    opacity: 0.45;
+    pointer-events: none;
+}

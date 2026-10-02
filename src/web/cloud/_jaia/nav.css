@@ -195,3 +195,14 @@
     background: #7dbcff;
     outline: none;
 }
+
+.jaia-nav-item-off .jaia-nav-group {
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.jaia-nav-off {
+    padding: 8px 11px;
+    color: rgba(255, 255, 255, 0.4);
+    font-style: italic;
+    cursor: help;
+}

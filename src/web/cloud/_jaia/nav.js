@@ -67,6 +67,11 @@
     // (endpoint unreachable), in which case every link is shown.
     var identity = { user: "", name: "", groups: null, signedIn: false };
 
+    // Whether the VirtualFleet answers, per /_jaia/sim; null until known.
+    // It only runs once someone starts it from JCU.
+    var simRunning = null;
+    var SIM_POLL_MS = 15000;
+
     function isAllowed(item) {
         if (item.children) {
             return item.children.some(isAllowed);
@@ -113,6 +118,12 @@
         return a;
     }
 
+    function simHint() {
+        return isAllowed(findItem("run-jcu"))
+            ? "The VirtualFleet isn't running. Start it from Run \u2192 JCU (VirtualFleet section)."
+            : "The VirtualFleet isn't running. Ask an administrator to start it.";
+    }
+
     function buildMenu() {
         var menu = el("nav", "jaia-nav-menu");
         menu.id = "jaia-nav-menu";
@@ -131,12 +142,21 @@
         SITES.forEach(function (item) {
             if (!isAllowed(item)) return;
             var li = el("li", "jaia-nav-item");
+            var off = item.id === "sim" && simRunning === false;
+            if (off) {
+                li.classList.add("jaia-nav-item-off");
+                li.title = simHint();
+            }
             if (item.children) {
                 li.appendChild(el("span", "jaia-nav-group", item.text));
                 var subs = el("span", "jaia-nav-children");
-                item.children.forEach(function (child) {
-                    if (isAllowed(child)) subs.appendChild(link(child));
-                });
+                if (off) {
+                    subs.appendChild(el("span", "jaia-nav-off", "Not running"));
+                } else {
+                    item.children.forEach(function (child) {
+                        if (isAllowed(child)) subs.appendChild(link(child));
+                    });
+                }
                 li.appendChild(subs);
             } else {
                 li.appendChild(link(item));
@@ -175,6 +195,7 @@
     var menu = null;
 
     function setOpen(open) {
+        if (open && !root.classList.contains("jaia-nav-open")) loadSim();
         if (open && !menu) {
             menu = buildMenu();
             root.appendChild(menu);
@@ -226,6 +247,61 @@
         for (var m = 0; m < logoutEls.length; m++) {
             logoutEls[m].href = LOGOUT_URL;
         }
+        applySimToPage();
+    }
+
+    // Pages mark the Sim card (data-jaia-sim), its status badge, and what to
+    // show when it is down: how to start it, or whom to ask.
+    function applySimToPage() {
+        var canStart = isAllowed(findItem("run-jcu"));
+        var cards = document.querySelectorAll("[data-jaia-sim]");
+        for (var i = 0; i < cards.length; i++) {
+            cards[i].classList.toggle("site-off", simRunning === false);
+            var links = cards[i].querySelectorAll(".site-title a, .site-links a");
+            for (var j = 0; j < links.length; j++) {
+                if (simRunning === false) {
+                    links[j].setAttribute("aria-disabled", "true");
+                    links[j].tabIndex = -1;
+                } else {
+                    links[j].removeAttribute("aria-disabled");
+                    links[j].removeAttribute("tabindex");
+                }
+            }
+        }
+        var badges = document.querySelectorAll("[data-jaia-sim-status]");
+        for (var b = 0; b < badges.length; b++) {
+            badges[b].hidden = simRunning === null;
+            badges[b].textContent = simRunning ? "Running" : "Not running";
+            badges[b].classList.toggle("site-status-up", simRunning === true);
+        }
+        var downEls = document.querySelectorAll("[data-jaia-sim-down]");
+        for (var d = 0; d < downEls.length; d++) {
+            downEls[d].hidden = simRunning !== false;
+        }
+        var startEls = document.querySelectorAll("[data-jaia-sim-start]");
+        for (var s = 0; s < startEls.length; s++) {
+            startEls[s].hidden = !canStart;
+        }
+        var askEls = document.querySelectorAll("[data-jaia-sim-ask]");
+        for (var a = 0; a < askEls.length; a++) {
+            askEls[a].hidden = canStart;
+        }
+    }
+
+    function loadSim() {
+        fetch("/_jaia/sim", { cache: "no-store" })
+            .then(function (response) {
+                var running = response.ok ? true : response.status >= 502 ? false : null;
+                if (running === null || running === simRunning) return;
+                // The "not running" page stands in for the sim site until it is up
+                if (running && document.querySelector("[data-jaia-sim-wait]")) {
+                    location.reload();
+                    return;
+                }
+                simRunning = running;
+                applyToPage();
+            })
+            .catch(function () {});
     }
 
     function loadIdentity() {
@@ -284,6 +360,12 @@
         applyToPage();
         loadFleet();
         loadIdentity();
+        loadSim();
+        if (document.querySelector("[data-jaia-sim], [data-jaia-sim-wait]")) {
+            setInterval(function () {
+                if (!document.hidden) loadSim();
+            }, SIM_POLL_MS);
+        }
         // The portal signs in and out without reloading the page
         if (site === "auth" && window.PerformanceObserver) {
             new PerformanceObserver(function (list) {

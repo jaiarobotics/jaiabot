@@ -400,6 +400,23 @@ cat <<EOF > /etc/caddy/Caddyfile
 WHOAMI 200
         }
 
+        # Whether the VirtualFleet answers (it only runs once started from JCU).
+        # Any reply means up; a failed connection is Caddy's own 502.
+        handle /_jaia/sim {
+                header Cache-Control no-store
+                reverse_proxy [$vh1_ip]:80 {
+                        method HEAD
+                        rewrite /
+                        transport http {
+                                dial_timeout 2s
+                                response_header_timeout 3s
+                        }
+                        handle_response {
+                                respond 204
+                        }
+                }
+        }
+
         handle /_jaia/fleet {
                 header Cache-Control no-cache
                 header Content-Type "text/plain; charset=utf-8"
@@ -474,6 +491,17 @@ sim.$base_uri {
         handle {
                 import authelia_forward_auth
                 import jaia_nav_proxy [$vh1_ip]:80
+        }
+
+        # The VirtualFleet is down until started from JCU; say so rather than a blank 502
+        handle_errors 502 503 504 {
+                @page not path /_jaia/*
+                handle @page {
+                        root * $jaia_cloud_web_dir
+                        rewrite * /_jaia/sim-down.html
+                        header Cache-Control no-store
+                        file_server
+                }
         }
 }
 

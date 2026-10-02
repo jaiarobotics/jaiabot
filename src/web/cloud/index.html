@@ -32,10 +32,21 @@
                         <a data-jaia-site="run-jdv" href="#">Jaia Data Vision</a>
                     </div>
                 </li>
-                <li class="site" data-jaia-site="sim">
-                    <h2 class="site-title"><a data-jaia-site="sim-jcc" href="#">Sim</a></h2>
+                <li class="site" data-jaia-site="sim" data-jaia-sim>
+                    <h2 class="site-title">
+                        <a data-jaia-site="sim-jcc" href="#">Sim</a>
+                        <span class="site-status" data-jaia-sim-status hidden></span>
+                    </h2>
                     <p class="site-description">
                         The simulated VirtualFleet for training and mission planning.
+                    </p>
+                    <p class="site-notice" data-jaia-sim-down hidden>
+                        <span data-jaia-sim-start>
+                            Start it from
+                            <a data-jaia-site="run-jcu" href="#">Jaiabot Configuration &amp; Upgrade</a>
+                            (VirtualFleet section).
+                        </span>
+                        <span data-jaia-sim-ask>Ask an administrator to start it.</span>
                     </p>
                     <div class="site-links">
                         <a data-jaia-site="sim-jcc" href="#">Jaia Command &amp; Control</a>
