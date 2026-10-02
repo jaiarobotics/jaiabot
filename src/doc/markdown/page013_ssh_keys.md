@@ -158,3 +158,34 @@ or by manually editing the `/home/jaia/.ssh/authorized_keys` file.
 ```
 jaia admin ssh <action> --user=ubuntu packages.jaia.tech
 ```
+## Support access to a CloudHub
+
+The keys above are pushed to a node and expire on a date written into the file.
+A shell on a fleet's CloudHub works the other way round: the key is never pushed
+anywhere, and the customer decides who holds it.
+
+`sshd` on the CloudHub resolves the `jaia` user's keys with an
+`AuthorizedKeysCommand` (`jaia-support-authorized-keys.sh`) that asks the
+fleet's own LLDAP, over loopback, for the `sshPublicKey` values of the
+`jaia_support` account — in one search that also requires that account to be in
+the `jaia_support` group:
+
+```
+(&(uid=jaia_support)(memberOf=cn=jaia_support,ou=groups,dc=jaia,dc=tech))
+```
+
+Both halves are bootstrapped by `jaia_configure_authelia.sh`: the group beside
+the ten it already writes, and the account with no group of its own, so it
+reaches nothing until the customer grants it. They grant it by adding the
+account to the group at `users.$base_uri`, and revoke it by removing it. Because
+the group is part of the query rather than a check made afterwards, a removal
+takes effect at the next authentication — no file is rewritten, no service is
+reloaded, and there is no cache to outlive the decision.
+
+Jaia's public keys go on the account's `sshPublicKey` attribute, which is
+multi-valued, so one person's several Yubikeys all work.
+
+This applies to the CloudHub alone. Bots and hubs keep the Yubikey-backed files
+above: their directory would be across the very link an engineer logs in to
+repair, and authentication that fails closed on a partition is how a fleet
+becomes unrecoverable.
