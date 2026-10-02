@@ -1,6 +1,7 @@
 #include "goby/middleware/application/tool.h"
 
 #include "fleet.h"
+#include "fleet/support_authorize.h"
 #include "fleet/vpn_authorize.h"
 
 #include <boost/filesystem.hpp>
@@ -21,6 +22,13 @@ jaiabot::apps::admin::FleetTool::FleetTool()
                 {
                     switch (action_for_help)
                     {
+                        case jaiabot::config::admin::FleetTool::support_authorize:
+                            tool_helper.help<
+                                jaiabot::apps::admin::fleet::SupportAuthorizeTool,
+                                jaiabot::apps::admin::fleet::SupportAuthorizeToolConfigurator>(
+                                action_for_help);
+                            break;
+
                         case jaiabot::config::admin::FleetTool::vpn_authorize:
                             tool_helper
                                 .help<jaiabot::apps::admin::fleet::VPNAuthorizeTool,
@@ -34,6 +42,12 @@ jaiabot::apps::admin::FleetTool::FleetTool()
                             break;
                     }
                 }
+                break;
+
+            case jaiabot::config::admin::FleetTool::support_authorize:
+                tool_helper
+                    .run_subtool<jaiabot::apps::admin::fleet::SupportAuthorizeTool,
+                                 jaiabot::apps::admin::fleet::SupportAuthorizeToolConfigurator>();
                 break;
 
             case jaiabot::config::admin::FleetTool::vpn_authorize:

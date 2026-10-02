@@ -27,6 +27,7 @@ lldap_ldap_port=3890
 lldap_web_port=17170
 jcc_port=8080
 authelia_port=9991
+support_portal_port=9992
 
 ## IP/URLs
 base_uri=$jaia_auth_base_uri
@@ -40,6 +41,7 @@ vh1_ip=$(jaia_ip --query_type addr --ip_net vfleet_vpn --fleet_id ${jaia_fleet_i
 auth_persistent_dir=/var/log/jaiabot/auth
 authelia_persistent_dir=$auth_persistent_dir/authelia
 lldap_persistent_dir=$auth_persistent_dir/lldap
+support_persistent_dir=$auth_persistent_dir/support
 
 
 if [ ! -d "$lldap_persistent_dir" ]; then
@@ -258,6 +260,13 @@ access_control:
         - 'group:lldap_admin'
         - 'group:super_admin'
 
+    # Whoever administers the directory is who decides on Jaia's access to the fleet
+    - domain: support.$base_uri
+      policy: 'two_factor'
+      subject:
+        - 'group:lldap_admin'
+        - 'group:super_admin'
+
 session:
   secret: '$session_secret'
   cookies:
@@ -309,6 +318,13 @@ users.$base_uri {
         $caddy_tls
         import authelia_forward_auth
         reverse_proxy :$lldap_web_port
+}
+
+# Jaia support access
+support.$base_uri {
+        $caddy_tls
+        import authelia_forward_auth
+        reverse_proxy :$support_portal_port
 }
 
 # Runtime JCC
@@ -504,6 +520,82 @@ EOF
 systemctl daemon-reload
 systemctl start authelia
 
+
+####################
+## Support portal ##
+####################
+
+if [ ! -d "$support_persistent_dir" ]; then
+    mkdir -p $support_persistent_dir
+    chmod 0700 $support_persistent_dir
+fi
+
+# The portal's trust root, in the form ssh-keygen -Y verify reads. Derived from
+# the root keys the image already carries rather than from a list kept here, so
+# adding or retiring a Yubikey is the one edit it has always been. Written whole
+# so a request is never checked against a half-written file.
+mkdir -p /etc/jaiabot/support
+awk '$1 ~ /^(ssh|sk-ssh|ecdsa|sk-ecdsa)-/ { print "jaia-support", $1, $2 }' \
+    /etc/jaiabot/ssh/root_authorized_keys > /etc/jaiabot/support/allowed_signers.new
+[ -s /etc/jaiabot/support/allowed_signers.new ]
+mv /etc/jaiabot/support/allowed_signers.new /etc/jaiabot/support/allowed_signers
+
+cat > /etc/systemd/system/jaia_support_portal.service <<EOF
+[Unit]
+Description=Jaia support access portal
+After=lldap.service
+Wants=lldap.service
+
+[Service]
+ExecStart=/usr/bin/jaia-support-portal.py
+Environment=JAIA_FLEET_ID=$jaia_fleet_id
+Environment=JAIA_SUPPORT_PORTAL_PORT=$support_portal_port
+
+# Root for the directory password. Ending a grant has to reach /etc/wireguard,
+# and the fleet over the CloudHub's own SSH key in the jaia user's home, so
+# only what it never writes is made read-only.
+ProtectSystem=true
+PrivateTmp=true
+
+Restart=always
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+# Group membership has no expiry of its own, and neither does a WireGuard peer,
+# so this is the one mechanism that ends a grant nobody remembers to end.
+cat > /etc/systemd/system/jaia_support_reconcile.service <<EOF
+[Unit]
+Description=Bring Jaia's support access back in line with what the customer granted
+After=lldap.service
+Wants=lldap.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/jaia-support-access.py reconcile
+Environment=JAIA_FLEET_ID=$jaia_fleet_id
+EOF
+
+cat > /etc/systemd/system/jaia_support_reconcile.timer <<EOF
+[Unit]
+Description=Bring Jaia's support access back in line with what the customer granted
+
+[Timer]
+# On boot as well as on the interval: a grant must not outlive a CloudHub that
+# happened to be switched off when it expired
+OnBootSec=2min
+OnUnitActiveSec=5min
+
+[Install]
+WantedBy=timers.target
+EOF
+
+systemctl daemon-reload
+systemctl enable jaia_support_portal
+systemctl restart jaia_support_portal
+systemctl enable --now jaia_support_reconcile.timer
 
 ##############
 ## Firewall ##

@@ -66,6 +66,14 @@ message FleetTool
         vpn_authorize = 4 [(goby.ev).cfg = {
             short_help_msg: "Renew this fleet's authorization to enroll nodes on its CloudHub VPN"
         }];
+        support_authorize = 13 [(goby.ev).cfg = {
+            short_help_msg: "Grant or end Jaia's reach into a fleet the customer has approved support access for"
+        }];
+        support_request = 12 [(goby.ev).cfg = {
+            short_help_msg: "Sign a request for support access, for the customer to approve",
+            external_command: "jaia-support-request.sh",
+            external_help_param: "--help"
+        }];
         update_iso = 5 [(goby.ev).cfg = {
             short_help_msg: "Update existing jaiabot_updates ISO with fleet config"
             external_command: "jaia-fleet-config-update-iso.sh",

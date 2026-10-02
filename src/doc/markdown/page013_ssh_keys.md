@@ -189,3 +189,44 @@ This applies to the CloudHub alone. Bots and hubs keep the Yubikey-backed files
 above: their directory would be across the very link an engineer logs in to
 repair, and authentication that fails closed on a partition is how a fleet
 becomes unrecoverable.
+
+### Asking for it
+
+The customer's administrator should never have to judge whether a phone call
+claiming to be Jaia really is. So the right to ask is tied to the root Yubikeys
+rather than to convention. `jaia admin fleet support_request` signs the fleet,
+the window and the reason with one of them:
+
+```
+jaia admin fleet support_request --fleet 7 --key ~/.ssh/id_ed25519_sk \
+    --reason "Pump fault on bot 3" --days 7
+```
+
+It prints a block to send to the customer, who pastes it at
+`https://support.<their base uri>` — a page beside the directory, behind the
+same login, open to `lldap_admin` and `super_admin` at two factors. The CloudHub
+verifies the signature against the root keys already on its own image
+(`/etc/jaiabot/ssh/root_authorized_keys`) and draws nothing at all for a request
+it cannot verify, so a request cannot be forged by anyone who reaches that page.
+Approving it is one click, and puts `jaia_support` into its group.
+
+Granting runs from the approval, not from when the request was made, and no
+grant lasts more than two weeks.
+
+### Reaching the rest of the fleet
+
+A CloudHub shell is tier 2. Bots and hubs are tier 3, and need both a WireGuard
+peer and a key — issued together by `jaia admin fleet support_authorize`, which
+runs on the CloudHub and so can only be used by someone the customer has already
+let in:
+
+```
+jaia admin fleet support_authorize 7 jaia@support_example jaia@root_yubikey26102776 --valid_for_days 5
+```
+
+`--rm` ends it. The grant is one record, and the peer and the
+`tmp_authorized_keys` line on every node are derived from it by a timer that
+reconciles them every few minutes — so a bot that was switched off is caught up
+when it returns, an expiry takes effect with nobody acting, and ending the
+customer's approval ends everything it carried. The support page shows what is
+held, until when, and the log of every grant and every ending.

@@ -33,6 +33,7 @@ set(scripts_to_install
   utils/jaia-vpn-peers.sh
   utils/jaia-vpn-enroll.sh
   utils/jaia-vpn-authorize.sh
+  utils/jaia-support-request.sh
   # System scripts
   system/jaiabot-checkloadavg.py
   system/jaia-debconf.sh
@@ -42,6 +43,8 @@ set(scripts_to_install
   system/jaia-iridium-tunnel.sh
   system/jaia_configure_authelia.sh
   system/jaia-support-authorized-keys.sh
+  system/jaia-support-portal.py
+  system/jaia-support-access.py
   system/jaia_configure_cloudhub.sh
   # Fleet config
   fleet/jaia-fleet-config.py

@@ -77,6 +77,85 @@ class BootstrapTest(unittest.TestCase):
         self.assertIn("AuthorizedKeysCommand /usr/bin/jaia-support-authorized-keys.sh %u",
                       self.text)
 
+    def test_the_support_portal_is_behind_the_login(self):
+        """It trusts whoever reaches it, so serving the site without the forward
+        auth would hand the decision to anyone who can resolve the name."""
+        site = re.search(r"\nsupport\.\$base_uri \{(.*?)\n\}", self.text, re.DOTALL)
+        self.assertIsNotNone(site)
+        self.assertIn("import authelia_forward_auth", site.group(1))
+        self.assertIn("reverse_proxy :$support_portal_port", site.group(1))
+
+    def test_only_directory_administrators_may_decide(self):
+        rule = re.search(r"- domain: support\.\$base_uri\n(.*?)\nsession:",
+                         self.text, re.DOTALL)
+        self.assertIsNotNone(rule)
+        self.assertIn("policy: 'two_factor'", rule.group(1))
+        self.assertIn("group:lldap_admin", rule.group(1))
+        self.assertIn("group:super_admin", rule.group(1))
+
+    def test_the_portal_answers_only_through_caddy(self):
+        portal = (SOURCE_DIR / "src" / "sh" / "system" / "jaia-support-portal.py").read_text()
+        self.assertIn('ThreadingHTTPServer(("127.0.0.1", LISTEN_PORT)', portal)
+
+    def test_the_portal_is_told_which_fleet_it_serves(self):
+        """A request names the fleet it is for; without this the portal has
+        nothing to compare that against."""
+        unit = heredoc(SCRIPT, "/etc/systemd/system/jaia_support_portal.service")
+        self.assertIn("Environment=JAIA_FLEET_ID=$jaia_fleet_id", unit)
+
+    def test_the_trust_root_is_every_root_key_on_the_image(self):
+        """The compiled-in key list is a subset of root_authorized_keys, so deriving
+        the signers from it would silently refuse the people it leaves out."""
+        self.assertIn("/etc/jaiabot/ssh/root_authorized_keys > "
+                      "/etc/jaiabot/support/allowed_signers.new", self.text)
+        self.assertIn("mv /etc/jaiabot/support/allowed_signers.new "
+                      "/etc/jaiabot/support/allowed_signers", self.text)
+
+    def test_every_root_key_can_sign_a_request(self):
+        """Derived with the same awk the CloudHub runs, so this fails if the two
+        ever stop agreeing on what a key line looks like."""
+        keys = SOURCE_DIR / "config" / "ssh" / "root_authorized_keys"
+        import subprocess
+        awk = re.search(r"awk '(.*?)' \\\n", self.text).group(1)
+        emitted = subprocess.run(["awk", awk, str(keys)], check=True,
+                                 stdout=subprocess.PIPE).stdout.decode().splitlines()
+        expected = [line for line in keys.read_text().splitlines()
+                    if line.strip() and not line.startswith("#")]
+        self.assertEqual(len(expected), len(emitted))
+        self.assertTrue(all(line.startswith("jaia-support sk-ssh-ed25519@openssh.com ")
+                            for line in emitted))
+
+    def test_the_tool_can_name_every_root_key(self):
+        """These two lists drifted once already: a key in the file but not the
+        tool is one 'jaia admin ssh add' cannot name."""
+        compiled = (SOURCE_DIR / "src" / "bin" / "tool" / "actions" / "admin" / "ssh"
+                    / "pubkeys.cpp").read_text()
+        keys = SOURCE_DIR / "config" / "ssh" / "root_authorized_keys"
+        for line in keys.read_text().splitlines():
+            if not line.strip() or line.startswith("#"):
+                continue
+            self.assertIn(line.split()[1], compiled)
+
+    def test_a_grant_expires_with_nobody_acting(self):
+        """Group membership and a WireGuard peer both last until something takes
+        them away, so the timer is the whole of the expiry mechanism."""
+        timer = heredoc(SCRIPT, "/etc/systemd/system/jaia_support_reconcile.timer")
+        self.assertIn("OnUnitActiveSec=", timer)
+        # a CloudHub switched off over an expiry must not come back still granting
+        self.assertIn("OnBootSec=", timer)
+        self.assertIn("systemctl enable --now jaia_support_reconcile.timer", self.text)
+
+        unit = heredoc(SCRIPT, "/etc/systemd/system/jaia_support_reconcile.service")
+        self.assertIn("ExecStart=/usr/bin/jaia-support-access.py reconcile", unit)
+        self.assertIn("Environment=JAIA_FLEET_ID=$jaia_fleet_id", unit)
+
+    def test_ending_a_grant_can_still_reach_the_fleet(self):
+        """The portal runs the access script, which reaches bots and hubs with
+        the key in the jaia user's home, so ProtectHome would strand a
+        revocation at the CloudHub."""
+        unit = heredoc(SCRIPT, "/etc/systemd/system/jaia_support_portal.service")
+        self.assertNotIn("ProtectHome", unit)
+
 
 if __name__ == "__main__":
     unittest.main()
