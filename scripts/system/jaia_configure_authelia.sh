@@ -251,7 +251,8 @@ webauthn:
   enable_passkey_login: false
   display_name: '$base_uri'
 totp:
-  disable: true
+  disable: false
+  issuer: '$base_uri'
 duo_api:
   disable: true
 identity_validation:

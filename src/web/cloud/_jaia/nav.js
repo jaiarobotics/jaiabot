@@ -316,7 +316,7 @@
                 el(
                     "span",
                     "jaia-finish-text",
-                    "Once you've added your security key, use it to finish signing in."
+                    "Once you've added your security key or authenticator app, use it to finish signing in."
                 )
             );
             var go = el("a", "jaia-finish-button", "Finish signing in");
