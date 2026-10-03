@@ -719,6 +719,21 @@ if 'ppk' in jaia_additional_sensors:
     }
     jaiabot_apps.append(jaiabot_ubx_ppk)
 
+if 'lsm6dso32' in jaia_additional_sensors:
+    jaiabot_lsm6dso32 = {
+        'exe': 'jaiabot_lsm6dso32.py',
+        'description': 'JaiaBot LSM6DSO32 IMU Python Driver',
+        'template': 'py-app.service.in',
+        'subdir': 'imu',
+        'args': f'-p {UDP_GATEWAY_PORT}',
+        'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_IMU',
+        'runs_on': [Type.BOT],
+        'runs_when': Mode.RUNTIME,
+        'wanted_by': 'jaiabot_health.service',
+        'restart': 'on-failure'
+    }
+    jaiabot_apps.append(jaiabot_lsm6dso32)
+
 # BIO bots read the TSYS01 through the payload board, so skip the Python driver there to
 # avoid double-publishing (checked here since 'runs_on' can't express "bot AND not BIO").
 if jaia_temperature_sensor_type.value == 'tsys01' and jaia_bot_type != BOT_TYPE.BIO:

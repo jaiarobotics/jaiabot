@@ -1,0 +1,2 @@
+## SPI devices (e.g. LSM6DSO32 IMU on /dev/spidev1.2): readable by the unprivileged jaia user via the spi group
+SUBSYSTEM=="spidev", GROUP="spi", MODE="0660"
