@@ -35,6 +35,7 @@ constexpr goby::middleware::Group example{"jaiabot::example"};
 
 // sensors
 constexpr goby::middleware::Group imu{"jaiabot::imu"};
+constexpr goby::middleware::Group imu_test{"jaiabot::imu_test"};
 constexpr goby::middleware::Group pressure_temperature{"jaiabot::pressure_temperature"};
 constexpr goby::middleware::Group pressure_adjusted{"jaiabot::pressure_adjusted"};
 
@@ -44,6 +45,7 @@ constexpr goby::middleware::Group salinity{"jaiabot::salinity"};
 constexpr goby::middleware::Group dissolved_oxygen{"jaiabot::dissolved_oxygen"};
 constexpr goby::middleware::Group ph{"jaiabot::ph"};
 constexpr goby::middleware::Group fluorometer{"jaiabot::fluorometer"};
+constexpr goby::middleware::Group fluorometer_2{"jaiabot::fluorometer_2"};
 constexpr goby::middleware::Group echo{"jaiabot::echo"};
 constexpr goby::middleware::Group tsys01{"jaiabot::tsys01"};
 constexpr goby::middleware::Group ctd{"jaiabot::ctd"};
@@ -77,6 +79,7 @@ constexpr goby::middleware::Group powerstate_command{"jaiabot::powerstate_comman
 constexpr goby::middleware::Group mission_dive{"jaiabot::mission_dive"};
 constexpr goby::middleware::Group self_command{"jaiabot::self_command"};
 constexpr goby::middleware::Group state_change{"jaiabot::state_change"};
+constexpr goby::middleware::Group bot2bot_data{"jaiabot::bot2bot_data"};
 
 // hub manager
 constexpr goby::middleware::Group hub_status{"jaiabot::hub_status"};
@@ -89,6 +92,7 @@ constexpr goby::middleware::Group systemd_report_ack{"jaiabot::systemd_report_ac
 constexpr goby::middleware::Group motor_udp_in{"motor_udp_in"};
 constexpr goby::middleware::Group motor_udp_out{"motor_udp_out"};
 constexpr goby::middleware::Group motor_status{"jaiabot::motor_status"};
+constexpr goby::middleware::Group motor_usage_report{"jaiabot::motor_usage_report"};
 
 // DCCL (intervehicle)
 // The group used is an API version integer that allows us to check for incompatible
@@ -118,6 +122,7 @@ constexpr goby::middleware::Group hub_command_result{
 constexpr goby::middleware::Group arduino_from_pi{"jaiabot::arduino_from_pi"};
 constexpr goby::middleware::Group arduino_to_pi{"jaiabot::arduino_to_pi"};
 constexpr goby::middleware::Group arduino_debug{"jaiabot::arduino_debug"};
+constexpr goby::middleware::Group arduino_issue{"jaiabot::arduino_issue"};
 
 // Metadata
 constexpr goby::middleware::Group metadata{"jaiabot::metadata"};

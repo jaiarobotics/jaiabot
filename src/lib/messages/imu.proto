@@ -184,6 +184,35 @@ message IMUData
     }
     optional AccelerationWorld linear_acceleration_world = 14;
 
+    // Die temperature (LSM6DSO32: +/-15 C absolute accuracy)
+    optional double temperature = 15 [(dccl.field) = {
+        units { derived_dimensions: "temperature" system: "celsius" }
+    }];
+
+    // Chip status, for diagnostics (currently LSM6DSO32 only)
+    message SensorStatus
+    {
+        // Sensor timestamp counter (25 us resolution, wraps every ~29.8 h)
+        optional uint64 sensor_time = 1 [(dccl.field) = {
+            units { prefix: "micro" derived_dimensions: "time" system: "si" }
+        }];
+
+        // New sample since the previous read
+        optional bool new_acceleration = 2;
+        optional bool new_angular_velocity = 3;
+        optional bool new_temperature = 4;
+
+        // Events since the previous read
+        optional bool free_fall = 5;
+        optional bool wake_up = 6;
+
+        optional bool stationary = 7;
+
+        // Actual vs nominal output data rate
+        optional double odr_error_percent = 8;
+    }
+    optional SensorStatus sensor_status = 16;
+
 }
 
 message IMUIssue
