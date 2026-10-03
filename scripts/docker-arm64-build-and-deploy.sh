@@ -8,7 +8,7 @@
 ## Command line arguments is a list of Jaiabots to push deployed code to.
 ## If omitted, the code is just built, but not pushed
 ## Env var "jaiabot_systemd_type" can be set to one of: bot, hub, which will generate and enable the appropriate systemd services. If unset, the systemd services will not be installed and enabled
-## Env var "jaiabot_machine_type" can be set to one of: virtualbox, which will build amd64 binaries instead; or arm64-native, which builds the standard arm64 target using a native arm64 build image (use this when the build host itself is arm64). If unset, the target will be the standard arm64 embedded system, cross-compiled from an amd64 build host.
+## Env var "jaiabot_machine_type" can be set to one of: virtualbox, which will build amd64 binaries instead. If unset, the target will be the standard arm64 embedded system.
 ## Env var "jaiabot_repo" can be set to one of: release, continuous, beta, test, which will set the repository to use for install 'apt' dependencies in the Docker container. If unset, "release" will be used.
 ## Env var "jaiabot_version" can be set to one of: 1.y, 2.y, etc. which will set the version of the 'apt' repository. If unset, the value of "$jaia_version_release_branch" will be used (the default for this current branch).
 ## Env var "jaiabot_distro" can be set to one of: focal, jammy which will set the Ubuntu distribution to use. If unset, the value of "$jaia_version_ubuntu_codename" will be used.
@@ -54,11 +54,7 @@ else
 
     build_dir=build/${distro}-${version_lower}-arm64
     mkdir -p ${build_dir}
-    if [[ "$jaiabot_machine_type" == "arm64-native" ]]; then
-        image_name=jaia_build_native_${distro}_${repo}_${version_lower}
-    else
-        image_name=jaia_build_${distro}_${repo}_${version_lower}
-    fi
+    image_name=jaia_build_${distro}_${repo}_${version_lower}
 
 
     if [ "$(docker image ls ${image_name} --format='true')" != "true" ];

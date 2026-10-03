@@ -30,8 +30,7 @@ message UDPGatewayEnvelope
 
         IMUData imu_test_data = 9;
 
-        // jaiabot_udp_gateway -> jaiabot_lsm6dso32.py: the primary IMU's (BNO085) heading
-        // (euler_angles.heading only), used as the yaw of the test IMU's quaternion
+        // Primary IMU heading for jaiabot_lsm6dso32.py (euler_angles.heading only)
         IMUData imu_reference_data = 10;
 
     }

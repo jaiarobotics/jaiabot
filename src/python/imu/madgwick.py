@@ -1,12 +1,6 @@
-"""Madgwick orientation filter, accelerometer + gyroscope only (S. Madgwick, "An efficient orientation filter
-for inertial and inertial/magnetic sensor arrays", 2010).
+"""Accel + gyro Madgwick filter (Madgwick, 2010). Yaw is unreferenced.
 
-Pitch and roll are referenced to gravity; yaw is not referenced to anything (it drifts from where it started),
-so callers that need a heading must supply it separately.
-
-The output quaternion uses the same convention as the BNO085 rotation vector consumed by
-../adafruit/imu_bno085.py: Hamilton (w, x, y, z), rotating body-frame vectors (+x forward, +y port,
-+z up) into an East-North-Up world frame.
+Output follows the BNO085 rotation vector convention: Hamilton (w, x, y, z), body (+x fwd, +y port, +z up) -> ENU.
 """
 from math import sqrt
 
@@ -16,12 +10,11 @@ HALF_SQRT2 = sqrt(0.5)
 class Madgwick:
     def __init__(self, beta: float = 0.1):
         self.beta = beta
-        # Internal state: rotation from body frame to North-West-Up (Madgwick's native earth frame)
+        # body -> North-West-Up
         self.q0, self.q1, self.q2, self.q3 = 1.0, 0.0, 0.0, 0.0
 
     def initialize(self, accel):
-        """Set pitch and roll directly from a single accelerometer sample, instead of waiting for the filter to
-        converge. Yaw is set so that body +x points along world north."""
+        """Set pitch/roll from one accel sample, with body +x pointing north."""
         up = _normalized(accel)
         if up is None:
             return
@@ -31,15 +24,10 @@ class Madgwick:
             north = _normalized(_sub((0.0, 1.0, 0.0), _scale(up, up[1])))
         west = _cross(up, north)
 
-        # Rows of the body -> North-West-Up rotation matrix are the world axes expressed in the body frame
         self.q0, self.q1, self.q2, self.q3 = _matrix_to_quaternion((north, west, up))
 
     def update(self, gyro, accel, dt: float):
-        """Advance the filter by dt seconds.
-
-        gyro: (x, y, z) angular rate in rad/s
-        accel: (x, y, z) specific force, any units (normalized internally)
-        """
+        """gyro in rad/s; accel in any units."""
         gx, gy, gz = gyro
         ax, ay, az = accel
         q0, q1, q2, q3 = self.q0, self.q1, self.q2, self.q3
@@ -80,13 +68,12 @@ class Madgwick:
         self.q0, self.q1, self.q2, self.q3 = q0 / q_norm, q1 / q_norm, q2 / q_norm, q3 / q_norm
 
     def quaternion_wxyz(self):
-        """(w, x, y, z) rotating body-frame vectors into East-North-Up (the BNO085 rotation vector convention).
-        Only pitch and roll are meaningful; yaw is unreferenced."""
+        """(w, x, y, z), body -> ENU. Yaw is unreferenced."""
         # q_ENU = q_z(+90 deg) * q_NWU
         q0, q1, q2, q3 = self.q0, self.q1, self.q2, self.q3
         c = HALF_SQRT2
         w, x, y, z = c * (q0 - q3), c * (q1 - q2), c * (q2 + q1), c * (q3 + q0)
-        # q and -q are the same rotation; report w >= 0, like the BNO085 examples in ../adafruit/README.md
+        # Report w >= 0, like the BNO085
         return (w, x, y, z) if w >= 0 else (-w, -x, -y, -z)
 
 

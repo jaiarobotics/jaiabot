@@ -169,8 +169,7 @@ void jaiabot::apps::UDPGateway::process_received_envelope(const jaiabot::protobu
             imu_udp_src_ = udp_src;
             glog.is_debug1() && glog << "Received IMUData" << endl;
 
-            // Forward the primary IMU's heading to the test IMU driver (if it has reported in),
-            // which uses it as the yaw of its quaternion
+            // Test IMU uses the primary IMU's heading as yaw
             if (envelope.imu_data().euler_angles().has_heading())
                 send_imu_reference_data(envelope.imu_data());
             break;
@@ -271,7 +270,7 @@ void jaiabot::apps::UDPGateway::send_imu_command(const jaiabot::protobuf::IMUCom
 
 void jaiabot::apps::UDPGateway::send_imu_reference_data(const jaiabot::protobuf::IMUData& imu_data)
 {
-    // Test IMU driver hasn't sent any data yet, so we don't know where it is
+    // Test IMU hasn't reported in yet
     if (!imu_test_udp_src_.has_addr() || !imu_test_udp_src_.has_port())
         return;
 

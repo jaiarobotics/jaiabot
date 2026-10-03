@@ -184,32 +184,31 @@ message IMUData
     }
     optional AccelerationWorld linear_acceleration_world = 14;
 
-    // IMU die temperature (LSM6DSO32: +/-15 C absolute offset, good for relative changes)
+    // Die temperature (LSM6DSO32: +/-15 C absolute accuracy)
     optional double temperature = 15 [(dccl.field) = {
         units { derived_dimensions: "temperature" system: "celsius" }
     }];
 
-    // Chip-level status from IMUs that expose it (currently LSM6DSO32), for testing / diagnostics
+    // Chip status, for diagnostics (currently LSM6DSO32 only)
     message SensorStatus
     {
-        // Sensor's internal timestamp counter at read time (25 us resolution, wraps every ~29.8 h)
+        // Sensor timestamp counter (25 us resolution, wraps every ~29.8 h)
         optional uint64 sensor_time = 1 [(dccl.field) = {
             units { prefix: "micro" derived_dimensions: "time" system: "si" }
         }];
 
-        // A new sample was available since the previous read
+        // New sample since the previous read
         optional bool new_acceleration = 2;
         optional bool new_angular_velocity = 3;
         optional bool new_temperature = 4;
 
-        // Events detected by the sensor since the previous read
+        // Events since the previous read
         optional bool free_fall = 5;
         optional bool wake_up = 6;
 
-        // Sensor's activity/inactivity detector reports no motion
         optional bool stationary = 7;
 
-        // Deviation of the sensor's actual output data rate (and timestamp rate) from nominal
+        // Actual vs nominal output data rate
         optional double odr_error_percent = 8;
     }
     optional SensorStatus sensor_status = 16;

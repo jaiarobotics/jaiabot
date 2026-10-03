@@ -1,13 +1,8 @@
 #!/usr/bin/env python3
-"""Read accelerometer, gyroscope, temperature and chip status from an ST LSM6DSO32 over SPI and publish it
-to jaiabot_udp_gateway as UDPGatewayEnvelope.imu_test_data (group jaiabot::imu_test).
+"""LSM6DSO32 SPI driver, published as imu_test_data (jaiabot::imu_test) for comparison against the BNO085.
 
-Pitch and roll are estimated with a Madgwick filter from the LSM6DSO32 accelerometer and gyroscope. The
-quaternion combines them with the primary IMU's (BNO085) heading, which jaiabot_udp_gateway forwards as
-UDPGatewayEnvelope.imu_reference_data; this IMU does not compute or report a heading of its own. The quaternion
-uses the BNO085 rotation vector convention, and everything derived from it (Euler angles, gravity, linear
-acceleration) uses the same code as the BNO085 driver (../adafruit), so the two IMUs can be compared directly.
-The chips are assumed to be mounted in the same orientation (+x forward, +y port, +z up).
+Pitch/roll come from a Madgwick filter; yaw is the BNO085 heading forwarded by jaiabot_udp_gateway.
+Orientation outputs reuse the BNO085 driver's code. Assumes both chips share a mounting orientation.
 
 Register addresses / values refer to the LSM6DSO32 datasheet (DocID032891 Rev 1).
 """
@@ -27,7 +22,7 @@ from jaiabot.messages.udp_gateway_pb2 import UDPGatewayEnvelope
 
 from madgwick import Madgwick
 
-# Share the BNO085 driver's quaternion math and IMUData conversion
+# Reuse the BNO085 driver's quaternion / IMUData code
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'adafruit'))
 from imu_reading import IMUReading
 from quaternion import Quaternion
@@ -201,8 +196,7 @@ class LSM6DSO32:
                 log.debug(f'LSM6DSO32 setup error: {error}')
 
     def takeReading(self):
-        """Returns an IMUData with acceleration (m/s^2), angular_velocity (rad/s), temperature (degC)
-        and sensor_status, or None on failure."""
+        """Returns IMUData in SI units, or None on failure."""
         if not self.is_setup:
             if time.monotonic() < self._next_setup_time:
                 return None
@@ -245,14 +239,14 @@ class LSM6DSO32:
 
 
 def sensor_dt(previous: IMUData, current: IMUData):
-    """Seconds between two samples, from the sensor's timestamp counter (corrected for its rate error)."""
+    """Seconds between samples from the sensor timestamp, corrected for ODR error."""
     counts = (current.sensor_status.sensor_time - previous.sensor_status.sensor_time) // TIMESTAMP_RESOLUTION_US
     counts %= TIMESTAMP_WRAP
     return counts * TIMESTAMP_RESOLUTION_US * 1e-6 / (1 + current.sensor_status.odr_error_percent / 100)
 
 
 def accumulate_status(accumulated: IMUData.SensorStatus, latest: IMUData.SensorStatus):
-    """Combine the status of all the reads between sends, so flags that clear on read aren't lost."""
+    """Merge status across reads between sends, since flags clear on read."""
     accumulated.new_acceleration |= latest.new_acceleration
     accumulated.new_angular_velocity |= latest.new_angular_velocity
     accumulated.new_temperature |= latest.new_temperature
@@ -264,30 +258,23 @@ def accumulate_status(accumulated: IMUData.SensorStatus, latest: IMUData.SensorS
 
 
 def build_imu_data(ahrs: Madgwick, sample: IMUData, status: IMUData.SensorStatus, reference_heading):
-    """Build the IMUData to send, deriving everything from the quaternion exactly as imu_bno085.py does.
-
-    reference_heading: the BNO085's heading (degrees), or None if unavailable. It is used only as the yaw of the
-    quaternion (and so linear_acceleration_world); this IMU never reports euler_angles.heading.
-    """
-    # Pitch and roll from this IMU (yaw unreferenced)
+    """reference_heading: BNO085 heading (deg) used as yaw, or None."""
     q_tilt = Quaternion(*ahrs.quaternion_wxyz())
 
     reading = IMUReading()
     reading.orientation = q_tilt.to_euler_angles()
     reading.acceleration = Vector3(sample.acceleration.x, sample.acceleration.y, sample.acceleration.z)
     reading.angular_velocity = Vector3(sample.angular_velocity.x, sample.angular_velocity.y, sample.angular_velocity.z)
-    # Gravity and linear acceleration are in the body frame, so they don't depend on yaw
+    # Body frame, so independent of yaw
     reading.gravity = q_tilt.apply(Vector3(0, 0, STANDARD_GRAVITY))
     reading.linear_acceleration = reading.acceleration + (-1 * reading.gravity)
 
     if reference_heading is not None:
-        # Replace the unreferenced yaw with the BNO085 heading by rotating about the world vertical, which
-        # leaves pitch and roll unchanged. Heading is clockwise from north (with the same +90 degree correction
-        # as imu_bno085.py); quaternion yaw is counterclockwise about ENU +z.
+        # Swap in the BNO085 heading as yaw (+90 matches imu_bno085.py)
         own_heading = (reading.orientation.heading + 90) % 360
         yaw_change = radians(own_heading - reference_heading)
         q = Quaternion(cos(yaw_change / 2), 0, 0, sin(yaw_change / 2)) * q_tilt
-        if q.w < 0:  # q and -q are the same rotation; report w >= 0
+        if q.w < 0:
             q = Quaternion(-q.w, -q.x, -q.y, -q.z)
         reading.quaternion = q
         reading.linear_acceleration_world = q.apply(reading.linear_acceleration)
@@ -296,9 +283,8 @@ def build_imu_data(ahrs: Madgwick, sample: IMUData, status: IMUData.SensorStatus
 
     imu_data = reading.convertToIMUData()
 
-    imu_data.euler_angles.ClearField('heading')  # heading comes only from the BNO085
+    imu_data.euler_angles.ClearField('heading')  # reported only by the BNO085
     if reference_heading is None:
-        # Without the BNO085 heading, yaw is unreferenced, so anything depending on it isn't sent
         imu_data.ClearField('linear_acceleration_world')
 
     imu_data.temperature = sample.temperature
@@ -320,7 +306,7 @@ def do_port_loop(imu: LSM6DSO32):
     send_interval = 1.0 / args.sampling_rate
 
     ahrs = Madgwick(beta=args.beta)
-    # Set pitch and roll directly from the first sample, rather than waiting for the filter to converge
+    # Seed pitch/roll from the first sample
     initialize_orientation = True
 
     reference_heading = None
