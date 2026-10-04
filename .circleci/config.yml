@@ -185,6 +185,7 @@ filter-template-debian-builds: &filter-template-debian-builds
     branches:
       only:
         - "2.y"
+        - "feature/integrate-authelia-into-cloudhub/sw-2333"
         
 # which branches to run the normal source build
 filter-template-normal-builds: &filter-template-normal-builds
@@ -192,6 +193,7 @@ filter-template-normal-builds: &filter-template-normal-builds
     branches:
       ignore:
         - "2.y"
+        - "feature/integrate-authelia-into-cloudhub/sw-2333"
 
 # which branches to run the pi-zero filesystem builds
 filter-template-pi0-rootfs-builds: &filter-template-pi0-rootfs-builds
@@ -210,6 +212,7 @@ filter-template-rootfs-builds: &filter-template-rootfs-builds
     branches:
       only:
         - "2.y"
+        - "feature/integrate-authelia-into-cloudhub/sw-2333"
 
 # which branches to run the AWS virtual machine conversion (must be same as or subset of filter-template-rootfs-builds)
 filter-template-aws-rootfs-builds: &filter-template-aws-rootfs-builds
@@ -219,6 +222,7 @@ filter-template-aws-rootfs-builds: &filter-template-aws-rootfs-builds
     branches:
       only:
         - "2.y"
+        - "feature/integrate-authelia-into-cloudhub/sw-2333"
 
 # which branches to build Docker simulator
 filter-template-docker-sim-builds: &filter-template-docker-sim-builds
@@ -336,6 +340,9 @@ commands:
     parameters:
       role_arn:
         type: string
+      ami_copy_regions:
+        type: string
+        default: ""
     steps:
       - checkout
       - attach_workspace:
@@ -410,6 +417,17 @@ commands:
               "Key=jaiabot-rootfs-gen_build-unixtime,Value=$(date -u +%s)" \
               "Key=jaiabot_version_when_built,Value=${JAIABOT_VERSION}" \
               "Key=goby_version_when_built,Value=${GOBY_VERSION}"
+      - run:
+          name: Copy new AMI to additional regions
+          command: |
+            ami_copy_regions="<< parameters.ami_copy_regions >>"
+            if [ -z "${ami_copy_regions}" ]; then
+              echo "No additional AMI regions configured"
+              exit 0
+            fi
+            image_id=$(jq -r '.ImportImageTasks[0].ImageId' result.json)
+            AMI_NAME=$(echo ${JAIABOT_IMAGE_NAME} | sed 's/+/[plus]/g' | sed 's/~/[tilde]/g')
+            rootfs/cloud/aws/copy_ami_to_regions.sh "${image_id}" "${AMI_NAME}" "${JAIABOT_ROOTFS_GEN_REPO}" "${JAIABOT_ROOTFS_GEN_REPO_VERSION}" ${ami_copy_regions}
 
             
 jobs:
@@ -700,6 +718,7 @@ jobs:
     steps:
       - aws-sync-command:
           role_arn: arn:aws:iam::120512385734:role/JaiaCircleCI
+          ami_copy_regions: "ca-central-1"
 
   aws-sync-govcloud:
     docker:
@@ -709,6 +728,7 @@ jobs:
       DISTRO_RELEASE_CODENAME: "noble"
     resource_class: medium
     steps:
+      # no ami_copy_regions: GovCloud is a separate partition, so AMIs cannot be copied to or from commercial regions
       - aws-sync-command:
           role_arn: arn:aws-us-gov:iam::497433381399:role/JaiaCircleCI        
 

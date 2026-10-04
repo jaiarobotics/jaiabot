@@ -106,6 +106,7 @@ upper_right_logo_link: "https://www.jaia.tech/"
             display_name: "Current JaiaBot Version"
         }
         $limit
+        causes_hub_reboot: true
     }
 
     ansible_playbook {

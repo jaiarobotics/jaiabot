@@ -9,6 +9,8 @@ JAIA_TYPE=$RET
 db_get jaiabot-embedded/bot_type
 JAIA_BOT_TYPE=$RET
 
+IS_CLOUDHUB=false
+
 if [ "$JAIA_TYPE" = "bot" ]; then
     db_get jaiabot-embedded/bot_id
     BOT_OR_HUB_INDEX=$RET
@@ -28,6 +30,10 @@ elif [ "$JAIA_TYPE" = "hub" ]; then
     BOT_OR_HUB_FINAL_OCTET=$((BOT_OR_HUB_INDEX + 10))
     JAIA_BOT_TYPE="none"
     db_set jaiabot-embedded/bot_type "none"
+
+    if [ "$BOT_OR_HUB_INDEX" = "30" ]; then
+       IS_CLOUDHUB=true
+    fi
 fi
 
 db_get jaiabot-embedded/fleet_id
@@ -246,10 +252,12 @@ fi
 
 echo "jaiabot-embedded version: $(dpkg-query --show --showformat='${Version}' jaiabot-embedded)" > /etc/jaiabot/software_version
 
-if [ ! -f /etc/apt/apt.conf.d/99disable-auto-upgrades ]; then
-    echo 'APT::Periodic::Update-Package-Lists "0";' > /etc/apt/apt.conf.d/99disable-auto-upgrades
-    echo 'APT::Periodic::Unattended-Upgrade "0";' >> /etc/apt/apt.conf.d/99disable-auto-upgrades
-    systemctl disable --now apt-daily.timer apt-daily-upgrade.timer
+if [ ! $IS_CLOUDHUB ]; then  
+    if [ ! -f /etc/apt/apt.conf.d/99disable-auto-upgrades ]; then
+        echo 'APT::Periodic::Update-Package-Lists "0";' > /etc/apt/apt.conf.d/99disable-auto-upgrades
+        echo 'APT::Periodic::Unattended-Upgrade "0";' >> /etc/apt/apt.conf.d/99disable-auto-upgrades
+        systemctl disable --now apt-daily.timer apt-daily-upgrade.timer
+    fi
 fi
 
 #DEBHELPER#

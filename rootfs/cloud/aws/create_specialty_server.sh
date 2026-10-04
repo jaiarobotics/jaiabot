@@ -64,17 +64,20 @@ fi
 
 USER_DATA_SCRIPT="${SCRIPT_PATH}/${SERVER_TYPE}/user-data.sh"
 USER_DATA_SCRIPT_TMPL="${SCRIPT_PATH}/${SERVER_TYPE}/user-data.sh.in"
+
+# only substitute variables that are actually defined
+subst_vars=$(env | sed 's/=.*//' | sed 's/.*/${&}/' | tr '\n' ' ')
 if [[ -e ${USER_DATA_SCRIPT} ]]; then
     :
 elif [[ -e ${USER_DATA_SCRIPT_TMPL} ]]; then
     USER_DATA_SCRIPT="${TMPDIR}/user-data.sh"
-    eval "echo \"$(< ${USER_DATA_SCRIPT_TMPL})\"" > ${USER_DATA_SCRIPT}
+    envsubst "$subst_vars" < ${USER_DATA_SCRIPT_TMPL} > ${USER_DATA_SCRIPT}
 fi
 
 USER_DATA_CORE_IN="${SCRIPT_PATH}/${SERVER_TYPE}/user-data.yaml.in"
 USER_DATA_CORE="${TMPDIR}/user-data.yaml"
 
-envsubst < ${USER_DATA_CORE_IN} > ${USER_DATA_CORE}
+envsubst "$subst_vars" < ${USER_DATA_CORE_IN} > ${USER_DATA_CORE}
 
 USER_DATA_FILE=${TMPDIR}/user-data
 cloud-init devel make-mime -a ${USER_DATA_SCRIPT}:x-shellscript -a ${USER_DATA_CORE}:cloud-config > ${USER_DATA_FILE}
