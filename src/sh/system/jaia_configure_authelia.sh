@@ -38,9 +38,14 @@ smtp_credentials_parameter=${jaia_auth_smtp_credentials_ssm_parameter:-/jaia/clo
 ch_ip=$(jaia_ip --query_type addr --ip_net cloudhub_vpn --fleet_id ${jaia_fleet_id} --node_type hub --node_id $(jaia_bounds --cloudhub_id) --ip_version ipv6)
 vh1_ip=$(jaia_ip --query_type addr --ip_net vfleet_vpn --fleet_id ${jaia_fleet_id} --node_type hub --node_id 1 --ip_version ipv6)
 
+# Landing page and shared navigation (static, from jaiabot-web)
+jaia_cloud_web_dir=/usr/share/jaiabot/web/cloud
+
 # Persistent directories (between major upgrades)
 auth_persistent_dir=/var/log/jaiabot/auth
 authelia_persistent_dir=$auth_persistent_dir/authelia
+# Not under /etc/authelia: the package's tmpfiles.d rule sets 0640 on everything there, directories included
+authelia_asset_dir=$authelia_persistent_dir/assets
 lldap_persistent_dir=$auth_persistent_dir/lldap
 
 
@@ -106,6 +111,54 @@ EOF
 
 apt-get update && apt-get install -y authelia caddy docker-compose-v2 fuse-overlayfs
 
+##################
+## Custom Caddy ##
+##################
+
+# Ubuntu's caddy lacks the replace-response plugin that injects the shared
+# navigation into every proxied page, so fetch a build with it from the Caddy
+# download service and install it beside the apt binary the way the Caddy docs
+# recommend for deb installs: apt keeps upgrading the diverted caddy.default
+# while update-alternatives points /usr/bin/caddy at caddy.custom.
+caddy_custom=/usr/bin/caddy.custom
+caddy_plugin=github.com/caddyserver/replace-response
+caddy_plugin_version=$jaia_version_caddy_replace_response
+caddy_binary_changed=false
+
+caddy_has_plugin() {
+    # list-modules prints "http.handlers.replace_response <version>" and build-info
+    # prints "dep <module> <version>"; either confirms the pinned plugin.
+    # Not grep -q: under pipefail it exits on the first match and caddy dies of SIGPIPE
+    [ -x "$1" ] && { "$1" list-modules --versions; "$1" build-info; } 2>/dev/null \
+        | grep -E "replace[-_]response[[:space:]]+${caddy_plugin_version}([[:space:]]|$)" >/dev/null
+}
+
+if ! caddy_has_plugin "$caddy_custom"; then
+    # Download next to the destination: /tmp may be mounted noexec
+    caddy_download=$caddy_custom.tmp
+    if curl -fsSL --retry 3 --retry-delay 10 -o "$caddy_download" \
+            "https://caddyserver.com/api/download?os=linux&arch=$(dpkg --print-architecture)&p=${caddy_plugin}@${caddy_plugin_version}" \
+            && chmod 0755 "$caddy_download" && caddy_has_plugin "$caddy_download"; then
+        mv "$caddy_download" "$caddy_custom"
+        caddy_binary_changed=true
+    elif [ -x "$caddy_custom" ] && "$caddy_custom" list-modules 2>/dev/null | grep '^http.handlers.replace_response$' >/dev/null; then
+        echo "WARNING: Could not download Caddy with ${caddy_plugin}@${caddy_plugin_version}; keeping the existing $caddy_custom" >&2
+    else
+        echo "ERROR: Could not download Caddy with ${caddy_plugin}@${caddy_plugin_version} from caddyserver.com and no usable $caddy_custom exists" >&2
+        rm -f "$caddy_download"
+        exit 1
+    fi
+    rm -f "$caddy_download"
+fi
+
+if [ -z "$(dpkg-divert --list /usr/bin/caddy)" ]; then
+    dpkg-divert --divert /usr/bin/caddy.default --rename /usr/bin/caddy
+fi
+update-alternatives --install /usr/bin/caddy caddy /usr/bin/caddy.default 10
+update-alternatives --install /usr/bin/caddy caddy "$caddy_custom" 50
+update-alternatives --set caddy "$caddy_custom"
+echo "Using $(caddy version)"
+
 
 ##############
 ## Authelia ##
@@ -152,6 +205,15 @@ EOF
     systemctl restart docker
 fi
 
+# Everything Authelia reads at startup, so we can restart it below only when
+# this run changed something (a restart signs everyone out: sessions are in memory)
+authelia_inputs_fingerprint() {
+    cat /etc/authelia/configuration.yml \
+        /etc/systemd/system/authelia.service.d/override.conf \
+        /etc/authelia/smtp_password 2>/dev/null | sha256sum || true
+}
+authelia_inputs_before=$(authelia_inputs_fingerprint)
+
 # Authelia configuration
 mv /etc/authelia/configuration.yml /etc/authelia/configuration.yml.ex
 
@@ -193,17 +255,30 @@ else
     rm -f "$smtp_password_file"
 fi
 
+# Portal branding. Authelia serves an override instead of its own file, but
+# portal.json keys are the English text, so keys left out still read correctly.
+# Authelia rejects a value that drops a placeholder the key has.
+mkdir -p $authelia_asset_dir/locales/en
+cp $jaia_cloud_web_dir/authelia/logo.png $jaia_cloud_web_dir/authelia/favicon.ico $authelia_asset_dir/
+cat <<EOF > $authelia_asset_dir/locales/en/portal.json
+{
+    "Login - {{authelia}}": "Jaia Cloud Fleet ${jaia_fleet_id} - {{authelia}}"
+}
+EOF
+
 cat <<EOF > /etc/authelia/configuration.yml
 ---
 server:
   address: 'tcp://:$authelia_port'
+  asset_path: '$authelia_asset_dir'
 default_2fa_method: 'webauthn'
 webauthn:
   disable: false
   enable_passkey_login: false
   display_name: '$base_uri'
 totp:
-  disable: true
+  disable: false
+  issuer: '$base_uri'
 duo_api:
   disable: true
 identity_validation:
@@ -219,6 +294,14 @@ authentication_backend:
 access_control:
   default_policy: 'deny'
   rules: # order matters!
+    # The navigation menu asks Caddy who is signed in (/_jaia/whoami on every site)
+    - domain:
+        - '$base_uri'
+        - '*.$base_uri'
+      resources:
+        - '^/_jaia/whoami$'
+      policy: two_factor
+
     # Allow group 'jdv' to access JDV
     - domain: run.$base_uri
       resources:
@@ -282,11 +365,18 @@ access_control:
         - 'group:lldap_admin'
         - 'group:super_admin'
 
+    # Landing page listing the sites
+    - domain: $base_uri
+      policy: 'two_factor'
+
 session:
   secret: '$session_secret'
+  inactivity: '15m'
+  expiration: '2h'
   cookies:
      - domain: '$base_uri'
        authelia_url: 'https://auth.$base_uri'
+       default_redirection_url: 'https://$base_uri/'
 storage:
   encryption_key: '$storage_encryption_key'
   local:
@@ -310,50 +400,157 @@ systemctl enable authelia
 ###########
 
 cat <<EOF > /etc/caddy/Caddyfile
-# Redirect base URL to runtime JCC
+{
+        # replace-response plugin (custom build, see above)
+        order replace after encode
+}
+
+(authelia_forward_auth) {
+        forward_auth localhost:$authelia_port {
+                uri /api/authz/forward-auth
+                copy_headers Remote-User Remote-Groups Remote-Email Remote-Name
+                # A denial carries a fresh anonymous session cookie, which would
+                # replace a sign-in that completed while the request was in flight
+                header_down -Set-Cookie
+        }
+}
+
+# Shared navigation menu and landing page (static files from jaiabot-web)
+(jaia_nav) {
+        # Who is signed in, for the menu. forward_auth sets the Remote-* headers
+        # and respond runs after it, so these are Authelia's values, not the client's.
+        handle /_jaia/whoami {
+                import authelia_forward_auth
+                header Cache-Control no-store
+                header Content-Type "text/plain; charset=utf-8"
+                respond <<WHOAMI
+{http.request.header.Remote-User}
+{http.request.header.Remote-Name}
+{http.request.header.Remote-Groups}
+WHOAMI 200
+        }
+
+        # Whether the VirtualFleet answers (it only runs once started from JCU).
+        # Any reply means up; a failed connection is Caddy's own 502.
+        handle /_jaia/sim {
+                header Cache-Control no-store
+                reverse_proxy [$vh1_ip]:80 {
+                        method HEAD
+                        rewrite /
+                        transport http {
+                                dial_timeout 2s
+                                response_header_timeout 3s
+                        }
+                        handle_response {
+                                respond 204
+                        }
+                }
+        }
+
+        handle /_jaia/fleet {
+                header Cache-Control no-cache
+                header Content-Type "text/plain; charset=utf-8"
+                respond "${jaia_fleet_id}" 200
+        }
+
+        # Public (nothing sensitive) so the sign-in page can show the menu too
+        handle /_jaia/* {
+                root * $jaia_cloud_web_dir
+                header Cache-Control no-cache
+                file_server
+        }
+}
+
+# Proxy to an upstream, injecting the navigation into every HTML page
+(jaia_nav_proxy) {
+        # replace cannot read compressed bodies, so the upstream must send them
+        # uncompressed; encode compresses for the client instead
+        encode zstd gzip
+        replace {
+                match {
+                        header Content-Type text/html*
+                }
+                re "(?i)</head>" "<link rel=\"stylesheet\" href=\"/_jaia/nav.css\"><script defer src=\"/_jaia/nav.js\"></script></head>"
+        }
+        reverse_proxy {args[0]} {
+                header_up Accept-Encoding identity
+        }
+}
+
+# Landing page
 $base_uri {
         $caddy_tls
-        redir https://run.$base_uri{uri} permanent
+        import jaia_nav
+        handle {
+                import authelia_forward_auth
+                # Never serve a stored copy to someone who has since signed out
+                header Cache-Control no-store
+                root * $jaia_cloud_web_dir
+                encode zstd gzip
+                file_server
+        }
 }
 
 # Authelia Portal.
 auth.$base_uri {
         $caddy_tls
-        reverse_proxy localhost:$authelia_port
-}
-
-# Protected Endpoints.
-(authelia_forward_auth) {
-	forward_auth localhost:$authelia_port {
-		uri /api/authz/forward-auth
-		copy_headers Remote-User Remote-Groups Remote-Email Remote-Name
-	}
+        import jaia_nav
+        handle {
+                import jaia_nav_proxy localhost:$authelia_port
+        }
 }
 
 users.$base_uri {
         $caddy_tls
-        import authelia_forward_auth
-        reverse_proxy :$lldap_web_port
+        import jaia_nav
+        handle {
+                import authelia_forward_auth
+                import jaia_nav_proxy :$lldap_web_port
+        }
 }
 
 # Runtime JCC
 run.$base_uri {
         $caddy_tls
-        import authelia_forward_auth
-        reverse_proxy [$ch_ip]:$jcc_port
+        import jaia_nav
+        handle {
+                import authelia_forward_auth
+                import jaia_nav_proxy [$ch_ip]:$jcc_port
+        }
 }
 
 # VirtualFleet JCC
 sim.$base_uri {
         $caddy_tls
-        import authelia_forward_auth
-        reverse_proxy [$vh1_ip]:80
+        import jaia_nav
+        handle {
+                import authelia_forward_auth
+                import jaia_nav_proxy [$vh1_ip]:80
+        }
+
+        # The VirtualFleet is down until started from JCU; say so rather than a blank 502
+        handle_errors 502 503 504 {
+                @page not path /_jaia/*
+                handle @page {
+                        root * $jaia_cloud_web_dir
+                        rewrite * /_jaia/sim-down.html
+                        header Cache-Control no-store
+                        file_server
+                }
+        }
 }
 
 EOF
 
-# Caddy starts with its stock Caddyfile when installed, so reload to apply ours (graceful if running)
-systemctl reload-or-restart caddy
+# Caddy starts with its stock Caddyfile when installed, so reload to apply ours
+# (graceful if running). The running process cannot reload into a new binary,
+# and a stock binary rejects 'replace', so restart when the binary changed.
+caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+if $caddy_binary_changed; then
+    systemctl restart caddy
+else
+    systemctl reload-or-restart caddy
+fi
 
 ###########
 ## LLDAP ##
@@ -478,7 +675,13 @@ $smtp_password_env
 EOF
 
 systemctl daemon-reload
-systemctl start authelia
+# Authelia only reads its configuration at startup, so 'start' alone would leave a
+# running instance enforcing the old access_control rules
+if [ "$(authelia_inputs_fingerprint)" != "$authelia_inputs_before" ]; then
+    systemctl restart authelia
+else
+    systemctl start authelia
+fi
 
 
 ##############
