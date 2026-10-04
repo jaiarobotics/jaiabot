@@ -205,6 +205,9 @@ lldap_admin_password=$(openssl rand -hex 64)
 EOF
     chmod 0600 $authelia_secrets_file
 fi
+if ! grep -q '^authelia_ldap_password=' "$authelia_secrets_file"; then
+    echo "authelia_ldap_password=$(openssl rand -hex 64)" >> "$authelia_secrets_file"
+fi
 set -a; source "$authelia_secrets_file"; set +a;
 
 # An SSM parameter ARN names its own region, which may not be ours
@@ -263,8 +266,8 @@ authentication_backend:
     implementation: 'lldap'
     address: 'ldap://localhost:$lldap_ldap_port'
     base_dn: 'DC=jaia,DC=tech'
-    user: 'UID=jaia_admin,OU=people,DC=jaia,DC=tech'
-    password: '$lldap_admin_password'
+    user: 'UID=authelia,OU=people,DC=jaia,DC=tech'
+    password: '$authelia_ldap_password'
 access_control:
   default_policy: 'deny'
   rules: # order matters!
@@ -548,15 +551,17 @@ for group in "${groups[@]}"; do
 EOF
 done
 
-# Create jaia_admin user config
+# Only an initial password: Authelia binds as authelia so a reset here can't lock it out
 cat > /etc/lldap/bootstrap/user-configs/jaia_admin.json <<EOF
 {
   "id": "jaia_admin",
   "email": "$admin_email",
+  "password": "$lldap_admin_password",
   "groups": ["super_admin", "lldap_admin"
   ]
 }
 EOF
+chmod 0600 /etc/lldap/bootstrap/user-configs/jaia_admin.json
 
 cat <<EOF > /etc/lldap/docker-compose.yaml
 services:
@@ -574,13 +579,13 @@ services:
       - LLDAP_JWT_SECRET=$lldap_jwt_secret
       - LLDAP_KEY_SEED=$lldap_key_seed
       - LLDAP_LDAP_BASE_DN=dc=jaia,dc=tech
-      - LLDAP_LDAP_USER_DN=jaia_admin
-      - LLDAP_LDAP_USER_PASS=$lldap_admin_password
-      - LLDAP_LDAP_USER_EMAIL=$admin_email
+      - LLDAP_LDAP_USER_DN=authelia
+      - LLDAP_LDAP_USER_PASS=$authelia_ldap_password
+      - LLDAP_LDAP_USER_EMAIL=authelia@$base_uri
 
       - LLDAP_URL=http://localhost:$lldap_web_port
-      - LLDAP_ADMIN_USERNAME=jaia_admin
-      - LLDAP_ADMIN_PASSWORD=$lldap_admin_password
+      - LLDAP_ADMIN_USERNAME=authelia
+      - LLDAP_ADMIN_PASSWORD=$authelia_ldap_password
       - GROUP_CONFIGS_DIR=/bootstrap/group-configs
       - USER_CONFIGS_DIR=/bootstrap/user-configs
       - DO_CLEANUP=false
