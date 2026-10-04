@@ -121,6 +121,12 @@ jaiabot::LiaisonUpgrade::AnsiblePlaybookConfig::AnsiblePlaybookConfig(
 {
     auto group_box = parent->addNew<WGroupBox>(playbook.name());
     auto group_div = group_box->addNew<WContainerWidget>();
+    if (playbook.has_description())
+    {
+        auto description_div = group_div->addNew<WContainerWidget>();
+        description_div->addNew<WText>(playbook.description(), Wt::TextFormat::Plain);
+        description_div->setPadding(default_padding);
+    }
     auto iv_group_div = group_div->addNew<WContainerWidget>();
     auto run_button_div = group_div->addNew<WContainerWidget>();
     run_button = run_button_div->addNew<WPushButton>("Run");
