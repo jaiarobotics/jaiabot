@@ -206,6 +206,8 @@ settings are split by where they can be obtained again:
 | `cloudhub.admin_email` | required — address of the `jaia_admin` user created on first boot |
 | `cloudhub.smtp_address` | required — the relay Authelia sends enrolment and reset mail through |
 | `cloudhub.data_bucket` | `jaia--cloudhub-data--fleet<fleet>` — the bucket mounted at the bot offload directory |
+| `cloudhub.smtp_sender` | `noreply@auth.jaia.tech` — the From address, verified with the SMTP provider |
+| `cloudhub.smtp_credentials_ssm_parameter` | `/jaia/cloudhub/smtp_credentials` — the SSM SecureString holding the SMTP login (see "Required SMTP" below) |
 
 `customer` is a property of the fleet rather than of its CloudHub, so it sits at the top
 level; the rest are meaningless without hub 30 and `validate` requires the `cloudhub`
@@ -409,11 +411,31 @@ jaiaf6      AAAA    2001:db8::42
 
 ### Required SMTP
 
-Sending email from the Authelia instance is required for registering new 2FA tokens and password resets. These emails are sent from "noreply@auth.{subdomain}", e.g., "noreply@auth.fleet6.jaia.tech" for a `jaia.tech` hosted Fleet 6.
+Sending email from the Authelia instance is required for registering new 2FA tokens and password resets. By default these emails are sent from `noreply@auth.jaia.tech` through [Postmark](https://postmarkapp.com/), for every fleet.
 
-This requires a working SMTP relay (send) service. To avoid getting these messages in SPAM, you should set up a valid relay with DKIM signing and SPF entries (DNS record for sending server). Additionally you should have an DNS MX record for `auth.{subdomain}`.
+The relevant `cloudhub` fields of the fleet configuration are:
 
-For this you can use corporate mail services like Google Workspace (SMTP Relay service), or dedicated mail senders such as Postmark. You can use `https://www.mail-tester.com/` to check the likelihood that your emails will be caught in spam.
+| Field | Default | Meaning |
+|---|---|---|
+| `smtp_address` | (required) | SMTP server Authelia sends through: `submission://smtp.postmarkapp.com:587` for Postmark |
+| `smtp_sender` | `noreply@auth.jaia.tech` | From address. It must be verified with the SMTP provider |
+| `smtp_credentials_ssm_parameter` | `/jaia/cloudhub/smtp_credentials` | AWS SSM Parameter Store SecureString holding the SMTP login as `{"username": "...", "password": "..."}`. A plain name is looked up in the CloudHub's own account and region; a full ARN can point anywhere the CloudHub's role is allowed to read |
+
+For example, a client that hosts their CloudHub in their own AWS account and sends from their own domain:
+
+```
+cloudhub {
+  base_uri: "jaia.clientdomain.com"
+  admin_email: "admin@clientdomain.com"
+  smtp_address: "submission://smtp.postmarkapp.com:587"
+  smtp_sender: "noreply@auth.clientdomain.com"
+  smtp_credentials_ssm_parameter: "/client/jaia/smtp_credentials"
+}
+```
+
+`create_vpc.sh` grants the CloudHub's IAM role `ssm:GetParameter` on this parameter (and `kms:Decrypt` through SSM, for parameters encrypted with a customer managed key), and `jaia_configure_authelia.sh` reads it at configuration time. If the parameter cannot be read, Authelia is configured to send without authenticating, which only works with a relay that allowlists the CloudHub's IP addresses (e.g. Google Workspace SMTP Relay). Postmark will refuse it, and Authelia will not start.
+
+You can use `https://www.mail-tester.com/` to check the likelihood that your emails will be caught in spam.
 
 ### Available services
 

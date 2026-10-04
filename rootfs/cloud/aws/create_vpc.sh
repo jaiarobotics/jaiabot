@@ -179,6 +179,30 @@ fi
 VPC_IPV6_BLOCK=$(run ".Vpcs[].Ipv6CidrBlockAssociationSet[].Ipv6CidrBlock" aws ec2 describe-vpcs --vpc-id ${VPC_ID})
 echo ">>>>>> Created VPC IPV6 block: $VPC_IPV6_BLOCK"
 
+# Generated before the IAM policy, which needs the SMTP credentials location from the fleet config
+USER_DATA_FIRST_BOOT_DIR=${TMPDIR}/bootdir
+mkdir -p ${USER_DATA_FIRST_BOOT_DIR}/jaiabot/init
+
+USER_DATA_COMMON=$(realpath ${SCRIPT_PATH}/../../customization/includes.chroot/etc/jaiabot/init/common-first-boot.yml)
+USER_DATA_FIRST_BOOT_J2=$(realpath ${SCRIPT_PATH}/../../customization/includes.chroot/etc/jaiabot/init/first-boot.preseed.yml.j2)
+
+cp ${USER_DATA_FIRST_BOOT_J2} ${USER_DATA_FIRST_BOOT_DIR}/jaiabot/init
+jaia admin fleet generate ${FLEET_CONFIG} --bootdir ${USER_DATA_FIRST_BOOT_DIR} hub ${CLOUDHUB_ID} --action vpn_key --action first_boot --action store_fleet_cfg --action write_cloudhub_env
+USER_DATA_FIRST_BOOT=${USER_DATA_FIRST_BOOT_DIR}/jaiabot/init/first-boot.preseed.yml
+
+# The IAM policy and the closing summary (DNS and SMTP entries the operator still has to make) read these
+set -a; source <(grep '^AUTH_' ${USER_DATA_FIRST_BOOT_DIR}/jaiabot/init/cloudhub_env.sh); set +a
+
+AUTH_SMTP_SENDER=${AUTH_SMTP_SENDER:-}
+AUTH_SMTP_CREDENTIALS_SSM_PARAMETER=${AUTH_SMTP_CREDENTIALS_SSM_PARAMETER:-}
+# Keep this default in sync with jaia_configure_authelia.sh
+SMTP_CREDENTIALS_PARAMETER=${AUTH_SMTP_CREDENTIALS_SSM_PARAMETER:-/jaia/cloudhub/smtp_credentials}
+if [[ "$SMTP_CREDENTIALS_PARAMETER" == arn:* ]]; then
+    SMTP_CREDENTIALS_PARAMETER_ARN="$SMTP_CREDENTIALS_PARAMETER"
+else
+    SMTP_CREDENTIALS_PARAMETER_ARN="${ARN_PREFIX}:ssm:${REGION}:${ACCOUNT_ID}:parameter/${SMTP_CREDENTIALS_PARAMETER#/}"
+fi
+
 # Create Policy for CloudHub to manage VirtualFleet instances
 POLICY_FILE_IN="${SCRIPT_PATH}/cloudhub-iam-policy.json.in"
 POLICY_FILE="${TMPDIR}/cloudhub-iam-policy.json"
@@ -189,6 +213,7 @@ sed -i "s/{{ACCOUNT_ID}}/${ACCOUNT_ID}/g" ${POLICY_FILE}
 sed -i "s/{{VPC_ID}}/${VPC_ID}/g" ${POLICY_FILE}
 sed -i "s/{{CLOUDHUB_DATA_BUCKET}}/${CLOUDHUB_DATA_BUCKET}/g" ${POLICY_FILE}
 sed -i "s/{{ARN_PREFIX}}/${ARN_PREFIX}/g" ${POLICY_FILE}
+sed -i "s|{{SMTP_CREDENTIALS_PARAMETER_ARN}}|${SMTP_CREDENTIALS_PARAMETER_ARN}|g" ${POLICY_FILE}
 
 role_name="JaiaCloudHubFleet${FLEET_ID}__Role"
 policy_name="JaiaCloudHubFleet${FLEET_ID}__Policy"
@@ -294,19 +319,6 @@ echo ">>>>>> Allocated Elastic IP Address with Allocation ID: $EIP_ALLOCATION_ID
 PUBLIC_IPV4_ADDRESS=$(run ".Addresses[0].PublicIp" aws ec2 describe-addresses --allocation-ids $EIP_ALLOCATION_ID)
 
 ## Launch the actual VM (CloudHub)
-USER_DATA_FIRST_BOOT_DIR=${TMPDIR}/bootdir
-mkdir -p ${USER_DATA_FIRST_BOOT_DIR}/jaiabot/init
-
-USER_DATA_COMMON=$(realpath ${SCRIPT_PATH}/../../customization/includes.chroot/etc/jaiabot/init/common-first-boot.yml)
-USER_DATA_FIRST_BOOT_J2=$(realpath ${SCRIPT_PATH}/../../customization/includes.chroot/etc/jaiabot/init/first-boot.preseed.yml.j2)
-
-cp ${USER_DATA_FIRST_BOOT_J2} ${USER_DATA_FIRST_BOOT_DIR}/jaiabot/init
-jaia admin fleet generate ${FLEET_CONFIG} --bootdir ${USER_DATA_FIRST_BOOT_DIR} hub ${CLOUDHUB_ID} --action vpn_key --action first_boot --action store_fleet_cfg --action write_cloudhub_env
-
-# The closing summary reports the DNS and SMTP entries the operator still has to make
-set -a; source <(grep '^AUTH_' ${USER_DATA_FIRST_BOOT_DIR}/jaiabot/init/cloudhub_env.sh); set +a
-USER_DATA_FIRST_BOOT=${USER_DATA_FIRST_BOOT_DIR}/jaiabot/init/first-boot.preseed.yml
-
 USER_DATA_SCRIPT_IN="${SCRIPT_PATH}/cloud-init-user-data.sh.in"
 USER_DATA_SCRIPT="${TMPDIR}/cloud-init-user-data.sh"
 
@@ -587,7 +599,8 @@ AUTH_BASE_URI_HOST="${AUTH_BASE_URI%%.*}"
 
 cat <<EOF
 >>>>>> You must still perform these steps!
-1. Add this server to your SMTP relay at (for $AUTH_SMTP_ADDRESS): $PUBLIC_IPV4_ADDRESS and $PUBLIC_IPV6_ADDRESS
+1. Make sure the SSM SecureString $SMTP_CREDENTIALS_PARAMETER_ARN holds {"username": ..., "password": ...} for $AUTH_SMTP_ADDRESS,
+   and that the sender (${AUTH_SMTP_SENDER:-noreply@auth.jaia.tech}) is verified there. For an IP-allowlisted relay instead, add $PUBLIC_IPV4_ADDRESS and $PUBLIC_IPV6_ADDRESS to it.
 2. Add these DNS entries:
 	$AUTH_BASE_URI_HOST A $PUBLIC_IPV4_ADDRESS
 	$AUTH_BASE_URI_HOST AAAA $PUBLIC_IPV6_ADDRESS
