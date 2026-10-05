@@ -72,19 +72,54 @@ export function buildMissionSetSummaries(
 }
 
 /**
- * Session state for the JCC task packet filter.
+ * The default search window: today from local 00:00 to 23:59. Window times are whole minutes to
+ * match the minute precision of the task packet query.
+ *
+ * @param {Date} [now] Time to take "today" from
+ * @returns {{ start: Date; end: Date }} Window start and end
+ */
+export function getTodayWindow(now: Date = new Date()) {
+    const year = now.getFullYear();
+    const month = now.getMonth();
+    const day = now.getDate();
+    return {
+        start: new Date(year, month, day, 0, 0),
+        end: new Date(year, month, day, 23, 59),
+    };
+}
+
+/**
+ * Session state for the JCC task packet filter. The filter is always applied; reset() returns it
+ * to today's window with every mission set shown.
+ *
+ * Mission set selection is stored as the sets the user unchecked, so a mission set that first
+ * appears after the filter was set is shown without any bookkeeping.
  */
 export class TaskPacketFilter {
-    private active = false;
-    private startDate: Date | null = null;
-    private endDate: Date | null = null;
-    private selectedMissionSetKeys = new Set<string>();
-    private sliderLowerUtime = 0;
-    private sliderUpperUtime = 0;
-    private autoFollowUpper = true;
+    private startDate: Date;
+    private endDate: Date;
+    private deselectedMissionSetKeys: Set<string>;
+    private sliderLowerUtime: number;
+    private sliderUpperUtime: number;
+    private autoFollowUpper: boolean;
 
-    isActive() {
-        return this.active;
+    constructor() {
+        this.reset();
+    }
+
+    /**
+     * Returns the filter to today's window, every mission set shown, and the slider at full range.
+     *
+     * @returns {void}
+     */
+    reset() {
+        const { start, end } = getTodayWindow();
+        this.startDate = start;
+        this.endDate = end;
+        this.deselectedMissionSetKeys = new Set();
+        this.sliderLowerUtime = 0;
+        this.sliderUpperUtime = 0;
+        this.autoFollowUpper = true;
     }
 
     getStartDate() {
@@ -98,30 +133,14 @@ export class TaskPacketFilter {
     setSearchWindow(startDate: Date, endDate: Date) {
         this.startDate = startDate;
         this.endDate = endDate;
-        this.active = true;
     }
 
-    /**
-     * Deactivates the filter and resets it to its initial state, so every packet passes.
-     *
-     * @returns {void}
-     */
-    clear() {
-        this.active = false;
-        this.startDate = null;
-        this.endDate = null;
-        this.selectedMissionSetKeys = new Set();
-        this.sliderLowerUtime = 0;
-        this.sliderUpperUtime = 0;
-        this.autoFollowUpper = true;
+    getDeselectedMissionSetKeys() {
+        return new Set(this.deselectedMissionSetKeys);
     }
 
-    getSelectedMissionSetKeys() {
-        return new Set(this.selectedMissionSetKeys);
-    }
-
-    setSelectedMissionSetKeys(keys: Set<string>) {
-        this.selectedMissionSetKeys = new Set(keys);
+    setDeselectedMissionSetKeys(keys: Set<string>) {
+        this.deselectedMissionSetKeys = new Set(keys);
     }
 
     getSliderLowerUtime() {
@@ -146,24 +165,24 @@ export class TaskPacketFilter {
     }
 
     /**
-     * True when a packet should be shown. While active with no mission sets selected nothing
-     * passes.
+     * True when a packet should be shown: its mission set is not unchecked and it falls within
+     * the slider window. While auto-following, the window has no upper bound so new packets show.
      *
      * @param {TaskPacket} taskPacket Packet to test
      * @returns {boolean} Whether the packet is visible under the current filter
      */
     passes(taskPacket: TaskPacket): boolean {
-        if (!this.active) {
-            return true;
-        }
-        if (!this.selectedMissionSetKeys.has(missionSetKeyOf(taskPacket))) {
+        if (this.deselectedMissionSetKeys.has(missionSetKeyOf(taskPacket))) {
             return false;
         }
         if (this.sliderUpperUtime <= 0) {
             return true;
         }
         const startTime = Number(taskPacket.start_time);
-        return startTime >= this.sliderLowerUtime && startTime <= this.sliderUpperUtime;
+        if (startTime < this.sliderLowerUtime) {
+            return false;
+        }
+        return this.autoFollowUpper || startTime <= this.sliderUpperUtime;
     }
 
     /**
@@ -173,9 +192,6 @@ export class TaskPacketFilter {
      * @returns {TaskPacket[]} Visible packets
      */
     filter(taskPackets: TaskPacket[]): TaskPacket[] {
-        if (!this.active) {
-            return taskPackets;
-        }
         return taskPackets.filter((taskPacket) => this.passes(taskPacket));
     }
 }

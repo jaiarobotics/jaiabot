@@ -3,6 +3,7 @@ import {
     buildMissionSetSummaries,
     UNNAMED_MISSION_SET_KEY,
     TaskPacketFilter,
+    getTodayWindow,
 } from "../task-packet-filter";
 import { TaskPacket } from "../../../types/protobuf-types";
 
@@ -133,66 +134,70 @@ describe("buildMissionSetSummaries", () => {
     });
 });
 
-describe("TaskPacketFilter", () => {
-    const start = new Date("2026-06-01T00:00:00");
-    const end = new Date("2026-06-01T23:59:59");
+describe("getTodayWindow", () => {
+    test("spans 00:00 to 23:59 of the given day, on whole minutes", () => {
+        const { start, end } = getTodayWindow(new Date(2026, 9, 5, 14, 30));
 
-    /**
-     * Builds an active filter with the given mission sets selected.
-     *
-     * @param {string[]} keys Mission set keys to select
-     * @returns {TaskPacketFilter} An active filter
-     */
-    function makeActiveFilter(keys: string[]): TaskPacketFilter {
-        const filter = new TaskPacketFilter();
-        filter.setSearchWindow(start, end);
-        filter.setSelectedMissionSetKeys(new Set(keys));
-        return filter;
-    }
-
-    test("an inactive filter passes every packet", () => {
-        const filter = new TaskPacketFilter();
-        const packets = [makeTaskPacket(1000, "A"), makeTaskPacket(2000)];
-
-        expect(filter.isActive()).toBe(false);
-        expect(packets.every((packet) => filter.passes(packet))).toBe(true);
-        expect(filter.filter(packets)).toBe(packets);
+        expect(start).toEqual(new Date(2026, 9, 5, 0, 0));
+        expect(end).toEqual(new Date(2026, 9, 5, 23, 59));
     });
 
-    test("setSearchWindow activates the filter and stores the window", () => {
+    test("stays on the same day just after midnight", () => {
+        const { start } = getTodayWindow(new Date(2026, 9, 5, 0, 5));
+
+        expect(start).toEqual(new Date(2026, 9, 5, 0, 0));
+    });
+});
+
+describe("TaskPacketFilter", () => {
+    test("a new filter shows today's window with every packet passing", () => {
         const filter = new TaskPacketFilter();
+        const { start, end } = getTodayWindow();
+        const packets = [makeTaskPacket(1000, "A"), makeTaskPacket(2000)];
+
+        expect(filter.getStartDate()).toEqual(start);
+        expect(filter.getEndDate()).toEqual(end);
+        expect(filter.filter(packets)).toEqual(packets);
+    });
+
+    test("setSearchWindow stores the window", () => {
+        const filter = new TaskPacketFilter();
+        const start = new Date("2026-06-01T00:00");
+        const end = new Date("2026-06-02T23:59");
         filter.setSearchWindow(start, end);
 
-        expect(filter.isActive()).toBe(true);
         expect(filter.getStartDate()).toBe(start);
         expect(filter.getEndDate()).toBe(end);
     });
 
-    test("an active filter with nothing selected passes no packets", () => {
-        const filter = makeActiveFilter([]);
-
-        expect(filter.filter([makeTaskPacket(1000, "A"), makeTaskPacket(2000)])).toEqual([]);
-    });
-
-    test("passes only packets from the selected mission sets", () => {
-        const filter = makeActiveFilter(["A", UNNAMED_MISSION_SET_KEY]);
+    test("hides only packets from unchecked mission sets", () => {
+        const filter = new TaskPacketFilter();
+        filter.setDeselectedMissionSetKeys(new Set(["B", UNNAMED_MISSION_SET_KEY]));
         const inA = makeTaskPacket(1000, "A");
         const inB = makeTaskPacket(2000, "B");
         const unnamed = makeTaskPacket(3000);
 
-        expect(filter.filter([inA, inB, unnamed])).toEqual([inA, unnamed]);
+        expect(filter.filter([inA, inB, unnamed])).toEqual([inA]);
+    });
+
+    test("shows a mission set it has never seen", () => {
+        const filter = new TaskPacketFilter();
+        filter.setDeselectedMissionSetKeys(new Set(["A"]));
+
+        expect(filter.passes(makeTaskPacket(1000, "New"))).toBe(true);
     });
 
     test("ignores the slider window while its upper bound is unset", () => {
-        const filter = makeActiveFilter(["A"]);
+        const filter = new TaskPacketFilter();
         filter.setSliderWindow(5000, 0);
 
         expect(filter.passes(makeTaskPacket(1000, "A"))).toBe(true);
     });
 
-    test("applies the slider window inclusively at both bounds", () => {
-        const filter = makeActiveFilter(["A"]);
+    test("applies the slider window inclusively at both bounds when not auto-following", () => {
+        const filter = new TaskPacketFilter();
         filter.setSliderWindow(2000, 4000);
+        filter.setAutoFollowUpper(false);
 
         expect(filter.passes(makeTaskPacket(1999, "A"))).toBe(false);
         expect(filter.passes(makeTaskPacket(2000, "A"))).toBe(true);
@@ -201,36 +206,49 @@ describe("TaskPacketFilter", () => {
         expect(filter.passes(makeTaskPacket(4001, "A"))).toBe(false);
     });
 
-    test("a packet in the slider window still needs a selected mission set", () => {
-        const filter = makeActiveFilter(["A"]);
+    test("drops the slider's upper bound while auto-following", () => {
+        const filter = new TaskPacketFilter();
         filter.setSliderWindow(2000, 4000);
+        filter.setAutoFollowUpper(true);
+
+        expect(filter.passes(makeTaskPacket(1999, "A"))).toBe(false);
+        expect(filter.passes(makeTaskPacket(9000, "A"))).toBe(true);
+    });
+
+    test("a packet in the slider window is still hidden if its mission set is unchecked", () => {
+        const filter = new TaskPacketFilter();
+        filter.setSliderWindow(2000, 4000);
+        filter.setDeselectedMissionSetKeys(new Set(["B"]));
 
         expect(filter.passes(makeTaskPacket(3000, "B"))).toBe(false);
     });
 
-    test("setSelectedMissionSetKeys copies the given set", () => {
-        const filter = makeActiveFilter([]);
+    test("setDeselectedMissionSetKeys copies the given set", () => {
+        const filter = new TaskPacketFilter();
         const keys = new Set(["A"]);
-        filter.setSelectedMissionSetKeys(keys);
+        filter.setDeselectedMissionSetKeys(keys);
         keys.add("B");
 
-        expect(filter.passes(makeTaskPacket(1000, "B"))).toBe(false);
+        expect(filter.passes(makeTaskPacket(1000, "B"))).toBe(true);
+        expect(filter.getDeselectedMissionSetKeys()).not.toBe(filter.getDeselectedMissionSetKeys());
     });
 
-    test("clear deactivates the filter and resets its state", () => {
-        const filter = makeActiveFilter(["A"]);
+    test("reset returns to today's window, every mission set shown, and the slider at full range", () => {
+        const filter = new TaskPacketFilter();
+        filter.setSearchWindow(new Date("2026-06-01T00:00"), new Date("2026-06-02T23:59"));
+        filter.setDeselectedMissionSetKeys(new Set(["A"]));
         filter.setSliderWindow(2000, 4000);
         filter.setAutoFollowUpper(false);
 
-        filter.clear();
+        filter.reset();
 
-        expect(filter.isActive()).toBe(false);
-        expect(filter.getStartDate()).toBeNull();
-        expect(filter.getEndDate()).toBeNull();
-        expect(filter.getSelectedMissionSetKeys().size).toBe(0);
+        const { start, end } = getTodayWindow();
+        expect(filter.getStartDate()).toEqual(start);
+        expect(filter.getEndDate()).toEqual(end);
+        expect(filter.getDeselectedMissionSetKeys().size).toBe(0);
         expect(filter.getSliderLowerUtime()).toBe(0);
         expect(filter.getSliderUpperUtime()).toBe(0);
         expect(filter.getAutoFollowUpper()).toBe(true);
-        expect(filter.passes(makeTaskPacket(1000, "B"))).toBe(true);
+        expect(filter.passes(makeTaskPacket(1000, "A"))).toBe(true);
     });
 });
