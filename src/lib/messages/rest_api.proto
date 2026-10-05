@@ -6,6 +6,7 @@ import "jaiabot/messages/metadata.proto";
 import "jaiabot/messages/option_extensions.proto";
 import "jaiabot/messages/mission.proto";
 import "jaiabot/messages/engineering.proto";
+import "jaiabot/messages/link.proto";
 
 package jaiabot.protobuf;
 
@@ -172,7 +173,7 @@ message APIRequest
 
 
 message LinkStatusAge {
-    required string link = 1;
+    required Link link = 1;
     required int32 age = 2;
 }
 
@@ -183,11 +184,13 @@ message PortalBotStatus {
     optional int32 portalStatusAge = 4;
     optional bool isDisconnected = 5;
     optional Engineering engineering = 6;
+    optional int64 last_status_received_time = 7;
 }
 
 message PortalHubStatus {
     optional HubStatus hub_status = 1;
     optional int32 portalStatusAge = 2;
+    optional int64 last_status_received_time = 3;
 }
 
 message PodStatus {

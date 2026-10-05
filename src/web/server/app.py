@@ -131,18 +131,9 @@ def getStatusBots():
     """
     return JSONResponse(jaia_interface.get_status_bots())
 
-@app.route('/jaia/v0/status-hubs', methods=['GET'])
-def getStatusHubs():
-    """Gets dictionary of most up-to-date hub statuses
-
-    Returns:
-        Response: Dictionary of latest hub statuses
-    """
-    return JSONResponse(jaia_interface.get_status_hubs())
-
 @app.route('/jaia/v0/metadata', methods=['GET'])
 def getMetadata():
-    return JSONResponse(jaia_interface.get_Metadata())
+    return JSONResponse(jaia_interface.get_metadata())
 
 ####### Commands
 
