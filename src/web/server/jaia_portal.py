@@ -402,14 +402,21 @@ class Interface:
         return {'status': 'ok'}
 
     def get_status(self):
-        for hub in self.hubs.values():
-            # Add the time since last status
-            hub['portalStatusAge'] = now_utime() - hub['lastStatusReceivedTime']
+
+        # Create the portal hub status for each hub if it doesn't already exist
+        portalHubStatuses = []
+        for hub_id, hub in self.hubs.items():
+            portalHubStatuses.append({
+                'hub_status': hub,
+                'portalStatusAge': now_utime() - hub['lastStatusReceivedTime']
+            })
 
         # Create the portal status for each bot
-        portalBotStatusDict = {}
-        for bot_id, bot in self.bots.items():
-            portalBotStatusDict[bot_id] = {
+        portalBotStatuses = []
+        for bot in self.bots.values():
+            bot_id = bot['bot_id']
+
+            newPortalBotStatus = {
                 'bot_status': bot,
                 'active_mission_plan': bot.get('active_mission_plan'),
                 'active_link': bot.get('active_link'),
@@ -418,12 +425,14 @@ class Interface:
             }
 
             if bot['bot_id'] in self.bots_engineering:
-                portalBotStatusDict[bot_id]['engineering'] = self.bots_engineering[bot['bot_id']]
+                newPortalBotStatus['engineering'] = self.bots_engineering[bot['bot_id']]
+
+            portalBotStatuses.append(newPortalBotStatus)
 
         status = {
             'controllingClientId': self.controllingClientId,
-            'hubs': self.hubs,
-            'bots': portalBotStatusDict,
+            'hubs': portalHubStatuses,
+            'bots': portalBotStatuses,
             'contacts': self.contacts,
             'messages': self.messages
         }

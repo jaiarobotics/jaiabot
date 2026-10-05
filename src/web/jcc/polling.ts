@@ -2,7 +2,7 @@ import { bots } from "../data/bots/bots";
 import { hubs } from "../data/hubs/hubs";
 import { jaiaGlobal } from "../data/jaia_global/jaia-global";
 import { taskPackets } from "../data/task_packets/task-packets";
-import { PortalHubStatus } from "../shared/PortalStatus";
+import { PortalHubStatus } from "@proto/jaiabot/messages/rest_api";
 import { PortalBotStatus } from "@proto/jaiabot/messages/rest_api";
 import { botLayer } from "../openlayers/layers/vector/bot-layer";
 import { hubLayer } from "../openlayers/layers/vector/hub-layer";
@@ -13,6 +13,7 @@ import { contourLayer } from "../openlayers/layers/vector/contour-layer";
 import { hubCommsLayer } from "../openlayers/layers/vector/hub-comms-layer";
 import { excludedTaskPacketsLayer } from "../openlayers/layers/vector/excluded-task-packets-layer";
 import { DeviceMetadata, DeviceMetadata_Version } from "@proto/jaiabot/messages/metadata";
+import { PodStatus } from "@proto/jaiabot/messages/rest_api";
 import SoundEffects from "../style/audio/sound-effects";
 
 const MAX_REQUEST_TIME = 10000; // ms;
@@ -56,12 +57,12 @@ export async function pollStatus() {
         if (!response.ok) {
             console.error(`Response status: ${response.status}`);
         } else {
-            const json = await response.json();
-            updateBots(json.bots);
-            updateHubs(json.hubs);
-            updateJaiaGlobal(json.controllingClientId);
+            const json = (await response.json()) as PodStatus;
+            updateBots(json.bots ?? []);
+            updateHubs(json.hubs ?? []);
+            updateJaiaGlobal(json.controllingClientId ?? "");
             updateOpenLayers();
-            if (json.messages.error && json.messages.error === HUB_CONNECTION_ERROR) {
+            if (json.messages?.error && json.messages?.error === HUB_CONNECTION_ERROR) {
                 updateWarning(CONNECTION_WARNING, true);
             } else {
                 updateWarning(CONNECTION_WARNING, false);
@@ -197,14 +198,13 @@ export async function pollInternet() {
  * @param {PortalBotStatus} botStatuses Bot data from the server
  * @returns {void}
  */
-function updateBots(botStatuses: { [botID: string]: PortalBotStatus }) {
-    const botIDs = Object.keys(botStatuses);
-    for (let botID of botIDs) {
-        const numericBotID = Number(botID);
+function updateBots(botStatuses: PortalBotStatus[]) {
+    for (let botStatus of botStatuses) {
+        const numericBotID = botStatus.bot_status?.bot_id ?? -1;
         const wasCommsDropped = bots.getBot(numericBotID)?.isCommsDropped() ?? false;
-        bots.setBot(botStatuses[botID]);
-        botStatuses[botID].isDisconnected = bots.getBot(numericBotID)?.isCommsDropped() ?? false;
-        handleBotSoundEffects(wasCommsDropped, botStatuses[botID].isDisconnected);
+        bots.setBot(botStatus);
+        botStatus.isDisconnected = bots.getBot(numericBotID)?.isCommsDropped() ?? false;
+        handleBotSoundEffects(wasCommsDropped, botStatus.isDisconnected);
     }
     bots.setTick(bots.getTick() + 1);
 }
@@ -215,10 +215,9 @@ function updateBots(botStatuses: { [botID: string]: PortalBotStatus }) {
  * @param {PortalHubStatus} hubStatuses Hub data from the server
  * @returns {void}
  */
-function updateHubs(hubStatuses: { [hubId: string]: PortalHubStatus }) {
-    const hubIDs = Object.keys(hubStatuses);
-    for (let hubID of hubIDs) {
-        hubs.setHub(hubStatuses[hubID]);
+function updateHubs(hubStatuses: PortalHubStatus[]) {
+    for (let hubStatus of hubStatuses) {
+        hubs.setHub(hubStatus);
     }
 }
 

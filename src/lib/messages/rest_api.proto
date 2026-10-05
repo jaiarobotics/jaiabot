@@ -185,6 +185,26 @@ message PortalBotStatus {
     optional Engineering engineering = 6;
 }
 
+message PortalHubStatus {
+    optional HubStatus hub_status = 1;
+    optional int32 portalStatusAge = 2;
+}
+
+message PodStatus {
+    repeated PortalHubStatus hubs = 1;
+    repeated PortalBotStatus bots = 2;
+    repeated ContactUpdate contacts = 3;
+    optional string controllingClientId = 4;
+    
+    message Messages {
+        optional string error = 1;
+        optional string info = 2;
+    }
+
+    optional Messages messages = 5;
+
+}
+
 
 message APIResponse
 {
