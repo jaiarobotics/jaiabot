@@ -2,20 +2,12 @@ import {
     formatUtime,
     formatUtimeRange,
     missionSetLabel,
-    buildQueryStrings,
+    toWindowDates,
+    getCheckedKeys,
     computeBounds,
-    getInitialStartDateStr,
-    getInitialEndDateStr,
-    getInitialFilterEngaged,
-    getInitialSelectedKeys,
-    getInitialSliderWindow,
-    getDefaultDateRange,
+    getSliderValue,
 } from "../task-packet-filter-helpers";
-import {
-    MissionSetSummary,
-    TaskPacketFilter,
-} from "../../../../data/task_packets/task-packet-filter";
-import { getHTMLDateString } from "../../../../shared/Utilities";
+import { MissionSetSummary } from "../../../../data/task_packets/task-packet-filter";
 
 describe("formatUtime", () => {
     test("returns a placeholder for a falsy timestamp", () => {
@@ -69,11 +61,11 @@ describe("missionSetLabel", () => {
     });
 });
 
-describe("buildQueryStrings", () => {
-    test("appends the start-of-day and end-of-day times to the dates", () => {
-        expect(buildQueryStrings("2021-01-01", "2021-01-02")).toEqual({
-            startQuery: "2021-01-01 00:00",
-            endQuery: "2021-01-02 23:59",
+describe("toWindowDates", () => {
+    test("spans 00:00 on the start date to 23:59 on the end date, local time", () => {
+        expect(toWindowDates("2026-10-05", "2026-10-07")).toEqual({
+            start: new Date(2026, 9, 5, 0, 0),
+            end: new Date(2026, 9, 7, 23, 59),
         });
     });
 });
@@ -122,42 +114,39 @@ describe("computeBounds", () => {
     });
 });
 
-describe("getInitial* (restoring panel state from the filter)", () => {
-    test("a fresh filter yields defaults: not engaged, empty selection, zeroed slider", () => {
-        const filter = new TaskPacketFilter();
-        expect(getInitialFilterEngaged(filter)).toBe(false);
-        expect(getInitialSelectedKeys(filter)).toEqual(new Set());
-        expect(getInitialSliderWindow(filter)).toEqual([0, 0]);
+describe("getCheckedKeys", () => {
+    const summaries = ["a", "b", "c"].map(
+        (key): MissionSetSummary => ({
+            key,
+            name: key,
+            startTime: 1000,
+            endTime: 1000,
+            taskPacketCount: 1,
+            excludedTaskPacketCount: 0,
+        }),
+    );
+
+    test("checks every listed mission set the user hasn't unchecked", () => {
+        expect(getCheckedKeys(summaries, new Set(["b"]))).toEqual(new Set(["a", "c"]));
     });
 
-    test("a fresh filter yields the default date range", () => {
-        const filter = new TaskPacketFilter();
-        expect(getInitialStartDateStr(filter)).toBe(getDefaultDateRange().start);
-        expect(getInitialEndDateStr(filter)).toBe(getDefaultDateRange().end);
+    test("ignores unchecked keys that aren't listed", () => {
+        expect(getCheckedKeys(summaries, new Set(["missing"]))).toEqual(new Set(["a", "b", "c"]));
+    });
+});
+
+describe("getSliderValue", () => {
+    const bounds: [number, number] = [1000, 5000];
+
+    test("spans the bounds while the filter's window is unset", () => {
+        expect(getSliderValue(bounds, 0, 0, true)).toEqual([1000, 5000]);
     });
 
-    test("an active filter restores its window, selection, and slider", () => {
-        const filter = new TaskPacketFilter();
-        const start = new Date("2021-03-15T08:00:00");
-        const end = new Date("2021-03-18T20:00:00");
-        filter.setSearchWindow(start, end);
-        filter.setSelectedMissionSetKeys(new Set(["Alpha", "Beta"]));
-        filter.setSliderWindow(1000, 5000);
-
-        expect(getInitialFilterEngaged(filter)).toBe(true);
-        expect(getInitialStartDateStr(filter)).toBe(getHTMLDateString(start));
-        expect(getInitialEndDateStr(filter)).toBe(getHTMLDateString(end));
-        expect(getInitialSelectedKeys(filter)).toEqual(new Set(["Alpha", "Beta"]));
-        expect(getInitialSliderWindow(filter)).toEqual([1000, 5000]);
+    test("puts the upper handle at the newest data while auto-following", () => {
+        expect(getSliderValue(bounds, 2000, 4000, true)).toEqual([2000, 5000]);
     });
 
-    test("the restored selection is a copy, not the filter's own set", () => {
-        const filter = new TaskPacketFilter();
-        filter.setSelectedMissionSetKeys(new Set(["Alpha"]));
-
-        const restored = getInitialSelectedKeys(filter);
-        restored.add("Beta");
-
-        expect(getInitialSelectedKeys(filter)).toEqual(new Set(["Alpha"]));
+    test("keeps the stored upper handle when not auto-following", () => {
+        expect(getSliderValue(bounds, 2000, 4000, false)).toEqual([2000, 4000]);
     });
 });

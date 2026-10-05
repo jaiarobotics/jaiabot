@@ -101,7 +101,11 @@
     font-style: italic;
 }
 
-.task-packet-filter-clear {
+.task-packet-filter-error {
+    color: @error-color;
+}
+
+.task-packet-filter-reset {
     margin-top: auto;
 }
 
@@ -111,6 +115,10 @@
 
 .task-packet-filter-slider .MuiSlider-root {
     color: @cc-text-color;
+}
+
+.task-packet-filter-slider .MuiSlider-root.Mui-disabled {
+    color: @panel-accent-color;
 }
 
 // MUI draws the thumb halo from the theme palette rather than currentColor

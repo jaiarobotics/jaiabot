@@ -1,8 +1,4 @@
-import { getHTMLDateString } from "../../../shared/Utilities";
-import { TaskPacketFilter, MissionSetSummary } from "../../../data/task_packets/task-packet-filter";
-
-const DEFAULT_WINDOW_HOURS = 14; // hours
-const MILLISECONDS_PER_HOUR = 60 * 60 * 1000;
+import { MissionSetSummary } from "../../../data/task_packets/task-packet-filter";
 
 const timeFormatter = new Intl.DateTimeFormat(undefined, {
     month: "short",
@@ -50,82 +46,31 @@ export function missionSetLabel(missionSet: MissionSetSummary) {
 }
 
 /**
- * The default search window: the server's default of the last DEFAULT_WINDOW_HOURS.
+ * Builds the filter window for a pair of date input values: 00:00 on the start date to 23:59 on
+ * the end date, local time.
  *
- * @returns {{ start: string; end: string }} yyyy-mm-dd date strings
+ * @param {string} startDateStr yyyy-mm-dd start date
+ * @param {string} endDateStr yyyy-mm-dd end date
+ * @returns {{ start: Date; end: Date }} Window start and end
  */
-export function getDefaultDateRange() {
+export function toWindowDates(startDateStr: string, endDateStr: string) {
     return {
-        start: getHTMLDateString(
-            new Date(Date.now() - DEFAULT_WINDOW_HOURS * MILLISECONDS_PER_HOUR),
-        ),
-        end: getHTMLDateString(new Date()),
+        start: new Date(`${startDateStr}T00:00`),
+        end: new Date(`${endDateStr}T23:59`),
     };
 }
 
 /**
- * Initial start-date string: the active filter's window when present, else the default.
+ * Keys of the mission sets that are checked: every listed mission set the user hasn't unchecked.
  *
- * @param {TaskPacketFilter} filter Filter to read the window from
- * @returns {string} yyyy-mm-dd date string
+ * @param {MissionSetSummary[]} summaries Listed mission sets
+ * @param {Set<string>} deselectedKeys Mission set keys the user unchecked
+ * @returns {Set<string>} Checked mission set keys
  */
-export function getInitialStartDateStr(filter: TaskPacketFilter) {
-    const start = filter.getStartDate();
-    return start ? getHTMLDateString(start) : getDefaultDateRange().start;
-}
-
-/**
- * Initial end-date string: the active filter's window when present, else the default.
- *
- * @param {TaskPacketFilter} filter Filter to read the window from
- * @returns {string} yyyy-mm-dd date string
- */
-export function getInitialEndDateStr(filter: TaskPacketFilter) {
-    const end = filter.getEndDate();
-    return end ? getHTMLDateString(end) : getDefaultDateRange().end;
-}
-
-/**
- * Whether the filter is already engaged when the panel initiates.
- *
- * @param {TaskPacketFilter} filter Filter to read the active state from
- * @returns {boolean} True when the filter is active
- */
-export function getInitialFilterEngaged(filter: TaskPacketFilter) {
-    return filter.isActive();
-}
-
-/**
- * Initial mission set selection, restored from the active filter.
- *
- * @param {TaskPacketFilter} filter Filter to read the selection from
- * @returns {Set<string>} Selected mission set keys
- */
-export function getInitialSelectedKeys(filter: TaskPacketFilter) {
-    return filter.getSelectedMissionSetKeys();
-}
-
-/**
- * Initial slider window restored from the active filter.
- *
- * @param {TaskPacketFilter} filter Filter to read the slider window from
- * @returns {[number, number]} Slider utimes in microseconds
- */
-export function getInitialSliderWindow(filter: TaskPacketFilter): [number, number] {
-    return [filter.getSliderLowerUtime(), filter.getSliderUpperUtime()];
-}
-
-/**
- * Builds the "yyyy-mm-dd hh:mm" query strings for the selected date range.
- *
- * @param {string} startDateStr yyyy-mm-dd start date
- * @param {string} endDateStr yyyy-mm-dd end date
- * @returns {{ startQuery: string; endQuery: string }} Query strings for the date range
- */
-export function buildQueryStrings(startDateStr: string, endDateStr: string) {
-    const startQuery = `${startDateStr} 00:00`;
-    const endQuery = `${endDateStr} 23:59`;
-    return { startQuery, endQuery };
+export function getCheckedKeys(summaries: MissionSetSummary[], deselectedKeys: Set<string>) {
+    return new Set(
+        summaries.map((missionSet) => missionSet.key).filter((key) => !deselectedKeys.has(key)),
+    );
 }
 
 /**
@@ -143,4 +88,26 @@ export function computeBounds(summaries: MissionSetSummary[], keys: Set<string>)
     const lower = Math.min(...selected.map((missionSet) => missionSet.startTime));
     const upper = Math.max(...selected.map((missionSet) => missionSet.endTime));
     return [lower, upper];
+}
+
+/**
+ * The slider handle positions for the filter's stored window. An unset window spans the bounds,
+ * and while auto-following the upper handle sits at the newest data.
+ *
+ * @param {[number, number]} bounds Slider bounds from computeBounds
+ * @param {number} lowerUtime Filter's slider lower bound
+ * @param {number} upperUtime Filter's slider upper bound (0 when unset)
+ * @param {boolean} autoFollowUpper Whether the upper handle follows new data
+ * @returns {[number, number]} Handle positions in microseconds
+ */
+export function getSliderValue(
+    bounds: [number, number],
+    lowerUtime: number,
+    upperUtime: number,
+    autoFollowUpper: boolean,
+): [number, number] {
+    if (upperUtime <= 0) {
+        return bounds;
+    }
+    return [lowerUtime, autoFollowUpper ? bounds[1] : upperUtime];
 }
