@@ -19,20 +19,26 @@ jest.mock("../../../../utils/commands", () => {
 });
 
 const botStatusMock1: PortalBotStatus = {
-    bot_id: 1,
-    mission_state: MissionState.IN_MISSION__UNDERWAY__MOVEMENT__TRANSIT,
+    bot_status: {
+        bot_id: 1,
+        mission_state: MissionState.IN_MISSION__UNDERWAY__MOVEMENT__TRANSIT,
+    },
 };
 
 const botStatusMock2: PortalBotStatus = {
-    bot_id: 2,
-    mission_state: MissionState.IN_MISSION__UNDERWAY__RECOVERY__STOPPED,
-    wifi_link_quality_percentage: 0,
+    bot_status: {
+        bot_id: 2,
+        mission_state: MissionState.IN_MISSION__UNDERWAY__RECOVERY__STOPPED,
+        wifi_link_quality_percentage: 0,
+    },
 };
 
 const botStatusMock3: PortalBotStatus = {
-    bot_id: 3,
-    mission_state: MissionState.IN_MISSION__UNDERWAY__RECOVERY__STOPPED,
-    wifi_link_quality_percentage: 100,
+    bot_status: {
+        bot_id: 3,
+        mission_state: MissionState.IN_MISSION__UNDERWAY__RECOVERY__STOPPED,
+        wifi_link_quality_percentage: 100,
+    },
 };
 
 bots.setBot(botStatusMock1);

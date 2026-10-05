@@ -23,47 +23,59 @@ jest.mock("../../../../utils/commands", () => {
 
 // Ready
 const botStatusMock1: PortalBotStatus = {
-    bot_id: 1,
-    mission_state: MissionState.PRE_DEPLOYMENT__WAIT_FOR_MISSION_PLAN,
+    bot_status: {
+        bot_id: 1,
+        mission_state: MissionState.PRE_DEPLOYMENT__WAIT_FOR_MISSION_PLAN,
+        battery_percent: 75,
+    },
     portalStatusAge: 1_000_000, // microseconds
-    battery_percent: 75,
 };
 
 // Status age error
 const botStatusMock2: PortalBotStatus = {
-    bot_id: 2,
-    mission_state: MissionState.PRE_DEPLOYMENT__WAIT_FOR_MISSION_PLAN,
+    bot_status: {
+        bot_id: 2,
+        mission_state: MissionState.PRE_DEPLOYMENT__WAIT_FOR_MISSION_PLAN,
+    },
     portalStatusAge: 40_000_000, // microseconds
 };
 
 // Mission state error
 const botStatusMock3: PortalBotStatus = {
-    bot_id: 3,
-    mission_state: MissionState.PRE_DEPLOYMENT__IDLE,
+    bot_status: {
+        bot_id: 3,
+        mission_state: MissionState.PRE_DEPLOYMENT__IDLE,
+    },
     portalStatusAge: 1_000_000, // microseconds
 };
 
 // No mission assigned error
 const botStatusMock4: PortalBotStatus = {
-    bot_id: 4,
-    mission_state: MissionState.PRE_DEPLOYMENT__WAIT_FOR_MISSION_PLAN,
+    bot_status: {
+        bot_id: 4,
+        mission_state: MissionState.PRE_DEPLOYMENT__WAIT_FOR_MISSION_PLAN,
+    },
     portalStatusAge: 1_000_000, // microseconds
 };
 
 // Battery error
 const botStatusMock5: PortalBotStatus = {
-    bot_id: 5,
-    mission_state: MissionState.IN_MISSION__UNDERWAY__MOVEMENT__TRANSIT,
+    bot_status: {
+        bot_id: 5,
+        mission_state: MissionState.IN_MISSION__UNDERWAY__MOVEMENT__TRANSIT,
+        battery_percent: 15,
+    },
     portalStatusAge: 1_000_000, // microseconds
-    battery_percent: 15,
 };
 
 // Ready
 const botStatusMock6: PortalBotStatus = {
-    bot_id: 6,
-    mission_state: MissionState.IN_MISSION__UNDERWAY__MOVEMENT__TRANSIT,
+    bot_status: {
+        bot_id: 6,
+        mission_state: MissionState.IN_MISSION__UNDERWAY__MOVEMENT__TRANSIT,
+        battery_percent: 50,
+    },
     portalStatusAge: 1_000_000, // microseconds
-    battery_percent: 50,
 };
 
 // Set up data model

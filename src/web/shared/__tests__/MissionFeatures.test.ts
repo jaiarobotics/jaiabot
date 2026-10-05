@@ -12,7 +12,9 @@ const map = {
 } as unknown as Map;
 
 const bot: PortalBotStatus = {
-    bot_id: 1,
+    bot_status: {
+        bot_id: 1,
+    },
 };
 
 function getConstantHeadingFeature(features: any[]) {

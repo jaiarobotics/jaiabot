@@ -37,8 +37,10 @@ test.each(testCases)(
     "Exercise the Stop button in the $missionState state",
     async ({ missionState, buttonAvailable }) => {
         let botStatus: PortalBotStatus = {
-            bot_id: 1,
-            mission_state: missionState,
+            bot_status: {
+                bot_id: 1,
+                mission_state: missionState,
+            },
         };
         bots.setBot(botStatus);
         render(<StopButton bot={bots.getBot(1)} />);

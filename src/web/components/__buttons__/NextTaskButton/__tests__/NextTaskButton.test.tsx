@@ -10,13 +10,17 @@ import { PortalBotStatus } from "../../../../shared/PortalStatus";
 import { MissionState } from "@proto/jaiabot/messages/mission";
 
 const botStatusMock1: PortalBotStatus = {
-    bot_id: 1,
-    mission_state: MissionState.IN_MISSION__UNDERWAY__MOVEMENT__TRANSIT,
+    bot_status: {
+        bot_id: 1,
+        mission_state: MissionState.IN_MISSION__UNDERWAY__MOVEMENT__TRANSIT,
+    },
 };
 
 const botStatusMock2: PortalBotStatus = {
-    bot_id: 2,
-    mission_state: MissionState.PRE_DEPLOYMENT__IDLE,
+    bot_status: {
+        bot_id: 2,
+        mission_state: MissionState.PRE_DEPLOYMENT__IDLE,
+    },
 };
 
 bots.setBot(botStatusMock1);

@@ -9,38 +9,50 @@ import { PortalBotStatus } from "../../../../shared/PortalStatus";
 import { MissionState } from "@proto/jaiabot/messages/mission";
 
 const botStatusMock1: PortalBotStatus = {
-    bot_id: 1,
-    mission_state: MissionState.PRE_DEPLOYMENT__IDLE,
+    bot_status: {
+        bot_id: 1,
+        mission_state: MissionState.PRE_DEPLOYMENT__IDLE,
+    },
     portalStatusAge: 1_000_000, // microseconds
 };
 
 const botStatusMock2: PortalBotStatus = {
-    bot_id: 2,
-    mission_state: MissionState.PRE_DEPLOYMENT__IDLE,
+    bot_status: {
+        bot_id: 2,
+        mission_state: MissionState.PRE_DEPLOYMENT__IDLE,
+    },
     portalStatusAge: 1_000_000, // microseconds
 };
 
 const botStatusMock3: PortalBotStatus = {
-    bot_id: 3,
-    mission_state: MissionState.IN_MISSION__UNDERWAY__RECOVERY__TRANSIT,
+    bot_status: {
+        bot_id: 3,
+        mission_state: MissionState.IN_MISSION__UNDERWAY__RECOVERY__TRANSIT,
+    },
     portalStatusAge: 1_000_000, // microseconds
 };
 
 const botStatusMock4: PortalBotStatus = {
-    bot_id: 4,
-    mission_state: MissionState.IN_MISSION__UNDERWAY__RECOVERY__TRANSIT,
+    bot_status: {
+        bot_id: 4,
+        mission_state: MissionState.IN_MISSION__UNDERWAY__RECOVERY__TRANSIT,
+    },
     portalStatusAge: 1_000_000, // microseconds
 };
 
 const botStatusMock5: PortalBotStatus = {
-    bot_id: 5,
-    mission_state: MissionState.PRE_DEPLOYMENT__IDLE,
+    bot_status: {
+        bot_id: 5,
+        mission_state: MissionState.PRE_DEPLOYMENT__IDLE,
+    },
     portalStatusAge: 40_000_000, // microseconds
 };
 
 const botStatusMock6: PortalBotStatus = {
-    bot_id: 6,
-    mission_state: MissionState.IN_MISSION__UNDERWAY__RECOVERY__TRANSIT,
+    bot_status: {
+        bot_id: 6,
+        mission_state: MissionState.IN_MISSION__UNDERWAY__RECOVERY__TRANSIT,
+    },
     portalStatusAge: 40_000_000, // microseconds
 };
 

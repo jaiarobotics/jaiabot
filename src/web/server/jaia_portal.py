@@ -115,17 +115,17 @@ class Interface:
             except socket.timeout:
                 self.ping_portal()
 
-    def update_active_link_status_ages(self, status: dict):
+    def get_active_link_status_ages(self, status: dict) -> list[dict]:
         warp_factor = int(self.metadata.get('simulation_warp', 1))
         simulation_reference_time = int(self.metadata.get('simulation_reference_time', 0))
 
         now = now_utime_sim_corrected(warp_factor, simulation_reference_time)
 
-        status['active_link_status_age'] = {
-            entry['link']: (now - int(entry['last_received_time'])) / warp_factor
+        return [
+            { "link": entry['link'], "age": (now - int(entry['last_received_time'])) / warp_factor }
             for entry in status.get('active_links', [])
             if 'last_received_time' in entry
-        }
+        ]
 
     def process_portal_to_client_message(self, data):
         if len(data) > 0:
@@ -406,20 +406,24 @@ class Interface:
             # Add the time since last status
             hub['portalStatusAge'] = now_utime() - hub['lastStatusReceivedTime']
 
-
-        for bot in self.bots.values():
-            # Add the time since last status
-            bot['portalStatusAge'] = now_utime() - bot['lastStatusReceivedTime']
-
-            self.update_active_link_status_ages(bot)
+        # Create the portal status for each bot
+        portalBotStatusDict = {}
+        for bot_id, bot in self.bots.items():
+            portalBotStatusDict[bot_id] = {
+                'bot_status': bot,
+                'active_mission_plan': bot.get('active_mission_plan'),
+                'active_link': bot.get('active_link'),
+                'active_link_status_age': self.get_active_link_status_ages(bot),
+                'portalStatusAge': now_utime() - bot['lastStatusReceivedTime'],
+            }
 
             if bot['bot_id'] in self.bots_engineering:
-                bot['engineering'] = self.bots_engineering[bot['bot_id']]
+                portalBotStatusDict[bot_id]['engineering'] = self.bots_engineering[bot['bot_id']]
 
         status = {
             'controllingClientId': self.controllingClientId,
             'hubs': self.hubs,
-            'bots': self.bots,
+            'bots': portalBotStatusDict,
             'contacts': self.contacts,
             'messages': self.messages
         }

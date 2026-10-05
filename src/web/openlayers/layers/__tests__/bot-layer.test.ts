@@ -3,18 +3,24 @@ import { PortalBotStatus } from "../../../shared/PortalStatus";
 import { botLayer } from "../vector/bot-layer";
 
 const botStatusMock1: PortalBotStatus = {
-    bot_id: 1,
-    location: { lat: 77.0369, lon: 38.9072 },
+    bot_status: {
+        bot_id: 1,
+        location: { lat: 77.0369, lon: 38.9072 },
+    },
 };
 
 const botStatusMock2: PortalBotStatus = {
-    bot_id: 2,
-    location: { lat: 77.0469, lon: 38.9172 },
+    bot_status: {
+        bot_id: 2,
+        location: { lat: 77.0469, lon: 38.9172 },
+    },
 };
 
 // Location undefined
 const botStatusMock3: PortalBotStatus = {
-    bot_id: 3,
+    bot_status: {
+        bot_id: 3,
+    },
 };
 
 // Running various additions in single test because jest runs multiple tests in parallel

@@ -12,12 +12,16 @@ import { PortalBotStatus } from "../../../shared/PortalStatus";
 import { ButtonListTypes } from "../../../types/jaia-system-types";
 
 const botStatusMock1: PortalBotStatus = {
-    bot_id: 1,
+    bot_status: {
+        bot_id: 1,
+    },
     portalStatusAge: 1,
 };
 
 const botStatusMock2: PortalBotStatus = {
-    bot_id: 2,
+    bot_status: {
+        bot_id: 2,
+    },
     portalStatusAge: 1,
 };
 

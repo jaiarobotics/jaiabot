@@ -14,8 +14,10 @@ import { messages } from "../delete-mission-messages";
 import { DisabledCodes } from "../../disabled-codes";
 
 const botStatusMock: PortalBotStatus = {
-    bot_id: 1,
-    mission_state: MissionState.IN_MISSION__UNDERWAY__MOVEMENT__TRANSIT,
+    bot_status: {
+        bot_id: 1,
+        mission_state: MissionState.IN_MISSION__UNDERWAY__MOVEMENT__TRANSIT,
+    },
 };
 
 bots.setBot(botStatusMock);

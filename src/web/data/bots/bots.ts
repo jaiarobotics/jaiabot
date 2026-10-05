@@ -36,14 +36,14 @@ export class Bots {
     }
 
     setBot(botStatus: PortalBotStatus) {
-        if (botStatus.bot_id === undefined) {
+        if (botStatus.bot_status?.bot_id === undefined) {
             return;
         }
 
-        if (this.isNewBot(botStatus.bot_id)) {
+        if (this.isNewBot(botStatus.bot_status.bot_id)) {
             const newBot = new Bot();
-            newBot.setBotID(botStatus.bot_id);
-            this.bots.set(botStatus.bot_id, newBot);
+            newBot.setBotID(botStatus.bot_status.bot_id);
+            this.bots.set(botStatus.bot_status.bot_id, newBot);
             this.sortBots();
         }
 
@@ -64,7 +64,12 @@ export class Bots {
         this.bots = sortedBots;
     }
 
-    private updateBot(botStatus: PortalBotStatus) {
+    private updateBot(portalBotStatus: PortalBotStatus) {
+        const botStatus = portalBotStatus.bot_status;
+        if (botStatus?.bot_id === undefined) {
+            return;
+        }
+
         let bot = this.bots.get(botStatus.bot_id);
 
         if (bot === undefined) {
@@ -111,8 +116,8 @@ export class Bots {
             bot.setWifiLinkQuality(botStatus.wifi_link_quality_percentage);
         }
 
-        if (botStatus.portalStatusAge) {
-            bot.setStatusAge(botStatus.portalStatusAge);
+        if (portalBotStatus.portalStatusAge) {
+            bot.setStatusAge(portalBotStatus.portalStatusAge);
         }
 
         if (botStatus.link) {
@@ -125,14 +130,14 @@ export class Bots {
             bot.setActiveLinks([]);
         }
 
-        if (botStatus.active_link_status_age) {
-            bot.setActiveLinkStatusAges(botStatus.active_link_status_age);
+        if (portalBotStatus.active_link_status_age) {
+            bot.setActiveLinkStatusAges(portalBotStatus.active_link_status_age);
         } else {
-            bot.setActiveLinkStatusAges({});
+            bot.setActiveLinkStatusAges([]);
         }
 
-        if (botStatus.engineering) {
-            bot.setEngineering(botStatus.engineering);
+        if (portalBotStatus.engineering) {
+            bot.setEngineering(portalBotStatus.engineering);
         }
 
         // MissionStatus

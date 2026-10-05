@@ -316,22 +316,19 @@ export default function BotDetails() {
                             <AccordionDetails>
                                 <table>
                                     <tbody>
-                                        {Object.entries(bot.getActiveLinkStatusAges()).length >
-                                        0 ? (
-                                            Object.entries(bot.getActiveLinkStatusAges()).map(
-                                                ([link, statusAge]) => (
-                                                    <tr
-                                                        key={link}
-                                                        className={getStatusAgeClassName(
-                                                            statusAge,
-                                                            bot.isCommsDropped(),
-                                                        )}
-                                                    >
-                                                        <td>{formatLinkName(link)}</td>
-                                                        <td>{`${convertMicrosecondsToSeconds(statusAge).toFixed(0)} s`}</td>
-                                                    </tr>
-                                                ),
-                                            )
+                                        {bot.getActiveLinkStatusAges().length > 0 ? (
+                                            bot.getActiveLinkStatusAges().map((linkStatusAge) => (
+                                                <tr
+                                                    key={linkStatusAge.link}
+                                                    className={getStatusAgeClassName(
+                                                        linkStatusAge.age,
+                                                        bot.isCommsDropped(),
+                                                    )}
+                                                >
+                                                    <td>{formatLinkName(linkStatusAge.link)}</td>
+                                                    <td>{`${convertMicrosecondsToSeconds(linkStatusAge.age).toFixed(0)} s`}</td>
+                                                </tr>
+                                            ))
                                         ) : (
                                             <tr>
                                                 <td>No active links</td>

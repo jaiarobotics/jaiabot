@@ -1,5 +1,6 @@
 import { BotModes } from "../../types/jaia-system-types";
 import { MissionStatus } from "../../types/jaia-system-types";
+import { LinkStatusAge } from "../../shared/PortalStatus";
 import { HealthState } from "@proto/goby/middleware/protobuf/coroner";
 import { Engineering } from "@proto/jaiabot/messages/engineering";
 import { GeographicCoordinate } from "@proto/jaiabot/messages/geographic_coordinate";
@@ -24,7 +25,7 @@ export default class Bot {
     private statusAge: number;
     private link: Link;
     private activeLinks: BotStatus_ActiveLink[];
-    private activeLinkStatusAges: { [link: string]: number };
+    private activeLinkStatusAges: LinkStatusAge[];
     private engineering: Engineering;
     private mode: BotModes;
 
@@ -136,11 +137,11 @@ export default class Bot {
         this.activeLinks = activeLinks;
     }
 
-    getActiveLinkStatusAges(): { [link: string]: number } {
-        return this.activeLinkStatusAges ?? {};
+    getActiveLinkStatusAges(): LinkStatusAge[] {
+        return this.activeLinkStatusAges ?? [];
     }
 
-    setActiveLinkStatusAges(activeLinkStatusAges: { [link: string]: number }) {
+    setActiveLinkStatusAges(activeLinkStatusAges: LinkStatusAge[]) {
         this.activeLinkStatusAges = activeLinkStatusAges;
     }
 

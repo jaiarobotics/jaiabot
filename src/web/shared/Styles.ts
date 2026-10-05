@@ -110,7 +110,9 @@ export function botMarker(feature: Feature): Style[] {
         return { x: Math.cos(Math.PI / 2 - angle), y: -Math.sin(Math.PI / 2 - angle) };
     }
 
-    const botStatus = feature.get("bot") as PortalBotStatus;
+    const portalBotStatus = feature.get("bot") as PortalBotStatus;
+    const botStatus = portalBotStatus?.bot_status;
+
     const heading = (botStatus?.attitude?.heading ?? 0.0) * DEG;
 
     const headingDelta = angleToXY(heading);
@@ -119,7 +121,7 @@ export function botMarker(feature: Feature): Style[] {
 
     let color: string;
 
-    if (botStatus?.isDisconnected ?? false) {
+    if (portalBotStatus?.isDisconnected ?? false) {
         color = disconnectedColor;
     } else if (feature.get("rcMode")) {
         color = remoteControlledColor;

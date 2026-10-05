@@ -12,18 +12,24 @@ import { HealthState } from "@proto/goby/middleware/protobuf/coroner";
 import { hubs } from "../../../data/hubs/hubs";
 
 const mockBotStatus1: PortalBotStatus = {
-    bot_id: 1,
-    health_state: HealthState.HEALTH__OK,
+    bot_status: {
+        bot_id: 1,
+        health_state: HealthState.HEALTH__OK,
+    },
 };
 
 const mockBotStatus2: PortalBotStatus = {
-    bot_id: 2,
-    health_state: HealthState.HEALTH__DEGRADED,
+    bot_status: {
+        bot_id: 2,
+        health_state: HealthState.HEALTH__DEGRADED,
+    },
 };
 
 const mockBotStatus5: PortalBotStatus = {
-    bot_id: 5,
-    health_state: HealthState.HEALTH__FAILED,
+    bot_status: {
+        bot_id: 5,
+        health_state: HealthState.HEALTH__FAILED,
+    },
     portalStatusAge: 40_000_000,
 };
 

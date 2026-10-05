@@ -19,19 +19,25 @@ jest.mock("../../../../utils/commands", () => {
 });
 
 const botStatusMock1: PortalBotStatus = {
-    bot_id: 1,
-    mission_state: MissionState.IN_MISSION__UNDERWAY__MOVEMENT__TRANSIT,
+    bot_status: {
+        bot_id: 1,
+        mission_state: MissionState.IN_MISSION__UNDERWAY__MOVEMENT__TRANSIT,
+    },
 };
 
 const botStatusMock2: PortalBotStatus = {
-    bot_id: 2,
-    mission_state: MissionState.PRE_DEPLOYMENT__IDLE,
+    bot_status: {
+        bot_id: 2,
+        mission_state: MissionState.PRE_DEPLOYMENT__IDLE,
+    },
     portalStatusAge: 40_000_000,
 };
 
 const botStatusMock3: PortalBotStatus = {
-    bot_id: 3,
-    mission_state: MissionState.PRE_DEPLOYMENT__IDLE,
+    bot_status: {
+        bot_id: 3,
+        mission_state: MissionState.PRE_DEPLOYMENT__IDLE,
+    },
 };
 
 bots.setBot(botStatusMock1);

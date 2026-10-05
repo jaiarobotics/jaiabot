@@ -36,7 +36,9 @@ hubFeatureMock.set("type", MapFeatureTypes.HUB);
 hubFeatureMock.set("id", 1);
 
 const botStatusMock1: PortalBotStatus = {
-    bot_id: 1,
+    bot_status: {
+        bot_id: 1,
+    },
 };
 
 const hubStatusMock1: PortalHubStatus = {

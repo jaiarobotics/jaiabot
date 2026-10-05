@@ -19,31 +19,39 @@ jest.mock("../../../../utils/commands", () => {
 
 // Ready
 const botStatusMock1: PortalBotStatus = {
-    bot_id: 1,
-    mission_state: MissionState.IN_MISSION__UNDERWAY__MOVEMENT__TRANSIT,
+    bot_status: {
+        bot_id: 1,
+        mission_state: MissionState.IN_MISSION__UNDERWAY__MOVEMENT__TRANSIT,
+        battery_percent: 75,
+    },
     portalStatusAge: 1_000_000, // microseconds
-    battery_percent: 75,
 };
 
 // Status age error
 const botStatusMock2: PortalBotStatus = {
-    bot_id: 2,
-    mission_state: MissionState.PRE_DEPLOYMENT__WAIT_FOR_MISSION_PLAN,
+    bot_status: {
+        bot_id: 2,
+        mission_state: MissionState.PRE_DEPLOYMENT__WAIT_FOR_MISSION_PLAN,
+    },
     portalStatusAge: 40_000_000, // microseconds
 };
 
 // Mission state error
 const botStatusMock3: PortalBotStatus = {
-    bot_id: 3,
-    mission_state: MissionState.PRE_DEPLOYMENT__IDLE,
+    bot_status: {
+        bot_id: 3,
+        mission_state: MissionState.PRE_DEPLOYMENT__IDLE,
+    },
     portalStatusAge: 1_000_000, // microseconds
 };
 
 const botStatusMock4: PortalBotStatus = {
-    bot_id: 4,
-    mission_state: MissionState.IN_MISSION__UNDERWAY__TASK__DIVE__DIVE_PREP,
+    bot_status: {
+        bot_id: 4,
+        mission_state: MissionState.IN_MISSION__UNDERWAY__TASK__DIVE__DIVE_PREP,
+        battery_percent: 75,
+    },
     portalStatusAge: 1_000_000, // microseconds
-    battery_percent: 75,
 };
 
 bots.setBot(botStatusMock2);

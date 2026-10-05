@@ -23,13 +23,17 @@ jest.mock("../../../../utils/commands", () => {
 });
 
 const mockBotStatus1: PortalBotStatus = {
-    bot_id: 1,
-    mission_state: MissionState.IN_MISSION__UNDERWAY__RECOVERY__STOPPED,
+    bot_status: {
+        bot_id: 1,
+        mission_state: MissionState.IN_MISSION__UNDERWAY__RECOVERY__STOPPED,
+    },
 };
 
 const mockBotStatus2: PortalBotStatus = {
-    bot_id: 2,
-    mission_state: MissionState.IN_MISSION__UNDERWAY__MOVEMENT__TRANSIT,
+    bot_status: {
+        bot_id: 2,
+        mission_state: MissionState.IN_MISSION__UNDERWAY__MOVEMENT__TRANSIT,
+    },
 };
 
 bots.setBot(mockBotStatus1);

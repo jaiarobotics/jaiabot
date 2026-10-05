@@ -15,7 +15,7 @@ const CONSTANT_HEADING_DEFAULT_TIME = 0; // seconds
 
 export function createMissionFeatures(
     map: Map,
-    bot: PortalBotStatus,
+    portalBotStatus: PortalBotStatus,
     plan: MissionPlan,
     activeGoalIndex: number,
     isSelected: boolean,
@@ -25,6 +25,7 @@ export function createMissionFeatures(
 ) {
     const features = [];
     const projection = map.getView().getProjection();
+    const bot_status = portalBotStatus.bot_status;
 
     function geograpicCoordinateToCoordinate(geographicCoordinate: GeographicCoordinate) {
         return fromLonLat([geographicCoordinate.lon, geographicCoordinate.lat], projection);
@@ -52,7 +53,7 @@ export function createMissionFeatures(
 
         markerFeature.setProperties({
             goal: goal,
-            botId: bot?.bot_id,
+            botId: bot_status?.bot_id,
             runNumber: runNumber,
             goalIndex: goalIndexStartAtOne,
             location: location,
