@@ -108,16 +108,13 @@ export async function pollTaskPackets() {
         } else {
             const version = await versionRes.json();
             // Refetch when the filter window changes, even if the server version is unchanged.
-            // Read after the awaits above so the key matches the window the fetch below uses.
-            const windowKey = getTaskPacketWindowKey();
-            const forceFetch = windowKey !== lastFetchedWindowKey;
+            const forceFetch = getTaskPacketWindowKey() !== lastFetchedWindowKey;
             // A superseded fetch records nothing, so the next poll fetches again.
             if (
                 (forceFetch || version !== taskPackets.getVersion()) &&
                 (await refreshTaskPacketsForWindow())
             ) {
                 taskPackets.setVersion(version);
-                lastFetchedWindowKey = windowKey;
             }
         }
     } catch (error) {
@@ -142,28 +139,27 @@ function toTaskPacketQueryString(date: Date) {
  * @returns {string} Window identity key
  */
 function getTaskPacketWindowKey() {
-    if (!taskPacketFilter.isActive()) {
-        return "";
-    }
-    const start = taskPacketFilter.getStartDate();
-    const end = taskPacketFilter.getEndDate();
-    return `${start ? start.getTime() : ""}|${end ? end.getTime() : ""}`;
+    return `${taskPacketFilter.getStartDate().getTime()}|${taskPacketFilter.getEndDate().getTime()}`;
 }
 
 /**
  * Fetches task packets for the current window and loads them into the data model, unless a newer
  * fetch or filter search has started since. Every refetch of the task packets goes through here.
+ * Records the window it applied so the poll doesn't fetch the same window again.
  *
  * @returns {Promise<boolean>} True if the response was applied, false if it was superseded
  */
 export async function refreshTaskPacketsForWindow() {
     const requestID = ++latestTaskPacketRequest;
+    // Taken before the fetch reads the filter, so the key matches the window fetched.
+    const windowKey = getTaskPacketWindowKey();
     const json = await fetchTaskPacketsForWindow();
     if (requestID !== latestTaskPacketRequest) {
         return false;
     }
     taskPackets.setIncludedTaskPackets(json.result.included);
     taskPackets.setExcludedTaskPackets(json.result.excluded);
+    lastFetchedWindowKey = windowKey;
     updateTaskLayers();
     return true;
 }
@@ -179,24 +175,19 @@ export function invalidateTaskPacketRequests() {
 }
 
 /**
- * Fetches task packets for the active filter window (or the server default when no filter
- * is active).
+ * Fetches task packets for the filter's window.
  *
  * @returns {Promise<{ result: { included: TaskPacket[]; excluded: TaskPacket[] } }>} Response
  */
 async function fetchTaskPacketsForWindow() {
-    const startDate = taskPacketFilter.getStartDate();
-    const endDate = taskPacketFilter.getEndDate();
-    if (taskPacketFilter.isActive() && startDate && endDate) {
-        const startDateISO = convertHTMLStrDateToISO(toTaskPacketQueryString(startDate));
-        const endDateISO = convertHTMLStrDateToISO(toTaskPacketQueryString(endDate));
-        const res = await fetch(
-            `${TASK_PACKET_URL}?startDate=${startDateISO}&endDate=${endDateISO}`,
-        );
-        return res.json();
-    }
-    const taskPacketRes = await fetch(TASK_PACKET_URL);
-    return taskPacketRes.json();
+    const startDateISO = convertHTMLStrDateToISO(
+        toTaskPacketQueryString(taskPacketFilter.getStartDate()),
+    );
+    const endDateISO = convertHTMLStrDateToISO(
+        toTaskPacketQueryString(taskPacketFilter.getEndDate()),
+    );
+    const res = await fetch(`${TASK_PACKET_URL}?startDate=${startDateISO}&endDate=${endDateISO}`);
+    return res.json();
 }
 
 /**
