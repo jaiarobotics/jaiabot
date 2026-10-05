@@ -1,6 +1,6 @@
 import { BotModes } from "../../types/jaia-system-types";
 import { MissionStatus } from "../../types/jaia-system-types";
-import { LinkStatusAge } from "../../shared/PortalStatus";
+import { LinkStatusAge } from "@proto/jaiabot/messages/rest_api";
 import { HealthState } from "@proto/goby/middleware/protobuf/coroner";
 import { Engineering } from "@proto/jaiabot/messages/engineering";
 import { GeographicCoordinate } from "@proto/jaiabot/messages/geographic_coordinate";

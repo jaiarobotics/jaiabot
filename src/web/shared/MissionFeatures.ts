@@ -7,8 +7,8 @@ import { createMarker, createFlagMarker, createGPSMarker } from "./Marker";
 import { GeographicCoordinate } from "@proto/jaiabot/messages/geographic_coordinate";
 import { MissionPlan, MissionTask_TaskType } from "@proto/jaiabot/messages/mission";
 import { transformTranslate, point } from "@turf/turf";
-import { PortalBotStatus } from "./PortalStatus";
 import { getMapCoordinate } from "./Utilities";
+import { PortalBotStatus } from "@proto/jaiabot/messages/rest_api";
 
 const CONSTANT_HEADING_DEFAULT_SPEED = 2; // meters per second
 const CONSTANT_HEADING_DEFAULT_TIME = 0; // seconds

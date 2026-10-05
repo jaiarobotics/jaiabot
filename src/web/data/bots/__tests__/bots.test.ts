@@ -1,4 +1,4 @@
-import { PortalBotStatus } from "../../../shared/PortalStatus";
+import { PortalBotStatus } from "@proto/jaiabot/messages/rest_api";
 import { bots } from "../../../data/bots/bots";
 
 const mockBotStatus1: PortalBotStatus = {

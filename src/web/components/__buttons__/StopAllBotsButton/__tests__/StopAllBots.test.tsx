@@ -5,7 +5,7 @@ import StopAllBotsButton from "../StopAllBotsButton";
 
 import { bots } from "../../../../data/bots/bots";
 
-import { PortalBotStatus } from "../../../../shared/PortalStatus";
+import { PortalBotStatus } from "@proto/jaiabot/messages/rest_api";
 import { MissionState } from "@proto/jaiabot/messages/mission";
 
 // Place user in control by default

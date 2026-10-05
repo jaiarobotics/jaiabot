@@ -21,7 +21,8 @@ import { missionLayer } from "../../../openlayers/layers/vector/mission-layer";
 import { NodeTypes } from "../../../types/jaia-system-types";
 import { MapFeatureTypes } from "../../../types/openlayers-types";
 import { UNASSIGNED_ID } from "../../../utils/constants";
-import { PortalBotStatus, PortalHubStatus } from "../../../shared/PortalStatus";
+import { PortalHubStatus } from "../../../shared/PortalStatus";
+import { PortalBotStatus } from "@proto/jaiabot/messages/rest_api";
 
 import { mapBrowserEventMock } from "../../../tests/__mocks__/openlayers/events/map-browser-click.mock";
 

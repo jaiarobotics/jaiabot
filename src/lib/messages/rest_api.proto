@@ -5,6 +5,7 @@ import "jaiabot/messages/hub.proto";
 import "jaiabot/messages/metadata.proto";
 import "jaiabot/messages/option_extensions.proto";
 import "jaiabot/messages/mission.proto";
+import "jaiabot/messages/engineering.proto";
 
 package jaiabot.protobuf;
 
@@ -168,6 +169,22 @@ message APIRequest
         }];
     }
 }
+
+
+message LinkStatusAge {
+    required string link = 1;
+    required int32 age = 2;
+}
+
+message PortalBotStatus {
+    optional BotStatus bot_status = 1;
+    optional MissionPlan active_mission_plan = 2;
+    repeated LinkStatusAge active_link_status_age = 3;
+    optional int32 portalStatusAge = 4;
+    optional bool isDisconnected = 5;
+    optional Engineering engineering = 6;
+}
+
 
 message APIResponse
 {

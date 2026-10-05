@@ -8,7 +8,7 @@ import Mission from "../../../../data/mission_set/mission";
 import { bots } from "../../../../data/bots/bots";
 import { missionSet } from "../../../../data/mission_set/mission-set";
 
-import { PortalBotStatus } from "../../../../shared/PortalStatus";
+import { PortalBotStatus } from "@proto/jaiabot/messages/rest_api";
 import { MissionState } from "@proto/jaiabot/messages/mission";
 import { missionsManager } from "../../../../data/missions_manager/missions-manager";
 

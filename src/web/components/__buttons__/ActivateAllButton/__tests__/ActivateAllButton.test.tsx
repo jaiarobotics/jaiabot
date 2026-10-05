@@ -5,7 +5,7 @@ import ActivateAllButton from "../ActivateAllButton";
 
 import { bots } from "../../../../data/bots/bots";
 
-import { PortalBotStatus } from "../../../../shared/PortalStatus";
+import { PortalBotStatus } from "@proto/jaiabot/messages/rest_api";
 import { MissionState } from "@proto/jaiabot/messages/mission";
 
 const botStatusMock1: PortalBotStatus = {

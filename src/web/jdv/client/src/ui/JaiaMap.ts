@@ -21,7 +21,7 @@ import { geoJSONToDepthContourFeatures, geoJSONToFeatures } from "../shared/Cont
 import { BotStatus } from "@proto/jaiabot/messages/jaia_dccl";
 import { GeographicCoordinate } from "@proto/jaiabot/messages/geographic_coordinate";
 import { createMissionFeatures } from "../shared/MissionFeatures";
-import { PortalBotStatus } from "../shared/PortalStatus";
+import { PortalBotStatus } from "@proto/jaiabot/messages/rest_api";
 import OlLayerSwitcher from "ol-layerswitcher";
 import {
     createBotCourseOverGroundFeature,

@@ -4,7 +4,7 @@ import { userEvent } from "@testing-library/user-event";
 import SystemButton from "../SystemButton";
 
 import { bots } from "../../../../data/bots/bots";
-import { PortalBotStatus } from "../../../../shared/PortalStatus";
+import { PortalBotStatus } from "@proto/jaiabot/messages/rest_api";
 import { MissionState } from "@proto/jaiabot/messages/mission";
 import { SystemButtonTypes } from "../../../../types/jaia-system-types";
 

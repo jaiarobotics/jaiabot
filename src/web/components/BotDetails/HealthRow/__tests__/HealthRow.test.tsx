@@ -9,7 +9,7 @@ import { jaiaGlobal } from "../../../../data/jaia_global/jaia-global";
 import { HealthState } from "@proto/goby/middleware/protobuf/coroner";
 import { Error, Warning } from "@proto/jaiabot/messages/health";
 import { NodeTypes } from "../../../../types/jaia-system-types";
-import { PortalBotStatus } from "../../../../shared/PortalStatus";
+import { PortalBotStatus } from "@proto/jaiabot/messages/rest_api";
 
 const botStatusMock1: PortalBotStatus = {
     bot_status: {

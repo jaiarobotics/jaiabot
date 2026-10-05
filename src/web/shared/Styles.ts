@@ -7,7 +7,7 @@ import { LineString, Point, Circle } from "ol/geom";
 import { fromLonLat } from "ol/proj";
 import { Circle as CircleStyle, Fill, Icon, Style, Text } from "ol/style";
 import { Coordinate } from "ol/coordinate";
-import { PortalBotStatus } from "./PortalStatus";
+import { PortalBotStatus } from "@proto/jaiabot/messages/rest_api";
 import { colorNameToHex } from "./Color";
 
 // We use "require" here, so we can use the "as" keyword to tell TypeScript the types of these resource variables

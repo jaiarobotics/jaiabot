@@ -1,5 +1,5 @@
 import { bots } from "../../../data/bots/bots";
-import { PortalBotStatus } from "../../../shared/PortalStatus";
+import { PortalBotStatus } from "@proto/jaiabot/messages/rest_api";
 import { botLayer } from "../vector/bot-layer";
 
 const botStatusMock1: PortalBotStatus = {

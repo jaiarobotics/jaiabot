@@ -1,4 +1,4 @@
-import { PortalBotStatus } from "../../shared/PortalStatus";
+import { PortalBotStatus } from "@proto/jaiabot/messages/rest_api";
 import { MissionStatus } from "../../types/jaia-system-types";
 import { BotStatus_BotType } from "@proto/jaiabot/messages/jaia_dccl";
 

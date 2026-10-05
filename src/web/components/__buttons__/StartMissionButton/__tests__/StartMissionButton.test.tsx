@@ -11,7 +11,7 @@ import { missionSet } from "../../../../data/mission_set/mission-set";
 import { missionsManager } from "../../../../data/missions_manager/missions-manager";
 
 import { MissionState } from "@proto/jaiabot/messages/mission";
-import { PortalBotStatus } from "../../../../shared/PortalStatus";
+import { PortalBotStatus } from "@proto/jaiabot/messages/rest_api";
 
 // Place user in control by default
 jest.mock("../../../../utils/commands", () => {

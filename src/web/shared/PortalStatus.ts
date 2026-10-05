@@ -1,21 +1,7 @@
-import { Engineering } from "@proto/jaiabot/messages/engineering";
 import { HubStatus } from "@proto/jaiabot/messages/hub";
-import { BotStatus, ContactUpdate } from "@proto/jaiabot/messages/jaia_dccl";
-import { MissionPlan, MissionState } from "@proto/jaiabot/messages/mission";
-
-export interface LinkStatusAge {
-    link: string;
-    age: number;
-}
-
-export interface PortalBotStatus {
-    bot_status?: BotStatus;
-    active_mission_plan?: MissionPlan;
-    active_link_status_age?: LinkStatusAge[];
-    portalStatusAge?: number;
-    isDisconnected?: boolean;
-    engineering?: Engineering;
-}
+import { ContactUpdate } from "@proto/jaiabot/messages/jaia_dccl";
+import { MissionState } from "@proto/jaiabot/messages/mission";
+import { PortalBotStatus } from "@proto/jaiabot/messages/rest_api";
 
 export interface PortalHubStatus extends HubStatus {
     portalStatusAge: number;
