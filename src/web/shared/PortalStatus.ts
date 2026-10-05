@@ -1,11 +1,6 @@
-import { HubStatus } from "@proto/jaiabot/messages/hub";
 import { ContactUpdate } from "@proto/jaiabot/messages/jaia_dccl";
 import { MissionState } from "@proto/jaiabot/messages/mission";
-import { PortalBotStatus } from "@proto/jaiabot/messages/rest_api";
-
-export interface PortalHubStatus extends HubStatus {
-    portalStatusAge: number;
-}
+import { PortalBotStatus, PortalHubStatus } from "@proto/jaiabot/messages/rest_api";
 
 export interface PodStatus {
     hubs: { [key: string]: PortalHubStatus };

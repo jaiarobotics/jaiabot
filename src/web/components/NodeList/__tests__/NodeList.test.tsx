@@ -4,8 +4,7 @@ import { userEvent } from "@testing-library/user-event";
 import NodeList from "../NodeList";
 import { JaiaContextProvider } from "../../../context/JaiaContext";
 
-import { PortalBotStatus } from "@proto/jaiabot/messages/rest_api";
-import { PortalHubStatus } from "../../../shared/PortalStatus";
+import { PortalBotStatus, PortalHubStatus } from "@proto/jaiabot/messages/rest_api";
 
 import { bots } from "../../../data/bots/bots";
 import { HealthState } from "@proto/goby/middleware/protobuf/coroner";
@@ -34,8 +33,10 @@ const mockBotStatus5: PortalBotStatus = {
 };
 
 const mockHubStatus1: PortalHubStatus = {
-    hub_id: 1,
-    health_state: HealthState.HEALTH__OK,
+    hub_status: {
+        hub_id: 1,
+        health_state: HealthState.HEALTH__OK,
+    },
     portalStatusAge: 0,
 };
 

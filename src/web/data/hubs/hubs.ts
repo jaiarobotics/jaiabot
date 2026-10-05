@@ -1,4 +1,4 @@
-import { PortalHubStatus } from "../../shared/PortalStatus";
+import { PortalHubStatus } from "@proto/jaiabot/messages/rest_api";
 import { UNASSIGNED_ID } from "../../utils/constants";
 import Hub from "./hub";
 
@@ -23,8 +23,10 @@ export class Hubs {
         return this.hubs.get(hubID);
     }
 
-    setHub(hubStatus: PortalHubStatus) {
-        if (hubStatus.hub_id === undefined) {
+    setHub(portalHubStatus: PortalHubStatus) {
+        const hubStatus = portalHubStatus.hub_status;
+
+        if (hubStatus === undefined || hubStatus.hub_id === undefined) {
             return;
         }
 
@@ -35,7 +37,7 @@ export class Hubs {
             this.sortHubs();
         }
 
-        this.updateHub(hubStatus);
+        this.updateHub(portalHubStatus);
     }
 
     private isNewHub(hubID: number) {
@@ -52,7 +54,11 @@ export class Hubs {
         this.hubs = sortedHubs;
     }
 
-    private updateHub(hubStatus: PortalHubStatus) {
+    private updateHub(portalHubStatus: PortalHubStatus) {
+        const hubStatus = portalHubStatus.hub_status;
+        if (hubStatus === undefined || hubStatus.hub_id === undefined) {
+            return;
+        }
         let hub = this.hubs.get(hubStatus.hub_id);
 
         if (hub === undefined) {
@@ -91,8 +97,8 @@ export class Hubs {
             hub.setLocation(hubStatus.location);
         }
 
-        if (hubStatus.portalStatusAge >= 0) {
-            hub.setStatusAge(hubStatus.portalStatusAge);
+        if (portalHubStatus.portalStatusAge >= 0) {
+            hub.setStatusAge(portalHubStatus.portalStatusAge);
         }
 
         if (hubStatus.linux_hardware_status) {

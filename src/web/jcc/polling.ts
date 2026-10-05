@@ -2,7 +2,7 @@ import { bots } from "../data/bots/bots";
 import { hubs } from "../data/hubs/hubs";
 import { jaiaGlobal } from "../data/jaia_global/jaia-global";
 import { taskPackets } from "../data/task_packets/task-packets";
-import { PortalHubStatus } from "../shared/PortalStatus";
+import { PortalHubStatus } from "@proto/jaiabot/messages/rest_api";
 import { PortalBotStatus } from "@proto/jaiabot/messages/rest_api";
 import { botLayer } from "../openlayers/layers/vector/bot-layer";
 import { hubLayer } from "../openlayers/layers/vector/hub-layer";

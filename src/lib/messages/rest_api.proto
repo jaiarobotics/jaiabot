@@ -185,6 +185,11 @@ message PortalBotStatus {
     optional Engineering engineering = 6;
 }
 
+message PortalHubStatus {
+    optional HubStatus hub_status = 1;
+    optional int32 portalStatusAge = 2;
+}
+
 
 message APIResponse
 {
