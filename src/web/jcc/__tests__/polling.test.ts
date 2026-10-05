@@ -1,8 +1,4 @@
-import {
-    invalidateTaskPacketRequests,
-    pollTaskPackets,
-    refreshTaskPacketsForWindow,
-} from "../polling";
+import { pollTaskPackets, refreshTaskPacketsForWindow } from "../polling";
 import { taskPackets } from "../../data/task_packets/task-packets";
 import { taskPacketFilter } from "../../data/task_packets/task-packet-filter";
 import { contourLayer } from "../../openlayers/layers/vector/contour-layer";
@@ -129,19 +125,6 @@ describe("refreshTaskPacketsForWindow", () => {
         expect(taskPackets.getExcludedTaskPackets()).toEqual([suppressed]);
         expect(contourLayer.updateFeatures).toHaveBeenCalledTimes(1);
     });
-
-    test("drops a response that was in flight when requests were invalidated", async () => {
-        const searched = [makeTaskPacket(3000)];
-
-        const refresh = refreshTaskPacketsForWindow();
-        await flushPromises();
-        taskPackets.setIncludedTaskPackets(searched);
-        invalidateTaskPacketRequests();
-        pendingResponses[0].resolve({ result: { included: [makeTaskPacket(1000)], excluded: [] } });
-
-        expect(await refresh).toBe(false);
-        expect(taskPackets.getIncludedTaskPackets()).toBe(searched);
-    });
 });
 
 describe("pollTaskPackets", () => {
@@ -157,7 +140,8 @@ describe("pollTaskPackets", () => {
     test("does not record the version when its response is superseded", async () => {
         const poll = pollTaskPackets();
         await flushPromises();
-        invalidateTaskPacketRequests();
+        // A newer refresh, e.g. from a window change, supersedes the poll's fetch.
+        refreshTaskPacketsForWindow();
         pendingResponses[0].resolve({ result: { included: [makeTaskPacket(1000)], excluded: [] } });
         await poll;
 

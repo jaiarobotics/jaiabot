@@ -36,7 +36,7 @@ let metadataRequestInFlight = false;
 // Date window last fetched; lets the poll force a refetch when the filter window changes
 let lastFetchedWindowKey = "";
 
-// Increments per task packet fetch (and on a filter search) so a slower, superseded response
+// Increments per task packet fetch so a slower, superseded response
 // can't overwrite newer task packets in the data model.
 let latestTaskPacketRequest = 0;
 
@@ -162,16 +162,6 @@ export async function refreshTaskPacketsForWindow() {
     lastFetchedWindowKey = windowKey;
     updateTaskLayers();
     return true;
-}
-
-/**
- * Drops any task packet fetch still in flight. Called when task packets are loaded into the data
- * model by other means, so an older response can't overwrite them.
- *
- * @returns {void}
- */
-export function invalidateTaskPacketRequests() {
-    latestTaskPacketRequest += 1;
 }
 
 /**

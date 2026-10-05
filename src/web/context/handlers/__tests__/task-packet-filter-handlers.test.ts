@@ -1,17 +1,15 @@
 import {
-    handleRunTaskPacketSearch,
+    handleChangeTaskPacketWindow,
     handleChangeTaskPacketSelection,
     handleChangeTaskPacketSlider,
     handleCommitTaskPacketSlider,
-    handleClearTaskPacketFilter,
+    handleResetTaskPacketFilter,
 } from "../task-packet-filter-handlers";
 import { syncTaskLayers, syncTaskPacketMarkerLayers } from "../handler-utils";
-import { invalidateTaskPacketRequests, refreshTaskPacketsForWindow } from "../../../jcc/polling";
-import { taskPackets } from "../../../data/task_packets/task-packets";
-import { taskPacketFilter } from "../../../data/task_packets/task-packet-filter";
+import { refreshTaskPacketsForWindow } from "../../../jcc/polling";
+import { getTodayWindow, taskPacketFilter } from "../../../data/task_packets/task-packet-filter";
 import { JaiaActions } from "../../jaia-actions";
 import { JaiaContextType } from "../../../types/context-types";
-import { TaskPacket } from "../../../types/protobuf-types";
 
 // The layer repaints and the network fetch are replaced so the handlers can be tested
 // without OpenLayers or a server.
@@ -21,106 +19,86 @@ jest.mock("../handler-utils", () => ({
 }));
 
 jest.mock("../../../jcc/polling", () => ({
-    invalidateTaskPacketRequests: jest.fn(),
     refreshTaskPacketsForWindow: jest.fn(),
 }));
 
 const mutableState = {} as JaiaContextType;
 
-/**
- * Builds a minimal task packet for tests.
- *
- * @param {number} startTime start_time in microseconds
- * @param {string} [missionName] Optional mission set name
- * @returns {TaskPacket} A task packet
- */
-function makeTaskPacket(startTime: number, missionName?: string): TaskPacket {
-    return { start_time: startTime, mission_name: missionName } as unknown as TaskPacket;
-}
-
 beforeEach(() => {
     jest.clearAllMocks();
-    taskPacketFilter.clear();
-    taskPackets.setIncludedTaskPackets([]);
-    taskPackets.setExcludedTaskPackets([]);
+    (refreshTaskPacketsForWindow as jest.Mock).mockResolvedValue(true);
+    taskPacketFilter.reset();
 });
 
-describe("handleRunTaskPacketSearch", () => {
-    test("loads the packets, activates the filter, resets the slider, and repaints", () => {
-        const included = [makeTaskPacket(1000, "A")];
-        const excluded = [makeTaskPacket(2000, "B")];
-        const start = new Date("2026-06-01T00:00:00");
-        const end = new Date("2026-06-01T23:59:59");
+describe("handleChangeTaskPacketWindow", () => {
+    test("sets the window, shows every mission set, resets the slider, then fetches", () => {
+        const start = new Date("2026-06-01T00:00");
+        const end = new Date("2026-06-02T23:59");
+        (refreshTaskPacketsForWindow as jest.Mock).mockImplementation(async () => {
+            // The window must already be set so the fetch requests it.
+            expect(taskPacketFilter.getStartDate()).toBe(start);
+            return true;
+        });
+        taskPacketFilter.setDeselectedMissionSetKeys(new Set(["A"]));
         taskPacketFilter.setSliderWindow(1000, 2000);
         taskPacketFilter.setAutoFollowUpper(false);
 
-        const result = handleRunTaskPacketSearch(mutableState, {
-            type: JaiaActions.RUN_TASK_PACKET_SEARCH,
-            includedTaskPackets: included,
-            excludedTaskPackets: excluded,
+        const result = handleChangeTaskPacketWindow(mutableState, {
+            type: JaiaActions.CHANGE_TASK_PACKET_WINDOW,
             filterStartDate: start,
             filterEndDate: end,
-            selectedMissionSetKeys: new Set(["A"]),
         });
 
         expect(result).toBe(mutableState);
-        expect(taskPackets.getIncludedTaskPackets()).toBe(included);
-        expect(taskPackets.getExcludedTaskPackets()).toBe(excluded);
-        expect(taskPacketFilter.isActive()).toBe(true);
         expect(taskPacketFilter.getStartDate()).toBe(start);
         expect(taskPacketFilter.getEndDate()).toBe(end);
-        expect(taskPacketFilter.getSelectedMissionSetKeys()).toEqual(new Set(["A"]));
+        expect(taskPacketFilter.getDeselectedMissionSetKeys().size).toBe(0);
         expect(taskPacketFilter.getSliderLowerUtime()).toBe(0);
         expect(taskPacketFilter.getSliderUpperUtime()).toBe(0);
         expect(taskPacketFilter.getAutoFollowUpper()).toBe(true);
-        expect(syncTaskLayers).toHaveBeenCalledTimes(1);
-        // An in-flight refetch must not overwrite the searched packets.
-        expect(invalidateTaskPacketRequests).toHaveBeenCalledTimes(1);
+        expect(refreshTaskPacketsForWindow).toHaveBeenCalledTimes(1);
     });
 
-    test("leaves the filter inactive when no window dates are given", () => {
-        handleRunTaskPacketSearch(mutableState, {
-            type: JaiaActions.RUN_TASK_PACKET_SEARCH,
-            selectedMissionSetKeys: new Set(["A"]),
+    test("ignores an action missing a window date", () => {
+        const { start } = getTodayWindow();
+        taskPacketFilter.setDeselectedMissionSetKeys(new Set(["A"]));
+
+        handleChangeTaskPacketWindow(mutableState, {
+            type: JaiaActions.CHANGE_TASK_PACKET_WINDOW,
+            filterStartDate: new Date("2026-06-01T00:00"),
         });
 
-        expect(taskPacketFilter.isActive()).toBe(false);
-        expect(taskPackets.getIncludedTaskPackets()).toEqual([]);
-        expect(taskPackets.getExcludedTaskPackets()).toEqual([]);
+        expect(taskPacketFilter.getStartDate()).toEqual(start);
+        expect(taskPacketFilter.getDeselectedMissionSetKeys()).toEqual(new Set(["A"]));
+        expect(refreshTaskPacketsForWindow).not.toHaveBeenCalled();
     });
 });
 
 describe("handleChangeTaskPacketSelection", () => {
-    test("updates the selection, resets the slider, and repaints", () => {
+    test("updates the unchecked mission sets, resets the slider, and repaints", () => {
         taskPacketFilter.setSliderWindow(1000, 2000);
         taskPacketFilter.setAutoFollowUpper(false);
 
         handleChangeTaskPacketSelection(mutableState, {
             type: JaiaActions.CHANGE_TASK_PACKET_SELECTION,
-            selectedMissionSetKeys: new Set(["A", "B"]),
+            deselectedMissionSetKeys: new Set(["A", "B"]),
         });
 
-        expect(taskPacketFilter.getSelectedMissionSetKeys()).toEqual(new Set(["A", "B"]));
+        expect(taskPacketFilter.getDeselectedMissionSetKeys()).toEqual(new Set(["A", "B"]));
+        expect(taskPacketFilter.getSliderLowerUtime()).toBe(0);
         expect(taskPacketFilter.getSliderUpperUtime()).toBe(0);
         expect(taskPacketFilter.getAutoFollowUpper()).toBe(true);
         expect(syncTaskLayers).toHaveBeenCalledTimes(1);
     });
 
-    test("keeps the slider when the selection is emptied", () => {
-        taskPacketFilter.setSelectedMissionSetKeys(new Set(["A"]));
-        taskPacketFilter.setSliderWindow(1000, 2000);
-        taskPacketFilter.setAutoFollowUpper(false);
+    test("shows every mission set when the action omits the unchecked set", () => {
+        taskPacketFilter.setDeselectedMissionSetKeys(new Set(["A"]));
 
         handleChangeTaskPacketSelection(mutableState, {
             type: JaiaActions.CHANGE_TASK_PACKET_SELECTION,
-            selectedMissionSetKeys: new Set(),
         });
 
-        expect(taskPacketFilter.getSelectedMissionSetKeys().size).toBe(0);
-        expect(taskPacketFilter.getSliderLowerUtime()).toBe(1000);
-        expect(taskPacketFilter.getSliderUpperUtime()).toBe(2000);
-        expect(taskPacketFilter.getAutoFollowUpper()).toBe(false);
-        expect(syncTaskLayers).toHaveBeenCalledTimes(1);
+        expect(taskPacketFilter.getDeselectedMissionSetKeys().size).toBe(0);
     });
 });
 
@@ -161,22 +139,27 @@ describe("handleCommitTaskPacketSlider", () => {
     });
 });
 
-describe("handleClearTaskPacketFilter", () => {
-    test("deactivates the filter, then refetches the default window", () => {
+describe("handleResetTaskPacketFilter", () => {
+    test("resets the filter to today, then fetches that window", () => {
+        const { start, end } = getTodayWindow();
         (refreshTaskPacketsForWindow as jest.Mock).mockImplementation(async () => {
-            // The filter must already be cleared so the refetch requests the default window.
-            expect(taskPacketFilter.isActive()).toBe(false);
+            // The filter must already be reset so the fetch requests today's window.
+            expect(taskPacketFilter.getStartDate()).toEqual(start);
             return true;
         });
         taskPacketFilter.setSearchWindow(
-            new Date("2026-06-01T00:00:00"),
-            new Date("2026-06-01T23:59:59"),
+            new Date("2026-06-01T00:00"),
+            new Date("2026-06-01T23:59"),
         );
-        taskPacketFilter.setSelectedMissionSetKeys(new Set(["A"]));
+        taskPacketFilter.setDeselectedMissionSetKeys(new Set(["A"]));
+        taskPacketFilter.setSliderWindow(1000, 2000);
 
-        handleClearTaskPacketFilter(mutableState);
+        handleResetTaskPacketFilter(mutableState);
 
-        expect(taskPacketFilter.isActive()).toBe(false);
+        expect(taskPacketFilter.getStartDate()).toEqual(start);
+        expect(taskPacketFilter.getEndDate()).toEqual(end);
+        expect(taskPacketFilter.getDeselectedMissionSetKeys().size).toBe(0);
+        expect(taskPacketFilter.getSliderUpperUtime()).toBe(0);
         expect(refreshTaskPacketsForWindow).toHaveBeenCalledTimes(1);
     });
 });

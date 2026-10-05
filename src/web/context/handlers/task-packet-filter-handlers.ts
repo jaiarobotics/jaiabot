@@ -1,48 +1,40 @@
-import { taskPackets } from "../../data/task_packets/task-packets";
 import { taskPacketFilter } from "../../data/task_packets/task-packet-filter";
-import { invalidateTaskPacketRequests, refreshTaskPacketsForWindow } from "../../jcc/polling";
+import { refreshTaskPacketsForWindow } from "../../jcc/polling";
 import { JaiaContextType, JaiaAction } from "../../types/context-types";
 import { syncTaskLayers, syncTaskPacketMarkerLayers } from "./handler-utils";
 
 /**
- * Applies a task packet search: loads the fetched packets into the data model, activates the
- * filter for the chosen window and mission set selection, resets the slider to the full range, and
- * repaints the task layers.
+ * Changes the task packet search window: shows every mission set, resets the slider to the full
+ * range, and fetches the new window. The fetch repaints the task layers when it arrives.
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
- * @param {JaiaAction} action Provides the fetched packets, window dates, and selected mission set keys
+ * @param {JaiaAction} action Provides the window start and end dates
  * @returns {JaiaContextType} Updated mutable state object
  */
-export function handleRunTaskPacketSearch(mutableState: JaiaContextType, action: JaiaAction) {
-    // These packets replace whatever an in-flight refetch would load.
-    invalidateTaskPacketRequests();
-    taskPackets.setIncludedTaskPackets(action.includedTaskPackets ?? []);
-    taskPackets.setExcludedTaskPackets(action.excludedTaskPackets ?? []);
-    if (action.filterStartDate && action.filterEndDate) {
-        taskPacketFilter.setSearchWindow(action.filterStartDate, action.filterEndDate);
+export function handleChangeTaskPacketWindow(mutableState: JaiaContextType, action: JaiaAction) {
+    if (!action.filterStartDate || !action.filterEndDate) {
+        return mutableState;
     }
-    taskPacketFilter.setSelectedMissionSetKeys(action.selectedMissionSetKeys ?? new Set());
+    taskPacketFilter.setSearchWindow(action.filterStartDate, action.filterEndDate);
+    taskPacketFilter.setDeselectedMissionSetKeys(new Set());
     taskPacketFilter.setSliderWindow(0, 0);
     taskPacketFilter.setAutoFollowUpper(true);
-    syncTaskLayers();
+    refreshTaskPacketsForWindow().catch((error) => console.error(error));
     return mutableState;
 }
 
 /**
- * Updates which mission sets are shown. When at least one mission set is selected the slider is reset to
- * span the new selection. Re-renders the task layers to match.
+ * Updates which mission sets are hidden, resets the slider to span the new selection, and
+ * repaints the task layers.
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
- * @param {JaiaAction} action Provides the selected mission set keys
+ * @param {JaiaAction} action Provides the unchecked mission set keys
  * @returns {JaiaContextType} Updated mutable state object
  */
 export function handleChangeTaskPacketSelection(mutableState: JaiaContextType, action: JaiaAction) {
-    const selectedMissionSetKeys = action.selectedMissionSetKeys ?? new Set<string>();
-    taskPacketFilter.setSelectedMissionSetKeys(selectedMissionSetKeys);
-    if (selectedMissionSetKeys.size > 0) {
-        taskPacketFilter.setSliderWindow(0, 0);
-        taskPacketFilter.setAutoFollowUpper(true);
-    }
+    taskPacketFilter.setDeselectedMissionSetKeys(action.deselectedMissionSetKeys ?? new Set());
+    taskPacketFilter.setSliderWindow(0, 0);
+    taskPacketFilter.setAutoFollowUpper(true);
     syncTaskLayers();
     return mutableState;
 }
@@ -77,14 +69,13 @@ export function handleCommitTaskPacketSlider(mutableState: JaiaContextType) {
 }
 
 /**
- * Deactivates the filter and reloads the server's default task packet window so the map returns
- * to the unfiltered live view, including mission sets that start after the filter was set.
+ * Resets the filter to today's window with every mission set shown, then fetches that window.
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
  * @returns {JaiaContextType} Updated mutable state object
  */
-export function handleClearTaskPacketFilter(mutableState: JaiaContextType) {
-    taskPacketFilter.clear();
+export function handleResetTaskPacketFilter(mutableState: JaiaContextType) {
+    taskPacketFilter.reset();
     refreshTaskPacketsForWindow().catch((error) => console.error(error));
     return mutableState;
 }

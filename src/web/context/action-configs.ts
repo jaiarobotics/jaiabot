@@ -33,11 +33,11 @@ import {
     handleSendRallyMission,
 } from "./handlers/rally-point-handlers";
 import {
-    handleRunTaskPacketSearch,
+    handleChangeTaskPacketWindow,
     handleChangeTaskPacketSelection,
     handleChangeTaskPacketSlider,
     handleCommitTaskPacketSlider,
-    handleClearTaskPacketFilter,
+    handleResetTaskPacketFilter,
 } from "./handlers/task-packet-filter-handlers";
 import { handleSentCommand } from "./handlers/command-handlers";
 import {
@@ -134,7 +134,10 @@ export const actionConfigs: Map<JaiaActions, ActionConfig> = new Map([
         JaiaActions.CHANGE_TASK_PACKET_VISIBILITY,
         { handler: handleChangeTaskPacketVisibility, tracked: false },
     ],
-    [JaiaActions.RUN_TASK_PACKET_SEARCH, { handler: handleRunTaskPacketSearch, tracked: false }],
+    [
+        JaiaActions.CHANGE_TASK_PACKET_WINDOW,
+        { handler: handleChangeTaskPacketWindow, tracked: false },
+    ],
     [
         JaiaActions.CHANGE_TASK_PACKET_SELECTION,
         { handler: handleChangeTaskPacketSelection, tracked: false },
@@ -148,8 +151,8 @@ export const actionConfigs: Map<JaiaActions, ActionConfig> = new Map([
         { handler: handleCommitTaskPacketSlider, tracked: false },
     ],
     [
-        JaiaActions.CLEAR_TASK_PACKET_FILTER,
-        { handler: handleClearTaskPacketFilter, tracked: false },
+        JaiaActions.RESET_TASK_PACKET_FILTER,
+        { handler: handleResetTaskPacketFilter, tracked: false },
     ],
     [
         JaiaActions.CHANGE_COORDINATE_SYSTEM,

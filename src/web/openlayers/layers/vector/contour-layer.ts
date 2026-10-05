@@ -18,10 +18,7 @@ class ContourLayer extends JaiaVectorLayer {
     }
 
     override updateFeatures() {
-        const isFiltered = taskPacketFilter.isActive();
-        const includedTaskPackets = isFiltered
-            ? taskPacketFilter.filter(taskPackets.getIncludedTaskPackets())
-            : taskPackets.getIncludedTaskPackets();
+        const includedTaskPackets = taskPacketFilter.filter(taskPackets.getIncludedTaskPackets());
         // Too few bottom dives to contour -> clear the layer and skip the request so the
         // backend isn't asked to contour a set it can't use on every poll. Bump latestRequest
         // so a response still in flight can't repaint the cleared layer.
@@ -33,15 +30,11 @@ class ContourLayer extends JaiaVectorLayer {
             this.getVectorLayer().getSource().clear();
             return;
         }
-        // When a filter is active, contour only the packets shown on the map.
-        this.renderContours(
-            isFiltered
-                ? jaiaAPI.getDepthContoursForTaskPackets(includedTaskPackets)
-                : jaiaAPI.getDepthContours(),
-        );
+        // Contour only the packets shown on the map.
+        this.renderContours(jaiaAPI.getDepthContoursForTaskPackets(includedTaskPackets));
     }
 
-    private renderContours(contours: ReturnType<typeof jaiaAPI.getDepthContours>) {
+    private renderContours(contours: ReturnType<typeof jaiaAPI.getDepthContoursForTaskPackets>) {
         const requestID = ++this.latestRequest;
         contours
             .then((geoJSON) => {

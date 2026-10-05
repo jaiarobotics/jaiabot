@@ -28,7 +28,7 @@ import {
     TaskParameterPair,
     CoordinateSystem,
 } from "./jaia-system-types";
-import { Speeds, Command, GeographicCoordinate, TaskType, TaskPacket } from "./protobuf-types";
+import { Speeds, Command, GeographicCoordinate, TaskType } from "./protobuf-types";
 
 // Type used to capture the JCC context
 export interface JaiaContextType {
@@ -99,11 +99,9 @@ export interface JaiaAction {
     taskParameterPairs?: TaskParameterPair[];
     taskPacketID?: string;
     taskPacketVisibility?: TaskPacketVisibility;
-    includedTaskPackets?: TaskPacket[];
-    excludedTaskPackets?: TaskPacket[];
     filterStartDate?: Date;
     filterEndDate?: Date;
-    selectedMissionSetKeys?: Set<string>;
+    deselectedMissionSetKeys?: Set<string>;
     sliderLowerUtime?: number;
     sliderUpperUtime?: number;
     autoFollowUpper?: boolean;
