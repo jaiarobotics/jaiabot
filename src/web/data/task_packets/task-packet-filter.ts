@@ -72,11 +72,13 @@ export function buildMissionSetSummaries(
 }
 
 /**
- * The default search window: today from local 00:00 to 23:59. Window times are whole minutes to
- * match the minute precision of the task packet query.
+ * The default search window: today from local 00:00 to 23:59.
  *
  * @param {Date} [now] Time to take "today" from
  * @returns {{ start: Date; end: Date }} Window start and end
+ *
+ * @notes
+ * Whole minutes match the minute precision of the task packet query.
  */
 export function getTodayWindow(now: Date = new Date()) {
     const year = now.getFullYear();
@@ -108,9 +110,12 @@ export class TaskPacketFilter {
     }
 
     /**
-     * Returns the filter to today's window, every mission set shown, and the slider at full range.
+     * Resets the filter to today's window, every mission set shown, and the slider at full range.
      *
      * @returns {void}
+     *
+     * @notes
+     * The window does not roll over at midnight; the operator presses Reset to move to the new day.
      */
     reset() {
         const { start, end } = getTodayWindow();

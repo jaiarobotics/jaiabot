@@ -52,6 +52,9 @@ export function missionSetLabel(missionSet: MissionSetSummary) {
  * @param {string} startDateStr yyyy-mm-dd start date
  * @param {string} endDateStr yyyy-mm-dd end date
  * @returns {{ start: Date; end: Date }} Window start and end
+ *
+ * @notes
+ * Whole minutes match the minute precision of the task packet query.
  */
 export function toWindowDates(startDateStr: string, endDateStr: string) {
     return {

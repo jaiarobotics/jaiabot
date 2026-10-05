@@ -168,6 +168,9 @@ export async function refreshTaskPacketsForWindow() {
  * Fetches task packets for the filter's window.
  *
  * @returns {Promise<{ result: { included: TaskPacket[]; excluded: TaskPacket[] } }>} Response
+ *
+ * @notes
+ * JCC always sends the window rather than relying on the server's default.
  */
 async function fetchTaskPacketsForWindow() {
     const startDateISO = convertHTMLStrDateToISO(
