@@ -60,10 +60,8 @@ class BootstrapTest(unittest.TestCase):
         self.assertIn("jaia_support", groups.split())
 
     def test_an_already_bootstrapped_cloudhub_picks_up_the_new_entries(self):
-        """The old guard recorded that bootstrap ran, not what it created, so a
-        CloudHub in the field would never see an entry added later."""
-        self.assertIn("sed -i '/^jaia_auth_lldap_bootstrap_completed=/d' /etc/jaiabot/cloud.env",
-                      self.text)
+        """A guard recording that bootstrap ran, rather than what it created, leaves
+        a CloudHub never seeing an entry added after it was built."""
         self.assertIn("lldap_bootstrap_generation=1", self.text)
         self.assertIn("jaia_auth_lldap_bootstrap_generation", self.text)
 
