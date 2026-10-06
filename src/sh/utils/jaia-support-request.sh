@@ -10,12 +10,14 @@
 set -u -e
 
 NAMESPACE=jaia-support
+# Run as 'jaia admin fleet support_request', the jaia tool passes --binary=<its command>
+BINARY=${0##*/}
 MAX_DAYS=14
 
 usage()
 {
     cat >&2 <<EOF
-Usage: ${0##*/} --fleet <id> --key <signing key> --reason <text> [--days <n>]
+Usage: ${BINARY} --fleet <id> --key <signing key> --reason <text> [--days <n>]
        [--from <address>]
 
   --fleet <id>      The fleet this asks for access to
@@ -40,6 +42,7 @@ SOURCE=""
 
 while (( $# > 0 )); do
     case "$1" in
+        --binary=*) BINARY="${1#*=}"; shift ;;
         --fleet) FLEET="${2:-}"; shift 2 ;;
         --key) KEY="${2:-}"; shift 2 ;;
         --reason) REASON="${2:-}"; shift 2 ;;

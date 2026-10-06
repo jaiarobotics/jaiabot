@@ -236,10 +236,12 @@ class PortalTest(unittest.TestCase):
     def test_a_request_from_the_real_script_is_accepted(self):
         """The tests above build the payload themselves, so nothing else would
         notice if jaia-support-request.sh and the portal stopped agreeing on its
-        shape. This drives the script the engineer actually runs."""
+        shape. This drives the script the engineer actually runs, as the jaia tool
+        runs it."""
         request = SOURCE_DIR / "src" / "sh" / "utils" / "jaia-support-request.sh"
         made = subprocess.run(
-            ["bash", str(request), "--fleet", str(FLEET), "--key", self.key,
+            ["bash", str(request), "--binary=jaia admin fleet support_request",
+             "--fleet", str(FLEET), "--key", self.key,
              "--reason", "Pump fault on bot 3", "--days", "5", "--from", "198.51.100.7"],
             stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True, check=True).stdout
 
