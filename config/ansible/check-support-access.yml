@@ -13,7 +13,7 @@
         set -e
         source /usr/bin/jaia-debconf.sh
         cloudhub=$(jaia_ip chf$(jaia_debconf_get fleet_id))
-        ssh -o BatchMode=yes -o ConnectTimeout=10 "jaia@${cloudhub}" jaia-support-access.py list
+        ssh -o BatchMode=yes -o ConnectTimeout=10 "jaia@${cloudhub}" sudo -n jaia-support-access.py list
       args:
         executable: /bin/bash
       register: support_access
