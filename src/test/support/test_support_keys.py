@@ -21,6 +21,7 @@ SOURCE_DIR = pathlib.Path(__file__).resolve().parents[3]
 SCRIPT = SOURCE_DIR / "src" / "sh" / "system" / "jaia-support-authorized-keys.sh"
 
 ADMIN_PASSWORD = "e3b0c44298fc1c149afbf4c8996fb924"
+BIND_DN = "uid=authelia,ou=people,dc=jaia,dc=tech"
 
 
 def keygen(comment):
@@ -44,8 +45,11 @@ class SupportKeysTest(unittest.TestCase):
 
         self.secrets = os.path.join(self.dir, "secrets")
         with open(self.secrets, "w") as f:
+            # lldap_admin_password is jaia_admin's initial password, which the
+            # customer may change; the bind must not be reaching for it
             f.write("jwt_secret=irrelevant\n"
-                    "lldap_admin_password={}\n".format(ADMIN_PASSWORD))
+                    "lldap_admin_password=a-password-the-customer-may-change\n"
+                    "authelia_ldap_password={}\n".format(ADMIN_PASSWORD))
 
         self.calls = os.path.join(self.dir, "calls")
         self.answer = os.path.join(self.dir, "answer")
@@ -151,6 +155,16 @@ class SupportKeysTest(unittest.TestCase):
         result = self.run_script()
         self.assertEqual(result.stdout, "")
         self.assertEqual(self.query(), "", "the directory was queried with no credentials")
+
+    def test_the_bind_survives_the_customer_changing_jaia_admin(self):
+        """jaia_admin is a person's login and its password in the secrets file is
+        only the initial one, so binding as it would strand support access the
+        first time the customer resets it."""
+        self.grant()
+        self.run_script()
+        argv = self.query().splitlines()[0]
+        self.assertIn(BIND_DN, argv)
+        self.assertNotIn("jaia_admin", argv)
 
 
 if __name__ == "__main__":

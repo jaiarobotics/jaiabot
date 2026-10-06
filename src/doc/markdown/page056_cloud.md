@@ -206,6 +206,8 @@ settings are split by where they can be obtained again:
 | `cloudhub.admin_email` | required — address of the `jaia_admin` user created on first boot |
 | `cloudhub.smtp_address` | required — the relay Authelia sends enrolment and reset mail through |
 | `cloudhub.data_bucket` | `jaia--cloudhub-data--fleet<fleet>` — the bucket mounted at the bot offload directory |
+| `cloudhub.smtp_sender` | `noreply@auth.jaia.tech` — the From address, verified with the SMTP provider |
+| `cloudhub.smtp_credentials_ssm_parameter` | `/jaia/cloudhub/smtp_credentials` — the SSM SecureString holding the SMTP login (see "Required SMTP" below) |
 
 `customer` is a property of the fleet rather than of its CloudHub, so it sits at the top
 level; the rest are meaningless without hub 30 and `validate` requires the `cloudhub`
@@ -409,19 +411,41 @@ jaiaf6      AAAA    2001:db8::42
 
 ### Required SMTP
 
-Sending email from the Authelia instance is required for registering new 2FA tokens and password resets. These emails are sent from "noreply@auth.{subdomain}", e.g., "noreply@auth.fleet6.jaia.tech" for a `jaia.tech` hosted Fleet 6.
+Sending email from the Authelia instance is required for registering new 2FA tokens and password resets. By default these emails are sent from `noreply@auth.jaia.tech` through [Postmark](https://postmarkapp.com/), for every fleet.
 
-This requires a working SMTP relay (send) service. To avoid getting these messages in SPAM, you should set up a valid relay with DKIM signing and SPF entries (DNS record for sending server). Additionally you should have an DNS MX record for `auth.{subdomain}`.
+The relevant `cloudhub` fields of the fleet configuration are:
 
-For this you can use corporate mail services like Google Workspace (SMTP Relay service), or dedicated mail senders such as Postmark. You can use `https://www.mail-tester.com/` to check the likelihood that your emails will be caught in spam.
+| Field | Default | Meaning |
+|---|---|---|
+| `smtp_address` | (required) | SMTP server Authelia sends through: `submission://smtp.postmarkapp.com:587` for Postmark |
+| `smtp_sender` | `noreply@auth.jaia.tech` | From address. It must be verified with the SMTP provider |
+| `smtp_credentials_ssm_parameter` | `/jaia/cloudhub/smtp_credentials` | AWS SSM Parameter Store SecureString holding the SMTP login as `{"username": "...", "password": "..."}`. A plain name is looked up in the CloudHub's own account and region; a full ARN can point anywhere the CloudHub's role is allowed to read |
+
+For example, a client that hosts their CloudHub in their own AWS account and sends from their own domain:
+
+```
+cloudhub {
+  base_uri: "jaia.clientdomain.com"
+  admin_email: "admin@clientdomain.com"
+  smtp_address: "submission://smtp.postmarkapp.com:587"
+  smtp_sender: "noreply@auth.clientdomain.com"
+  smtp_credentials_ssm_parameter: "/client/jaia/smtp_credentials"
+}
+```
+
+`create_vpc.sh` grants the CloudHub's IAM role `ssm:GetParameter` on this parameter (and `kms:Decrypt` through SSM, for parameters encrypted with a customer managed key), and `jaia_configure_authelia.sh` reads it at configuration time. If the parameter cannot be read, Authelia is configured to send without authenticating, which only works with a relay that allowlists the CloudHub's IP addresses (e.g. Google Workspace SMTP Relay). Postmark will refuse it, and Authelia will not start.
+
+You can use `https://www.mail-tester.com/` to check the likelihood that your emails will be caught in spam.
 
 ### Available services
 
 #### jaia.tech Domains
 
-CloudHub access (https://fleetN.jaia.tech or https://run.fleetN.jaia.tech):
+CloudHub access (https://fleetN.jaia.tech):
 
-- https://run.fleetN.jaia.tech: JCC for Fleet N (e.g., https://run.fleet1.jaia.tech for fleet 1). https://fleetN.jaia.tech also redirects to this URL.
+- https://fleetN.jaia.tech: Landing page listing the sites below that the signed-in user can open, with a link to log out.
+	+ Groups: any signed-in user
+- https://run.fleetN.jaia.tech: JCC for Fleet N (e.g., https://run.fleet1.jaia.tech for fleet 1).
 	+ Groups: 'run'
 - https://run.fleetN.jaia.tech/jcu: JCU for Fleet N.
  	+ Groups: 'jcu_user', 'jcu_advanced', 'jcu_developer' (correspond to JCU roles: USER, ADVANCED, DEVELOPER)
@@ -447,3 +471,9 @@ Supporting web pages:
 #### Custom Domains
 
 Replace `.fleetN.jaia.tech` with your custom domain in the examples above, where your custom domain might be `jaiafleet6.mybusiness.com` or `jaiaf3.university.edu`, as you prefer.
+
+#### Navigation menu
+
+Every page on these sites shows a floating Jaia button in the bottom left corner with the fleet number and the login name of the signed-in user. It opens a menu linking to the landing page, Run (JCC, JCU, JDV), Sim (JCC, JCU, JDV), Users and Account, showing only the sites the user's groups allow, plus a Log out button. Sim is shown as "Not running" until the VirtualFleet has been started from JCU, and the sim site itself says so instead of a blank error while it is down.
+
+Caddy injects the menu into every HTML page, including the third-party Authelia and LLDAP pages, using the [replace-response](https://github.com/caddyserver/replace-response) plugin. Ubuntu's `caddy` package doesn't include it, so `jaia_configure_authelia.sh` downloads a build with the plugin from the Caddy download service, installs it as `/usr/bin/caddy.custom` and selects it with `dpkg-divert` and `update-alternatives` (the apt binary becomes `/usr/bin/caddy.default`), so package upgrades don't undo it. The plugin version is pinned in `common-versions.env` (`jaia_version_caddy_replace_response`). The menu (`/_jaia/nav.js`, `/_jaia/nav.css`) and the landing page are static files from `src/web/cloud`, installed by `jaiabot-web` to `/usr/share/jaiabot/web/cloud`; the menu learns who is signed in from `/_jaia/whoami`, which Caddy answers from the headers Authelia returns.

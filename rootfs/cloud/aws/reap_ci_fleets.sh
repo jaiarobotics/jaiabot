@@ -8,7 +8,7 @@ Usage: $0 [options]
 
   --customer-prefix <s>  Only reap fleets whose jaia_customer tag starts with this
                          (default: jaia-ci-)
-  --max-age-hours <n>    Leave fleets younger than this alone (default: 4)
+  --max-age-hours <n>    Leave fleets younger than this alone (default: 1)
   --dry-run              Report what would be deleted without deleting it
 EOF
     exit 1
@@ -18,7 +18,7 @@ set -u
 
 SCRIPT_PATH=$(dirname "$0")
 CUSTOMER_PREFIX="jaia-ci-"
-MAX_AGE_HOURS=4
+MAX_AGE_HOURS=1
 DRY_RUN=false
 
 while (( $# > 0 )); do

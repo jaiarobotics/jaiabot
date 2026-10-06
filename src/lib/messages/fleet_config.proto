@@ -477,6 +477,12 @@ message FleetConfig
 
         // S3 bucket holding the bot offload; unset means jaia--cloudhub-data--fleet<fleet>
         optional string data_bucket = 4;
+
+        // Unset means noreply@auth.jaia.tech; it must be verified with the SMTP provider
+        optional string smtp_sender = 5;
+        // SSM SecureString (name or ARN) holding {"username": ..., "password": ...};
+        // unset means /jaia/cloudhub/smtp_credentials in the CloudHub's own account and region
+        optional string smtp_credentials_ssm_parameter = 6;
     }
     optional CloudHub cloudhub = 11;
 

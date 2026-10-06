@@ -95,13 +95,24 @@ NATNET_NAME=$(printf 'jaiafleet%02d' ${FLEET})
 FLEET_WLAN_NET=$(jaia_ip --query_type net --ip_net wlan --fleet_id ${FLEET})
 NATNET_IPV4=$(jaia_ip --query_type net --ip_net vfleet_wlan --fleet_id ${FLEET} --ip_version ipv4)
 
-vboxmanage list natnets | grep -q ${NATNET_NAME} && vboxmanage natnetwork remove --netname ${NATNET_NAME}
+if vboxmanage list natnets | grep -q "^Name: *${NATNET_NAME}$"; then
+    vboxmanage natnetwork stop --netname ${NATNET_NAME} || true
+    vboxmanage natnetwork remove --netname ${NATNET_NAME}
+fi
+# removing the network leaves its DHCP server behind, still running with the old nodes' addresses
+if vboxmanage list dhcpservers | grep -q "^NetworkName: *${NATNET_NAME}$"; then
+    vboxmanage dhcpserver stop --network=${NATNET_NAME} || true
+    vboxmanage dhcpserver remove --network=${NATNET_NAME}
+fi
 
 if [[ "${FLEET_WLAN_NET}" == *:* ]]; then
     # --ipv6-prefix is missing from 'VBoxManage natnetwork --help' but is accepted and applied
     # (checked against 7.0.16, which rejects an option it does not know)
     vboxmanage natnetwork add --netname ${NATNET_NAME} --network ${NATNET_IPV4} --enable --dhcp on \
                               --ipv6 on --ipv6-prefix ${FLEET_WLAN_NET}
+    # 7.2 creates the DHCP server only when the network first starts, and the fixed addresses
+    # below need it to exist; it is restarted once they are added
+    vboxmanage natnetwork start --netname ${NATNET_NAME}
 else
     vboxmanage natnetwork add --netname ${NATNET_NAME} --network ${NATNET_IPV4} --enable --dhcp off
 fi
@@ -218,6 +229,11 @@ for n in "${ALL_HUBS[@]}"; do
     if [ -z "$n" ]; then continue; fi
     network_bot_or_hub hub $n
 done
+
+if [[ "${FLEET_WLAN_NET}" == *:* ]]; then
+    # the running DHCP server only reads its configuration at startup
+    vboxmanage dhcpserver restart --network=${NATNET_NAME}
+fi
 
 rm -rf ${HUB_KEY_DIR}
 

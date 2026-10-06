@@ -17,6 +17,7 @@ ansible_playbook {
 ansible_playbook {
     file: "cloud/manage-virtualfleet.yml"
     name: "Start or Stop VirtualFleet machines"
+    description: "Starting takes up to 5 minutes after this reports success."
     section: "VirtualFleet"
     input_var {
         name: "desired_state"
