@@ -16,6 +16,7 @@ import threading
 FLEET = 7
 CLOUDHUB_ADDR = "fd0f:77ac:4fdf:7::1:1e"
 NODES = ["fd0f:77ac:4fdf:7::2:1", "fd0f:77ac:4fdf:7::2:2", "fd0f:77ac:4fdf:7::1:1"]
+ADMIN_USER = "authelia"
 ADMIN_PASSWORD = "e3b0c44298fc1c149afbf4c8996fb924"
 
 
@@ -44,7 +45,8 @@ class FakeLldap(http.server.BaseHTTPRequestHandler):
         body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
 
         if self.path == "/auth/simple/login":
-            ok = body.get("password") == ADMIN_PASSWORD
+            ok = (body.get("username") == ADMIN_USER
+                  and body.get("password") == ADMIN_PASSWORD)
             self.answer({"token": "a-token"} if ok else {"error": "bad password"},
                         200 if ok else 401)
             return
@@ -99,7 +101,10 @@ class CloudHub:
 
         self.secrets = os.path.join(directory, "secrets")
         with open(self.secrets, "w") as f:
-            f.write("jwt_secret=irrelevant\nlldap_admin_password={}\n".format(ADMIN_PASSWORD))
+            f.write("jwt_secret=irrelevant\n"
+                    # Only jaia_admin's initial password, so nothing may bind with it
+                    "lldap_admin_password=a-password-the-customer-may-change\n"
+                    "authelia_ldap_password={}\n".format(ADMIN_PASSWORD))
 
         self.inventory = os.path.join(directory, "inventory.yml")
         with open(self.inventory, "w") as f:

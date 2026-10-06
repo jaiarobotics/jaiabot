@@ -119,13 +119,16 @@ def lldap_post(path, payload, token=None):
 
 
 def lldap_login():
+    """Logs in as the directory's own service account, not jaia_admin: jaia_admin is
+    a person's login whose password the customer may change, and a login that breaks
+    when they do would take support access with it."""
     with open(SECRETS) as f:
         held = dict(line.strip().split("=", 1) for line in f if "=" in line)
-    password = held.get("lldap_admin_password")
+    password = held.get("authelia_ldap_password")
     if not password:
-        raise RuntimeError("no lldap_admin_password in {}".format(SECRETS))
+        raise RuntimeError("no authelia_ldap_password in {}".format(SECRETS))
     return lldap_post("/auth/simple/login",
-                      {"username": "jaia_admin", "password": password})["token"]
+                      {"username": "authelia", "password": password})["token"]
 
 
 def graphql(token, query, variables):
