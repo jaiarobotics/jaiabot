@@ -22,7 +22,10 @@ if "jaia_electronics_stack" in os.environ:
     jaia_electronics_stack=os.environ['jaia_electronics_stack']
 
 jaia_temperature_sensor_type = os.environ.get('jaia_temperature_sensor_type', default='bar30')
-tsys01_enabled = jaia_temperature_sensor_type == 'tsys01'
+
+jaia_additional_sensors = [sensor for sensor in
+                           os.environ.get('jaia_additional_sensors', default='none').split(',')
+                           if sensor]
 
 if jaia_electronics_stack == '0':
     helm_app_tick=1
@@ -68,12 +71,30 @@ jaia_data_offload_ignore_type="NONE"
 if "jaia_data_offload_ignore_type" in os.environ:
     jaia_data_offload_ignore_type=os.environ['jaia_data_offload_ignore_type']
 
+if common.CommsMode.IRIDIUM in common.jaia_comms_modes: 
+    jaia_iridium_enabled=True
+else:
+    jaia_iridium_enabled=False
 bot_type = os.environ.get("jaia_bot_type", default="HYDRO")
 
 echo_enabled=(bot_type == "ECHO")
 # Ignore health warnings from UDP gateway if data comes from BIO payload board
 salinity_enabled=(bot_type != "BIO")
 bar30_enabled=(bot_type != "BIO")
+
+# Only enable TSYS01 driver if the Bot is not a BIO and the TSYS01 is the selected temperature sensor type
+tsys01_enabled=(jaia_temperature_sensor_type == 'tsys01' and bot_type != 'BIO')
+
+# On a BIO bot the payload board reads the TSYS01; this stanza (has_tsys01) lets
+# jaiabot_sensors warn if a configured TSYS01 never reports.
+if jaia_temperature_sensor_type == 'tsys01' and bot_type == 'BIO':
+    tsys01_config = ('tsys01 {\n'
+                     '    sample_rate: 10\n'
+                     '    report_timeout_seconds: 20\n'
+                     '    resend_cfg_timeout_seconds: 20\n'
+                     '}')
+else:
+    tsys01_config = ''
 
 jaia_motor_harness_type="NONE"
 
@@ -147,10 +168,30 @@ try:
 except FileNotFoundError:
     xbee_info = 'xbee {}'
 
-try:
-    fluorometer_coefficients = 'fluorometer_coefficients { \n' + open('/etc/jaiabot/fluorometer_coefficients.pb.cfg').read() + '\n}\n'
-except FileNotFoundError:
-    fluorometer_coefficients = 'fluorometer_coefficients {}'
+def read_fluorometer_coefficients(*paths):
+    for path in paths:
+        try:
+            return 'fluorometer_coefficients { \n' + open(path).read() + '\n}\n'
+        except FileNotFoundError:
+            continue
+    return 'fluorometer_coefficients {}'
+
+# bots provisioned before dual fluorometer support have a single unnumbered file, which
+# belongs to the first fluorometer
+fluorometer_coefficients = read_fluorometer_coefficients('/etc/jaiabot/fluorometer_coefficients.pb.cfg')
+fluorometer_coefficients_2 = read_fluorometer_coefficients('/etc/jaiabot/fluorometer_coefficients_2.pb.cfg')
+
+# The payload board always announces two fluorometers (an unwired one reads zero), so
+# this stanza (has_fluorometer_2) is what enables the second driver in jaiabot_sensors.
+if 'turner_c_fluor_2' in jaia_additional_sensors:
+    fluorometer_2_config = ('fluorometer_2 {\n'
+                            '    sample_rate: 10\n'
+                            '    report_timeout_seconds: 20\n'
+                            '    resend_cfg_timeout_seconds: 20\n'
+                            '    ' + fluorometer_coefficients_2 + '\n'
+                            '}')
+else:
+    fluorometer_2_config = ''
 
 ack_timeout=10
 iridium_ack_timeout=120
@@ -210,7 +251,7 @@ if common.CommsMode.WIFI in common.jaia_comms_modes:
                                              ipv6='')
 
 
-if common.CommsMode.IRIDIUM in common.jaia_comms_modes:    
+if jaia_iridium_enabled:    
     if is_simulation():
         iridium_serial_port='/tmp/iridium' + str(bot_index)
     else:
@@ -352,14 +393,15 @@ elif common.app == 'jaiabot_mission_manager':
                                      jaia_data_offload_ignore_type=jaia_data_offload_ignore_type,
                                      subnet_mask=common.comms.subnet_mask,
                                      camera_available=common.camera_available))
-
 elif common.app == 'jaiabot_sensors':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_sensors.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block=interprocess_common,
-                                     port='/dev/ttyUSB0',
+                                     port='/dev/bio-payload',
                                      baud=115200,
-                                     fluorometer_coefficients=fluorometer_coefficients))
+                                     fluorometer_coefficients=fluorometer_coefficients,
+                                     fluorometer_2_config=fluorometer_2_config,
+                                     tsys01_config=tsys01_config))
 elif common.app == 'jaiabot_engineering':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_engineering.pb.cfg.in',
                                      app_block=app_common,
@@ -423,7 +465,7 @@ elif common.app == 'jaiabot_driver_camera':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_driver_camera.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
-                                     serial_camera_port=common.bot.serial_camera_port(bot_index)))
+                                     serial_camera_port=common.bot.serial_camera_port(bot_index, jaia_iridium_enabled),))
 elif common.app == 'jaiabot_comms_manager':
     print(config.template_substitute(templates_dir+'/jaiabot_comms_manager.pb.cfg.in',
                                      app_block=app_common,

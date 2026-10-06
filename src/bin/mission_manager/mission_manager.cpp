@@ -272,7 +272,8 @@ jaiabot::apps::MissionManager::MissionManager()
     interprocess().subscribe<jaiabot::groups::arduino_to_pi>(
         [this](const jaiabot::protobuf::ArduinoResponse& arduino_response)
         {
-            glog.is_debug2() && glog << "Received Arduino Response " << arduino_response.ShortDebugString() << std::endl;
+            glog.is_debug2() && glog << "Received Arduino Response "
+                                     << arduino_response.ShortDebugString() << std::endl;
 
             if (arduino_response.has_motor())
             {
@@ -396,7 +397,7 @@ jaiabot::apps::MissionManager::MissionManager()
             }
             if (command.has_bottom_depth_safety_params())
             {
-                handle_bottom_dive_safety_params(command.bottom_depth_safety_params());
+                machine_->set_bottom_depth_safety_params(command.bottom_depth_safety_params());
             }
 
             // Publish only when we get a query for status
@@ -914,18 +915,7 @@ void jaiabot::apps::MissionManager::handle_command(const protobuf::Command& comm
                 mission_is_feasible = false;
             }
 
-            if (command.plan().has_bottom_depth_safety_params())
-            {
-                handle_bottom_dive_safety_params(command.plan().bottom_depth_safety_params());
-            }
-            else
-            {
-                jaiabot::protobuf::BottomDepthSafetyParams bottom_depth_safety_params;
-                handle_bottom_dive_safety_params(bottom_depth_safety_params);
-            }
-
-            if (command.plan().has_speeds())
-                machine_->set_transit_speed(command.plan().speeds().transit_with_units());
+            machine_->apply_plan_baseline_params(command.plan());
 
             if (mission_is_feasible)
             {
@@ -1140,21 +1130,6 @@ bool jaiabot::apps::MissionManager::handle_command_fragment(
         return false;
     }
     return false;
-}
-
-/**
- * Passes Safety Return Path (SRP) values to the state machine
- *  
- * @param {jaiabot::apps::MissionManager} handle_bottom_dive_safety_params Contains the SRP values
- * @returns {void} 
- */
-void jaiabot::apps::MissionManager::handle_bottom_dive_safety_params(
-    jaiabot::protobuf::BottomDepthSafetyParams params)
-{
-    machine_->set_bottom_depth_safety_constant_heading(params.constant_heading());
-    machine_->set_bottom_depth_safety_constant_heading_speed(params.constant_heading_speed());
-    machine_->set_bottom_depth_safety_constant_heading_time(params.constant_heading_time());
-    machine_->set_bottom_safety_depth(params.safety_depth());
 }
 
 // To determine no forward progress:
