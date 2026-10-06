@@ -17,19 +17,23 @@ LDAP_URI="${JAIA_LLDAP_URI:-ldap://127.0.0.1:3890}"
 
 BASE_DN="dc=jaia,dc=tech"
 ACCOUNT=jaia_support
+BIND_ACCOUNT=authelia
 
 # sshd asks for every login; only the local account support uses has keys here
 [ "${1:-}" = "jaia" ] || exit 0
 
 [ -r "${SECRETS}" ] || exit 0
-lldap_admin_password=""
+authelia_ldap_password=""
 . "${SECRETS}"
-[ -n "${lldap_admin_password}" ] || exit 0
+[ -n "${authelia_ldap_password}" ] || exit 0
 
+# Binds as the directory's own service account, not jaia_admin: jaia_admin is a
+# person's login whose password the customer may change, and a bind that breaks
+# when they do would take support access with it.
 # -y rather than -w: a password in argv is readable by every local process
 ldapsearch -LLL -o ldif-wrap=no -x -H "${LDAP_URI}" \
-           -D "uid=jaia_admin,ou=people,${BASE_DN}" \
-           -y <(printf '%s' "${lldap_admin_password}") \
+           -D "uid=${BIND_ACCOUNT},ou=people,${BASE_DN}" \
+           -y <(printf '%s' "${authelia_ldap_password}") \
            -b "ou=people,${BASE_DN}" \
            "(&(uid=${ACCOUNT})(memberOf=cn=${ACCOUNT},ou=groups,${BASE_DN}))" \
            sshPublicKey 2>/dev/null |
