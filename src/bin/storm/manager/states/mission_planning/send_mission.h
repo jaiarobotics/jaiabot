@@ -95,7 +95,7 @@ struct SendMission : boost::statechart::state<SendMission, MissionPlanning>,
         }
         // Storm bots are rudderless and cannot navigate back to this pre-dive location
         // snapshot (it may drift underwater) - recover wherever the vehicle currently is
-        goal.set_movewptmode(false);
+        goal.set_storm_task_in_place(true);
 
         const bool skip_dive = this->skip_dive();
         auto& task = *goal.mutable_task();

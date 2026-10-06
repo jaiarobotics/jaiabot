@@ -34,8 +34,7 @@ struct ReacquireGPS
     // Pause::ReacquireGPS
     ReacquireGPS(typename StateBase::my_context c) : StateBase(c)
     {
-        this->machine().set_dive_without_gps(false);
-
+        // STORM: start the give-up timer (0 = wait for a fix indefinitely, as on other bots)
         const int timeout_seconds = this->cfg().reacquire_gps_timeout();
         has_timeout_ = timeout_seconds > 0;
         if (has_timeout_)
@@ -55,6 +54,7 @@ struct ReacquireGPS
 
     ~ReacquireGPS(){};
 
+    // STORM: on timeout, resume the mission without a fix
     void loop(const EvLoop&)
     {
         if (!has_timeout_ || goby::time::SteadyClock::now() < timeout_)
@@ -64,7 +64,6 @@ struct ReacquireGPS
             goby::glog << "ReacquireGPS timed out after " << this->cfg().reacquire_gps_timeout()
                        << " seconds without a GPS fix, resuming mission without one" << std::endl;
 
-        this->machine().set_dive_without_gps(true);
         this->post_event(statechart::EvGPSTimeout());
     }
 
@@ -108,6 +107,7 @@ struct ReacquireGPS
         boost::statechart::transition<EvGPSFix,
                                       boost::statechart::deep_history<underway::Abort // default
                                                                       >>,
+        // STORM: a timeout resumes the mission the same way a fix does
         boost::statechart::transition<EvGPSTimeout,
                                       boost::statechart::deep_history<underway::Abort // default
                                                                       >>,
@@ -116,6 +116,7 @@ struct ReacquireGPS
 
   private:
     int gps_fix_check_incr_{0};
+    // STORM: reacquire_gps_timeout state (unused when the timeout is 0)
     bool has_timeout_{false};
     goby::time::SteadyClock::time_point timeout_;
 };

@@ -349,16 +349,16 @@ elif common.app == 'jaiabot_fusion':
 elif common.app == 'jaiabot_mission_manager':
 
     delegated_states=''
-    send_task_packets_to_hub="true"
+    storm_manager_sends_task_packets="false"
     startup_timeout=''
     # STORM bots are rudderless, so they cannot maneuver to improve a degraded fix;
-    # give up after 2 minutes and dive in place. Other bot types keep waiting.
+    # give up after 5 minutes and dive in place. Other bot types keep waiting.
     reacquire_gps_timeout=0
     if storm_enabled:
         # delegated to jaiabot_storm_manager
         delegated_states='delegated_states: [IN_MISSION__UNDERWAY__SLEEP__PREP, PRE_DEPLOYMENT__SELF_TEST]'
-        # TaskPacket intervehicle publish is handled by jaiabot_storm_manager
-        send_task_packets_to_hub="false"
+        # jaiabot_storm_manager sends TaskPackets to the hub (with acks and resends)
+        storm_manager_sends_task_packets="true"
         startup_timeout='startup_timeout: 0 # disabled so STORM can recover health after waking'
         reacquire_gps_timeout=300
         
@@ -378,7 +378,7 @@ elif common.app == 'jaiabot_mission_manager':
                                      subnet_mask=common.comms.subnet_mask,
                                      camera_available=common.camera_available,
                                      delegated_states=delegated_states,
-                                     send_task_packets_to_hub=send_task_packets_to_hub,
+                                     storm_manager_sends_task_packets=storm_manager_sends_task_packets,
                                      allow_gps_error_during_pre_deployment_startup=allow_gps_error_during_pre_deployment_startup))
 
 elif common.app == 'jaiabot_sensors':

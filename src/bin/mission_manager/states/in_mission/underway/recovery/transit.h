@@ -41,11 +41,10 @@ struct Transit
         {
             auto final_goal = context<InMission>().final_goal();
 
-            // the final goal is "wherever the vehicle is" (rudderless STORM bots, which cannot
-            // steer to a waypoint): recover in place, never engage the helm transit
-            if (!final_goal.movewptmode())
+            // STORM: rudderless, so recover in place and never engage the helm transit
+            if (final_goal.storm_task_in_place())
             {
-                glog.is_debug1() && glog << "Final goal has moveWptMode == false; recovering "
+                glog.is_debug1() && glog << "Final goal has storm_task_in_place; recovering "
                                             "in place without transiting"
                                          << std::endl;
                 post_event(EvWaypointReached());

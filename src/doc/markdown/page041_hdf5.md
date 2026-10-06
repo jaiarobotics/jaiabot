@@ -246,9 +246,11 @@
         * required GeographicCoordinate location
         * optional MissionTask task
         * optional bool moveWptMode
+        * optional bool storm_task_in_place
       * optional Recovery recovery
         * optional bool recover_at_final_goal
         * optional GeographicCoordinate location
+        * optional bool sleep_once_goal_reached
       * optional Speeds speeds
         * optional double transit
         * optional double stationkeep_outer

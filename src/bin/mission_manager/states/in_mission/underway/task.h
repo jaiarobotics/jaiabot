@@ -110,7 +110,7 @@ struct Task : boost::statechart::state<Task, Underway, task::TaskSelection>, App
                 task_packet_file.close();
             }
 
-            if (this->machine().rf_disable() || !this->cfg().send_task_packets_to_hub())
+            if (this->machine().rf_disable() || this->cfg().storm_manager_sends_task_packets())
             {
                 glog.is_debug2() &&
                     glog << "(Not sending TaskPackets to Hub) Publishing task packet interprocess: "

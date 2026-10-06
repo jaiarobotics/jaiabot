@@ -37,9 +37,8 @@ struct StationKeep : IvPSensorPauseCommon<StationKeep, Recovery,
         if (recovery.recover_at_final_goal())
         {
             auto final_goal = context<InMission>().final_goal();
-            // "wherever the vehicle is" goal (rudderless STORM bots): don't station keep at the
-            // pre-dive location it has since drifted from, just stay put
-            if (final_goal.movewptmode())
+            // STORM: don't station keep at the pre-dive location the bot has drifted from
+            if (!final_goal.storm_task_in_place())
             {
                 update = create_location_stationkeep_update(
                     final_goal.location(),

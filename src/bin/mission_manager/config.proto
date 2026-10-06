@@ -261,7 +261,8 @@ message MissionManager
     // states that are managed external (their transitions are delegated to an
     // external app)
     repeated jaiabot.protobuf.MissionState delegated_states = 97;
-    optional bool send_task_packets_to_hub = 98 [default = true];
+    // STORM: publish TaskPackets on the bot only; jaiabot_storm_manager sends them to the hub
+    optional bool storm_manager_sends_task_packets = 98 [default = false];
 
     optional bool allow_gps_error_during_pre_deployment_startup = 99 [default = false];
 

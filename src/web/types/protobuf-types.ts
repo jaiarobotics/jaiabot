@@ -685,11 +685,13 @@ export interface Goal {
     location?: GeographicCoordinate;
     task?: MissionTask;
     moveWptMode?: boolean;
+    storm_task_in_place?: boolean;
 }
 
 export interface Recovery {
     recover_at_final_goal?: boolean;
     location?: GeographicCoordinate;
+    sleep_once_goal_reached?: boolean;
 }
 
 export interface Segment {
