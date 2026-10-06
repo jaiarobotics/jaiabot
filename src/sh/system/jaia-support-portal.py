@@ -211,6 +211,7 @@ def banner(now, current):
     return ("<p class=\"banner granted\">Jaia has access to this fleet until {}.</p>"
             "<table>{}</table>"
             "<p class=\"quiet\">This opens SSH to the \"Open to\" address above and to nothing else. "
+            "Ending it also disconnects anyone still logged in from there. "
             "Any hub whose CloudHub VPN is switched off stays out of reach.</p>".format(
                 html.escape(stamp(grant["expires_at"])),
                 "".join("<tr><th>{}</th><td>{}</td></tr>".format(html.escape(name),

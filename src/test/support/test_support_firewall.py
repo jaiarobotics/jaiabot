@@ -145,6 +145,22 @@ class FirewallTest(unittest.TestCase):
         self.assertTrue(any("delete allow from {}".format(CIDR) in call
                             for call in self.hub.ufw_calls()))
 
+    def test_ending_access_disconnects_sessions_from_that_address(self):
+        """Closing the port admits nobody new, but a session already open would
+        otherwise run on for as long as the engineer kept it."""
+        self.approve()
+        self.assertEqual([], self.hub.ss_calls())
+        self.access("revoke", "--by", "operator")
+        self.assertEqual(["-K state established ( sport = :22 ) dst {}".format(CIDR)],
+                         self.hub.ss_calls())
+
+    def test_expiry_disconnects_sessions_too(self):
+        self.approve(days=1)
+        self.rewrite_grant(expires_at=int(time.time()) - 1)
+        self.access("reconcile")
+        self.assertEqual(["-K state established ( sport = :22 ) dst {}".format(CIDR)],
+                         self.hub.ss_calls())
+
     def test_status_says_what_is_open(self):
         self.approve()
         state = json.loads(self.access("status"))

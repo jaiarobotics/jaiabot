@@ -38,6 +38,7 @@ LAST_RUN_FILE = os.path.join(STATE_DIR, "last-reconcile")
 
 AWS = os.environ.get("JAIA_AWS", "aws")
 UFW = os.environ.get("JAIA_UFW", "ufw")
+SS = os.environ.get("JAIA_SS", "ss")
 IMDS = os.environ.get("JAIA_IMDS", "http://169.254.169.254")
 
 
@@ -161,9 +162,17 @@ def open_to(cidr):
     ufw_rule("allow", cidr)
 
 
+def disconnect(cidr):
+    # Neither the security group nor ufw ends a connection it is already tracking,
+    # so closing the port alone would leave an open session running
+    subprocess.run([SS, "-K", "state", "established", "( sport = :{} )".format(SSH_PORT),
+                    "dst", cidr], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+
 def close_to(cidr):
     security_group_rule("revoke", cidr)
     ufw_rule("delete", cidr)
+    disconnect(cidr)
 
 
 ###############

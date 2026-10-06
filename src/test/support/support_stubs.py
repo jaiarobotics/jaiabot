@@ -71,6 +71,13 @@ with open(os.environ["STUB_UFW_LOG"], "a") as f:
     f.write(" ".join(sys.argv[1:]) + "\\n")
 '''
 
+SS_STUB = '''
+import os, sys
+
+with open(os.environ["STUB_SS_LOG"], "a") as f:
+    f.write(" ".join(sys.argv[1:]) + "\\n")
+'''
+
 
 class CloudHub:
     def __init__(self, directory):
@@ -80,10 +87,12 @@ class CloudHub:
         self.security_group = os.path.join(directory, "security-group.json")
         self.aws_log = os.path.join(directory, "aws.log")
         self.ufw_log = os.path.join(directory, "ufw.log")
+        self.ss_log = os.path.join(directory, "ss.log")
         os.makedirs(self.bin)
 
         stub(os.path.join(self.bin, "aws"), AWS_STUB)
         stub(os.path.join(self.bin, "ufw"), UFW_STUB)
+        stub(os.path.join(self.bin, "ss"), SS_STUB)
 
     def close(self):
         pass
@@ -94,10 +103,12 @@ class CloudHub:
                     JAIA_SUPPORT_STATE_DIR=self.state,
                     JAIA_AWS=os.path.join(self.bin, "aws"),
                     JAIA_UFW=os.path.join(self.bin, "ufw"),
+                    JAIA_SS=os.path.join(self.bin, "ss"),
                     JAIA_SECURITY_GROUP=SECURITY_GROUP,
                     STUB_SG_FILE=self.security_group,
                     STUB_AWS_LOG=self.aws_log,
                     STUB_UFW_LOG=self.ufw_log,
+                    STUB_SS_LOG=self.ss_log,
                     **extra)
 
     ## What the CloudHub ended up with
@@ -122,6 +133,9 @@ class CloudHub:
 
     def ufw_calls(self):
         return self._log(self.ufw_log)
+
+    def ss_calls(self):
+        return self._log(self.ss_log)
 
     def audit(self):
         with open(os.path.join(self.state, "audit.log")) as f:
