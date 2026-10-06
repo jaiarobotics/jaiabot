@@ -199,21 +199,15 @@ def banner(now, current):
                 "<code>jaia_support</code> group with no grant on record. The next "
                 "reconciliation will take it back out.</p>")
 
-    carried = "".join(
-        "<tr><th>Reaches the fleet</th><td>support{} until {}</td></tr>".format(
-            html.escape(str(held["desktop"])), html.escape(stamp(held["expires_at"])))
-        for held in current["tier3"])
-
     return ("<p class=\"banner granted\">Jaia has access to this fleet until {}.</p>"
-            "<table>{}{}</table>".format(
+            "<table>{}</table>".format(
                 html.escape(stamp(grant["expires_at"])),
                 "".join("<tr><th>{}</th><td>{}</td></tr>".format(html.escape(name),
                                                                  html.escape(str(value)))
                         for name, value in [("Reason", grant.get("reason", "")),
                                             ("Approved", stamp(grant.get("approved_at", 0))),
                                             ("Approved by", grant.get("approved_by", "")),
-                                            ("Signed with", grant.get("signer", ""))]),
-                carried))
+                                            ("Signed with", grant.get("signer", ""))])))
 
 
 def log_table():
@@ -224,8 +218,7 @@ def log_table():
         "<tr><td>{}</td><td>{}</td><td>{}</td></tr>".format(
             html.escape(stamp(entry.get("at", 0))),
             html.escape(entry.get("action", "")),
-            html.escape(entry.get("reason") or entry.get("why") or
-                        ("support{}".format(entry["desktop"]) if "desktop" in entry else "")))
+            html.escape(entry.get("reason") or entry.get("why") or ""))
         for entry in entries))
 
 
@@ -332,7 +325,7 @@ class Portal(http.server.BaseHTTPRequestHandler):
             return state()
         except Exception as problem:
             self.log_message("could not read the grant: %s", problem)
-            return {"grant": None, "member": False, "tier3": [], "last_reconcile": None,
+            return {"grant": None, "member": False, "last_reconcile": None,
                     "trouble": str(problem)}
 
     def do_GET(self):

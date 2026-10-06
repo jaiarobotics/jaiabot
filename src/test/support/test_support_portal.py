@@ -207,17 +207,9 @@ class PortalTest(unittest.TestCase):
         self.post("approve", self.sign(reason="Pump fault on bot 3"))
         self.post("revoke")
         page = self.get()
-        self.assertIn("tier2_grant", page)
         self.assertIn("Pump fault on bot 3", page)
-        self.assertIn("tier2_end", page)
-
-    def test_the_page_shows_what_tier_three_reaches(self):
-        self.post("approve", self.sign(days=7))
-        subprocess.run(["python3", str(ACCESS), "grant", "--desktop", "9",
-                        "--wg-key", "CkA5z9dOczQFFX+l3jKFc+SKrFys0ePoHFnErg+Y8Ec=",
-                        "--ssh-key", "ssh-ed25519 AAAAC3Nza= jaia@root_yubikey1"],
-                       env=self.hub.environment(), check=True, stdout=subprocess.DEVNULL)
-        self.assertIn("support9 until", self.get())
+        self.assertIn("<td>grant</td>", page)
+        self.assertIn("<td>end</td>", page)
 
     def test_a_post_from_another_site_is_refused(self):
         status, _ = self.post("approve", self.sign(), csrf="not-the-token")

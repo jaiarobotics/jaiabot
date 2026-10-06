@@ -215,18 +215,12 @@ grant lasts more than two weeks.
 
 ### Reaching the rest of the fleet
 
-A CloudHub shell is tier 2. Bots and hubs are tier 3, and need both a WireGuard
-peer and a key — issued together by `jaia admin fleet support_authorize`, which
-runs on the CloudHub and so can only be used by someone the customer has already
-let in:
+There is no second grant for bots and hubs. The CloudHub is the way in, and
+everything else is reached onward from the shell it gives — `jaia admin ssh add`
+run there behaves exactly as it does anywhere else, and the CloudHub's own key
+is already authorized on every node.
 
-```
-jaia admin fleet support_authorize 7 jaia@support_example jaia@root_yubikey26102776 --valid_for_days 5
-```
-
-`--rm` ends it. The grant is one record, and the peer and the
-`tmp_authorized_keys` line on every node are derived from it by a timer that
-reconciles them every few minutes — so a bot that was switched off is caught up
-when it returns, an expiry takes effect with nobody acting, and ending the
-customer's approval ends everything it carried. The support page shows what is
-held, until when, and the log of every grant and every ending.
+The grant itself is one record, and the group membership is derived from it by a
+timer that reconciles every few minutes — so an expiry takes effect with nobody
+acting, and a membership added by hand is taken back out. The support page shows
+what is held, until when, and the log of every grant and every ending.
