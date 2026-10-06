@@ -1,0 +1,33 @@
+---
+# Whether this hub is linked to its CloudHub. A view, not a change - and of this
+# hub alone, matching change-cloudhub-vpn.yml.
+- name: Check this hub's CloudHub VPN state
+  hosts: localhost
+  connection: local
+  become: yes
+  gather_facts: no
+  tasks:
+    - name: Get current CloudHub VPN active state
+      shell: "systemctl is-active wg-quick@wg_cloudhub | awk '{print $1}'"
+      register: vpn_active_state
+      failed_when: false
+      changed_when: false
+
+    - name: Get current CloudHub VPN enable state
+      shell: "systemctl is-enabled wg-quick@wg_cloudhub | awk '{print $1}'"
+      register: vpn_enable_state
+      failed_when: false
+      changed_when: false
+
+    - name: Set facts for CloudHub VPN status
+      set_fact:
+        cloudhub_vpn_active_state: "{{ vpn_active_state.stdout }}"
+        cloudhub_vpn_enable_state: "{{ vpn_enable_state.stdout }}"
+
+    - name: Display current CloudHub VPN active state
+      debug:
+        var: cloudhub_vpn_active_state
+
+    - name: Display current CloudHub VPN enable state
+      debug:
+        var: cloudhub_vpn_enable_state

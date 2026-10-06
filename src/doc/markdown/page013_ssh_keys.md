@@ -160,42 +160,35 @@ jaia admin ssh <action> --user=ubuntu packages.jaia.tech
 ```
 ## Support access to a CloudHub
 
-The keys above are pushed to a node and expire on a date written into the file.
-A shell on a fleet's CloudHub works the other way round: the key is never pushed
-anywhere, and the customer decides who holds it.
+The keys above decide *who* a node will accept. Reaching a customer's CloudHub
+turns on something else first: **whether anyone can knock at all.**
 
-`sshd` on the CloudHub resolves the `jaia` user's keys with an
-`AuthorizedKeysCommand` (`jaia-support-authorized-keys.sh`) that asks the
-fleet's own LLDAP, over loopback, for the `sshPublicKey` values of the
-`jaia_support` account — in one search that also requires that account to be in
-the `jaia_support` group:
+Port 22 is shut at the CloudHub's own AWS security group, in the customer's own
+account. A grant opens it, for the window the customer approved and only to the
+address the request was signed from; the expiry timer shuts it again. The keys
+that then work are the root Yubikeys the image already carries, so nothing is
+pushed anywhere and nothing has to be taken back.
 
-```
-(&(uid=jaia_support)(memberOf=cn=jaia_support,ou=groups,dc=jaia,dc=tech))
-```
+That is worth stating plainly, because it is the whole design: **reachability is
+the control, not key trust.** The customer cannot stop a Yubikey from being a
+valid key, and does not need to — they decide whether there is a route to use it
+on, in a place Jaia cannot reach.
 
-Both halves are bootstrapped by `jaia_configure_authelia.sh`: the group beside
-the ten it already writes, and the account with no group of its own, so it
-reaches nothing until the customer grants it. They grant it by adding the
-account to the group at `users.$base_uri`, and revoke it by removing it. Because
-the group is part of the query rather than a check made afterwards, a removal
-takes effect at the next authentication — no file is rewritten, no service is
-reloaded, and there is no cache to outlive the decision.
+It also means recovery never depends on our software. If the CloudHub's own
+directory will not start, its support page is unreachable too, since that page
+sits behind Authelia. The customer opens port 22 from the AWS console and a
+Yubikey gets in.
 
-Jaia's public keys go on the account's `sshPublicKey` attribute, which is
-multi-valued, so one person's several Yubikeys all work.
-
-This applies to the CloudHub alone. Bots and hubs keep the Yubikey-backed files
-above: their directory would be across the very link an engineer logs in to
-repair, and authentication that fails closed on a partition is how a fleet
-becomes unrecoverable.
+From that shell, bots and hubs are reached as they always are — `jaia admin ssh
+add` run on the CloudHub, with the CloudHub's own key already authorized on
+every node. There is no second grant.
 
 ### Asking for it
 
 The customer's administrator should never have to judge whether a phone call
 claiming to be Jaia really is. So the right to ask is tied to the root Yubikeys
 rather than to convention. `jaia admin fleet support_request` signs the fleet,
-the window and the reason with one of them:
+the window, the reason and the address to admit with one of them:
 
 ```
 jaia admin fleet support_request --fleet 7 --key ~/.ssh/id_ed25519_sk \
@@ -208,19 +201,29 @@ same login, open to `lldap_admin` and `super_admin` at two factors. The CloudHub
 verifies the signature against the root keys already on its own image
 (`/etc/jaiabot/ssh/root_authorized_keys`) and draws nothing at all for a request
 it cannot verify, so a request cannot be forged by anyone who reaches that page.
-Approving it is one click, and puts `jaia_support` into its group.
+Approving it is one click, and opens the port. The page shows the customer the
+address it will admit before they do.
 
 Granting runs from the approval, not from when the request was made, and no
 grant lasts more than two weeks.
 
-### Reaching the rest of the fleet
+The grant is one record, and the firewall is derived from it by a timer that
+reconciles every few minutes — so an expiry takes effect with nobody acting, and
+a rule with no grant behind it is closed rather than left. The rule is written
+both to the security group and to `ufw`: the first is the one that matters,
+because AWS enforces it off the instance, and the second so the gate also exists
+on a CloudHub that is not in EC2. The support page shows what is open, until
+when, and the log of every grant and every ending.
 
-There is no second grant for bots and hubs. The CloudHub is the way in, and
-everything else is reached onward from the shell it gives — `jaia admin ssh add`
-run there behaves exactly as it does anywhere else, and the CloudHub's own key
-is already authorized on every node.
+### The fleet's own link, which is a different thing
 
-The grant itself is one record, and the group membership is derived from it by a
-timer that reconciles every few minutes — so an expiry takes effect with nobody
-acting, and a membership added by hand is taken back out. The support page shows
-what is held, until when, and the log of every grant and every ending.
+A hub can disable and re-enable its own tunnel to the CloudHub from its Upgrade
+GUI. That decides whether the *fleet* reaches the cloud, and has nothing to do
+with support — but the two meet in one place: a hub with its tunnel off is out
+of reach even during a live grant.
+
+That control is deliberately local. It acts on the hub it is run from and no
+other node, so it can never stop the CloudHub's own end and take the whole fleet
+off, and because the GUI serving it runs on that hub over the fleet WLAN, the
+link can always be restored on-site. Note that it also carries HUB2HUB, so
+cutting it costs inter-hub comms as well.

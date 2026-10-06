@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 
-"""The directory has to carry the support account before anything can grant it.
+"""The CloudHub has to carry the support page before anything can be granted.
 
 jaia_configure_authelia.sh cannot be run here - it installs packages, drives
 docker and reloads services - so these tests read what it would write. That is
-narrow, but it covers the failure that is both most likely and quietest: LLDAP's
-bootstrap skips a schema file it cannot parse, leaving sshPublicKey absent and
-every support login refused with nothing in the directory to show why.
+narrow, but it covers the failures that are quietest: a page published without
+the login in front of it, a trust root that leaves out keys the image carries,
+and a timer that never runs, each of which leaves a grant looking right and
+behaving wrong.
 """
 
 import json
@@ -31,58 +32,6 @@ def heredoc(path, marker):
 class BootstrapTest(unittest.TestCase):
     def setUp(self):
         self.text = SCRIPT.read_text()
-
-    def test_the_ssh_key_attribute_is_a_multi_valued_string(self):
-        """A person has more than one Yubikey, so a single-valued attribute would
-        quietly keep only the last one written."""
-        schema = json.loads(heredoc(SCRIPT, "/etc/lldap/bootstrap/user-schemas/sshPublicKey.json"))
-        self.assertEqual(schema["name"], "sshPublicKey")
-        self.assertEqual(schema["attributeType"], "STRING")
-        self.assertIs(schema["isList"], True)
-        self.assertIs(schema["isEditable"], True)
-        self.assertIs(schema["isVisible"], True)
-
-    def test_the_schema_lands_where_bootstrap_looks_for_it(self):
-        """USER_SCHEMAS_DIR is not set in the compose file, so bootstrap.sh's own
-        default has to be what the script writes to, under the existing mount."""
-        self.assertIn("mkdir -p /etc/lldap/bootstrap/user-schemas", self.text)
-        self.assertIn('"/etc/lldap/bootstrap:/bootstrap"', self.text)
-
-    def test_the_support_account_is_in_no_group(self):
-        """It exists to be granted. Carrying a group would grant it on every boot,
-        and an empty list could read as an instruction to take one away."""
-        user = json.loads(heredoc(SCRIPT, "/etc/lldap/bootstrap/user-configs/jaia_support.json"))
-        self.assertEqual(user["id"], "jaia_support")
-        self.assertNotIn("groups", user)
-
-    def test_the_support_group_exists_to_be_granted(self):
-        groups = re.search(r"^groups=\((.*?)^\)", self.text, re.DOTALL | re.MULTILINE).group(1)
-        self.assertIn("jaia_support", groups.split())
-
-    def test_the_admin_account_is_bootstrapped_without_a_password(self):
-        """bootstrap.sh reapplies every password it is given, so one here would be
-        restored under the admin on each generation bump, undoing their own."""
-        config = re.search(r"jaia_admin\.json <<EOF\n(.*?)^EOF", self.text,
-                           re.DOTALL | re.MULTILINE).group(1)
-        self.assertNotIn("password", config)
-        self.assertIn('"id": "jaia_admin"', config)
-        self.assertNotIn("lldap_admin_password", self.text)
-
-    def test_an_already_bootstrapped_cloudhub_picks_up_the_new_entries(self):
-        """A guard recording that bootstrap ran, rather than what it created, leaves
-        a CloudHub never seeing an entry added after it was built."""
-        self.assertIn("lldap_bootstrap_generation=1", self.text)
-        self.assertIn("jaia_auth_lldap_bootstrap_generation", self.text)
-
-    def test_the_key_lookup_is_confined_to_the_cloudhub(self):
-        """The image's own sshd config is shared with every bot and hub, where this
-        directory is across the link you would be logging in to repair."""
-        shared = (SOURCE_DIR / "rootfs" / "customization" / "includes.chroot" / "etc" / "ssh" /
-                  "sshd_config.d" / "jaia_sshd.conf").read_text()
-        self.assertNotIn("AuthorizedKeysCommand", shared)
-        self.assertIn("/etc/ssh/sshd_config.d/jaia_support.conf", self.text)
-        self.assertIn("AuthorizedKeysCommand /usr/bin/jaia-support-authorized-keys.sh %u",
-                      self.text)
 
     def test_the_support_portal_is_behind_the_login(self):
         """It trusts whoever reaches it, so serving the site without the forward
@@ -144,8 +93,8 @@ class BootstrapTest(unittest.TestCase):
             self.assertIn(line.split()[1], compiled)
 
     def test_a_grant_expires_with_nobody_acting(self):
-        """Group membership and a WireGuard peer both last until something takes
-        them away, so the timer is the whole of the expiry mechanism."""
+        """A firewall rule lasts until something takes it away, so the timer is the
+        whole of the expiry mechanism."""
         timer = heredoc(SCRIPT, "/etc/systemd/system/jaia_support_reconcile.timer")
         self.assertIn("OnUnitActiveSec=", timer)
         # a CloudHub switched off over an expiry must not come back still granting
@@ -156,12 +105,66 @@ class BootstrapTest(unittest.TestCase):
         self.assertIn("ExecStart=/usr/bin/jaia-support-access.py reconcile", unit)
         self.assertIn("Environment=JAIA_FLEET_ID=$jaia_fleet_id", unit)
 
-    def test_ending_a_grant_can_still_reach_the_fleet(self):
-        """The portal runs the access script, which reaches bots and hubs with
-        the key in the jaia user's home, so ProtectHome would strand a
-        revocation at the CloudHub."""
+    def test_ending_a_grant_can_still_reach_the_firewall(self):
+        """The portal runs the access script, which drives ufw and the AWS CLI, so
+        strict confinement would strand a revocation."""
         unit = heredoc(SCRIPT, "/etc/systemd/system/jaia_support_portal.service")
         self.assertNotIn("ProtectHome", unit)
+        self.assertNotIn("ProtectSystem=strict", unit)
+
+    def test_the_cloudhub_still_trusts_the_root_keys(self):
+        """Break-glass depends on it: if the directory will not start, the customer
+        opens the port from the AWS console and a Yubikey is what gets in."""
+        self.assertNotIn("AuthorizedKeysCommand", self.text)
+        self.assertNotIn("sshd_config.d", self.text)
+
+
+class ProvisioningTest(unittest.TestCase):
+    """What create_vpc.sh leaves behind: a shut door and the means to open it."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.vpc = (SOURCE_DIR / "rootfs" / "cloud" / "aws" / "create_vpc.sh").read_text()
+        cls.policy_in = (SOURCE_DIR / "rootfs" / "cloud" / "aws"
+                         / "cloudhub-iam-policy.json.in").read_text()
+
+    def policy(self):
+        """Rendered as create_vpc.sh renders it. A policy that does not parse is
+        refused by IAM, which fails provisioning rather than support."""
+        filled = self.policy_in
+        for name, value in [("ARN_PREFIX", "arn:aws"), ("REGION", "us-east-1"),
+                            ("ACCOUNT_ID", "123456789012"), ("VPC_ID", "vpc-1"),
+                            ("CLOUDHUB_DATA_BUCKET", "bucket"),
+                            ("SMTP_CREDENTIALS_PARAMETER_ARN", "arn:aws:ssm:::parameter/x"),
+                            ("CLOUDHUB_SECURITY_GROUP_ID", "sg-123")]:
+            filled = filled.replace("{{" + name + "}}", value)
+        return json.loads(filled)
+
+    def test_the_cloudhub_may_edit_its_own_group_and_no_other(self):
+        statements = [s for s in self.policy()["Statement"]
+                      if set(s["Action"]) >= {"ec2:AuthorizeSecurityGroupIngress",
+                                              "ec2:RevokeSecurityGroupIngress"}]
+        self.assertEqual(1, len(statements), "expected exactly one such statement")
+        self.assertEqual("arn:aws:ec2:us-east-1:123456789012:security-group/sg-123",
+                         statements[0]["Resource"])
+
+    def test_the_group_is_created_before_the_policy_that_names_it(self):
+        """The policy is written and attached in one go, so a group created after it
+        would interpolate as the empty string and scope the statement to nothing."""
+        self.assertLess(self.vpc.index("CLOUDHUB_SECURITY_GROUP_ID=$("),
+                        self.vpc.index("{{CLOUDHUB_SECURITY_GROUP_ID}}"))
+
+    def test_ssh_is_shut_at_hand_over(self):
+        """Open while the script needs a shell, shut before it hands the CloudHub
+        over - and shut last, because everything above it needs that shell."""
+        closing = self.vpc.index("revoke-security-group-ingress")
+        self.assertLess(self.vpc.index("ufw --force enable"), closing)
+        self.assertLess(closing, self.vpc.index("Authelia login at"))
+
+    def test_ufw_does_not_hold_the_door_open_either(self):
+        """The access script writes a ufw rule per grant, so a standing one would
+        leave the gate open on every CloudHub that is not in EC2."""
+        self.assertNotIn("ufw allow in on eth0 proto tcp to any port 22", self.vpc)
 
 
 if __name__ == "__main__":

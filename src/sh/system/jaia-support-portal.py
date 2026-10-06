@@ -16,6 +16,7 @@ page shows is what the fleet actually has, not a second account of it.
 import html
 import http.cookies
 import http.server
+import ipaddress
 import json
 import os
 import re
@@ -98,6 +99,7 @@ def check(payload, fleet, now):
                  "days": int(request["days"]),
                  "requested_at": int(request["requested_at"]),
                  "expires_at": int(request["expires_at"]),
+                 "source": str(request["source"]),
                  "reason": str(request["reason"])}
     except (TypeError, ValueError, KeyError):
         raise Refused("The signature is good but the request itself is malformed.")
@@ -113,6 +115,13 @@ def check(payload, fleet, now):
     if asked["expires_at"] <= now:
         raise Refused("This request lapsed on {}; ask Jaia for a new one."
                       .format(stamp(asked["expires_at"])))
+    try:
+        # Strict, as the access script is: a prefix with host bits set would be
+        # shown to the customer as one address and opened as a whole network
+        ipaddress.ip_network(asked["source"])
+    except ValueError:
+        raise Refused("The signature is good but the address it asks for, {!r}, is not an "
+                      "IP address or network.".format(asked["source"]))
 
     return asked
 
@@ -188,23 +197,26 @@ def rows(pairs, css=""):
 
 def banner(now, current):
     if current["trouble"]:
-        return "<p class=\"banner refused\">The user directory could not be reached, so this " \
-               "may be out of date: {}</p>".format(html.escape(current["trouble"]))
+        return "<p class=\"banner refused\">This CloudHub could not say what it is granting, so " \
+               "this may be out of date: {}</p>".format(html.escape(current["trouble"]))
 
-    grant = current["grant"]
-    if not current["member"] and not grant:
+    grant, held = current["grant"], current.get("open")
+    if not grant and not held:
         return "<p class=\"banner none\">Jaia has no access to this fleet.</p>"
     if not grant:
-        return ("<p class=\"banner refused\">Jaia's support account is in the "
-                "<code>jaia_support</code> group with no grant on record. The next "
-                "reconciliation will take it back out.</p>")
+        return ("<p class=\"banner refused\">This CloudHub is still admitting {} with no grant "
+                "on record. The next reconciliation will close it.</p>"
+                .format(html.escape(str(held.get("cidr", "")))))
 
     return ("<p class=\"banner granted\">Jaia has access to this fleet until {}.</p>"
-            "<table>{}</table>".format(
+            "<table>{}</table>"
+            "<p class=\"quiet\">This opens SSH to the address below and to nothing else. "
+            "Any hub whose CloudHub VPN is switched off stays out of reach.</p>".format(
                 html.escape(stamp(grant["expires_at"])),
                 "".join("<tr><th>{}</th><td>{}</td></tr>".format(html.escape(name),
                                                                  html.escape(str(value)))
                         for name, value in [("Reason", grant.get("reason", "")),
+                                            ("Open to", (held or {}).get("cidr", "nothing yet")),
                                             ("Approved", stamp(grant.get("approved_at", 0))),
                                             ("Approved by", grant.get("approved_by", "")),
                                             ("Signed with", grant.get("signer", ""))])))
@@ -237,7 +249,7 @@ anything is shown.</p>
 
 def status_page(token, now, current, pasted="", problem=""):
     ending = ""
-    if current["grant"] or current["member"]:
+    if current["grant"] or current.get("open"):
         ending = ("""<form method="post" action="/">
 <input type="hidden" name="csrf" value="{}">
 <p><button type="submit" name="action" value="revoke">End Jaia's access now</button></p>
@@ -269,6 +281,7 @@ def review_page(token, asked, signer, pasted, now):
 <p><a href="/">Cancel</a></p>""".format(
         rows([("Reason", asked["reason"]),
               ("Fleet", asked["fleet"]),
+              ("Opens SSH to", asked["source"]),
               ("Access for", "{} days".format(asked["days"])),
               ("Requested", stamp(asked["requested_at"])),
               ("Would end", stamp(would_end)),
@@ -325,7 +338,7 @@ class Portal(http.server.BaseHTTPRequestHandler):
             return state()
         except Exception as problem:
             self.log_message("could not read the grant: %s", problem)
-            return {"grant": None, "member": False, "last_reconcile": None,
+            return {"grant": None, "open": None, "last_reconcile": None,
                     "trouble": str(problem)}
 
     def do_GET(self):
@@ -382,7 +395,8 @@ class Portal(http.server.BaseHTTPRequestHandler):
         if action == "approve":
             ends = now + min(asked["days"], MAX_DAYS) * 86400
             self.act(lambda: access("approve", "--fleet", str(asked["fleet"]),
-                                    "--days", str(asked["days"]), "--reason", asked["reason"],
+                                    "--days", str(asked["days"]), "--source", asked["source"],
+                                    "--reason", asked["reason"],
                                     "--by", self.who(), "--signer", signer),
                      "Jaia has access to this fleet until {}.".format(stamp(ends)),
                      token, pasted)

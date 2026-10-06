@@ -23,7 +23,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
-from support_stubs import FLEET, CloudHub, FakeLldap, free_port
+from support_stubs import FLEET, CloudHub, free_port
 
 SOURCE_DIR = pathlib.Path(__file__).resolve().parents[3]
 PORTAL = SOURCE_DIR / "src" / "sh" / "system" / "jaia-support-portal.py"
@@ -83,10 +83,11 @@ class PortalTest(unittest.TestCase):
     ## Requests
 
     def sign(self, key=None, fleet=FLEET, days=7, reason="Pump fault on bot 3",
-             expires_in=7 * 86400, tamper=None):
+             expires_in=7 * 86400, source="198.51.100.7", tamper=None):
         requested_at = int(time.time())
         payload = json.dumps({"fleet": fleet, "days": days, "requested_at": requested_at,
-                              "expires_at": requested_at + expires_in, "reason": reason},
+                              "expires_at": requested_at + expires_in, "source": source,
+                              "reason": reason},
                              separators=(",", ":"))
         signed = os.path.join(self.dir, "payload")
         with open(signed, "w") as f:
@@ -143,8 +144,9 @@ class PortalTest(unittest.TestCase):
         self.assertIn("signed by a Jaia root key", page)
         self.assertIn("Pump fault on bot 3", page)
         self.assertIn("Approve", page)
-        # nothing is granted by looking at it
-        self.assertEqual(set(), FakeLldap.members)
+        self.assertIn("198.51.100.7", page)
+        # nothing is opened by looking at it
+        self.assertEqual([], self.hub.open_to())
 
     def test_an_altered_request_is_refused(self):
         pasted = self.sign(days=5, tamper=lambda p: p.replace('"days":5', '"days":14'))
@@ -172,12 +174,17 @@ class PortalTest(unittest.TestCase):
         status, page = self.post("review", "please let me in")
         self.assertIn("not a Jaia support request", page)
 
-    def test_approving_puts_the_support_account_in_the_group(self):
+    def test_approving_opens_the_port_to_the_signed_address_alone(self):
         status, page = self.post("approve", self.sign(days=3, reason="Pump fault on bot 3"))
         self.assertEqual(200, status)
-        self.assertEqual({"jaia_support"}, FakeLldap.members)
+        self.assertEqual(["198.51.100.7/32"], self.hub.open_to())
+        self.assertTrue(any("authorize-security-group-ingress" in call
+                            for call in self.hub.aws_calls()))
+        self.assertTrue(any(call.startswith("allow from 198.51.100.7/32")
+                            for call in self.hub.ufw_calls()))
 
         granted = self.grant()
+        self.assertEqual("198.51.100.7/32", granted["source"])
         self.assertEqual(3, granted["days"])
         self.assertEqual("operator", granted["approved_by"])
         # the window runs from the approval, not from when Jaia asked
@@ -187,19 +194,34 @@ class PortalTest(unittest.TestCase):
         self.assertIn("Jaia has access to this fleet until", page)
         self.assertIn("Jaia has access to this fleet until", self.get())
 
-    def test_approving_an_altered_request_grants_nothing(self):
+    def test_approving_an_altered_request_opens_nothing(self):
         pasted = self.sign(days=1, tamper=lambda p: p.replace('"days":1', '"days":14'))
         self.post("approve", pasted)
-        self.assertEqual(set(), FakeLldap.members)
+        self.assertEqual([], self.hub.open_to())
         self.assertFalse(os.path.exists(os.path.join(self.hub.state, "grant.json")))
 
-    def test_revoking_takes_the_account_back_out_of_the_group(self):
+    def test_an_address_altered_after_signing_opens_nothing(self):
+        """The address is what the rule is written from, so it has to be covered by
+        the signature rather than taken from the paste."""
+        pasted = self.sign(tamper=lambda p: p.replace("198.51.100.7", "203.0.113.9"))
+        status, page = self.post("approve", pasted)
+        self.assertIn("changed since it was signed", page)
+        self.assertEqual([], self.hub.open_to())
+
+    def test_an_address_that_is_not_an_address_is_refused(self):
+        status, page = self.post("review", self.sign(source="the office"))
+        self.assertIn("not an IP address", page)
+        self.assertEqual([], self.hub.open_to())
+
+    def test_revoking_closes_the_port(self):
         self.post("approve", self.sign())
-        self.assertEqual({"jaia_support"}, FakeLldap.members)
+        self.assertEqual(["198.51.100.7/32"], self.hub.open_to())
 
         status, page = self.post("revoke")
         self.assertEqual(200, status)
-        self.assertEqual(set(), FakeLldap.members)
+        self.assertEqual([], self.hub.open_to())
+        self.assertTrue(any("revoke-security-group-ingress" in call
+                            for call in self.hub.aws_calls()))
         self.assertFalse(os.path.exists(os.path.join(self.hub.state, "grant.json")))
         self.assertIn("Jaia has no access to this fleet", self.get())
 
@@ -211,15 +233,30 @@ class PortalTest(unittest.TestCase):
         self.assertIn("<td>grant</td>", page)
         self.assertIn("<td>end</td>", page)
 
+    def test_a_request_from_the_real_script_is_accepted(self):
+        """The tests above build the payload themselves, so nothing else would
+        notice if jaia-support-request.sh and the portal stopped agreeing on its
+        shape. This drives the script the engineer actually runs."""
+        request = SOURCE_DIR / "src" / "sh" / "utils" / "jaia-support-request.sh"
+        made = subprocess.run(
+            ["bash", str(request), "--fleet", str(FLEET), "--key", self.key,
+             "--reason", "Pump fault on bot 3", "--days", "5", "--from", "198.51.100.7"],
+            stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True, check=True).stdout
+
+        status, page = self.post("approve", made)
+        self.assertEqual(200, status)
+        self.assertIn("Jaia has access to this fleet until", page)
+        self.assertEqual(["198.51.100.7/32"], self.hub.open_to())
+
     def test_a_post_from_another_site_is_refused(self):
         status, _ = self.post("approve", self.sign(), csrf="not-the-token")
         self.assertEqual(403, status)
-        self.assertEqual(set(), FakeLldap.members)
+        self.assertEqual([], self.hub.open_to())
 
     def test_a_post_that_did_not_come_through_the_login_is_refused(self):
         status, _ = self.post("approve", self.sign(), user=None)
         self.assertEqual(403, status)
-        self.assertEqual(set(), FakeLldap.members)
+        self.assertEqual([], self.hub.open_to())
 
 
 if __name__ == "__main__":

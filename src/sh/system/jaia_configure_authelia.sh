@@ -9,7 +9,7 @@ set -u -e -o pipefail
 ## Preamble ##
 ##############
 
-jaia_auth_lldap_bootstrap_generation=0
+jaia_auth_lldap_bootstrap_completed=false
 
 set -a
 source "/etc/jaiabot/jaia.env"
@@ -111,7 +111,7 @@ Pin: version ${jaia_version_authelia_series}.*
 Pin-Priority: 990
 EOF
 
-apt-get update && apt-get install -y authelia caddy docker-compose-v2 fuse-overlayfs ldap-utils
+apt-get update && apt-get install -y authelia caddy docker-compose-v2 fuse-overlayfs
 
 ##################
 ## Custom Caddy ##
@@ -570,20 +570,6 @@ else
     systemctl reload-or-restart caddy
 fi
 
-##################
-## Support keys ##
-##################
-
-# Written here rather than into the image's jaia_sshd.conf: the directory it
-# queries is on this machine's loopback, so this is the one node where an
-# LDAP-backed sshd is not something to be reached across the link being
-# debugged.
-cat <<EOF > /etc/ssh/sshd_config.d/jaia_support.conf
-AuthorizedKeysCommand /usr/bin/jaia-support-authorized-keys.sh %u
-AuthorizedKeysCommandUser root
-EOF
-sshd -t && systemctl reload-or-restart ssh
-
 ###########
 ## LLDAP ##
 ###########
@@ -602,7 +588,6 @@ groups=(
     super_admin
     rest_api_read
     rest_api_all
-    jaia_support
 )
 
 # Create group config files
@@ -614,33 +599,9 @@ for group in "${groups[@]}"; do
 EOF
 done
 
-# LLDAP's own name for this attribute (example_configs/pam). bootstrap.sh defaults
-# USER_SCHEMAS_DIR to /bootstrap/user-schemas, which the existing mount covers.
-mkdir -p /etc/lldap/bootstrap/user-schemas
-cat > /etc/lldap/bootstrap/user-schemas/sshPublicKey.json <<EOF
-{
-  "name": "sshPublicKey",
-  "attributeType": "STRING",
-  "isEditable": true,
-  "isList": true,
-  "isVisible": true
-}
-EOF
-
-# Groupless: the account exists so a key can hang off it and the customer has
-# someone to add, but it reaches nothing until they put it in jaia_support.
-# No "groups" key rather than an empty one, so no reading of this file can
-# revoke a grant the customer has made.
-cat > /etc/lldap/bootstrap/user-configs/jaia_support.json <<EOF
-{
-  "id": "jaia_support",
-  "email": "support@jaia.tech"
-}
-EOF
-
-# No password: bootstrap.sh re-runs whenever the generation below is bumped, and a
-# password here would be reapplied each time, silently undoing the admin's own.
-# They set one through the portal's reset link instead.
+# No password: bootstrap.sh reapplies every password its user configs carry, so one
+# here would be restored over whatever the admin has since chosen. They set their
+# own through the portal's reset link.
 cat > /etc/lldap/bootstrap/user-configs/jaia_admin.json <<EOF
 {
   "id": "jaia_admin",
@@ -704,18 +665,12 @@ EOF
 systemctl enable lldap
 systemctl start lldap
 
-# Bump when the groups, users or schemas above change: the guard below records
-# which set was applied, so a CloudHub bootstrapped before a new one existed
-# runs bootstrap.sh once more rather than never seeing it.
-lldap_bootstrap_generation=1
-
-if (( ${jaia_auth_lldap_bootstrap_generation:-0} < lldap_bootstrap_generation )); then
+if ! $jaia_auth_lldap_bootstrap_completed; then
     # -T because cloud-init gives this no TTY, and bounded because a first boot that
     # never returns leaves the machine without the reboot that mounts overlayroot
     for attempt in $(seq 1 120); do
         if docker compose -f /etc/lldap/docker-compose.yaml exec -T lldap /app/bootstrap.sh; then
-            sed -i '/^jaia_auth_lldap_bootstrap_generation=/d' /etc/jaiabot/cloud.env
-            echo "jaia_auth_lldap_bootstrap_generation=${lldap_bootstrap_generation}" >> /etc/jaiabot/cloud.env
+            echo "jaia_auth_lldap_bootstrap_completed=true" >> /etc/jaiabot/cloud.env
             break
         fi
         if (( attempt == 120 )); then
@@ -772,17 +727,14 @@ mv /etc/jaiabot/support/allowed_signers.new /etc/jaiabot/support/allowed_signers
 cat > /etc/systemd/system/jaia_support_portal.service <<EOF
 [Unit]
 Description=Jaia support access portal
-After=lldap.service
-Wants=lldap.service
 
 [Service]
 ExecStart=/usr/bin/jaia-support-portal.py
 Environment=JAIA_FLEET_ID=$jaia_fleet_id
 Environment=JAIA_SUPPORT_PORTAL_PORT=$support_portal_port
 
-# Root for the directory password. Ending a grant has to reach /etc/wireguard,
-# and the fleet over the CloudHub's own SSH key in the jaia user's home, so
-# only what it never writes is made read-only.
+# Root to drive ufw, and strict confinement would stop that, so only what it
+# never writes is made read-only
 ProtectSystem=true
 PrivateTmp=true
 
@@ -793,13 +745,11 @@ RestartSec=5s
 WantedBy=multi-user.target
 EOF
 
-# Group membership has no expiry of its own, and neither does a WireGuard peer,
-# so this is the one mechanism that ends a grant nobody remembers to end.
+# A firewall rule has no expiry of its own, so this is the one mechanism that
+# ends a grant nobody remembers to end.
 cat > /etc/systemd/system/jaia_support_reconcile.service <<EOF
 [Unit]
 Description=Bring Jaia's support access back in line with what the customer granted
-After=lldap.service
-Wants=lldap.service
 
 [Service]
 Type=oneshot

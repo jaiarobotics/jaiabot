@@ -150,6 +150,36 @@ upper_right_logo_link: "https://www.jaia.tech/"
     }
     
     ansible_playbook {
+        file: "check-cloudhub-vpn.yml" 
+        name: "Check CloudHub VPN Status"
+        section: "Security"
+        role: USER
+        output_var {
+            name: "cloudhub_vpn_active_state"
+            display_name: "CloudHub VPN Running?"
+        }
+        output_var {
+            name: "cloudhub_vpn_enable_state"
+            display_name: "CloudHub VPN Starts On Boot?"
+        }
+    }
+    
+    ansible_playbook {
+        file: "change-cloudhub-vpn.yml" 
+        name: "Change CloudHub VPN State (this hub only; also carries HUB2HUB)"
+        section: "Security"
+        role: USER
+        input_var {
+            name: "state"
+            display_name: "State"
+            value: "start"
+            value: "stop"
+            value: "enable"
+            value: "disable"
+        }
+    }
+    
+    ansible_playbook {
         file: "update-dccl-password.yml" 
         name: "Update Communications End-to-End Encryption Password"
         section: "Security"

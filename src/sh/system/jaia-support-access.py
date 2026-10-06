@@ -2,14 +2,16 @@
 
 """Support access on the CloudHub: what the customer granted, and when it ends.
 
-A grant is a record. The directory group that lets Jaia onto this machine is
-derived from it by reconciling rather than set on its own, so a membership left
-behind - standing access of exactly the kind this design exists to end - is
-corrected on the next run instead of persisting.
+A grant is a record, and the firewall is derived from it by reconciling rather
+than opened and shut on its own. That is what lets expiry be the default: a rule
+left behind - standing access of exactly the kind this design exists to end - is
+closed on the next run instead of persisting.
 
-Reaching the fleet is not a second grant: the CloudHub is the way in, and bots
-and hubs are reached onward from the shell it gives, with the tooling that
-already does that.
+The rule is written in two places. The security group is the one that matters,
+because AWS enforces it off the instance and it lives in the customer's own
+account; ufw is set to match so the gate also exists on a CloudHub that is not
+in EC2. Reaching the fleet is not a second grant: bots and hubs are reached
+onward from the shell this gives, with the tooling that already does that.
 
 Every bound is applied on each run rather than once when the record was written:
 the grant's own expiry, and two weeks from when it was made. So a record edited
@@ -17,6 +19,7 @@ on this machine can only ever shorten access, never extend it.
 """
 
 import argparse
+import ipaddress
 import json
 import os
 import subprocess
@@ -25,16 +28,17 @@ import time
 import urllib.request
 
 MAX_DAYS = 14
-ACCOUNT = "jaia_support"
-GROUP = "jaia_support"
+SSH_PORT = 22
 
 STATE_DIR = os.environ.get("JAIA_SUPPORT_STATE_DIR", "/var/log/jaiabot/auth/support")
 GRANT_FILE = os.path.join(STATE_DIR, "grant.json")
+OPEN_FILE = os.path.join(STATE_DIR, "open.json")
 AUDIT_FILE = os.path.join(STATE_DIR, "audit.log")
 LAST_RUN_FILE = os.path.join(STATE_DIR, "last-reconcile")
 
-SECRETS = os.environ.get("JAIA_AUTH_SECRETS", "/var/log/jaiabot/auth/authelia/secrets")
-LLDAP_URL = os.environ.get("JAIA_LLDAP_URL", "http://127.0.0.1:17170")
+AWS = os.environ.get("JAIA_AWS", "aws")
+UFW = os.environ.get("JAIA_UFW", "ufw")
+IMDS = os.environ.get("JAIA_IMDS", "http://169.254.169.254")
 
 
 def run(command, **kwargs):
@@ -74,67 +78,92 @@ def write_json(path, payload):
     os.replace(pending, path)
 
 
-###########
-## LLDAP ##
-###########
+##############
+## Addresses ##
+##############
 
-# Loopback only, so nothing on the way sees the admin password or the answer
+def as_cidr(address):
+    """One host unless a width was asked for, and strict about the width: a prefix
+    with host bits set is refused rather than rounded down, since 198.51.100.7/24
+    reads as one address and would admit 256."""
+    text = address.strip()
+    if "/" in text:
+        return str(ipaddress.ip_network(text))
+    return str(ipaddress.ip_network(text + ("/128" if ":" in text else "/32")))
+
+
+def is_v6(cidr):
+    return ipaddress.ip_network(cidr).version == 6
+
+
+##############
+## Firewall ##
+##############
+
+# Loopback-only link-local service, so nothing on the way sees the token
 _opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
 
 
-def lldap_post(path, payload, token=None):
-    headers = {"Content-Type": "application/json"}
-    if token:
-        headers["Authorization"] = "Bearer " + token
-    request = urllib.request.Request(LLDAP_URL + path, data=json.dumps(payload).encode(),
-                                     headers=headers, method="POST")
-    with _opener.open(request, timeout=15) as answer:
-        return json.loads(answer.read().decode())
+def imds(path, token=None):
+    method = "PUT" if token is None else "GET"
+    url = IMDS + ("/latest/api/token" if token is None else "/latest/meta-data/" + path)
+    headers = ({"X-aws-ec2-metadata-token-ttl-seconds": "60"} if token is None
+               else {"X-aws-ec2-metadata-token": token})
+    request = urllib.request.Request(url, headers=headers, method=method)
+    with _opener.open(request, timeout=5) as answer:
+        return answer.read().decode().strip()
 
 
-def lldap_login():
-    """Logs in as the directory's own service account, not jaia_admin: jaia_admin is
-    a person's login whose password the customer may change, and a login that breaks
-    when they do would take support access with it."""
-    with open(SECRETS) as f:
-        held = dict(line.strip().split("=", 1) for line in f if "=" in line)
-    password = held.get("authelia_ldap_password")
-    if not password:
-        raise RuntimeError("no authelia_ldap_password in {}".format(SECRETS))
-    return lldap_post("/auth/simple/login",
-                      {"username": "authelia", "password": password})["token"]
+def security_group():
+    """The CloudHub's own group, asked of the instance rather than configured, so
+    a rebuilt CloudHub needs nothing rewritten."""
+    if os.environ.get("JAIA_SECURITY_GROUP"):
+        return os.environ["JAIA_SECURITY_GROUP"]
+    token = imds(None)
+    mac = imds("network/interfaces/macs/", token).splitlines()[0].strip("/")
+    return imds("network/interfaces/macs/{}/security-group-ids".format(mac),
+                token).split()[0]
 
 
-def graphql(token, query, variables):
-    answer = lldap_post("/api/graphql", {"query": query, "variables": variables}, token)
-    if answer.get("errors"):
-        raise RuntimeError(answer["errors"][0].get("message", "LLDAP refused the request"))
-    return answer["data"]
+def permissions(cidr):
+    ranges = ("Ipv6Ranges" if is_v6(cidr) else "IpRanges",
+              "CidrIpv6" if is_v6(cidr) else "CidrIp")
+    return json.dumps([{"IpProtocol": "tcp", "FromPort": SSH_PORT, "ToPort": SSH_PORT,
+                        ranges[0]: [{ranges[1]: cidr,
+                                     "Description": "jaia support access"}]}])
 
 
-def in_support_group(token):
-    groups = graphql(token,
-                     "query($user: String!) { user(userId: $user) { groups { displayName } } }",
-                     {"user": ACCOUNT})["user"]["groups"]
-    return any(group["displayName"] == GROUP for group in groups)
-
-
-def support_group_id(token):
-    for group in graphql(token, "query { groups { id displayName } }", {})["groups"]:
-        if group["displayName"] == GROUP:
-            return group["id"]
-    raise RuntimeError("LLDAP has no '{}' group".format(GROUP))
-
-
-def set_membership(member):
-    token = lldap_login()
-    if in_support_group(token) == member:
+def security_group_rule(action, cidr):
+    """Absent when it should go and present when it should come is success either
+    way: this runs on a timer, so it must converge rather than complain."""
+    done = subprocess.run(
+        [AWS, "ec2", "{}-security-group-ingress".format(action),
+         "--group-id", security_group(), "--ip-permissions", permissions(cidr)],
+        stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True)
+    if done.returncode == 0:
         return
-    mutation = ("mutation($user: String!, $group: Int!) "
-                "{ addUserToGroup(userId: $user, groupId: $group) { ok } }" if member else
-                "mutation($user: String!, $group: Int!) "
-                "{ removeUserFromGroup(userId: $user, groupId: $group) { ok } }")
-    graphql(token, mutation, {"user": ACCOUNT, "group": support_group_id(token)})
+    harmless = ("InvalidPermission.Duplicate" if action == "authorize"
+                else "InvalidPermission.NotFound")
+    if harmless in done.stderr:
+        return
+    raise RuntimeError(done.stderr.strip() or "aws {} failed".format(action))
+
+
+def ufw_rule(action, cidr):
+    command = [UFW, "--force"] if action == "delete" else [UFW]
+    command += (["delete"] if action == "delete" else [])
+    command += ["allow", "from", cidr, "to", "any", "port", str(SSH_PORT), "proto", "tcp"]
+    subprocess.run(command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+
+def open_to(cidr):
+    security_group_rule("authorize", cidr)
+    ufw_rule("allow", cidr)
+
+
+def close_to(cidr):
+    security_group_rule("revoke", cidr)
+    ufw_rule("delete", cidr)
 
 
 ###############
@@ -152,6 +181,11 @@ def grant_window(now):
     return expires if expires > now else 0
 
 
+def granted_cidr():
+    granted = read_json(GRANT_FILE) or {}
+    return granted.get("source")
+
+
 #################
 ## Reconciling ##
 #################
@@ -160,16 +194,27 @@ def reconcile():
     now = int(time.time())
 
     approved = grant_window(now)
+    wanted = granted_cidr() if approved else None
+
     if not approved and os.path.exists(GRANT_FILE):
         os.unlink(GRANT_FILE)
         audit("end", {"why": "expired"})
 
-    set_membership(bool(approved))
+    held = read_json(OPEN_FILE)
+    if held and held.get("cidr") != wanted:
+        close_to(held["cidr"])
+        os.unlink(OPEN_FILE)
+        held = None
+
+    if wanted and not held:
+        open_to(wanted)
+        os.makedirs(STATE_DIR, mode=0o700, exist_ok=True)
+        write_json(OPEN_FILE, {"cidr": wanted, "opened_at": now})
 
     os.makedirs(STATE_DIR, exist_ok=True)
     with open(LAST_RUN_FILE, "w") as f:
         f.write("{}\n".format(now))
-    return approved
+    return approved, wanted
 
 
 ##############
@@ -180,57 +225,61 @@ def cmd_approve(args):
     now = int(time.time())
     if not 1 <= args.days <= MAX_DAYS:
         sys.exit("days must be between 1 and {}".format(MAX_DAYS))
+    try:
+        source = as_cidr(args.source)
+    except ValueError:
+        sys.exit("--source must be an IP address or CIDR, not {!r}".format(args.source))
 
     granted = {"fleet": args.fleet, "days": args.days, "reason": args.reason,
-               "approved_at": now, "approved_by": args.by, "signer": args.signer,
-               "expires_at": now + args.days * 86400}
+               "source": source, "approved_at": now, "approved_by": args.by,
+               "signer": args.signer, "expires_at": now + args.days * 86400}
     os.makedirs(STATE_DIR, mode=0o700, exist_ok=True)
-    set_membership(True)
     write_json(GRANT_FILE, granted)
     audit("grant", granted)
+
+    approved, wanted = reconcile()
+    if not wanted:
+        sys.exit("the grant did not survive reconciliation")
     print(granted["expires_at"])
 
 
 def cmd_revoke(args):
-    set_membership(False)
     if os.path.exists(GRANT_FILE):
         os.unlink(GRANT_FILE)
     audit("end", {"why": "revoked", "revoked_by": args.by})
+    reconcile()
 
 
 def cmd_reconcile(args):
     try:
-        approved = reconcile()
+        approved, wanted = reconcile()
     except Exception as problem:
-        sys.exit("could not reach the user directory: {}".format(problem))
-    print("until {}".format(
-        time.strftime("%Y-%m-%d %H:%M UTC", time.gmtime(approved)) if approved else "- (none)"))
+        sys.exit("could not reconcile the firewall: {}".format(problem))
+    print("{} until {}".format(
+        wanted or "closed",
+        time.strftime("%Y-%m-%d %H:%M UTC", time.gmtime(approved)) if approved else "-"))
 
 
 def cmd_status(args):
-    """What the support page reads. Membership is asked of LLDAP rather than
-    assumed from the record, so a group edited by hand shows up as itself."""
+    """What the support page reads. What the firewall actually holds is reported
+    from this machine's own record of it, so a rule opened by hand shows up as
+    the absence of one rather than as a grant."""
     state = {"fleet": fleet_id(), "grant": read_json(GRANT_FILE),
-             "last_reconcile": None, "trouble": ""}
-
+             "open": read_json(OPEN_FILE), "last_reconcile": None, "trouble": ""}
     try:
         with open(LAST_RUN_FILE) as f:
             state["last_reconcile"] = int(f.read().strip())
     except (OSError, ValueError):
         pass
-    try:
-        state["member"] = in_support_group(lldap_login())
-    except Exception as problem:
-        state["member"] = False
-        state["trouble"] = str(problem)
-
     print(json.dumps(state))
 
 
 def cmd_list(args):
     approved = grant_window(int(time.time()))
+    held = read_json(OPEN_FILE)
     print("granted until {}".format(
         time.strftime("%Y-%m-%d %H:%M UTC", time.gmtime(approved)) if approved else "- (none)"))
+    print("port {} open to {}".format(SSH_PORT, held["cidr"] if held else "- (nobody)"))
 
 
 def main():
@@ -240,6 +289,8 @@ def main():
     approve = actions.add_parser("approve", help="record the customer's approval")
     approve.add_argument("--fleet", type=int, required=True)
     approve.add_argument("--days", type=int, required=True)
+    approve.add_argument("--source", required=True,
+                         help="the address to admit, as signed in the request")
     approve.add_argument("--reason", default="")
     approve.add_argument("--by", default="")
     approve.add_argument("--signer", default="")
@@ -249,7 +300,7 @@ def main():
     revoke.add_argument("--by", default="")
     revoke.set_defaults(run=cmd_revoke)
 
-    actions.add_parser("reconcile", help="bring the group back in line with the grant") \
+    actions.add_parser("reconcile", help="bring the firewall back in line with the grant") \
            .set_defaults(run=cmd_reconcile)
     actions.add_parser("status", help="print what is granted, as JSON") \
            .set_defaults(run=cmd_status)

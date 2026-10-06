@@ -65,6 +65,15 @@
 			}
 		},
 		{
+			"Sid": "SupportAccessOpensItsOwnDoor",
+			"Effect": "Allow",
+			"Action": [
+				"ec2:AuthorizeSecurityGroupIngress",
+				"ec2:RevokeSecurityGroupIngress"
+			],
+			"Resource": "{{ARN_PREFIX}}:ec2:{{REGION}}:{{ACCOUNT_ID}}:security-group/{{CLOUDHUB_SECURITY_GROUP_ID}}"
+		},
+		{
 			"Sid": "CloudHubData",
 			"Effect": "Allow",
 			"Action": [

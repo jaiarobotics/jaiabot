@@ -203,6 +203,11 @@ else
     SMTP_CREDENTIALS_PARAMETER_ARN="${ARN_PREFIX}:ssm:${REGION}:${ACCOUNT_ID}:parameter/${SMTP_CREDENTIALS_PARAMETER#/}"
 fi
 
+# Created before the policy below, which names this group
+CLOUDHUB_SECURITY_GROUP_ID=$(run '.GroupId' aws ec2 create-security-group --group-name "jaia__SecurityGroup_CloudHub__${JAIA_CUSTOMER_NAME}" --description "jaia__${JAIA_CUSTOMER_NAME} CloudHub Security Group" --vpc-id $VPC_ID)
+on_rollback aws ec2 delete-security-group --group-id $CLOUDHUB_SECURITY_GROUP_ID
+echo ">>>>>> Created CloudHub Security Group with ID: $CLOUDHUB_SECURITY_GROUP_ID"
+
 # Create Policy for CloudHub to manage VirtualFleet instances
 POLICY_FILE_IN="${SCRIPT_PATH}/cloudhub-iam-policy.json.in"
 POLICY_FILE="${TMPDIR}/cloudhub-iam-policy.json"
@@ -211,6 +216,7 @@ cp ${POLICY_FILE_IN} ${POLICY_FILE}
 sed -i "s/{{REGION}}/${REGION}/g" ${POLICY_FILE}
 sed -i "s/{{ACCOUNT_ID}}/${ACCOUNT_ID}/g" ${POLICY_FILE}
 sed -i "s/{{VPC_ID}}/${VPC_ID}/g" ${POLICY_FILE}
+sed -i "s/{{CLOUDHUB_SECURITY_GROUP_ID}}/${CLOUDHUB_SECURITY_GROUP_ID}/g" ${POLICY_FILE}
 sed -i "s/{{CLOUDHUB_DATA_BUCKET}}/${CLOUDHUB_DATA_BUCKET}/g" ${POLICY_FILE}
 sed -i "s/{{ARN_PREFIX}}/${ARN_PREFIX}/g" ${POLICY_FILE}
 sed -i "s|{{SMTP_CREDENTIALS_PARAMETER_ARN}}|${SMTP_CREDENTIALS_PARAMETER_ARN}|g" ${POLICY_FILE}
@@ -277,14 +283,11 @@ on_rollback aws ec2 delete-subnet --subnet-id $SUBNET_VIRTUALFLEET_WLAN_ID
 echo ">>>>>> Created VirtualFleet Subnet with ID: $SUBNET_VIRTUALFLEET_WLAN_ID and IPv6: ${SUBNET_VIRTUALFLEET_WLAN_IPV6}"
 run "" aws ec2 modify-subnet-attribute --assign-ipv6-address-on-creation --subnet-id ${SUBNET_VIRTUALFLEET_WLAN_ID}
 
-# Create a Security Group for CloudHub
-CLOUDHUB_SECURITY_GROUP_ID=$(run '.GroupId' aws ec2 create-security-group --group-name "jaia__SecurityGroup_CloudHub__${JAIA_CUSTOMER_NAME}" --description "jaia__${JAIA_CUSTOMER_NAME} CloudHub Security Group" --vpc-id $VPC_ID)
-on_rollback aws ec2 delete-security-group --group-id $CLOUDHUB_SECURITY_GROUP_ID
-echo ">>>>>> Created CloudHub Security Group with ID: $CLOUDHUB_SECURITY_GROUP_ID"
-
 # Set Up Security Group Rules
+# SSH is open only while this script needs it; the hand-over below shuts it, and
+# from then on the support page is what opens it.
 run "" aws ec2 authorize-security-group-ingress --group-id $CLOUDHUB_SECURITY_GROUP_ID --ip-permissions IpProtocol=tcp,FromPort=22,ToPort=22,IpRanges='[{CidrIp=0.0.0.0/0}]',Ipv6Ranges='[{CidrIpv6=::/0}]'
-echo ">>>>>> Allowed SSH (port 22) on Security Group"
+echo ">>>>>> Allowed SSH (port 22) on Security Group for the rest of this run"
 
 run "" aws ec2 authorize-security-group-ingress --group-id $CLOUDHUB_SECURITY_GROUP_ID --ip-permissions IpProtocol=udp,FromPort=51820,ToPort=51821,IpRanges='[{CidrIp=0.0.0.0/0}]',Ipv6Ranges='[{CidrIpv6=::/0}]'
 echo ">>>>>> Allowed UDP ports 51820-51821 (Wireguard) on Security Group"
@@ -489,8 +492,15 @@ ssh "${SSH_OPTS[@]}" jaia@${PUBLIC_IPV4_ADDRESS} "cat /home/jaia/.ssh/hub${CLOUD
 jaia admin fleet set_cloudhub_key ${FLEET_CONFIG} ${CLOUDHUB_SSH_PUBKEY}
 echo ">>>>>> Recorded the CloudHub's SSH public key in ${FLEET_CONFIG}"
 
-ssh "${SSH_OPTS[@]}" jaia@${PUBLIC_IPV4_ADDRESS} "sudo ufw allow in on eth0 proto tcp to any port 22; sudo ufw allow in on eth0 proto udp to any port 51820; sudo ufw allow in on eth0 proto udp to any port 51821; sudo ufw allow in on wg_cloudhub; sudo ufw --force enable"
+# No blanket rule for SSH: jaia-support-access.py writes one for the address a
+# grant names, and removes it when the grant ends.
+ssh "${SSH_OPTS[@]}" jaia@${PUBLIC_IPV4_ADDRESS} "sudo ufw allow in on eth0 proto udp to any port 51820; sudo ufw allow in on eth0 proto udp to any port 51821; sudo ufw allow in on wg_cloudhub; sudo ufw --force enable"
 echo ">>>>>> Updated CloudHub ufw firewall rules to exclude connecting on VirtualFleet VPN"
+
+# Hand-over: from here the CloudHub is the customer's, and Jaia reaches it only
+# through a grant they make. Last, because everything above needs the shell.
+run "" aws ec2 revoke-security-group-ingress --group-id $CLOUDHUB_SECURITY_GROUP_ID --ip-permissions IpProtocol=tcp,FromPort=22,ToPort=22,IpRanges='[{CidrIp=0.0.0.0/0}]',Ipv6Ranges='[{CidrIpv6=::/0}]'
+echo ">>>>>> Closed SSH (port 22) on the Security Group - the support page opens it"
 
 exit_if_interrupted
 # CloudHub is fully set up in AWS; failures after this point only affect local client configuration
