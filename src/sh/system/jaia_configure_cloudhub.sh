@@ -155,6 +155,14 @@ jaia_auth_smtp_address=${AUTH_SMTP_ADDRESS}
 EOF
 )
 
+# Only when the fleet config overrides them: jaia_configure_authelia.sh has the defaults
+if [ -n "${AUTH_SMTP_SENDER:-}" ]; then
+    contents+=$'\n'"jaia_auth_smtp_sender=${AUTH_SMTP_SENDER}"
+fi
+if [ -n "${AUTH_SMTP_CREDENTIALS_SSM_PARAMETER:-}" ]; then
+    contents+=$'\n'"jaia_auth_smtp_credentials_ssm_parameter=${AUTH_SMTP_CREDENTIALS_SSM_PARAMETER}"
+fi
+
 if $DRY_RUN; then
     echo "$contents"
     exit 0
@@ -163,7 +171,7 @@ fi
 # jaia_configure_authelia.sh appends its bootstrap marker here, so keep any line this
 # file does not own rather than truncating the operator's additions
 if [ -f "$OUTPUT" ]; then
-    grep -v -E '^(jaia_fleet_id=|jaia_cloudhub_|jaia_aws_|jaia_auth_base_uri=|jaia_auth_admin_email=|jaia_auth_smtp_address=)' \
+    grep -v -E '^(jaia_fleet_id=|jaia_cloudhub_|jaia_aws_|jaia_auth_base_uri=|jaia_auth_admin_email=|jaia_auth_smtp_)' \
         "$OUTPUT" > "${OUTPUT}.keep" || true
 else
     : > "${OUTPUT}.keep"

@@ -34,6 +34,21 @@ let metadataRequestInFlight = false;
 let statusRequestStartTime = new Date().getTime();
 
 /**
+ * Fetches from the Hub's API, reloading the page if the request was redirected
+ * to sign in (CloudHub), so the operator is taken to the sign-in page and back
+ *
+ * @param {string} url API endpoint
+ * @returns {Promise<Response>} Response from the API
+ */
+async function fetchApi(url: string) {
+    const response = await fetch(url, { redirect: "manual" });
+    if (response.type === "opaqueredirect") {
+        location.reload();
+    }
+    return response;
+}
+
+/**
  * Hits the status endpoint and updates the data model and openlayers
  * with information from the response
  *
@@ -51,7 +66,7 @@ export async function pollStatus() {
     try {
         statusRequestInFlight = true;
         statusRequestStartTime = new Date().getTime();
-        const response = await fetch(STATUS_URL);
+        const response = await fetchApi(STATUS_URL);
         if (!response.ok) {
             console.error(`Response status: ${response.status}`);
         } else {
@@ -92,13 +107,13 @@ export async function pollTaskPackets() {
     }
     try {
         taskPacketRequestInFlight = true;
-        const versionRes = await fetch(TASK_PACKET_VERSION_URL);
+        const versionRes = await fetchApi(TASK_PACKET_VERSION_URL);
         if (!versionRes.ok) {
             console.error(`Task packet response status: ${versionRes.status}`);
         } else {
             const version = await versionRes.json();
             if (version !== taskPackets.getVersion()) {
-                const taskPacketRes = await fetch(TASK_PACKET_URL);
+                const taskPacketRes = await fetchApi(TASK_PACKET_URL);
                 const json = await taskPacketRes.json();
                 taskPackets.setIncludedTaskPackets(json.result.included);
                 taskPackets.setExcludedTaskPackets(json.result.excluded);
@@ -124,7 +139,7 @@ export async function pollMetadata() {
     }
     try {
         metadataRequestInFlight = true;
-        const res = await fetch(METADATA_URL);
+        const res = await fetchApi(METADATA_URL);
         if (!res.ok) {
             console.error(`Metadata response status: ${res.status}`);
         } else {

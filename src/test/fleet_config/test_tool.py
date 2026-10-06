@@ -260,6 +260,16 @@ class MigrationFailureTest(unittest.TestCase):
     def test_cloudhub_defaults(self):
         cfg = self.cloudhub_cfg()
         self.assertEqual(fc.validate(SCHEMA, cfg), [])
+
+    def test_cloudhub_smtp_overrides(self):
+        cfg = self.cloudhub_cfg('cloudhub { smtp_sender: "noreply@auth.example" '
+                                'smtp_credentials_ssm_parameter: "/example/smtp" }\n')
+        self.assertEqual(fc.validate(SCHEMA, cfg), [])
+        problems = fc.validate(SCHEMA, self.cloudhub_cfg(
+            'cloudhub { smtp_sender: "" smtp_credentials_ssm_parameter: "" }\n'))
+        self.assertIn("cloudhub.smtp_sender: must not be empty; omit it to use the default", problems)
+        self.assertIn("cloudhub.smtp_credentials_ssm_parameter: must not be empty; omit it to use the default",
+                      problems)
         # what create_cloudhub falls back to when the fleet config says nothing
         self.assertEqual(cfg.customer, "jaia")
         self.assertFalse(cfg.cloudhub.HasField("data_bucket"))
@@ -428,6 +438,35 @@ class CommandTest(unittest.TestCase):
             preseed = f.read()
         self.assertIn("configure-wireguard-service-vpn.sh fleet7.jaia.tech", preseed)
         self.assertIn("enable wg-quick@wg_jaia_ch7", preseed)
+
+    def test_generate_writes_the_cloudhub_seed(self):
+        """The optional SMTP settings appear only when the config sets them, so a config
+        without them still produces the seed earlier releases wrote."""
+        bootdir = self.env.bootdir()
+        result = self.env.run("generate", fixture("v1_fleet7.cfg"), "--bootdir", bootdir, "hub", "30",
+                              "--action", "write_cloudhub_env")
+        self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+        with open(os.path.join(bootdir, "jaiabot", "init", "cloudhub_env.sh")) as f:
+            seed = f.read().splitlines()
+        self.assertEqual([line.split("=")[0] for line in seed],
+                         ["AUTH_BASE_URI", "AUTH_ADMIN_EMAIL", "AUTH_SMTP_ADDRESS", "CLOUDHUB_DATA_BUCKET"])
+
+        cfg = fc.parse_fleet_config(SCHEMA, fixture("v1_fleet7.cfg"))
+        fc.migrate(SCHEMA, cfg)
+        cfg.cloudhub.smtp_sender = "noreply@auth.example"
+        cfg.cloudhub.smtp_credentials_ssm_parameter = "arn:aws:ssm:us-east-1:123456789012:parameter/example/smtp"
+        with_smtp = os.path.join(self.env.dir, "with_smtp.cfg")
+        with open(with_smtp, "w") as f:
+            f.write(fc.fleet_config_text(cfg))
+        shutil.rmtree(bootdir)
+        bootdir = self.env.bootdir()
+        result = self.env.run("generate", with_smtp, "--bootdir", bootdir, "hub", "30",
+                              "--action", "write_cloudhub_env")
+        self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+        with open(os.path.join(bootdir, "jaiabot", "init", "cloudhub_env.sh")) as f:
+            seed = f.read()
+        self.assertIn("AUTH_SMTP_SENDER=noreply@auth.example\n", seed)
+        self.assertIn("AUTH_SMTP_CREDENTIALS_SSM_PARAMETER=arn:aws:ssm:us-east-1:123456789012:parameter/example/smtp\n", seed)
 
     @needs_render_deps
     def test_generate_leaves_the_cloudhub_nothing_to_enroll_with(self):
@@ -646,6 +685,7 @@ class CreateTest(unittest.TestCase):
             "<default>",                     # base_uri: fleet7.jaia.tech
             "nobody", "admin@example.com",   # admin_email: re-asked until it is one
             "<default>",                     # smtp_address
+            "", "",                          # smtp_sender, smtp_credentials_ssm_parameter: defaults
         ]
         answers += settings_answers(ALL_GROUPS, {"comms_links": "xbee, iridium", "bot_type": "pam",
                                                  "pam_connection_type": "uart", "user_role": "advanced"})
@@ -671,7 +711,9 @@ class CreateTest(unittest.TestCase):
         self.assertEqual(list(cfg.ssh.permanent_authorized_keys), ["ssh-ed25519 AAAAperm me"])
         self.assertEqual((cfg.wlan_password, cfg.service_vpn_enabled), ("wifipass", True))
         self.assertEqual([cfg.cloudhub.base_uri, cfg.cloudhub.admin_email, cfg.cloudhub.smtp_address],
-                         ["fleet7.jaia.tech", "admin@example.com", "smtp://smtp-relay.gmail.com:587"])
+                         ["fleet7.jaia.tech", "admin@example.com", "submission://smtp.postmarkapp.com:587"])
+        self.assertFalse(cfg.cloudhub.HasField("smtp_sender"), "a blank answer leaves the default")
+        self.assertFalse(cfg.cloudhub.HasField("smtp_credentials_ssm_parameter"))
 
         s = cfg.settings
         q = SCHEMA.questions_by_name
@@ -731,7 +773,7 @@ class CreateTest(unittest.TestCase):
             back,                    # from the permanent keys, back past key generation to bots
             "1, 2",                  # bots again
             "", "wifipass", "yes",   # permanent keys, wlan password, service vpn
-            "<default>", "admin@example.com", "<default>",
+            "<default>", "admin@example.com", "<default>", "<default>", "<default>",
         ]
         # back from the second settings question returns to the first, re-answered here
         first = [q for q in SCHEMA.questions if not q.identity][0]
@@ -784,7 +826,7 @@ class CreateTest(unittest.TestCase):
         answers = ["<default>"] * 4                 # fleet, cloudhub, hubs, bots
         answers += ["<default>", ""]                # keep the permanent key, then no more
         answers += ["<default>"] * 2                # wlan password, service vpn
-        answers += ["<default>"] * 3                # cloudhub auth
+        answers += ["<default>"] * 5                # cloudhub auth
         answers += accept(before.settings)
         answers += ["<default>", "<default>"] + accept(override, {"ALL", "BOT"})  # the existing override set
         answers += ["no"] + node_answers([1, 30], [1, 2])
@@ -809,7 +851,7 @@ class CreateTest(unittest.TestCase):
         fc.fill_defaults(SCHEMA, loaded)
         answers = ["<default>"] * 4 + ["", "<default>", "<default>"]
         # a real fleet gains its CloudHub in the edit, so the auth block is asked too
-        answers += ["<default>", "admin@example.com", "<default>"]
+        answers += ["<default>", "admin@example.com", "<default>", "<default>", "<default>"]
         answers += settings_answers(ALL_GROUPS, {"bot_type": "bio"})
         answers += ["no"] + node_answers([1], [1])
         result, _ = self.run_edit(out, answers)
@@ -827,7 +869,7 @@ class CreateTest(unittest.TestCase):
         before = fc.load_migrated(SCHEMA, fixture("v1_fleet7.cfg"), echo=lambda _: None)
         override = fc.node_settings_for(SCHEMA, before, "bot", 2)
         answers = ["<default>", "<default>", "<default>", "1, 2, 3"]
-        answers += ["<default>", ""] + ["<default>"] * 2 + ["<default>"] * 3
+        answers += ["<default>", ""] + ["<default>"] * 2 + ["<default>"] * 5
         answers += accept(before.settings)
         answers += ["<default>", "<default>"] + accept(override, {"ALL", "BOT"}) + ["no"]
         answers += node_answers([1, 30], [1, 2, 3])
@@ -844,7 +886,7 @@ class CreateTest(unittest.TestCase):
         shutil.copyfile(fixture("v1_fleet7.cfg"), out)
         before = fc.load_migrated(SCHEMA, fixture("v1_fleet7.cfg"), echo=lambda _: None)
         override = fc.node_settings_for(SCHEMA, before, "bot", 2)
-        common = ["<default>"] * 4 + ["<default>", ""] + ["<default>"] * 2 + ["<default>"] * 3
+        common = ["<default>"] * 4 + ["<default>", ""] + ["<default>"] * 2 + ["<default>"] * 5
         tail = ["<default>", "<default>"] + accept(override, {"ALL", "BOT"}) + ["no"]
 
         # hub 1 and hub 30 are not asked: neither question applies to a hub
@@ -879,7 +921,7 @@ class CreateTest(unittest.TestCase):
         shutil.copyfile(fixture("v2_no_permanent_keys.cfg"), src)
         loaded = fc.parse_fleet_config(SCHEMA, fixture("v2_no_permanent_keys.cfg"))
         answers = ["<default>"] * 4 + [""]
-        answers += ["<default>"] * 2 + ["<default>"] * 3
+        answers += ["<default>"] * 2 + ["<default>"] * 5
         answers += accept(loaded.settings) + ["no"] + node_answers([30], [1])
         path = os.path.join(self.env.dir, "answers.txt")
         with open(path, "w") as f:
@@ -892,7 +934,7 @@ class CreateTest(unittest.TestCase):
     def test_per_node_questions_name_the_node(self):
         """Answering a VIN is meaningless without knowing which bot it is for."""
         answers = ["7", "no", "1", "1, 2", "", "wifipass", "no",
-                   "<default>", "admin@example.com", "<default>"]
+                   "<default>", "admin@example.com", "<default>", "<default>", "<default>"]
         answers += settings_answers(ALL_GROUPS, {}) + ["no"]
         answers += node_answers([1, 30], [])          # hubs, then bot 1 runs out of answers
         result, _ = self.run_create(answers)

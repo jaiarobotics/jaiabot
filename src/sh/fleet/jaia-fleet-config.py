@@ -519,6 +519,9 @@ def validate(schema, cfg):
             # An empty bucket name would mount nothing, where an absent one defaults
             if cfg.cloudhub.HasField("data_bucket") and not cfg.cloudhub.data_bucket:
                 problems.append("cloudhub.data_bucket: must not be empty; omit it to use the default")
+            for name in ("smtp_sender", "smtp_credentials_ssm_parameter"):
+                if cfg.cloudhub.HasField(name) and not getattr(cfg.cloudhub, name):
+                    problems.append("cloudhub.{}: must not be empty; omit it to use the default".format(name))
     elif cfg.HasField("cloudhub"):
         problems.append(
             "cloudhub: set, but hub {} (CloudHub) is not in the fleet".format(CLOUDHUB_ID))
@@ -826,6 +829,12 @@ def cmd_generate(schema, args):
                 sh.write("AUTH_SMTP_ADDRESS={}\n".format(cfg.cloudhub.smtp_address))
                 sh.write("CLOUDHUB_DATA_BUCKET={}\n".format(
                     cfg.cloudhub.data_bucket or "jaia--cloudhub-data--fleet{}".format(cfg.fleet)))
+                # Only when overridden, so configs without them produce the same seed as before
+                if cfg.cloudhub.smtp_sender:
+                    sh.write("AUTH_SMTP_SENDER={}\n".format(cfg.cloudhub.smtp_sender))
+                if cfg.cloudhub.smtp_credentials_ssm_parameter:
+                    sh.write("AUTH_SMTP_CREDENTIALS_SSM_PARAMETER={}\n".format(
+                        cfg.cloudhub.smtp_credentials_ssm_parameter))
             print("Wrote cloudhub variables to: {}".format(cloudhub_env_sh))
 
     if args.debug:
@@ -1312,6 +1321,12 @@ def create(schema, ui, banner=None, existing=None):
         cfg.service_vpn_enabled = ui.yesno("Should the service Wireguard VPN be enabled at boot?",
                                            default="yes" if cfg.service_vpn_enabled else "no")
 
+    def optional_field(msg, name, value):
+        if value:
+            setattr(msg, name, value)
+        else:
+            msg.ClearField(name)
+
     def cloudhub_auth():
         auth = cfg.cloudhub
 
@@ -1327,7 +1342,14 @@ def create(schema, ui, banner=None, existing=None):
             Step(None, lambda: setattr(auth, "admin_email", ask_matching(
                 ui, "Enter the initial 'admin' user email", EMAIL_RE, "an email address", auth.admin_email))),
             Step(None, lambda: setattr(auth, "smtp_address", ui.inputbox(
-                "Enter the SMTP server address", auth.smtp_address or "smtp://smtp-relay.gmail.com:587"))),
+                "Enter the SMTP server address", auth.smtp_address or "submission://smtp.postmarkapp.com:587"))),
+            Step(None, lambda: optional_field(auth, "smtp_sender", ui.inputbox(
+                "Enter the email sender address, verified with the SMTP provider "
+                "(leave blank for the default, noreply@auth.jaia.tech)", auth.smtp_sender))),
+            Step(None, lambda: optional_field(auth, "smtp_credentials_ssm_parameter", ui.inputbox(
+                "Enter the AWS SSM parameter (name or ARN) holding the SMTP credentials "
+                "(leave blank for the default, /jaia/cloudhub/smtp_credentials)",
+                auth.smtp_credentials_ssm_parameter))),
         ])
 
     def common_settings():
