@@ -59,6 +59,15 @@ class BootstrapTest(unittest.TestCase):
         groups = re.search(r"^groups=\((.*?)^\)", self.text, re.DOTALL | re.MULTILINE).group(1)
         self.assertIn("jaia_support", groups.split())
 
+    def test_the_admin_account_is_bootstrapped_without_a_password(self):
+        """bootstrap.sh reapplies every password it is given, so one here would be
+        restored under the admin on each generation bump, undoing their own."""
+        config = re.search(r"jaia_admin\.json <<EOF\n(.*?)^EOF", self.text,
+                           re.DOTALL | re.MULTILINE).group(1)
+        self.assertNotIn("password", config)
+        self.assertIn('"id": "jaia_admin"', config)
+        self.assertNotIn("lldap_admin_password", self.text)
+
     def test_an_already_bootstrapped_cloudhub_picks_up_the_new_entries(self):
         """A guard recording that bootstrap ran, rather than what it created, leaves
         a CloudHub never seeing an entry added after it was built."""

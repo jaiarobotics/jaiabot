@@ -229,7 +229,6 @@ session_secret=$(openssl rand -hex 64)
 storage_encryption_key=$(openssl rand -hex 64)
 lldap_jwt_secret=$(openssl rand -hex 64)
 lldap_key_seed=$(openssl rand -hex 64)
-lldap_admin_password=$(openssl rand -hex 64)
 EOF
     chmod 0600 $authelia_secrets_file
 fi
@@ -639,12 +638,13 @@ cat > /etc/lldap/bootstrap/user-configs/jaia_support.json <<EOF
 }
 EOF
 
-# Only an initial password: Authelia binds as authelia so a reset here can't lock it out
+# No password: bootstrap.sh re-runs whenever the generation below is bumped, and a
+# password here would be reapplied each time, silently undoing the admin's own.
+# They set one through the portal's reset link instead.
 cat > /etc/lldap/bootstrap/user-configs/jaia_admin.json <<EOF
 {
   "id": "jaia_admin",
   "email": "$admin_email",
-  "password": "$lldap_admin_password",
   "groups": ["super_admin", "lldap_admin"
   ]
 }
