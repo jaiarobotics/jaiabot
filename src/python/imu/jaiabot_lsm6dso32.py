@@ -141,6 +141,12 @@ class LSM6DSO32:
         self._wake_up_ths = max(1, min(63, round(WAKE_UP_THRESHOLD_G / (accel_range / 64))))
         self._odr_error_percent = 0.0
         self._spi = None
+        # Registers written in setup that a power cycle resets to defaults, with their configured values
+        self._expected_config = {
+            CTRL1_XL: ODR_104_HZ | self._accel_fs_bits,
+            CTRL2_G: ODR_104_HZ | self._gyro_fs_bits,
+            CTRL10_C: CTRL10_C_TIMESTAMP_EN,
+        }
         self.is_setup = False
         self._next_setup_time = 0.0
         self._last_setup_error = None
@@ -171,9 +177,8 @@ class LSM6DSO32:
             time.sleep(0.05)
             self._write_reg(CTRL3_C, CTRL3_C_BDU_IF_INC)
             self._write_reg(CTRL9_XL, CTRL9_XL_I3C_DISABLE)
-            self._write_reg(CTRL1_XL, ODR_104_HZ | self._accel_fs_bits)
-            self._write_reg(CTRL2_G, ODR_104_HZ | self._gyro_fs_bits)
-            self._write_reg(CTRL10_C, CTRL10_C_TIMESTAMP_EN)
+            for reg, val in self._expected_config.items():
+                self._write_reg(reg, val)
             self._write_reg(TAP_CFG0, TAP_CFG0_LIR_CLR_ON_READ)
             self._write_reg(WAKE_UP_THS, self._wake_up_ths)
             self._write_reg(WAKE_UP_DUR, WAKE_UP_DUR_SLEEP_512_ODR)
@@ -197,6 +202,20 @@ class LSM6DSO32:
             else:
                 log.debug(f'LSM6DSO32 setup error: {error}')
 
+    def _check_connection(self):
+        """Returns a description of the problem if the chip is missing or has lost its config, else None."""
+        try:
+            regs = self._read_regs(WHO_AM_I, CTRL10_C - WHO_AM_I + 1)
+        except OSError as error:
+            return f'SPI read failed: {error}'
+        if regs[0] != WHO_AM_I_VALUE:
+            return f'WHO_AM_I = 0x{regs[0]:02X}, expected 0x{WHO_AM_I_VALUE:02X} (sensor disconnected?)'
+        for reg, expected in self._expected_config.items():
+            actual = regs[reg - WHO_AM_I]
+            if actual != expected:
+                return f'Register 0x{reg:02X} = 0x{actual:02X}, expected 0x{expected:02X} (sensor reset?)'
+        return None
+
     def takeReading(self):
         """Returns IMUData in SI units, or None on failure."""
         if not self.is_setup:
@@ -214,6 +233,15 @@ class LSM6DSO32:
         except OSError as error:
             log.warning(f'SPI read failed, will re-initialize: {error}')
             self.is_setup = False
+            return None
+
+        # SPI has no ACK, so an unplugged chip reads back 0x00/0xFF and a replugged one comes back
+        # powered down with default config, all without an error. Check identity and config instead.
+        connection_error = self._check_connection()
+        if connection_error is not None:
+            log.warning(f'{connection_error}, will re-initialize')
+            self.is_setup = False
+            self._next_setup_time = 0.0  # retry immediately, then every SETUP_RETRY_INTERVAL
             return None
 
         temp, gx, gy, gz, ax, ay, az = struct.unpack('<7h', raw)  # little-endian int16
@@ -354,6 +382,8 @@ def do_port_loop(imu: LSM6DSO32):
                 log.warning('No IMU data available; not sending until the sensor recovers')
             reading_ok = False
             previous_sample = None
+            # The sensor may have moved while unavailable
+            initialize_orientation = True
         else:
             if not reading_ok:
                 log.warning('IMU data available again')
