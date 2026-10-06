@@ -489,9 +489,6 @@ ssh "${SSH_OPTS[@]}" jaia@${PUBLIC_IPV4_ADDRESS} "cat /home/jaia/.ssh/hub${CLOUD
 jaia admin fleet set_cloudhub_key ${FLEET_CONFIG} ${CLOUDHUB_SSH_PUBKEY}
 echo ">>>>>> Recorded the CloudHub's SSH public key in ${FLEET_CONFIG}"
 
-AUTHELIA_ADMIN_PASSWORD=$(ssh "${SSH_OPTS[@]}" jaia@${PUBLIC_IPV4_ADDRESS} "sudo grep lldap_admin_password /var/log/jaiabot/auth/authelia/secrets | cut -d = -f2")
-echo ">>>>>> Fetched Authelia initial admin password"
-
 ssh "${SSH_OPTS[@]}" jaia@${PUBLIC_IPV4_ADDRESS} "sudo ufw allow in on eth0 proto tcp to any port 22; sudo ufw allow in on eth0 proto udp to any port 51820; sudo ufw allow in on eth0 proto udp to any port 51821; sudo ufw allow in on wg_cloudhub; sudo ufw --force enable"
 echo ">>>>>> Updated CloudHub ufw firewall rules to exclude connecting on VirtualFleet VPN"
 
@@ -607,4 +604,4 @@ cat <<EOF
 	*.$AUTH_BASE_URI_HOST CNAME $AUTH_BASE_URI
 EOF
 
-echo -e "Authelia login at https://$AUTH_BASE_URI\n\tuser: jaia_admin\n\tpass: $AUTHELIA_ADMIN_PASSWORD"
+echo -e "Authelia login at https://$AUTH_BASE_URI\n\tuser: jaia_admin\n\tpass: none yet - set one with \"Reset password?\" on the login page, which emails cloudhub.admin_email"

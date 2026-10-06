@@ -45,10 +45,10 @@ class SupportKeysTest(unittest.TestCase):
 
         self.secrets = os.path.join(self.dir, "secrets")
         with open(self.secrets, "w") as f:
-            # lldap_admin_password is jaia_admin's initial password, which the
-            # customer may change; the bind must not be reaching for it
+            # A key the real secrets file no longer carries, so a bind reaching
+            # for it is caught here rather than on a CloudHub
             f.write("jwt_secret=irrelevant\n"
-                    "lldap_admin_password=a-password-the-customer-may-change\n"
+                    "lldap_admin_password=not-a-key-the-cloudhub-has\n"
                     "authelia_ldap_password={}\n".format(ADMIN_PASSWORD))
 
         self.calls = os.path.join(self.dir, "calls")
