@@ -51,8 +51,10 @@ struct SurfaceDriftTaskCommon : boost::statechart::state<Derived, Parent>,
             start.set_lat_with_units(pos.lat_with_units());
             start.set_lon_with_units(pos.lon_with_units());
         }
-        else
+        else if (this->cfg().reacquire_gps_timeout() > 0)
         {
+            // bots that continue without GPS (STORM) report 0,0 so the user can see the drift
+            // happened without a fix; other bot types leave the location unset
             gps_unavailable_ = true;
             auto& start = *drift_packet().mutable_start_location();
             start.set_lat(0);
@@ -90,7 +92,7 @@ struct SurfaceDriftTaskCommon : boost::statechart::state<Derived, Parent>,
             end.set_lat_with_units(pos.lat_with_units());
             end.set_lon_with_units(pos.lon_with_units());
         }
-        else
+        else if (this->cfg().reacquire_gps_timeout() > 0)
         {
             gps_unavailable_ = true;
             auto& end = *drift_packet().mutable_end_location();

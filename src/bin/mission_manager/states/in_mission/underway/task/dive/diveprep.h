@@ -65,6 +65,9 @@ struct DivePrep : boost::statechart::state<DivePrep, Dive>,
             auto& start = *context<Dive>().dive_packet().mutable_start_location();
             start.set_lat(0);
             start.set_lon(0);
+
+            // only applies to the dive that follows the GPS timeout
+            machine().set_dive_without_gps(false);
         }
         else if (machine().gps_tpv().has_location())
         {
@@ -73,8 +76,10 @@ struct DivePrep : boost::statechart::state<DivePrep, Dive>,
             start.set_lat_with_units(pos.lat_with_units());
             start.set_lon_with_units(pos.lon_with_units());
         }
-        else
+        else if (cfg().reacquire_gps_timeout() > 0)
         {
+            // bots that continue without GPS (STORM) report 0,0 so the user can see the dive
+            // happened without a fix; other bot types leave the location unset
             auto& start = *context<Dive>().dive_packet().mutable_start_location();
             start.set_lat(0);
             start.set_lon(0);
