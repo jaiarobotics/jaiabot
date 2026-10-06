@@ -102,8 +102,9 @@ class CloudHub:
         self.secrets = os.path.join(directory, "secrets")
         with open(self.secrets, "w") as f:
             f.write("jwt_secret=irrelevant\n"
-                    # Only jaia_admin's initial password, so nothing may bind with it
-                    "lldap_admin_password=a-password-the-customer-may-change\n"
+                    # A key the real secrets file no longer carries, so a bind
+                    # reaching for it is caught here rather than on a CloudHub
+                    "lldap_admin_password=not-a-key-the-cloudhub-has\n"
                     "authelia_ldap_password={}\n".format(ADMIN_PASSWORD))
 
         self.inventory = os.path.join(directory, "inventory.yml")
