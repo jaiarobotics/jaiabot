@@ -7,14 +7,15 @@ Background: the design proposal at https://claude.ai/artifact/UPRfitQaA5xpRmfNUx
 
 The work is done in three phases, in order. A phase starts only when the one before it is agreed.
 
-| Phase | Subject                                                            | Status                                    |
-| ----- | ------------------------------------------------------------------ | ----------------------------------------- |
-| 1     | Operator workflow, with data needs at a high level                 | **Agreed**, apart from open items 4 and 5 |
-| 2     | Data formats that support the workflow                             | **Next**                                  |
-| 3     | Mapping UI events to actions and the handlers that modify the data | Not started                               |
+| Phase | Subject                                                            | Status     |
+| ----- | ------------------------------------------------------------------ | ---------- |
+| 1     | Operator workflow, with data needs at a high level                 | **Agreed** |
+| 2     | Data formats that support the workflow                             | **Agreed** |
+| 3     | Mapping UI events to actions and the handlers that modify the data | **Next**   |
 
-No code changes are made until all three phases are agreed. Implementation details that come
-up early go in [Parked for later phases](#parked-for-later-phases).
+Data model code (`Mission`, `Waypoint`) changes as soon as the Phase 2 decisions it depends on are
+agreed; it does not wait for Phase 3. Handler and UI code waits for Phase 3. Implementation
+details that come up early go in [Parked for later phases](#parked-for-later-phases).
 
 ---
 
@@ -24,16 +25,20 @@ up early go in [Parked for later phases](#parked-for-later-phases).
 
 - **Waypoint** is used throughout. The MissionPlan message sent to bots calls these _goals_, for
   historical reasons; "goal" is used only when discussing that message directly.
-- **Blocked waypoint:** a waypoint inside a zone or its safety buffer. _Derived._
+- **Blocked waypoint:** a waypoint inside a zone or its safety buffer. _Derived_, by
+  `isLocationBlockedByZone`, the same test that refuses placing a point in a zone.
 - **Conflicted mission:** a mission whose path crosses a zone, through one of its legs or one of
   its waypoints. _Derived._
 - **Reroute:** the operator-initiated action that runs the router and immediately changes a
   mission's waypoints to go around the zones. It is one undoable step.
-- **Detour waypoint:** a waypoint added by a reroute. _Stored by `Mission`_ (today's `isBypass` flag).
+- **Detour waypoint:** a waypoint added by a reroute. The operator cannot select or edit it.
+  _A flag on `Waypoint`, set only by `Mission`_ (today's `isBypass`).
 - **Suppressed waypoint:** a blocked waypoint that a reroute took out of the path. It
-  stays in the mission with its task, but is not shown and not sent. _Stored by `Mission`._
+  stays in the mission with its task, but is not shown and not sent. _A flag on `Waypoint`, set
+  only by `Mission`._
 - **Visible waypoints:** the mission's waypoints excluding suppressed ones. They are what the map
-  shows, what waypoint numbers count, and exactly what gets sent to a bot.
+  shows, what waypoint numbers count, and exactly what gets sent to a bot. ("Active" is not used,
+  because the active waypoint is already the goal a bot is heading to.)
 - **Original waypoints:** the mission's waypoints without its detour waypoints and with its
   suppressed waypoints un-suppressed. This is what the operator or survey planner made, plus any
   later edits. _Derived_: never stored as a copy.
@@ -70,9 +75,12 @@ up early go in [Parked for later phases](#parked-for-later-phases).
 6. **The operator decides what is sent.** Sending always sends exactly the visible waypoints. If
    the mission crosses a zone, the operator is warned and asked to confirm, but is not stopped.
 7. **One rule per kind of change, with no special cases.** Every waypoint edit follows the same
-   rule, whether it is an append, a move, a delete or a task change, and whether the waypoint was
-   placed by the operator or added by the router.
-8. **`Mission` owns the flags.** Everything outside `Mission` sees only visible waypoints, and
+   rule, whether it is an append, a move, a delete or a task change. Only operator-placed
+   waypoints can be edited: detour waypoints cannot be selected, and change only through a
+   reroute or restoring original waypoints.
+8. **Only `Mission` sets the flags.** The detour and suppressed flags, and the segment and lane
+   markers, are stored on each waypoint. Code outside `Mission` reads them through the `Waypoint`
+   interface but cannot set them. Everything outside `Mission` sees only visible waypoints, and
    waypoint numbers count visible waypoints. Different consumers need different views of a
    mission's waypoints (visible, original, suppressed), so `Mission` provides a separate named
    accessor for each. The full stored list is not available outside `Mission`, except to
@@ -80,8 +88,9 @@ up early go in [Parked for later phases](#parked-for-later-phases).
 9. **Only `Mission` changes a mission's waypoint list.** No code outside `Mission` may take a
    waypoint array, modify it, and hand it back with `setWaypoints`, or mutate the array an
    accessor returns. Every change goes through a named `Mission` operation, such as append, move,
-   delete, reroute or restore original waypoints. Accessors return read-only arrays, so the
-   compiler enforces this rather than convention.
+   delete, reroute or restore original waypoints. Accessors return read-only arrays typed as the
+   `Waypoint` interface, which has no location, flag or marker setters, so the compiler enforces
+   this rather than convention.
 10. **A waypoint selection never outlives a change in numbering.** The selection records a mission
     and a visible waypoint number. Any operation that renumbers a mission's visible waypoints, or
     hides the selected one, must update or clear the selection as part of the same operation.
@@ -95,7 +104,7 @@ planner. Zones may or may not exist yet.
 list update immediately:
 
 - Blocked waypoints are drawn in a distinct style. They stay in the mission, with their tasks intact.
-- Each mission's accordion header shows a routing-status icon. This will sit alongside other
+- Each mission's accordion header shows a routing-status icon (the agreed name is "routing status"). This will sit alongside other
   status icons, such as battery.
 - No dialog opens and no waypoint changes.
 
@@ -112,25 +121,26 @@ For each mission, the reroute either changes it or leaves it unchanged:
   waypoints the new path avoids are flagged suppressed, and previously suppressed waypoints that
   are no longer blocked become visible again. The whole reroute is one undoable step, including
   a reroute of all missions.
-- **Left unchanged:** no way around the zones was found, or the result would exceed the waypoint
-  limit.
+- **Left unchanged:** every waypoint is inside a zone, no way around the zones was found, or the
+  result would exceed the waypoint limit.
 
 A dialog then reports what happened, for each mission. It restates the information today's
 dialogs carry:
 
 - waypoints suppressed (taken out of the path, but kept with their tasks), and which ones
 - detour waypoints added
-- failures: no way around the zones, or over the waypoint limit, with the mission left unchanged
+- failures: every waypoint inside a zone, no way around the zones, or over the waypoint limit, with
+  the mission left unchanged
 
 The dialog reports; it does not ask. It has an **Undo** button that backs the reroute out (see
 Phase 3). Undo backs out a reroute, not restore: if the mission had
 already been rerouted, restore would drop the earlier detours too, whereas undo returns exactly
 the state before this reroute.
 
-**5. Edit a rerouted mission.** Edits apply to the visible waypoints, exactly as for any mission.
-Because the router always starts from the original waypoints, an operator's edit survives the
-next reroute. The only thing a reroute discards is detour waypoints. An edited detour waypoint
-stays a detour waypoint, so the next reroute discards it too.
+**5. Edit a rerouted mission.** Edits apply to the visible waypoints the operator placed, exactly
+as for any mission. Detour waypoints cannot be selected, so they cannot be moved, deleted or given
+a task. Because the router always starts from the original waypoints, an operator's edit survives
+the next reroute. The only thing a reroute discards is detour waypoints.
 
 **6. Status after later edits.** A rerouted mission's status is re-evaluated whenever zones or
 waypoints change:
@@ -158,9 +168,9 @@ back, and only the ones still blocked stay suppressed.
 **7. Send to the bot.** Exactly the visible waypoints are sent. If the mission is conflicted, the
 operator is warned and asked to confirm.
 
-**8. Save, load and undo.** The flags are stored with each waypoint in the mission, so save/load
-and undo carry them. How snapshots capture them is a Phase 2 item. Zones are saved separately, as now. Undo returns everything to exactly the
-state before the undone action. Nothing is rerouted; status is recomputed when the screen draws.
+**8. Save, load and undo.** The flags are stored on each waypoint, so save/load and undo carry
+them. Zones are saved separately, as now. Undo returns everything to exactly the state before the
+undone action. Nothing is rerouted; status is recomputed when the screen draws.
 
 ### What disappears
 
@@ -181,19 +191,19 @@ state before the undone action. Nothing is rerouted; status is recomputed when t
 
 ### Data needs, at a high level
 
-| Kind                         | What                                                                                                               | Status                                                            |
-| ---------------------------- | ------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------- |
-| **Stored**                   | Mission waypoints and tasks                                                                                        | exists                                                            |
-|                              | Detour and suppressed flags, stored with each waypoint in `Mission`'s waypoint array but not returned by accessors | **changed**: today `isBypass` is on `Waypoint`; suppressed is new |
-|                              | Segment and lane boundaries, as markers on the waypoint that starts each one                                       | **changed**: today they are indices into the waypoint list        |
-|                              | Zones                                                                                                              | exists                                                            |
-| **Derived: never stored**    | Visible waypoints, and waypoint numbers                                                                            | computed by `Mission`                                             |
-|                              | Original waypoints                                                                                                 | computed by `Mission`                                             |
-|                              | Blocked waypoints                                                                                                  | computed                                                          |
-|                              | Mission routing status                                                                                             | computed                                                          |
-|                              | MissionPlan goal list and segment indices                                                                          | computed at send                                                  |
-| **Transient**                | The reroute report while its dialog is open                                                                        | replaces today's pending proposal                                 |
-| **What each bot is running** | Ghost missions                                                                                                     | exists                                                            |
+| Kind                         | What                                                                                  | Status                                                        |
+| ---------------------------- | ------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| **Stored**                   | Mission waypoints and tasks                                                           | exists                                                        |
+|                              | Detour and suppressed flags on `Waypoint`, readable everywhere, set only by `Mission` | **changed**: `isBypass` becomes `isDetour`; suppressed is new |
+|                              | Segment and lane boundaries, as markers on the waypoint that starts each one          | **changed**: today they are indices into the waypoint list    |
+|                              | Zones                                                                                 | exists                                                        |
+| **Derived: never stored**    | Visible waypoints, and waypoint numbers                                               | computed by `Mission`                                         |
+|                              | Original waypoints                                                                    | computed by `Mission`                                         |
+|                              | Blocked waypoints                                                                     | computed                                                      |
+|                              | Mission routing status                                                                | computed                                                      |
+|                              | MissionPlan goal list and segment indices                                             | computed at send                                              |
+| **Transient**                | The reroute report while its dialog is open                                           | replaces today's pending proposal; held in context state      |
+| **What each bot is running** | Ghost missions                                                                        | exists                                                        |
 
 Segment boundaries move onto waypoints because index-based boundaries would need shifting in every
 operation that inserts or removes stored waypoints. As markers, they move with their waypoints the
@@ -203,64 +213,97 @@ SW-2566's behaviour.
 
 ### Open items
 
-| #   | Question                                                                                                                                                                                           | Where it is settled |
-| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------- |
-| 1   | Wording and form of the send confirmation when a mission crosses a zone                                                                                                                            | Phase 3             |
-| 2   | Where the reroute and restore actions appear                                                                                                                                                       | Phase 3             |
-| 3   | Styling of blocked waypoints, and whether crossing legs are marked                                                                                                                                 | Phase 3             |
-| 4   | Today detour waypoints cannot be selected at all (`Map.tsx:324` ignores clicks on them), so they cannot be moved, deleted or given a task. Keep that, or make them editable under the step 5 rule? | Phase 1             |
-| 5   | Name for the status shown in the accordion header: "routing status", or something without "route" such as "zone status"                                                                            | Phase 1             |
+| #   | Question                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | Where it is settled |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------- |
+| 1   | Wording and form of the send confirmation when a mission crosses a zone                                                                                                                                                                                                                                                                                                                                                                                                                                                    | Phase 3             |
+| 2   | Where the reroute and restore actions appear                                                                                                                                                                                                                                                                                                                                                                                                                                                                               | Phase 3             |
+| 3   | Styling of blocked waypoints, and whether crossing legs are marked                                                                                                                                                                                                                                                                                                                                                                                                                                                         | Phase 3             |
+| 4   | Whether the map shows which suppressed waypoints are no longer blocked. Either the mission-level status is enough, or every suppressed waypoint is drawn as a faint, unnumbered, unselectable marker, with a distinct style once it is clear. A marker could confuse an operator about a survey point that will not be run. The data supports either: `getSuppressedWaypoints()` plus the blocked test. Hover tooltips are ruled out: operators use touch tablets, so any detail must appear on a tap or always be visible | Phase 3             |
 
 ---
 
 ## Phase 2 — Data formats
 
-Agenda, from Phase 1:
+The data formats and code layout that support the Phase 1 workflow.
 
-- **The flags live in `Mission`, not on `Waypoint` (agreed).** `Mission` keeps its waypoints in
-  one array, in mission order, as it does today. The difference is that each element of that
-  array holds the waypoint together with its two flags:
+- **The flags live on `Waypoint`, and only `Mission` sets them.** `isBypass` is renamed
+  `isDetour`, and `isSuppressed` is added next to it. `Mission` keeps its waypoints in one array,
+  in mission order, as it does today. No separate lists of detour or suppressed waypoints are kept:
+  they would lose each waypoint's position in the order, or need indices kept in step with every
+  edit.
 
-    ```ts
-    // private to Mission — one array, one element per waypoint, in mission order
-    interface WaypointEntry {
-        waypoint: Waypoint; // location + task: the only part accessors return
-        isDetour: boolean;
-        isSuppressed: boolean;
-    }
-    private waypoints: WaypointEntry[];
-    ```
+    Code outside `Mission` can read both flags. The map needs `isDetour` to style detour waypoints
+    and to ignore clicks on them. Visible waypoints never have `isSuppressed` set, so only the
+    suppressed-waypoints accessor returns waypoints with it set.
 
-    Accessors return only the `waypoint` part of each element, so code outside `Mission` gets plain
-    waypoints and never sees or sets a flag. There are no separate lists of detour or suppressed
-    waypoints. Separate lists would lose each waypoint's position in the order, or need indices
-    kept in step with every edit. Today's uses of `isBypass` outside `Mission`:
+    Today's uses of `isBypass` outside `Mission`:
     - _Go away in the redesign:_ the strip helpers (`handler-utils.ts`), the move handler's strip
       (`waypoint-handlers.ts:156-161`), and detection filtering out detours
-      (`exclusion-zone-detection.ts:65`). Detection will read original waypoints from `Mission`.
+      (`exclusion-zone-detection.ts:65`). Routing status reads `Mission`'s accessors instead.
     - _Router:_ it filters detours out of its input (`exclusion-zone-router.ts:973`), which becomes
       the original-waypoints accessor. It also marks its output waypoints with `setIsBypass`
-      (`:1005`), which becomes the result `Mission`'s reroute method reads. The router's own
-      internal `"route_bypass"` tagging of its path result stays internal to the router.
+      (`:1005`). Under the redesign, `Mission`'s reroute method sets `isDetour` on the waypoints it
+      adds, and the router no longer imports `waypoint.ts`. The router's own internal
+      `"route_bypass"` tagging of its path result stays internal to the router.
     - _Sent to the bot:_ `packageWaypointForHub` names detour goals `"route_bypass"`. Nothing on the
       bot uses it, so it is dropped: no flag reaches the MissionPlan.
-    - _Map, the one real need:_ `waypoint-feature.ts:54-71` styles detour waypoints differently,
-      and `Map.tsx:324` ignores clicks on them. Both only need to ask "is visible waypoint n a
-      detour?", which a `Mission` query answers.
+    - _Map:_ `waypoint-feature.ts:54-71` styles detour waypoints differently, and `Map.tsx:324`
+      ignores clicks on them. Both read `isDetour` from the waypoint.
 
-    Nothing outside `Mission` needs the suppressed flag, because suppressed waypoints are never
-    visible. With both flags off `Waypoint`, no outside code can set them. That answers the
-    enforcement question for principle 9 without relying on TypeScript access tricks. Saved files
-    on this branch carry `isBypass` in each waypoint's JSON, so loading reads it into `Mission`.
+    Saved files on this branch carry `isBypass` in each waypoint's JSON, so loading reads it as
+    `isDetour`.
+
+- **`Waypoint` is the interface code outside `Mission` sees; `MissionWaypoint` is the class
+  `Mission` holds.** Both are in `waypoint.ts`:
+
+    ```ts
+    /** A mission's waypoint as code outside Mission sees it. Only Mission moves waypoints and sets flags and markers. */
+    export default interface Waypoint {
+        getLocation(): GeographicCoordinate;
+        getTask(): Task;
+        setTask(task: Task): void;
+        getIsDetour(): boolean;
+        getIsSuppressed(): boolean;
+        getSegmentStart(): SegmentParams | undefined;
+        getIsLaneStart(): boolean;
+        packageWaypointForHub(): Goal;
+        latLonToMGRS(): MGRS;
+        mgrsToLonLat(mgrsStr: string): number[];
+    }
+
+    /** Used only by Mission. */
+    export class MissionWaypoint implements Waypoint {
+        // today's Waypoint class, plus setLocation, setIsDetour, setIsSuppressed,
+        // setSegmentStart and setIsLaneStart
+    }
+    ```
+
+    - `Mission` holds `private waypoints: MissionWaypoint[]`. Its accessors return the same objects
+      typed as `readonly Waypoint[]`: no copies, so in-place task edits still work, but the
+      compiler rejects a move, flag change or marker change outside `Mission`.
+    - `export default interface` keeps today's `import Waypoint from ".../waypoint"` working, so
+      code that only reads waypoints and edits tasks does not change.
+    - `addWaypoints(waypoints: readonly Waypoint[])` copies only location and task into new
+      `MissionWaypoint`s, so flags or markers on a waypoint built outside `Mission` never reach a
+      mission. That is why exporting the class is safe: outside code can build loose waypoints,
+      and a cast (`as MissionWaypoint`) is the only way past the interface.
+    - Outside code creating waypoints today: the legacy file loader
+      (`mission-set-storage.ts:340`) moves onto `mission.addWaypoint(location)` and sets the task;
+      the router's (`exclusion-zone-router.ts:1003`) goes away with `detectReroutesWithOverrides`;
+      tests and mocks use the class or `Mission` operations.
+    - The interface lists its methods by hand, so a getter outside code needs is added to both;
+      `implements` keeps the class in line.
 
 - **`Mission` accessors: one per view, and who uses each.**
     - _Visible waypoints_, `getWaypoints()` and `getWaypoint(n)`: the map, panels, waypoint
       numbering, the waypoint count, and building the MissionPlan.
-    - _Original waypoints_: the router's input, and the "detours no longer needed" status.
+    - _Original waypoints_: the reroute handler's input, and the "detours no longer needed" status.
     - _Suppressed waypoints_: the "a reroute would bring them back" status, and the reroute
       report.
     - _Full stored list_: private to `Mission`, apart from serialisation.
     - Number translation between visible numbers and stored positions stays inside `Mission`.
+    - Every accessor returns `readonly Waypoint[]`; only `Mission` handles them as
+      `MissionWaypoint`.
 - **`Mission` operations replace `setWaypoints`.** Today, `setWaypoints` is called from outside
   `Mission` only by avoidance code:
     - applying and reverting proposals (`obstacle-avoidance-handlers.ts:27,59,104,113`)
@@ -272,60 +315,276 @@ Agenda, from Phase 1:
     caller was `Mission.deleteWaypoint`. The test mocks (`data/tests/__mocks__/mission-mock.ts`)
     also call it; they switch to `addWaypoints`. Accessors return `readonly Waypoint[]`.
 
-- **Selected waypoint.** `jaiaGlobal.selectedWaypoint` is `{ missionID, waypointNum, isMoveable }`,
-  and `waypointNum` is a position. It is part of the undo snapshot.
-    - Today the move handler has to recompute it after stripping bypass waypoints
-      (`waypoint-handlers.ts:155-162`). That is exactly the kind of fix-up principle 10 is about.
-    - Operations that renumber or hide waypoints are: reroute, restore original waypoints,
-      and delete. Each must update or clear the selection. The simplest rule is for reroute and
-      restore to clear the selection and close the waypoint panel. Delete already resets it.
-    - An alternative is for the selection to hold the waypoint itself, with the number derived
-      when needed, so renumbering cannot make it stale. This is to be decided in this phase.
-    - The waypoint panel's cancel (`panel-handlers.ts:43`) writes the saved waypoint back by
-      number. It must go through a `Mission` operation.
-- Segment and lane boundary markers on waypoints: what the segment list keeps, and how the
-  MissionPlan's `start_goal_index` and `lane_start_goal_indices` are computed at send. The markers
-  could sit in `WaypointEntry` next to the flags, for example a `startsSegment` field.
-- Places that bypass `Mission` by mutating the array `getWaypoints()` returns. They break under
-  principle 9 and must move onto `Mission` operations:
-    - `panel-handlers.ts:43`, the waypoint panel's cancel (covered above).
-    - `pop()` and `shift()` in `grid-plan.ts:243,248`.
+- **Selected waypoint: stays a position, and every renumbering operation updates it.**
+  `jaiaGlobal.selectedWaypoint` is `{ missionID, waypointNum, isMoveable }`, and `waypointNum` is a
+  position. It is part of the undo snapshot, so undo and redo restore it with everything else.
+    - Only reroute, restore original waypoints and delete renumber the visible waypoints or hide
+      the selected one. Delete already resets the selection.
+    - Reroute and restore keep the selection and update its number. The handler takes the selected
+      waypoint before the operation and asks `Mission` for its new visible number afterwards, with
+      a new query `getWaypointNum(waypoint)` that returns nothing if the waypoint is suppressed.
+      Waypoint objects do not change within one operation, so this lookup is reliable. Only when
+      a reroute suppresses the selected waypoint is the selection cleared and the waypoint panel
+      closed. Restore cannot hide the selected waypoint: it only removes detours and reveals
+      suppressed waypoints. The panel's cancel copy stays valid, because `revertWaypoint` uses the
+      updated number.
+    - Move, append and task edits do not renumber. The move handler's recompute today
+      (`waypoint-handlers.ts:155-162`) exists only because it strips bypass waypoints, and that
+      strip goes away.
+    - Holding the waypoint object in the selection was rejected: undo restores a `cloneDeep`
+      snapshot, so across undo the selection would point at an object no longer in the mission.
+- **Segment markers are the segment's settings.** They sit on `Waypoint` next to the
+  flags, and only `Mission` sets them:
 
-    `survey-handlers.ts:69` mutates the waypoints themselves, setting their tasks, not the array,
-    so it is unaffected.
+    ```ts
+    segmentStart?: SegmentParams; // { speed, bottom_depth_safety_params }
+    isLaneStart: boolean;
+    ```
 
-- **Snapshots must capture the full entries, flags included,** not what the accessors return.
-  How snapshots are formed is worked out in detail in this phase.
+    `Mission` keeps no segment list, so there is nothing to keep in step with the markers. The
+    first stored waypoint always carries a `segmentStart`.
+    - Deleting a waypoint that carries a marker moves the marker to the next waypoint. If that
+      waypoint already starts a segment, the deleted waypoint's segment is dropped, and its lane
+      start with it.
+    - Combining joins the source missions' waypoints with their flags and markers through a
+      `Mission` operation, `appendWaypointsFrom(source: Mission)`, which reads the source's stored
+      waypoints. The index offsets in `combineMissionSets` go away. The 5-segment limit counts
+      `segmentStart` markers.
+    - `getSegments`/`setSegments` go. Their outside callers move onto `Mission` operations:
+      combining (`mission-set-editor.ts:79-153`) and the survey planner (`grid-plan.ts:266`).
+      `setTransitSpeed` sets the speed on every marker. `setBottomDepthSafetyParams` sets it on a
+      marker.
+
+- **Building the MissionPlan's segments at send.** `packageMissionForHub` builds the goal
+  list and the segments in one pass over the stored waypoints, so segment indices always count
+  the goals sent with them. Markers are only ever on operator waypoints; the detours in front of
+  one join its segment or lane (see the rule below):
+
+    ```
+    for each stored waypoint, in order:
+        segmentStart marker:  hold its settings as the next segment to open
+                              (a held segment that never opened has no goals: drop it)
+        lane start:           hold a lane start
+        suppressed:           skip it; anything held carries to the next visible waypoint
+        detour:               if no detour run is open, open one at goals.length;
+                              goals.push(packaged waypoint); next waypoint
+        start = the open detour run's start if there is one, else goals.length; close the run
+        segment held:         open Segment { start_goal_index: start, ...settings };
+                              a held lane start is dropped, because the segment start covers it
+        else lane start held: add start to the open segment's lane_start_goal_indices
+        goals.push(packaged waypoint)
+    ```
+
+    The result always starts at goal 0, has strictly ascending segment starts, never sends a
+    segment with no goals, and keeps lane starts strictly inside their segment: the same rules
+    SW-2566's `reindexSegmentsAfterRemoval` applies after each delete, applied once instead. The
+    5-segment and 7-lane-start limits are checked against this result.
+
+- **Detours belong to the segment and lane after them.** A run of detours sits between
+  two operator waypoints, whether the router added it for a leg that crosses a zone or around
+  suppressed waypoints. The run joins the segment and lane of the visible operator waypoint that
+  follows it, so a segment or lane start opens at the first detour of the run. Runs are counted in
+  sent order, so a suppressed waypoint inside a run does not split it. The rule follows how the bot
+  uses segments (`inmission.h` on 2.y):
+    - The bot switches to a segment's settings when it starts the leg into the segment's first
+      goal (`increment_goal_index`). A leg belongs to the segment of the waypoint it ends at, and
+      the detours replace that leg, so they keep its segment.
+    - After an SRP egress, `resume_after_srp_egress` heads for the next lane start in the segment,
+      or else the goal before the next segment's start. With this rule those are the first detour
+      of the path into the lane, and the operator waypoint before the detours. Attaching the
+      detours to the segment before them would send the bot straight to the operator waypoint
+      after the detours, or to the last detour, skipping the path around the zone.
+    - Detours carry no task, so they never dive and the segment's SRP settings never act on them
+      (`dive.h:203`).
+
+- **Saved mission files store the flags and markers on each waypoint.** No index-based
+  `segments` are saved.
+    - `MISSION_SET_VERSION` (`mission-set.ts:9`) goes from `"2.1"` to `"2.2"`.
+    - A new `migrateSnapshot_2_1` in `SNAPSHOT_MIGRATIONS` (`mission-set-storage.ts`) converts each
+      mission's `segments` indices into markers on its waypoints and renames `isBypass` to
+      `isDetour`. It then deletes `segments`: `Mission.fromJSON` is `Object.assign` onto a new
+      `Mission`, so a field left in the file is copied back onto the mission. The flags and
+      markers need no extra code to save and load, for the same reason. Files from 2.0 run through
+      the existing 2.0 step first. Files from before this branch carry neither flag.
+    - **A JCC refuses a mission set version it does not know.** A version that is neither the
+      current one nor in `SNAPSHOT_MIGRATIONS` is reported as an unknown format and not loaded,
+      from the hub or from a file. This applies from 2.2 on; earlier builds are not changed.
+- **Code that writes into the array `getWaypoints()` returns moves onto `Mission` operations
+  .** There are two places. `survey-handlers.ts:76` sets tasks on the waypoints, not the
+  array, so it is unaffected.
+    - **Waypoint panel cancel** (`panel-handlers.ts:43`). The panel keeps a `cloneDeep` copy of the
+      waypoint when it opens (`WaypointPanel.tsx:75`); cancel puts that copy into the array in
+      place of the waypoint. That would also put back the copy's flags and markers, though the
+      panel only edits location and task. It becomes a new `Mission` operation,
+      `revertWaypoint(waypointNum, saved)`, which copies the saved location and task into the
+      waypoint the mission holds. Flags, markers and the object itself are unchanged. Detour
+      waypoints cannot be selected, so cancel never reaches one. The handler's comment about
+      `Object.setPrototypeOf` describes code that does not exist and is corrected.
+    - **Survey planner** (`grid-plan.ts:256,262`). `fitLanesToBots` merges each bot's lane
+      missions with `pop()` and `shift()` on the lanes' arrays, then writes lane starts with
+      `setSegments`. Instead, it reads each lane and builds the bot's mission with `Mission`
+      operations:
+
+        ```ts
+        const botMission = new Mission(); // its first waypoint carries the segment marker
+        for each lane in the bot's group:
+            const points = lane.getWaypoints(); // read-only
+            const first = isFirstLane ? 0 : 1; // skip the shared start point
+            const last = isLastLane ? points.length - 1 : points.length - 2; // skip the shared end point
+            botMission.addWaypoints(points.slice(first, last + 1)); // copies location and task
+            botMission.setLaneStart(laneStartWaypointNum); // the lane's first survey point
+        ```
+
+        The lane missions are only read, then discarded. Lane starts land where SW-2569 put them.
+        `applySafetyReturnParameters` keeps calling `setBottomDepthSafetyParams`, which now sets the
+        first waypoint's segment marker. When each bot has one lane, the lane missions are used as
+        they are, with no lane starts, as today. Replacing `pop()`/`shift()` with `deleteWaypoint`
+        would not work: deleting a lane's first waypoint moves its segment marker to the next one,
+        so every appended lane would start a new segment.
+
+- **Snapshots carry the flags.** `MissionsManager.captureSnapshot()` deep-clones the `Mission`
+  objects (`missions-manager.ts:143`), so each waypoint's flags are copied with it.
 - **`Mission` methods that change waypoints.** Handlers never edit a mission's waypoint array
   themselves; they call a `Mission` method that makes the change (principle 9). There is one such
   method for each operator action that changes waypoints:
 
-    | Operator action            | `Mission` method                                                                         |
-    | -------------------------- | ---------------------------------------------------------------------------------------- |
-    | Append a waypoint          | exists                                                                                   |
-    | Move a waypoint            | exists                                                                                   |
-    | Delete a waypoint          | exists                                                                                   |
-    | Change a waypoint's task   | none: the waypoint panel and the survey planner edit the waypoint object's task in place |
-    | Reroute                    | **new**                                                                                  |
-    | Restore original waypoints | **new**                                                                                  |
-
-    What the two new methods take as input is decided from what `Mission` needs, not from the
-    current router's interface.
+    | Operator action             | `Mission` method                                                                         |
+    | --------------------------- | ---------------------------------------------------------------------------------------- |
+    | Append a waypoint           | exists                                                                                   |
+    | Move a waypoint             | exists                                                                                   |
+    | Delete a waypoint           | exists                                                                                   |
+    | Change a waypoint's task    | none: the waypoint panel and the survey planner edit the waypoint object's task in place |
+    | Reroute                     | **new**                                                                                  |
+    | Restore original waypoints  | **new**                                                                                  |
+    | Cancel waypoint panel edits | **new**: `revertWaypoint`                                                                |
+    | Survey planner lane starts  | **new**: `setLaneStart`                                                                  |
+    | Combine missions            | **new**: `appendWaypointsFrom`                                                           |
 
     Task edits in place change a waypoint's contents, not the array or the numbering, so they do not
-    conflict with principle 9. They only work because accessors return the waypoint objects the
-    mission actually holds. Whether accessors keep doing that is decided in this phase.
+    conflict with principle 9. They work because accessors return the waypoint objects the mission
+    actually holds, typed as the `Waypoint` interface.
 
-- Combining missions: whether suppressed and detour waypoints carry across.
+- **Reroute and restore: the router returns geometry, and `Mission` makes the change.**
+  Restore original waypoints takes no input: `Mission` removes the detours and clears the
+  suppressed flags. A reroute of one mission runs four steps, with no dialog until the report:
+    1. **Start from the original waypoints** (`getOriginalWaypoints()`): every operator waypoint,
+       including ones suppressed earlier, without the old detours.
+    2. **Decide suppression.** Each original waypoint that is blocked will be suppressed. One
+       suppressed earlier whose zone has moved tests clear and comes back. This replaces the
+       waypoint-removal dialog. If every original waypoint is blocked, the reroute fails and the
+       mission is unchanged.
+    3. **Route the legs** between consecutive waypoints that are not blocked, finding detour
+       points where a leg crosses a zone. This replaces the reroute dialog's proposal. If any leg
+       has no way around, the reroute fails and the mission is unchanged.
+    4. **Apply** with `mission.reroute(steps)`, one step per original waypoint, in order:
+
+        ```ts
+        interface RerouteStep {
+            suppress: boolean; // the waypoint is blocked
+            detoursAfter: GeographicCoordinate[]; // detour points on the leg to the next kept waypoint
+        }
+        ```
+
+        `Mission` removes the old detours, sets or clears `isSuppressed`, creates the detour
+        waypoints with `isDetour` set and inserts them after their waypoint. It checks the waypoint
+        limit, leaving the mission unchanged if the result is over, and returns a `RerouteResult`
+        (below).
+
+    The router deals only in locations: it never sees a `Waypoint` or a flag. How it provides the
+    blocked test and the leg routes is Phase 3.
+
+- **The reroute report carries one outcome per mission.** `Mission.reroute` reports in
+  data-model terms; the reroute handler adds the two failures found before `Mission` is called,
+  and the report dialog reads the result:
+
+    ```ts
+    // mission.ts, beside RerouteStep
+    type RerouteResult =
+        | { kind: "changed"; suppressed: number[]; restored: number[]; detoursAdded: number }
+        | { kind: "overWaypointLimit"; needed: number }; // against MAX_WAYPOINTS
+
+    // types/context-types.ts
+    type RerouteOutcome =
+        | RerouteResult
+        | { kind: "allWaypointsBlocked" }
+        | { kind: "noRoute"; leg: [number, number] }; // the leg with no way around
+    ```
+
+    - "No route" and "over the limit" stay separate because the operator fixes them differently:
+      by moving waypoints or zones around the named leg, or by shortening the mission by the
+      stated amount. Whether the dialog shows them as one message or two is Phase 3.
+    - Waypoint numbers in the report are **original waypoint numbers**: positions among the
+      original waypoints. They do not change across reroute and restore, match what the operator
+      sees on a mission that was never rerouted, and are the visible numbers again after restore.
+      Suppressed waypoints have no visible number to use instead.
+
+- **Combining missions carries detour and suppressed waypoints across as they are.** The
+  combined mission keeps each source's flags and markers. If the result needs it, the operator
+  reroutes the combined mission.
 - `MAX_WAYPOINTS` (80) is the limit on what can be sent to a bot, so it counts visible waypoints
   only: detour waypoints count, suppressed waypoints do not.
-- Loading saved mission files: files saved on this branch already carry `isBypass`, and older files
-  carry neither flag.
+- **Routing status is derived, never stored.** A mission's statuses can hold at the same
+  time, so it is a record, not a single value:
+
+    ```ts
+    interface RoutingStatus {
+        isConflicted: boolean; // the visible route, detours included, crosses a zone
+        clearSuppressed: number[]; // original numbers of suppressed waypoints no longer blocked
+        detoursUnneeded: boolean; // it has detours, and the original route is clear
+    }
+    ```
+
+    `getRoutingStatus(mission, zones)` computes it from `Mission`'s accessors and the blocked and
+    route tests; `isConflicted` is today's `getMissionsInConflict` test. The status icon shows the
+    most urgent status, and the status dialog lists the details.
+
+- **Where the code lives: one-way dependencies.** `data/` holds only the data model.
+  Derived logic takes its data as parameters instead of reading global objects, and only the
+  handlers connect the layers.
+    - `src/web/utils/routing/router.ts`: today's `exclusion-zone-router.ts`. Callers pass the zones
+      in; its four reads of the global zone set (`exclusion-zone-router.ts:310,765,796,831`) and its
+      `missionSet` import go, so it imports only the `ExclusionZone` type and protobuf geometry
+      types.
+    - `src/web/utils/routing/routing-status.ts`: `RoutingStatus` and `getRoutingStatus`, replacing
+      `exclusion-zone-detection.ts`.
+    - `Mission` defines `RerouteStep` and `RerouteResult` and imports nothing from routing.
+    - The reroute report and the placement error are screen state, so they move into
+      `JaiaContextType` beside `visiblePanel`, and `RerouteOutcome` is defined in
+      `types/context-types.ts`. `captureContextData` lists the fields it saves, so the report stays
+      out of undo snapshots; the undo handler clears it, as `history-handlers.ts:32` clears
+      `pendingChange` today.
+    - `ObstacleAvoidanceData` is then a wrapper around the zone set alone, so it is removed. The
+      zone set returns to `src/web/data/exclusion_zones/exclusion-zone-set.ts`, with its own
+      singleton, and the `obstacleAvoidanceData` context field becomes the zone set.
+      `pending-route-data.ts` is deleted, and `data/obstacle_avoidance_data/` goes.
+
+    | Layer                                               | Depends on                                                          |
+    | --------------------------------------------------- | ------------------------------------------------------------------- |
+    | `data/` (mission, waypoint, zone set)               | `types/protobuf-types`, `utils/constants`; nothing in routing       |
+    | `utils/routing/` (`router.ts`, `routing-status.ts`) | parameter types from `data/`; no global objects                     |
+    | `types/context-types.ts`                            | `data/`, as today, plus `RerouteResult`                             |
+    | `context/handlers/`                                 | all of the above: reads the globals, calls the router and `Mission` |
+    | `components/`                                       | context, and `routing-status.ts` for the status icon                |
 
 ## Phase 3 — UI events, actions and handlers
 
 Not started. Known items:
 
+- **Proposal, not yet agreed: one dialog for status, actions and results, in two variants.**
+    - _One mission:_ tapping the mission's routing-status icon opens a dialog with its status
+      details (which suppressed waypoints are clear, whether detours are still needed) and its
+      actions: reroute, and restore original waypoints.
+    - _All missions:_ a new button at the top of the missions list opens the same kind of dialog,
+      listing the current conflicts across all missions, with a button to reroute them.
+    - After a reroute, the dialog updates in place to show the report, with its Undo button,
+      rather than opening a second dialog.
+    - The two variants share most of their code: the all-missions one lists the per-mission
+      content.
+    - Opening the dialog is the operator's choice, so it does not interrupt an edit (principle 2).
+      It shows the current status, not a computed reroute, so it is not a proposal waiting to be
+      accepted (principle 4): the reroute runs only when its button is pressed.
+    - This would answer open item 2, and open item 4 for the details. It also works on touch
+      tablets.
 - The router is a function the reroute handler calls. Its interface is redesigned to produce what
   `Mission`'s reroute method takes; the current interface is not a constraint.
 - The reroute report dialog: layout, and how a reroute of all missions is summarised.
@@ -361,7 +620,11 @@ Not started. Known items:
 
 ## Parked for later phases
 
-- **Before any code:** bring the PR #1729 fixes (SW-2566/2567/2568/2569, segment boundaries) into
-  this branch. They come through 2.y if #1729 merges there; otherwise merge them here directly.
+- **Later:** `utils/conversions.ts` imports `data/tasks/task.ts`, while `data/bots/bot.ts` and
+  `data/hubs/hub.ts` import `utils/conversions.ts`: a two-way dependency between `utils/` and
+  `data/` that predates this work.
+- **Later:** `grid-layer.ts:316`, an OpenLayers module, builds the survey's lane missions and writes
+  them into `gridPlan`'s map. It uses `Mission` operations, so principle 9 holds, but it is map
+  code doing data-model work.
 - **Later:** `Mission.ghostParameters` is misnamed. Apart from `isGhost`, it records the live
   mission's sent state (`hasStarted`, `botID`, `repeats`), not anything about the ghost copy.
