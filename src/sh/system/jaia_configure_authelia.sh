@@ -9,7 +9,6 @@ set -u -e -o pipefail
 ## Preamble ##
 ##############
 
-jaia_auth_lldap_bootstrap_completed=false
 jaia_auth_lldap_bootstrap_generation=0
 
 set -a
@@ -709,11 +708,6 @@ systemctl start lldap
 # which set was applied, so a CloudHub bootstrapped before a new one existed
 # runs bootstrap.sh once more rather than never seeing it.
 lldap_bootstrap_generation=1
-
-# Superseded by the generation; true means generation 0 was applied
-if $jaia_auth_lldap_bootstrap_completed; then
-    sed -i '/^jaia_auth_lldap_bootstrap_completed=/d' /etc/jaiabot/cloud.env
-fi
 
 if (( ${jaia_auth_lldap_bootstrap_generation:-0} < lldap_bootstrap_generation )); then
     # -T because cloud-init gives this no TTY, and bounded because a first boot that
