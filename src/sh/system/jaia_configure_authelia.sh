@@ -523,8 +523,11 @@ users.$base_uri {
 # Jaia support access
 support.$base_uri {
         $caddy_tls
-        import authelia_forward_auth
-        reverse_proxy :$support_portal_port
+        import jaia_nav
+        handle {
+                import authelia_forward_auth
+                import jaia_nav_proxy :$support_portal_port
+        }
 }
 
 # Runtime JCC

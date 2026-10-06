@@ -38,8 +38,13 @@ class BootstrapTest(unittest.TestCase):
         auth would hand the decision to anyone who can resolve the name."""
         site = re.search(r"\nsupport\.\$base_uri \{(.*?)\n\}", self.text, re.DOTALL)
         self.assertIsNotNone(site)
-        self.assertIn("import authelia_forward_auth", site.group(1))
-        self.assertIn("reverse_proxy :$support_portal_port", site.group(1))
+        # jaia_nav only answers /_jaia/ paths; everything else must pass the login first
+        handle = re.search(r"\n {8}handle \{\n(.*?)\n {8}\}", site.group(1), re.DOTALL)
+        self.assertIsNotNone(handle)
+        lines = [line.strip() for line in handle.group(1).splitlines()]
+        self.assertEqual(lines, ["import authelia_forward_auth",
+                                 "import jaia_nav_proxy :$support_portal_port"])
+        self.assertEqual(site.group(1).count("$support_portal_port"), 1)
 
     def test_only_directory_administrators_may_decide(self):
         rule = re.search(r"- domain: support\.\$base_uri\n(.*?)\nsession:",
