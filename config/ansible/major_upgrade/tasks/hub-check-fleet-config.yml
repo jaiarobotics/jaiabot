@@ -47,3 +47,21 @@
   vars:
     error_message: "Fleet configuration cannot be used with the new release: {{ fleet_config_migrate_result.stderr | default(fleet_config_migrate_result.stdout) }}"
   when: fleet_config_migrate_result.failed
+
+# The operator says what the fleet is; the config says what it was built as. A
+# disagreement means one of them is wrong, and upgrading on the wrong answer
+# either strands a CloudHub or expects one that was never there.
+- name: Ask the new release's tool whether this fleet has a CloudHub
+  shell: |
+    python3 {{ fleet_config_tool }} has_cloudhub {{ staged_fleet_cfg }}
+  register: fleet_config_has_cloudhub
+  changed_when: false
+
+- name: Handle a fleet config that disagrees about the CloudHub
+  include_tasks: handle_failure.yml
+  vars:
+    error_message: >-
+      You answered has_cloudhub={{ has_cloudhub | default('yes') }}, but the fleet
+      configuration describes a fleet {{ 'without' if fleet_config_has_cloudhub.stdout_lines[-1] == 'no' else 'with' }}
+      a CloudHub. Correct the answer, or the fleet config with 'jaia admin fleet edit'.
+  when: fleet_config_has_cloudhub.stdout_lines[-1] != (has_cloudhub | default('yes'))

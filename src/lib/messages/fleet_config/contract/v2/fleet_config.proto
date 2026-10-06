@@ -498,4 +498,13 @@ message FleetConfig
         FLEET_TYPE_SIMULATION = 1;
     }
     optional FleetType fleet_type = 15 [default = FLEET_TYPE_REAL];
+
+    // Stated rather than inferred, for the same reason: a real fleet built
+    // without one and a real fleet that has lost hub 30 by mistake look alike,
+    // and only one of them should pass validation. A simulation never has one,
+    // so this says nothing about it either way.
+    //
+    // Not has_cloudhub: protobuf already generates that accessor for the
+    // optional cloudhub field above, and the two would not compile together.
+    optional bool includes_cloudhub = 16 [default = true];
 }

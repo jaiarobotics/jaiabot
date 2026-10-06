@@ -326,6 +326,12 @@ def node_type_name(schema, cfg_node_type):
     return enum.values_by_number[cfg_node_type].name.lower()
 
 
+def wants_cloudhub(cfg):
+    """A simulation never has one, whatever includes_cloudhub says: the field is about
+    whether a real fleet was built with one."""
+    return cfg.includes_cloudhub and not is_simulation(cfg)
+
+
 def is_simulation(cfg):
     """A VirtualFleet or VirtualBox fleet, which has no CloudHub to require."""
     enum = cfg.DESCRIPTOR.fields_by_name["fleet_type"].enum_type
@@ -525,11 +531,15 @@ def validate(schema, cfg):
     elif cfg.HasField("cloudhub"):
         problems.append(
             "cloudhub: set, but hub {} (CloudHub) is not in the fleet".format(CLOUDHUB_ID))
-    if CLOUDHUB_ID not in cfg.hubs and not is_simulation(cfg):
+    if wants_cloudhub(cfg) and CLOUDHUB_ID not in cfg.hubs:
         problems.append(
-            "hubs: a real fleet must include hub {} (CloudHub); add it with "
-            "'jaia admin fleet edit', or set fleet_type: FLEET_TYPE_SIMULATION if this "
-            "describes a VirtualFleet or VirtualBox fleet".format(CLOUDHUB_ID))
+            "hubs: this fleet says it has a CloudHub, so it must include hub {}; add it with "
+            "'jaia admin fleet edit', or answer no to the CloudHub question there (which sets "
+            "includes_cloudhub: false), or set fleet_type: FLEET_TYPE_SIMULATION if this describes a "
+            "VirtualFleet or VirtualBox fleet".format(CLOUDHUB_ID))
+    if not cfg.includes_cloudhub and CLOUDHUB_ID in cfg.hubs:
+        problems.append(
+            "includes_cloudhub: false, but hub {} (CloudHub) is in the fleet".format(CLOUDHUB_ID))
     if cfg.HasField("customer") and not cfg.customer:
         problems.append("customer: must not be empty; omit it to use the default")
     return problems
@@ -579,6 +589,15 @@ def problem_report(path, problems):
 
 def cmd_version(schema, args):
     print(schema.version)
+    return 0
+
+
+def cmd_has_cloudhub(schema, args):
+    """Asked of the tool rather than worked out by whoever needs to know, so the
+    rule lives in one place: the upgrade compares this against what the operator
+    said the fleet has."""
+    cfg = load_migrated(schema, args.fleetcfg, echo=lambda _: None)
+    print("yes" if wants_cloudhub(cfg) else "no")
     return 0
 
 
@@ -1234,7 +1253,7 @@ def create(schema, ui, banner=None, existing=None):
     cfg.version = schema.version
     state = {
         "simulation": is_simulation(cfg),
-        "cloudhub": CLOUDHUB_ID in cfg.hubs,
+        "cloudhub": wants_cloudhub(cfg),
         "hubs": [h for h in cfg.hubs if h != CLOUDHUB_ID],
         # by hub: a key that already exists is never generated again, so editing
         # a fleet does not ask for every Yubikey
@@ -1256,14 +1275,20 @@ def create(schema, ui, banner=None, existing=None):
             default="yes" if state["simulation"] else "no")
         cfg.fleet_type = enum.values_by_name[
             "FLEET_TYPE_SIMULATION" if state["simulation"] else "FLEET_TYPE_REAL"].number
-        # Every real fleet ships with a CloudHub, so there is nothing to ask
-        if not state["simulation"]:
-            state["cloudhub"] = True
+        # Proposed from what the config claims rather than from whether hub 30 is
+        # present, so editing one that has lost it still offers to put it back
+        state["cloudhub"] = cfg.includes_cloudhub and not state["simulation"]
 
     def choose_cloudhub():
         state["cloudhub"] = ui.yesno(
             "Does this fleet include a CloudHub (hub {}, running in the cloud)?".format(CLOUDHUB_ID),
             default="yes" if state["cloudhub"] else "no")
+        # Written only when it differs from the default, so configs that have one
+        # read as they always did
+        if state["cloudhub"] or state["simulation"]:
+            cfg.ClearField("includes_cloudhub")
+        else:
+            cfg.includes_cloudhub = False
 
     def choose_hubs():
         lo, hi = node_id_range("hub_id")
@@ -1479,7 +1504,7 @@ def create(schema, ui, banner=None, existing=None):
     run_steps([
         Step("Choose fleet", choose_fleet),
         Step("Fleet type", choose_fleet_type),
-        Step("CloudHub", choose_cloudhub, enabled=lambda: state["simulation"]),
+        Step("CloudHub", choose_cloudhub),
         Step("Choose hubs", choose_hubs),
         Step("Choose bots", choose_bots),
         Step("Generating hub SSH keys", generate_keys, revisit=False),
@@ -1570,6 +1595,10 @@ def build_parser():
     p.add_argument("type", choices=["bot", "hub", "rpicam"], help="Type of system to generate for")
     p.add_argument("id", type=int, help="ID of bot or hub")
     p.set_defaults(func=cmd_generate)
+
+    p = sub.add_parser("has_cloudhub", help="Print yes or no: whether this fleet includes a CloudHub")
+    p.add_argument("fleetcfg", help="Path to fleet configuration file (protobuf TextFormat version of FleetConfig)")
+    p.set_defaults(func=cmd_has_cloudhub)
 
     p = sub.add_parser("set_cloudhub_key", help="Record the public SSH key a CloudHub made for itself")
     p.add_argument("fleetcfg", help="Path to the fleet configuration file to update")
