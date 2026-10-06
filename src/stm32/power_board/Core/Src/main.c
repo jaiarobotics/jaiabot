@@ -71,7 +71,6 @@ static volatile uint8_t reed_wake_flag = 0;
 
 /* LSI ~32 kHz, LPTIM prescaler /128 -> 250 Hz. */
 #define LPTIM_TICK_HZ            250U
-#define LPTIM_MAX_COUNTS         65536U
 #define SLEEP_INTERVAL_MS        10000U
 
 uint8_t bits_in_byte = 8;
@@ -79,6 +78,7 @@ bool usb_tx_busy = false;
 enum state current_state = REED_WAIT_STATE;
 static volatile uint32_t sleep_interval_ms = SLEEP_INTERVAL_MS;
 static volatile uint32_t requested_low_power_ms = 0U;
+static bool adc_calibration_failed = false;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -249,109 +249,37 @@ static void gpio_sleep_analog(void)
   a.Pin = GPIO_PIN_All & ~(RS232_EN_Pin|RS232_FOFF_Pin);HAL_GPIO_Init(GPIOE, &a); // keep RS232 forced off
 }
 
-static void wait_for_reed_wake(void)
+static void stop2_sleep(uint32_t duration_ms, bool wake_on_reed)
 {
-  const uint16_t period = (uint16_t)(lptim_counts_from_ms(SLEEP_INTERVAL_MS) - 1U);
-  lptim_wake_flag = 0U;
+  const uint64_t interval_counts = lptim_counts_from_ms(SLEEP_INTERVAL_MS);
+  uint64_t remaining_counts = lptim_counts_from_ms(duration_ms);
   reed_wake_flag = 0U;
-
-  if (HAL_LPTIM_Counter_Start_IT(&hlptim1, period) != HAL_OK)
-  {
-    Error_Handler();
-  }
 
   HAL_SuspendTick();
   gpio_sleep_analog();                 // drop driven-pin leakage during the sleep
-  while (reed_wake_flag == 0U && lptim_wake_flag == 0U)
+  while (remaining_counts > 0U && !(wake_on_reed && reed_wake_flag != 0U))
   {
-  HAL_PWREx_EnterSTOP2Mode(PWR_STOPENTRY_WFI);
-  SystemClock_Config();
+    const uint64_t chunk_counts = (remaining_counts > interval_counts) ? interval_counts : remaining_counts;
+    lptim_wake_flag = 0U;
+
+    if (HAL_LPTIM_Counter_Start_IT(&hlptim1, (uint16_t)(chunk_counts - 1U)) != HAL_OK)
+    {
+      Error_Handler();
+    }
+
+    while (lptim_wake_flag == 0U && !(wake_on_reed && reed_wake_flag != 0U))
+    {
+      HAL_PWREx_EnterSTOP2Mode(PWR_STOPENTRY_WFI);
+      SystemClock_Config();
+    }
+
+    HAL_LPTIM_Counter_Stop_IT(&hlptim1);
+    HAL_IWDG_Refresh(&hiwdg);
+    remaining_counts -= chunk_counts;
   }
   MX_GPIO_Init();                      // restore pin config after wake
   HAL_ResumeTick();
-
-  HAL_LPTIM_Counter_Stop_IT(&hlptim1);
-  HAL_IWDG_Refresh(&hiwdg);
 }
-
-static void sleep_until_lptim_wake_counts(uint16_t period)
-{
-  lptim_wake_flag = 0U;
-
-  if (HAL_LPTIM_Counter_Start_IT(&hlptim1, period) != HAL_OK)
-  {
-    Error_Handler();
-  }
-
-  HAL_SuspendTick();
-  while (lptim_wake_flag == 0U)
-  {
-    // Process any host command frame completed by USB IRQ before
-    // re-entering low-power sleep.
-    power_board_command_process();
-    controls_periodic_update();
-    if (low_power_request_pending())
-    {
-      break;
-    }
-
-    HAL_PWREx_EnterSTOP2Mode(PWR_STOPENTRY_WFI);
-    SystemClock_Config();
-    HAL_IWDG_Refresh(&hiwdg);
-  }
-  HAL_ResumeTick();
-
-  HAL_LPTIM_Counter_Stop_IT(&hlptim1);
-}
-
-static void sleep_for_ms(uint32_t duration_ms)
-{
-  uint64_t remaining_counts = lptim_counts_from_ms(duration_ms);
-
-  while (remaining_counts > 0U)
-  {
-    uint32_t chunk_counts = (remaining_counts > LPTIM_MAX_COUNTS) ? LPTIM_MAX_COUNTS : (uint32_t)remaining_counts;
-    sleep_until_lptim_wake_counts((uint16_t)(chunk_counts - 1U));
-    if (low_power_request_pending())
-    {
-      return;
-    }
-    remaining_counts -= chunk_counts;
-  }
-}
-
-static void power_board_enter_low_power_mode(uint32_t duration_ms)
-{
-  extern USBD_HandleTypeDef hUsbDeviceFS;
-
-  target_motor_ = motor_off_;
-  controls_periodic_update();
-
-  HAL_GPIO_WritePin(LED_R_GPIO_Port, LED_R_Pin, GPIO_PIN_RESET);
-  HAL_GPIO_WritePin(LED_G_GPIO_Port, LED_G_Pin, GPIO_PIN_RESET);
-  HAL_GPIO_WritePin(LED_B_GPIO_Port, LED_B_Pin, GPIO_PIN_RESET);
-  HAL_GPIO_WritePin(VS_OP_EN_GPIO_Port, VS_OP_EN_Pin, GPIO_PIN_RESET);
-  // HAL_GPIO_WritePin(VS_OP_EN_GPIO_Port, VS_OP_EN_Pin, GPIO_PIN_SET); // THIS IS CURRENTLY BACKWARDS. THE OP-AMP ENABLE IS ACTIVE HIGH, BUT THE PCB HAS IT ACTIVE LOW. SO WE'RE JUST INVERTING IT HERE.
-  HAL_GPIO_WritePin(VS_VBATT_EN_GPIO_Port, VS_VBATT_EN_Pin, GPIO_PIN_RESET);
-  HAL_GPIO_WritePin(EN_12V_REG_GPIO_Port, EN_12V_REG_Pin, GPIO_PIN_RESET);
-  HAL_GPIO_WritePin(EN_5V_REG_GPIO_Port, EN_5V_REG_Pin, GPIO_PIN_RESET);
-  HAL_GPIO_WritePin(UVOV_EN_GPIO_Port, UVOV_EN_Pin, GPIO_PIN_RESET);
-
-  USBD_Stop(&hUsbDeviceFS);
-  USBD_DeInit(&hUsbDeviceFS);
-
-  sleep_for_ms(duration_ms);
-
-  HAL_GPIO_WritePin(UVOV_EN_GPIO_Port, UVOV_EN_Pin, GPIO_PIN_SET);
-  HAL_GPIO_WritePin(EN_12V_REG_GPIO_Port, EN_12V_REG_Pin, GPIO_PIN_SET);
-  HAL_GPIO_WritePin(EN_5V_REG_GPIO_Port, EN_5V_REG_Pin, GPIO_PIN_SET);
-  HAL_GPIO_WritePin(VS_VBATT_EN_GPIO_Port, VS_VBATT_EN_Pin, GPIO_PIN_SET);
-
-  HAL_Delay(300);
-  MX_USB_DEVICE_Init();
-}
-
-
 
 static void power_board_disable_external_power(void)
 {
@@ -385,25 +313,75 @@ static void power_board_enable_external_power(void)
 // external power is enabled. Deferring their init keeps REED_WAIT_STATE
 // idle current near the ~0.6 mA measured with these clocks off, instead of
 // the ~4 mA drawn when they run unconditionally from boot.
+// Called again on every wake from SLEEP_STATE, after
+// power_board_deinit_runtime_peripherals() shut these down for the sleep.
 static void power_board_init_runtime_peripherals(void)
 {
+  // The RTC runs from the LSI, which stays on in STOP2 anyway, and FatFs
+  // only links its driver once, so neither is torn down for sleep.
+  static bool did_one_time_init = false;
+
   MX_ADC1_Init();
+  // De-init puts the ADC in deep power down, which loses its calibration.
+  adc_calibration_failed = (HAL_ADCEx_Calibration_Start(&hadc1, ADC_SINGLE_ENDED) != HAL_OK);
   MX_I2C1_Init();
   MX_I2C2_Init();
   MX_LPUART1_UART_Init();
   MX_USART1_UART_Init();
   MX_USART2_UART_Init();
   MX_QUADSPI_Init();
-  MX_RTC_Init();
   MX_SPI1_Init();
   MX_TIM2_Init();
   MX_TIM15_Init();
   MX_TIM16_Init();
-  MX_FATFS_Init();
+  if (!did_one_time_init)
+  {
+    did_one_time_init = true;
+    MX_RTC_Init();
+    MX_FATFS_Init();
+  }
   MX_USB_DEVICE_Init();
 
   /* Allow USB host time to enumerate the CDC device before the first TX. */
   HAL_Delay(2000);
+}
+
+// Undoes power_board_init_runtime_peripherals() so a between-mission sleep
+// runs with the same peripherals as REED_WAIT_STATE: only GPIO, IWDG and LPTIM1.
+static void power_board_deinit_runtime_peripherals(void)
+{
+  extern USBD_HandleTypeDef hUsbDeviceFS;
+
+  controls_stop_outputs();
+
+  USBD_Stop(&hUsbDeviceFS);
+  USBD_DeInit(&hUsbDeviceFS);
+
+  HAL_TIM_Base_DeInit(&htim16);
+  HAL_TIM_IC_DeInit(&htim15);
+  HAL_TIM_Base_DeInit(&htim2);
+  HAL_SPI_DeInit(&hspi1);
+  HAL_QSPI_DeInit(&hqspi);
+  HAL_UART_DeInit(&huart2);
+  HAL_UART_DeInit(&huart1);
+  HAL_UART_DeInit(&hlpuart1);
+  HAL_I2C_DeInit(&hi2c2);
+  HAL_I2C_DeInit(&hi2c1);
+  HAL_ADC_DeInit(&hadc1);
+}
+
+// Host-requested sleep between missions. Powers down exactly like
+// REED_WAIT_STATE and always sleeps the full duration (the reed switch does
+// not end it), then brings the board back up the same way as at boot.
+static void power_board_sleep_between_missions(uint32_t duration_ms)
+{
+  power_board_disable_external_power();
+  power_board_deinit_runtime_peripherals();
+
+  stop2_sleep(duration_ms, false);
+
+  power_board_init_runtime_peripherals();
+  power_board_enable_external_power();
 }
 
 /* USER CODE END 0 */
@@ -501,7 +479,7 @@ int main(void)
           else
           {
             reed_active_samples = 0U;
-            wait_for_reed_wake();
+            stop2_sleep(SLEEP_INTERVAL_MS, true);
           }
         }
         break;
@@ -509,14 +487,13 @@ int main(void)
       case INIT_STATE:
         {
           // Guarded so this only runs once at boot, not on every wake from
-          // SLEEP_STATE: calibrate the ADC before any telemetry reads rely
-          // on it, and let the host know we just came up.
+          // SLEEP_STATE: let the host know we just came up.
           static bool did_startup_init = false;
 
           if (!did_startup_init)
           {
             did_startup_init = true;
-            bool init_failed = (HAL_ADCEx_Calibration_Start(&hadc1, ADC_SINGLE_ENDED) != HAL_OK);
+            bool init_failed = adc_calibration_failed;
 
             PowerBoardResponse startup_response = jaiabot_protobuf_PowerBoardResponse_init_zero;
             startup_response.time = (uint64_t)HAL_GetTick() * 1000ULL;
@@ -546,9 +523,8 @@ int main(void)
         break;
 
       case SLEEP_STATE:
-        // A host request overrides the normal periodic sleep interval. Consume
-        // it before sleeping so it does not immediately interrupt the LPTIM
-        // wait; a newly received request can still interrupt and reschedule.
+        // A host request overrides the normal periodic sleep interval. USB is
+        // shut down for the whole sleep, so no new request can cut it short.
         {
           uint32_t sleep_duration_ms = take_low_power_request_ms();
           if (sleep_duration_ms == 0U)
@@ -556,8 +532,8 @@ int main(void)
             sleep_duration_ms = power_board_get_sleep_interval_ms();
           }
 
-          power_board_enter_low_power_mode(sleep_duration_ms);
-          current_state = low_power_request_pending() ? SLEEP_STATE : INIT_STATE;
+          power_board_sleep_between_missions(sleep_duration_ms);
+          current_state = INIT_STATE;
         }
         break;
 

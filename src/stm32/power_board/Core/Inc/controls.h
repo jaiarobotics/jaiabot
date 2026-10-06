@@ -34,6 +34,10 @@ extern "C" {
     // the ESC, after ramping/clamping, for telemetry reporting.
     int controls_get_motor_actual(void);
 
+    // Stops the ESC PWM and resets the motor to neutral before TIM16 is
+    // de-initialized for sleep, so the PWM is restarted once it is re-initialized.
+    void controls_stop_outputs(void);
+
 #ifdef __cplusplus
 }
 #endif
