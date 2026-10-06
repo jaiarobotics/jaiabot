@@ -2,6 +2,7 @@
 
 import importlib.util
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -287,11 +288,30 @@ class MigrationFailureTest(unittest.TestCase):
         fc.text_format.Merge("version: {}\n".format(SCHEMA.version) + extra, cfg)
         return cfg
 
-    def test_real_fleet_without_a_cloudhub_is_refused(self):
+    def test_real_fleet_that_lost_its_cloudhub_is_refused(self):
+        """It says it has one and does not, which is the mistake the rule exists for."""
         problems = fc.validate(SCHEMA, self.real_fleet_without_cloudhub())
         self.assertTrue(
-            any(p.startswith("hubs: a real fleet must include hub 30 (CloudHub)") for p in problems),
+            any(p.startswith("hubs: this fleet says it has a CloudHub") for p in problems),
             problems)
+
+    def test_a_real_fleet_may_say_it_has_no_cloudhub(self):
+        """Not every fleet is sold with one, and saying so is how the two are told
+        apart from a config that lost hub 30 by accident."""
+        cfg = self.real_fleet_without_cloudhub("includes_cloudhub: false\n")
+        self.assertEqual([p for p in fc.validate(SCHEMA, cfg) if p.startswith("hubs:")], [])
+
+    def test_saying_it_has_none_while_holding_one_is_refused(self):
+        cfg = self.real_fleet_without_cloudhub("includes_cloudhub: false\n")
+        cfg.hubs.append(30)
+        self.assertTrue(
+            any(p.startswith("includes_cloudhub: false, but hub 30") for p in fc.validate(SCHEMA, cfg)),
+            fc.validate(SCHEMA, cfg))
+
+    def test_includes_cloudhub_defaults_to_true(self):
+        """An existing file says nothing, so it is still held to the rule."""
+        self.assertFalse(self.real_fleet_without_cloudhub().HasField("includes_cloudhub"))
+        self.assertTrue(self.real_fleet_without_cloudhub().includes_cloudhub)
 
     def test_a_simulation_may_have_no_cloudhub(self):
         """The rule that broke the VirtualFleet before: it must not fire on a simulation."""
@@ -375,6 +395,37 @@ class CommandTest(unittest.TestCase):
         result = self.env.run("--binary=jaia admin fleet version")
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(result.stdout.strip(), str(SCHEMA.version))
+
+    def test_has_cloudhub_answers_for_a_fleet_that_has_one(self):
+        result = self.env.run("has_cloudhub", fixture("v2_no_permanent_keys.cfg"))
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual("yes", result.stdout.strip())
+
+    def without_a_cloudhub(self, name, extra):
+        """The fixture with hub 30 and its auth block taken out, as a fleet built
+        without one actually looks."""
+        path = os.path.join(self.env.dir, name)
+        with open(fixture("v2_no_permanent_keys.cfg")) as f:
+            text = re.sub(r"cloudhub \{.*?\n\}\n", "", f.read().replace("hubs: 30\n", ""),
+                          flags=re.DOTALL)
+        with open(path, "w") as f:
+            f.write(text + extra)
+        return path
+
+    def test_has_cloudhub_answers_for_a_fleet_built_without_one(self):
+        """What the major upgrade asks before it decides whether to expect one."""
+        path = self.without_a_cloudhub("nocloud.cfg", "includes_cloudhub: false\n")
+        result = self.env.run("has_cloudhub", path)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual("no", result.stdout.strip())
+
+    def test_has_cloudhub_answers_no_for_a_simulation(self):
+        """A VirtualFleet has none whatever the field says, and the upgrade has to
+        hear the same answer the validator acts on."""
+        path = self.without_a_cloudhub("sim.cfg", "fleet_type: FLEET_TYPE_SIMULATION\n")
+        result = self.env.run("has_cloudhub", path)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual("no", result.stdout.strip())
 
     def test_validate_reports_migration(self):
         result = self.env.run("validate", fixture("v1_fleet7.cfg"))
@@ -678,7 +729,8 @@ class CreateTest(unittest.TestCase):
     def test_creates_a_valid_current_version_file(self):
         answers = [
             "abc", "7",                      # fleet id: re-asked until it is in range
-            "no",                            # a simulation? no, so real: the CloudHub is implied
+            "no",                            # a simulation? no, so real
+            "yes",                           # and it has a CloudHub
             "1, 2", "1, 2",                  # physical hubs, bots
             "ssh-ed25519 AAAAperm me", "",   # permanent keys
             "wifipass", "yes",               # wlan password, service vpn
@@ -769,6 +821,7 @@ class CreateTest(unittest.TestCase):
         answers = [
             "8", back, "7",          # fleet id, then back from the fleet type question
             "yes", back, "no",       # fleet type: simulation, back, then real
+            "yes",                   # and it has a CloudHub
             "1", "2",                # physical hubs, bots
             back,                    # from the permanent keys, back past key generation to bots
             "1, 2",                  # bots again
@@ -823,7 +876,7 @@ class CreateTest(unittest.TestCase):
         out = os.path.join(self.env.dir, "edited.cfg")
         shutil.copyfile(fixture("v1_fleet7.cfg"), out)
         override = fc.node_settings_for(SCHEMA, before, "bot", 2)
-        answers = ["<default>"] * 4                 # fleet, cloudhub, hubs, bots
+        answers = ["<default>"] * 5                 # fleet, type, cloudhub, hubs, bots
         answers += ["<default>", ""]                # keep the permanent key, then no more
         answers += ["<default>"] * 2                # wlan password, service vpn
         answers += ["<default>"] * 5                # cloudhub auth
@@ -849,7 +902,7 @@ class CreateTest(unittest.TestCase):
         shutil.copyfile(fixture("v1_bad_values.cfg"), out)
         loaded = SCHEMA.NodeSettings()
         fc.fill_defaults(SCHEMA, loaded)
-        answers = ["<default>"] * 4 + ["", "<default>", "<default>"]
+        answers = ["<default>"] * 5 + ["", "<default>", "<default>"]
         # a real fleet gains its CloudHub in the edit, so the auth block is asked too
         answers += ["<default>", "admin@example.com", "<default>", "<default>", "<default>"]
         answers += settings_answers(ALL_GROUPS, {"bot_type": "bio"})
@@ -868,7 +921,7 @@ class CreateTest(unittest.TestCase):
         shutil.copyfile(fixture("v1_fleet7.cfg"), out)
         before = fc.load_migrated(SCHEMA, fixture("v1_fleet7.cfg"), echo=lambda _: None)
         override = fc.node_settings_for(SCHEMA, before, "bot", 2)
-        answers = ["<default>", "<default>", "<default>", "1, 2, 3"]
+        answers = ["<default>"] * 4 + ["1, 2, 3"]
         answers += ["<default>", ""] + ["<default>"] * 2 + ["<default>"] * 5
         answers += accept(before.settings)
         answers += ["<default>", "<default>"] + accept(override, {"ALL", "BOT"}) + ["no"]
@@ -920,7 +973,7 @@ class CreateTest(unittest.TestCase):
         dst = os.path.join(self.env.dir, "dst.cfg")
         shutil.copyfile(fixture("v2_no_permanent_keys.cfg"), src)
         loaded = fc.parse_fleet_config(SCHEMA, fixture("v2_no_permanent_keys.cfg"))
-        answers = ["<default>"] * 4 + [""]
+        answers = ["<default>"] * 5 + [""]
         answers += ["<default>"] * 2 + ["<default>"] * 5
         answers += accept(loaded.settings) + ["no"] + node_answers([30], [1])
         path = os.path.join(self.env.dir, "answers.txt")
@@ -933,7 +986,7 @@ class CreateTest(unittest.TestCase):
 
     def test_per_node_questions_name_the_node(self):
         """Answering a VIN is meaningless without knowing which bot it is for."""
-        answers = ["7", "no", "1", "1, 2", "", "wifipass", "no",
+        answers = ["7", "no", "yes", "1", "1, 2", "", "wifipass", "no",
                    "<default>", "admin@example.com", "<default>", "<default>", "<default>"]
         answers += settings_answers(ALL_GROUPS, {}) + ["no"]
         answers += node_answers([1, 30], [])          # hubs, then bot 1 runs out of answers
@@ -942,7 +995,7 @@ class CreateTest(unittest.TestCase):
         self.assertIn("no scripted answer for: bot 1: ", result.stderr)
 
     def test_nothing_written_when_answers_run_out(self):
-        result, out = self.run_create(["7", "no", "1"])
+        result, out = self.run_create(["7", "no", "yes", "1"])
         self.assertEqual(result.returncode, 1)
         self.assertIn("no scripted answer", result.stderr)
         self.assertFalse(os.path.exists(out))
