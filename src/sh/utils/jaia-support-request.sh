@@ -18,7 +18,7 @@ usage()
 {
     cat >&2 <<EOF
 Usage: ${BINARY} --fleet <id> --key <signing key> --reason <text> [--days <n>]
-       [--from <address>]
+       [--from <address>] [--scopes <list>]
 
   --fleet <id>      The fleet this asks for access to
   --key <path>      Jaia root key to sign with, e.g. ~/.ssh/id_ed25519_sk.
@@ -28,6 +28,11 @@ Usage: ${BINARY} --fleet <id> --key <signing key> --reason <text> [--days <n>]
   --from <address>  The address the CloudHub should admit, IP or CIDR. Defaults
                     to this machine's public address. The grant opens port 22 to
                     this and nothing else, so it is what you will connect from.
+  --scopes <list>   What to ask for, comma separated (default ${SCOPES}):
+                      shell  a shell on the CloudHub, and the fleet through it
+                      web    sign-in to JCC, JDV, the JCU and the read-only API
+                    Ask for the smaller one when it is enough; the customer can
+                    approve either on its own whatever is asked for.
 
 Prints the request for the customer to paste into https://support.<their fleet>.
 EOF
@@ -39,6 +44,7 @@ KEY=""
 REASON=""
 DAYS=7
 SOURCE=""
+SCOPES=shell
 
 while (( $# > 0 )); do
     case "$1" in
@@ -48,6 +54,7 @@ while (( $# > 0 )); do
         --reason) REASON="${2:-}"; shift 2 ;;
         --days) DAYS="${2:-}"; shift 2 ;;
         --from) SOURCE="${2:-}"; shift 2 ;;
+        --scopes) SCOPES="${2:-}"; shift 2 ;;
         -h|--help) usage ;;
         *) echo "Unknown option: $1" >&2; usage ;;
     esac
@@ -67,6 +74,16 @@ fi
 
 [ -r "$KEY" ] || { echo "ERROR: cannot read signing key ${KEY}" >&2; exit 1; }
 
+# Refused here rather than silently narrowed: a typo that asked for less than the
+# engineer meant would surface as a second call to the customer, not as an error.
+for scope in ${SCOPES//,/ }; do
+    case "$scope" in
+        shell|web) ;;
+        *) echo "ERROR: unknown scope '${scope}' - expected shell or web" >&2; exit 1 ;;
+    esac
+done
+[ -n "$SCOPES" ] || { echo "ERROR: --scopes cannot be empty" >&2; exit 1; }
+
 # Asked of the network rather than guessed, because a wrong answer here produces
 # a grant that admits somewhere you are not
 if [ -z "$SOURCE" ]; then
@@ -79,6 +96,10 @@ if [ -z "$SOURCE" ]; then
     echo ">>> Asking for access from ${SOURCE}" >&2
 fi
 
+# Said plainly here because an older CloudHub ignores the field and grants the shell
+# alone: the engineer should be able to see the mismatch in the text they are sending
+echo ">>> Asking for: ${SCOPES}" >&2
+
 python3 -c 'import ipaddress,sys; ipaddress.ip_network(sys.argv[1], strict=False)' "$SOURCE" 2>/dev/null || {
     echo "ERROR: --from '${SOURCE}' is not an IP address or CIDR" >&2
     exit 1
@@ -87,9 +108,11 @@ python3 -c 'import ipaddress,sys; ipaddress.ip_network(sys.argv[1], strict=False
 # A request is for one fleet, for one window, and cannot be replayed into
 # another: the CloudHub checks the fleet and the expiry it was signed with.
 requested_at=$(date -u +%s)
-payload=$(printf '{"fleet":%s,"days":%s,"requested_at":%s,"expires_at":%s,"source":%s,"reason":%s}' \
+scopes_json=$(printf '%s' "$SCOPES" | python3 -c 'import json,sys; print(json.dumps([s for s in sys.stdin.read().split(",") if s]))')
+payload=$(printf '{"fleet":%s,"days":%s,"requested_at":%s,"expires_at":%s,"source":%s,"scopes":%s,"reason":%s}' \
                  "$FLEET" "$DAYS" "$requested_at" "$(( requested_at + DAYS * 86400 ))" \
                  "$(printf '%s' "$SOURCE" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')" \
+                 "$scopes_json" \
                  "$(printf '%s' "$REASON" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')")
 
 TMPDIR_REQ=$(mktemp -d)

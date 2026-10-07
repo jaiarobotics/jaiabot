@@ -34,6 +34,7 @@ class FirewallTest(unittest.TestCase):
         self.dir = tempfile.mkdtemp()
         self.addCleanup(shutil.rmtree, self.dir, True)
         self.hub = CloudHub(self.dir)
+        self.addCleanup(self.hub.close)
 
     def access(self, *args, expect=0):
         done = subprocess.run([sys.executable, str(ACCESS)] + list(args),
@@ -42,10 +43,10 @@ class FirewallTest(unittest.TestCase):
         self.assertEqual(expect, done.returncode, done.stderr)
         return done.stdout.strip()
 
-    def approve(self, days=7, source=SOURCE):
+    def approve(self, days=7, source=SOURCE, scopes="shell"):
         return self.access("approve", "--fleet", str(FLEET), "--days", str(days),
                            "--source", source, "--reason", "Pump fault on bot 3",
-                           "--by", "operator")
+                           "--scopes", scopes, "--by", "operator")
 
     def grant_file(self):
         return os.path.join(self.hub.state, "grant.json")
@@ -177,6 +178,104 @@ class FirewallTest(unittest.TestCase):
         self.access("approve", "--fleet", str(FLEET), "--days", "7",
                     "--source", "the office", expect=1)
         self.assertEqual([], self.hub.open_to())
+
+    ## Web access, which is the directory rather than the firewall
+
+    WEB_GROUPS = ["jcu_developer", "jdv", "rest_api_read", "run"]
+
+    def test_a_shell_grant_opens_no_web_access(self):
+        """The two are separate on purpose, so asking for one must not quietly
+        deliver the other."""
+        self.approve(scopes="shell")
+        self.assertEqual([], self.hub.web_groups())
+
+    def test_a_web_grant_opens_no_port(self):
+        self.approve(scopes="web")
+        self.assertEqual([], self.hub.open_to())
+        self.assertEqual(self.WEB_GROUPS, self.hub.web_groups())
+
+    def test_both_can_be_granted_together(self):
+        self.approve(scopes="shell,web")
+        self.assertEqual([CIDR], self.hub.open_to())
+        self.assertEqual(self.WEB_GROUPS, self.hub.web_groups())
+
+    def test_revoking_takes_the_web_groups_away(self):
+        self.approve(scopes="web")
+        self.access("revoke", "--by", "operator")
+        self.assertEqual([], self.hub.web_groups())
+
+    def test_web_access_ends_when_the_grant_expires(self):
+        """The half nobody is present for, as with the port."""
+        self.approve(days=1, scopes="shell,web")
+        self.rewrite_grant(expires_at=int(time.time()) - 1)
+        self.access("reconcile")
+        self.assertEqual([], self.hub.web_groups())
+        self.assertEqual([], self.hub.open_to())
+
+    def test_membership_with_no_grant_behind_it_is_withdrawn(self):
+        self.approve(scopes="web")
+        os.unlink(self.grant_file())
+        self.access("reconcile")
+        self.assertEqual([], self.hub.web_groups())
+
+    def test_a_grant_the_customer_narrowed_to_the_shell_withdraws_the_web_half(self):
+        """Re-approving with less is how a customer takes one half back."""
+        self.approve(scopes="shell,web")
+        self.approve(scopes="shell")
+        self.assertEqual([CIDR], self.hub.open_to())
+        self.assertEqual([], self.hub.web_groups())
+
+    def test_a_membership_the_customer_added_themselves_is_left_alone(self):
+        """Only the groups this grant is about: lldap_admin is theirs to decide."""
+        self.hub.lldap.membership["jaia_support"] = ["lldap_admin"]
+        self.approve(scopes="web")
+        self.access("revoke", "--by", "operator")
+        self.assertEqual(["lldap_admin"], self.hub.web_groups())
+
+    def test_reconciling_with_nothing_to_change_does_not_touch_the_directory(self):
+        """The timer runs every few minutes forever; one that calls LLDAP each time
+        is one that reports failure whenever LLDAP is down, having had nothing to do."""
+        self.approve(scopes="shell")
+        before = len(self.hub.lldap_calls())
+        self.access("reconcile")
+        self.assertEqual(before, len(self.hub.lldap_calls()))
+
+    def test_the_shell_still_converges_when_the_directory_is_unreachable(self):
+        """LLDAP being down must not be able to hold a port open."""
+        self.approve(scopes="shell,web")
+        self.hub.lldap.close()
+        self.rewrite_grant(expires_at=int(time.time()) - 1)
+        self.access("reconcile", expect=1)
+        self.assertEqual([], self.hub.open_to())
+
+    def test_a_cloudhub_with_no_support_account_still_revokes_the_shell(self):
+        """Bootstrapped before the account existed: there is no web access to take
+        away, and saying so must not look like a failure."""
+        self.hub.forget_the_support_account()
+        self.approve(scopes="shell")
+        self.access("revoke", "--by", "operator")
+        self.assertEqual([], self.hub.open_to())
+
+    def test_granting_web_on_a_cloudhub_with_no_support_account_is_refused(self):
+        self.hub.forget_the_support_account()
+        self.access("approve", "--fleet", str(FLEET), "--days", "7", "--source", SOURCE,
+                    "--scopes", "web", expect=1)
+
+    def test_an_unknown_scope_is_refused(self):
+        self.access("approve", "--fleet", str(FLEET), "--days", "7", "--source", SOURCE,
+                    "--scopes", "root", expect=1)
+        self.assertEqual([], self.hub.open_to())
+
+    def test_a_grant_written_before_scopes_existed_still_means_the_shell(self):
+        """Absent is not empty: an older record asked for a shell and must keep it."""
+        self.approve(scopes="shell")
+        with open(self.grant_file()) as f:
+            granted = json.load(f)
+        del granted["scopes"]
+        with open(self.grant_file(), "w") as f:
+            json.dump(granted, f)
+        self.access("reconcile")
+        self.assertEqual([CIDR], self.hub.open_to())
 
 
 if __name__ == "__main__":

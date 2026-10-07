@@ -2,16 +2,25 @@
 
 """Support access on the CloudHub: what the customer granted, and when it ends.
 
-A grant is a record, and the firewall is derived from it by reconciling rather
-than opened and shut on its own. That is what lets expiry be the default: a rule
-left behind - standing access of exactly the kind this design exists to end - is
-closed on the next run instead of persisting.
+A grant is a record, and everything else is derived from it by reconciling rather
+than switched on and off in step with it. That is what lets expiry be the default:
+access left behind - standing access of exactly the kind this design exists to end
+- is withdrawn on the next run instead of persisting.
 
-The rule is written in two places. The security group is the one that matters,
-because AWS enforces it off the instance and it lives in the customer's own
-account; ufw is set to match so the gate also exists on a CloudHub that is not
-in EC2. Reaching the fleet is not a second grant: bots and hubs are reached
-onward from the shell this gives, with the tooling that already does that.
+Two scopes, deliberately separate, because they answer different questions.
+'shell' is reach: port 22 at the CloudHub's security group, which AWS enforces off
+the instance and which lives in the customer's own account, with ufw set to match
+so the gate also exists on a CloudHub that is not in EC2. Bots and hubs are reached
+onward from that shell with the tooling that already does it. 'web' is sight: the
+support account in the directory's read-oriented groups, so Jaia can sign in to
+JCC, JDV, the JCU and the read-only API and see what is happening without being
+able to touch anything.
+
+They converge differently, and the difference is worth knowing. Closing the port
+also drops the sessions it admitted. Taking the groups away does not end a web
+session already signed in - Authelia holds those, and they run to their own
+expiry - so 'web' revocation is a bound of up to the session lifetime, not an
+immediate stop. The page says so rather than implying otherwise.
 
 Every bound is applied on each run rather than once when the record was written:
 the grant's own expiry, and two weeks from when it was made. So a record edited
@@ -30,9 +39,19 @@ import urllib.request
 MAX_DAYS = 14
 SSH_PORT = 22
 
+SCOPES = ("shell", "web")
+DEFAULT_SCOPES = ("shell",)
+
+ACCOUNT = "jaia_support"
+# Read-oriented: what tier 1 is for is seeing the fleet, not driving it. jcu_developer
+# is the exception and is here on purpose - the JCU's status playbooks are the useful
+# half of a support call, and the role gates reading them as much as running them.
+WEB_GROUPS = ("run", "jdv", "jcu_developer", "rest_api_read")
+
 STATE_DIR = os.environ.get("JAIA_SUPPORT_STATE_DIR", "/var/log/jaiabot/auth/support")
 GRANT_FILE = os.path.join(STATE_DIR, "grant.json")
 OPEN_FILE = os.path.join(STATE_DIR, "open.json")
+WEB_FILE = os.path.join(STATE_DIR, "web.json")
 AUDIT_FILE = os.path.join(STATE_DIR, "audit.log")
 LAST_RUN_FILE = os.path.join(STATE_DIR, "last-reconcile")
 
@@ -40,6 +59,9 @@ AWS = os.environ.get("JAIA_AWS", "aws")
 UFW = os.environ.get("JAIA_UFW", "ufw")
 SS = os.environ.get("JAIA_SS", "ss")
 IMDS = os.environ.get("JAIA_IMDS", "http://169.254.169.254")
+
+SECRETS = os.environ.get("JAIA_AUTH_SECRETS", "/var/log/jaiabot/auth/authelia/secrets")
+LLDAP_URL = os.environ.get("JAIA_LLDAP_URL", "http://127.0.0.1:17170")
 
 
 def run(command, **kwargs):
@@ -175,6 +197,97 @@ def close_to(cidr):
     disconnect(cidr)
 
 
+###########
+## LLDAP ##
+###########
+
+# Loopback only, so nothing on the way sees the admin password or the answer
+_lldap_opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+
+
+def lldap_post(path, payload, token=None):
+    headers = {"Content-Type": "application/json"}
+    if token:
+        headers["Authorization"] = "Bearer " + token
+    request = urllib.request.Request(LLDAP_URL + path, data=json.dumps(payload).encode(),
+                                     headers=headers, method="POST")
+    with _lldap_opener.open(request, timeout=15) as answer:
+        return json.loads(answer.read().decode())
+
+
+def lldap_login():
+    """As the directory's own service account, not the administrator: that one is a
+    person's login whose password they may change, and a login that breaks when they
+    do would take the expiry of their own grant with it."""
+    with open(SECRETS) as f:
+        held = dict(line.strip().split("=", 1) for line in f if "=" in line)
+    password = held.get("authelia_ldap_password")
+    if not password:
+        raise RuntimeError("no authelia_ldap_password in {}".format(SECRETS))
+    return lldap_post("/auth/simple/login",
+                      {"username": "authelia", "password": password})["token"]
+
+
+def graphql(token, query, variables):
+    answer = lldap_post("/api/graphql", {"query": query, "variables": variables}, token)
+    if answer.get("errors"):
+        raise RuntimeError(answer["errors"][0].get("message", "LLDAP refused the request"))
+    return answer["data"]
+
+
+def held_groups(token):
+    """None when the directory has no such account - a CloudHub bootstrapped before
+    it existed. That is not the same as holding nothing, and only the caller knows
+    whether the difference matters."""
+    try:
+        groups = graphql(
+            token, "query($user: String!) { user(userId: $user) { groups { displayName } } }",
+            {"user": ACCOUNT})["user"]["groups"]
+    except RuntimeError:
+        return None
+    return {group["displayName"] for group in groups}
+
+
+def group_ids(token):
+    return {group["displayName"]: group["id"]
+            for group in graphql(token, "query { groups { id displayName } }", {})["groups"]}
+
+
+def set_web_access(wanted):
+    """Only the groups this grant is about, so a membership the customer added by hand
+    for their own reasons is left where they put it."""
+    token = lldap_login()
+    held = held_groups(token)
+    if held is None:
+        if not wanted:
+            # An account that is not there holds nothing, which is what was wanted
+            return False
+        raise RuntimeError("LLDAP has no '{}' account".format(ACCOUNT))
+
+    wrong = [name for name in WEB_GROUPS if (name in held) != wanted]
+    if not wrong:
+        return False
+
+    known = group_ids(token)
+    absent = [name for name in wrong if name not in known]
+    if absent:
+        raise RuntimeError("LLDAP has no group {}".format(", ".join(sorted(absent))))
+
+    mutation = ("mutation($user: String!, $group: Int!) "
+                "{ addUserToGroup(userId: $user, groupId: $group) { ok } }" if wanted else
+                "mutation($user: String!, $group: Int!) "
+                "{ removeUserFromGroup(userId: $user, groupId: $group) { ok } }")
+    for name in wrong:
+        graphql(token, mutation, {"user": ACCOUNT, "group": known[name]})
+    return True
+
+
+def web_access_held():
+    """Any of the groups, not all: a half-applied grant is access, and reporting it as
+    none would be the comfortable answer rather than the true one."""
+    return bool((held_groups(lldap_login()) or set()) & set(WEB_GROUPS))
+
+
 ###############
 ## The grant ##
 ###############
@@ -195,15 +308,26 @@ def granted_cidr():
     return granted.get("source")
 
 
+def granted_scopes():
+    """Absent means shell, so a grant written by an older CloudHub still means what
+    it meant when it was written."""
+    granted = read_json(GRANT_FILE) or {}
+    asked = granted.get("scopes", DEFAULT_SCOPES)
+    return {scope for scope in asked if scope in SCOPES}
+
+
 #################
 ## Reconciling ##
 #################
 
 def reconcile():
+    """The firewall first and the directory second, each independent of the other:
+    LLDAP being unreachable must not be able to hold a port open."""
     now = int(time.time())
 
     approved = grant_window(now)
-    wanted = granted_cidr() if approved else None
+    scopes = granted_scopes() if approved else set()
+    wanted = granted_cidr() if "shell" in scopes else None
 
     if not approved and os.path.exists(GRANT_FILE):
         os.unlink(GRANT_FILE)
@@ -220,35 +344,65 @@ def reconcile():
         os.makedirs(STATE_DIR, mode=0o700, exist_ok=True)
         write_json(OPEN_FILE, {"cidr": wanted, "opened_at": now})
 
+    # Tracked here rather than asked of LLDAP every run, as the firewall rule is:
+    # a timer that talks to the directory when it has nothing to change is a timer
+    # that fails whenever the directory is down, having had nothing to do
+    trouble = ""
+    want_web = "web" in scopes
+    if bool(read_json(WEB_FILE)) != want_web:
+        try:
+            set_web_access(want_web)
+            if want_web:
+                os.makedirs(STATE_DIR, mode=0o700, exist_ok=True)
+                write_json(WEB_FILE, {"granted_at": now})
+            elif os.path.exists(WEB_FILE):
+                os.unlink(WEB_FILE)
+            audit("web", {"granted": want_web})
+        except Exception as problem:
+            trouble = "could not reach the directory: {}".format(problem)
+
     os.makedirs(STATE_DIR, exist_ok=True)
     with open(LAST_RUN_FILE, "w") as f:
         f.write("{}\n".format(now))
-    return approved, wanted
+    return approved, wanted, trouble
 
 
 ##############
 ## Commands ##
 ##############
 
+def parse_scopes(text):
+    asked = [scope.strip() for scope in text.split(",") if scope.strip()]
+    unknown = [scope for scope in asked if scope not in SCOPES]
+    if unknown or not asked:
+        sys.exit("--scopes must be a comma-separated list of {}, not {!r}"
+                 .format(" and ".join(SCOPES), text))
+    return asked
+
+
 def cmd_approve(args):
     now = int(time.time())
     if not 1 <= args.days <= MAX_DAYS:
         sys.exit("days must be between 1 and {}".format(MAX_DAYS))
+    scopes = parse_scopes(args.scopes)
     try:
         source = as_cidr(args.source)
     except ValueError:
         sys.exit("--source must be an IP address or CIDR, not {!r}".format(args.source))
 
     granted = {"fleet": args.fleet, "days": args.days, "reason": args.reason,
-               "source": source, "approved_at": now, "approved_by": args.by,
-               "signer": args.signer, "expires_at": now + args.days * 86400}
+               "source": source, "scopes": scopes, "approved_at": now,
+               "approved_by": args.by, "signer": args.signer,
+               "expires_at": now + args.days * 86400}
     os.makedirs(STATE_DIR, mode=0o700, exist_ok=True)
     write_json(GRANT_FILE, granted)
     audit("grant", granted)
 
-    approved, wanted = reconcile()
-    if not wanted:
+    approved, wanted, trouble = reconcile()
+    if "shell" in scopes and not wanted:
         sys.exit("the grant did not survive reconciliation")
+    if trouble:
+        sys.exit(trouble)
     print(granted["expires_at"])
 
 
@@ -261,25 +415,36 @@ def cmd_revoke(args):
 
 def cmd_reconcile(args):
     try:
-        approved, wanted = reconcile()
+        approved, wanted, trouble = reconcile()
     except Exception as problem:
         sys.exit("could not reconcile the firewall: {}".format(problem))
     print("{} until {}".format(
         wanted or "closed",
         time.strftime("%Y-%m-%d %H:%M UTC", time.gmtime(approved)) if approved else "-"))
+    if trouble:
+        sys.exit(trouble)
 
 
 def cmd_status(args):
-    """What the support page reads. What the firewall actually holds is reported
-    from this machine's own record of it, so a rule opened by hand shows up as
-    the absence of one rather than as a grant."""
+    """What the support page reads. What is actually in force is reported from this
+    machine's own record of the firewall, so a rule opened by hand shows up as the
+    absence of one rather than as a grant - but web access is asked of the directory,
+    which holds it, so a membership added by hand shows up as what it is."""
     state = {"fleet": fleet_id(), "grant": read_json(GRANT_FILE),
-             "open": read_json(OPEN_FILE), "last_reconcile": None, "trouble": ""}
+             "open": read_json(OPEN_FILE), "web": None,
+             "last_reconcile": None, "trouble": "", "web_trouble": ""}
     try:
         with open(LAST_RUN_FILE) as f:
             state["last_reconcile"] = int(f.read().strip())
     except (OSError, ValueError):
         pass
+    # Kept apart from "trouble", which means the page cannot say what is granted at
+    # all: an unreachable directory says nothing about the port, and reporting it as
+    # a blanket failure would hide state this machine holds and is sure of
+    try:
+        state["web"] = web_access_held()
+    except Exception as problem:
+        state["web_trouble"] = "could not reach the directory: {}".format(problem)
     print(json.dumps(state))
 
 
@@ -289,6 +454,10 @@ def cmd_list(args):
     print("granted until {}".format(
         time.strftime("%Y-%m-%d %H:%M UTC", time.gmtime(approved)) if approved else "- (none)"))
     print("port {} open to {}".format(SSH_PORT, held["cidr"] if held else "- (nobody)"))
+    try:
+        print("web sign-in {}".format("granted" if web_access_held() else "- (not granted)"))
+    except Exception as problem:
+        print("web sign-in unknown: {}".format(problem))
 
 
 def main():
@@ -300,6 +469,8 @@ def main():
     approve.add_argument("--days", type=int, required=True)
     approve.add_argument("--source", required=True,
                          help="the address to admit, as signed in the request")
+    approve.add_argument("--scopes", default=",".join(DEFAULT_SCOPES),
+                         help="what the customer approved: {}".format(", ".join(SCOPES)))
     approve.add_argument("--reason", default="")
     approve.add_argument("--by", default="")
     approve.add_argument("--signer", default="")

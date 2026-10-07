@@ -605,15 +605,26 @@ done
 # No password: bootstrap.sh reapplies every password its user configs carry, so one
 # here would be restored over whatever the admin has since chosen. They set their
 # own through the portal's reset link.
-cat > /etc/lldap/bootstrap/user-configs/jaia_admin.json <<EOF
+cat > /etc/lldap/bootstrap/user-configs/admin.json <<EOF
 {
-  "id": "jaia_admin",
+  "id": "admin",
   "email": "$admin_email",
   "groups": ["super_admin", "lldap_admin"
   ]
 }
 EOF
-chmod 0600 /etc/lldap/bootstrap/user-configs/jaia_admin.json
+chmod 0600 /etc/lldap/bootstrap/user-configs/admin.json
+
+# Groupless, and no "groups" key rather than an empty one, so re-running bootstrap
+# cannot withdraw a grant that is in force. The account exists so the support page
+# has something to move in and out of the web groups, and so the customer has one
+# name to audit; it reaches nothing until a grant puts it somewhere.
+cat > /etc/lldap/bootstrap/user-configs/jaia_support.json <<EOF
+{
+  "id": "jaia_support",
+  "email": "support@jaia.tech"
+}
+EOF
 
 cat <<EOF > /etc/lldap/docker-compose.yaml
 services:
@@ -753,6 +764,9 @@ EOF
 cat > /etc/systemd/system/jaia_support_reconcile.service <<EOF
 [Unit]
 Description=Bring Jaia's support access back in line with what the customer granted
+# Web access lives in the directory, so a run before it is up has nothing to say;
+# the next tick would recover anyway, but not before reporting a failure
+After=lldap.service
 
 [Service]
 Type=oneshot

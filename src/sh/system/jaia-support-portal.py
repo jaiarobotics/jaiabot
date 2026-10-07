@@ -28,6 +28,19 @@ import time
 import urllib.parse
 
 MAX_DAYS = 14
+
+# In the customer's terms: what Jaia can do with each, not what the CloudHub does
+SCOPES = ("shell", "web")
+SCOPE_LABELS = {
+    "shell": ("Log in to this CloudHub",
+              "Opens SSH from the address below, and reaches the bots and hubs "
+              "through it. Ending this disconnects anyone still logged in."),
+    "web": ("Sign in to the web tools",
+            "Lets Jaia open JCC, JDV, the Upgrade GUI and the read-only API as "
+            "the jaia_support account, to see what the fleet is doing. Ending "
+            "this stops new sign-ins; a session already open runs to its own "
+            "expiry, up to two hours."),
+}
 NAMESPACE = "jaia-support"
 PRINCIPAL = "jaia-support"
 
@@ -100,9 +113,18 @@ def check(payload, fleet, now):
                  "requested_at": int(request["requested_at"]),
                  "expires_at": int(request["expires_at"]),
                  "source": str(request["source"]),
+                 # Defaulted, not required: a request signed before this field existed
+                 # asks for a shell, and refusing it as malformed would be wrong
+                 "scopes": [str(scope) for scope in request.get("scopes", ["shell"])],
                  "reason": str(request["reason"])}
     except (TypeError, ValueError, KeyError):
         raise Refused("The signature is good but the request itself is malformed.")
+
+    unknown = [scope for scope in asked["scopes"] if scope not in SCOPES]
+    if unknown or not asked["scopes"]:
+        raise Refused("The signature is good but this request asks for {}, which this "
+                      "CloudHub does not know how to grant."
+                      .format(", ".join(unknown) or "nothing"))
 
     if asked["fleet"] != fleet:
         raise Refused("This request asks for fleet {}, and this CloudHub serves fleet {}."
@@ -178,6 +200,9 @@ table.log td { border-top: 1px solid #e8e8e8; }
 .none { background: #f0f0f0; border: 1px solid #c8c8c8; }
 .refused { background: #f8e8e8; border: 1px solid #c29393; }
 .quiet { color: #707070; font-size: 0.85rem; }
+ul.scopes { list-style: none; padding: 0; margin: 1rem 0; }
+ul.scopes li { margin: 0 0 1rem 0; }
+ul.scopes .quiet { display: block; margin-left: 1.6rem; }
 button { font-size: 1rem; padding: 0.5rem 1.2rem; }
 """
 
@@ -201,26 +226,43 @@ def banner(now, current):
                "this may be out of date: {}</p>".format(html.escape(current["trouble"]))
 
     grant, held = current["grant"], current.get("open")
-    if not grant and not held:
+    if not grant and not held and not current.get("web"):
         return "<p class=\"banner none\">Jaia has no access to this fleet.</p>"
     if not grant:
-        return ("<p class=\"banner refused\">This CloudHub is still admitting {} with no grant "
-                "on record. The next reconciliation will close it.</p>"
-                .format(html.escape(str(held.get("cidr", "")))))
+        leftover = ("still admitting {}".format(held.get("cidr", "")) if held else
+                    "still signing jaia_support in to the web tools")
+        return ("<p class=\"banner refused\">This CloudHub is {} with no grant on record. "
+                "The next check will end it.</p>".format(html.escape(str(leftover))))
+
+    scopes = [scope for scope in SCOPES if scope in grant.get("scopes", ["shell"])]
+    detail = [("Reason", grant.get("reason", "")),
+              ("Granted", ", ".join(SCOPE_LABELS[scope][0] for scope in scopes) or "nothing")]
+    if "shell" in scopes:
+        detail.append(("Open to", (held or {}).get("cidr", "nothing yet")))
+    detail += [("Approved", stamp(grant.get("approved_at", 0))),
+               ("Approved by", grant.get("approved_by", "")),
+               ("Signed with", grant.get("signer", ""))]
+
+    notes = []
+    if "shell" in scopes:
+        notes.append("This opens SSH to the \"Open to\" address above and to nothing else. "
+                     "Ending it also disconnects anyone still logged in from there. "
+                     "Any hub whose CloudHub VPN is switched off stays out of reach.")
+    if "web" in scopes:
+        notes.append("Web sign-in is read-oriented and reaches no bot or hub directly. "
+                     "Ending it stops new sign-ins, but a session already open runs to "
+                     "its own expiry, up to two hours.")
+    if current.get("web") and "web" not in scopes:
+        notes.append("The jaia_support account is still in the web groups with nothing "
+                     "granting it. The next check will take it out.")
+    if current.get("web_trouble"):
+        notes.append("Web sign-in could not be confirmed just now, so that line may be "
+                     "out of date: {}".format(html.escape(current["web_trouble"])))
 
     return ("<p class=\"banner granted\">Jaia has access to this fleet until {}.</p>"
-            "<table>{}</table>"
-            "<p class=\"quiet\">This opens SSH to the \"Open to\" address above and to nothing else. "
-            "Ending it also disconnects anyone still logged in from there. "
-            "Any hub whose CloudHub VPN is switched off stays out of reach.</p>".format(
-                html.escape(stamp(grant["expires_at"])),
-                "".join("<tr><th>{}</th><td>{}</td></tr>".format(html.escape(name),
-                                                                 html.escape(str(value)))
-                        for name, value in [("Reason", grant.get("reason", "")),
-                                            ("Open to", (held or {}).get("cidr", "nothing yet")),
-                                            ("Approved", stamp(grant.get("approved_at", 0))),
-                                            ("Approved by", grant.get("approved_by", "")),
-                                            ("Signed with", grant.get("signer", ""))])))
+            "{}{}".format(
+                html.escape(stamp(grant["expires_at"])), rows(detail),
+                "".join("<p class=\"quiet\">{}</p>".format(note) for note in notes)))
 
 
 def log_table():
@@ -250,7 +292,7 @@ anything is shown.</p>
 
 def status_page(token, now, current, pasted="", problem=""):
     ending = ""
-    if current["grant"] or current.get("open"):
+    if current["grant"] or current.get("open") or current.get("web"):
         ending = ("""<form method="post" action="/">
 <input type="hidden" name="csrf" value="{}">
 <p><button type="submit" name="action" value="revoke">End Jaia's access now</button></p>
@@ -267,27 +309,46 @@ def status_page(token, now, current, pasted="", problem=""):
                     log_table(), footer))
 
 
-def review_page(token, asked, signer, pasted, now):
+def scope_choices(asked):
+    """One box per thing asked for, each on by default: the customer is answering a
+    request, so the question is what to withhold rather than what to give."""
+    boxes = []
+    for scope in SCOPES:
+        if scope not in asked["scopes"]:
+            continue
+        title, detail = SCOPE_LABELS[scope]
+        boxes.append(
+            '<li><label><input type="checkbox" name="scope_{}" value="yes" checked> '
+            '<strong>{}</strong></label><br><span class="quiet">{}</span></li>'
+            .format(scope, html.escape(title), html.escape(detail)))
+    return "<ul class=\"scopes\">{}</ul>".format("".join(boxes))
+
+
+def review_page(token, asked, signer, pasted, now, problem=""):
     would_end = now + min(asked["days"], MAX_DAYS) * 86400
-    return page("Approve Jaia support access", """<h1>Approve Jaia support access</h1>
-<p class="banner granted">This request is signed by a Jaia root key.</p>
-{}
-<p>Approving lets Jaia log in to this CloudHub, and reach the fleet from it, until
-{}. You can end it here at any time before that.</p>
-<form method="post" action="/">
-<input type="hidden" name="csrf" value="{}">
-<input type="hidden" name="request" value="{}">
-<button type="submit" name="action" value="approve">Approve</button>
-</form>
-<p><a href="/">Cancel</a></p>""".format(
-        rows([("Reason", asked["reason"]),
+    warning = "<p class=\"banner refused\">{}</p>".format(html.escape(problem)) if problem else ""
+    detail = [("Reason", asked["reason"]),
               ("Fleet", asked["fleet"]),
-              ("Opens SSH to", asked["source"]),
               ("Access for", "{} days".format(asked["days"])),
               ("Requested", stamp(asked["requested_at"])),
               ("Would end", stamp(would_end)),
-              ("Signed with", signer)]),
-        html.escape(stamp(would_end)), html.escape(token), html.escape(pasted)))
+              ("Signed with", signer)]
+    if "shell" in asked["scopes"]:
+        detail.insert(2, ("Opens SSH to", asked["source"]))
+    return page("Approve Jaia support access", """<h1>Approve Jaia support access</h1>
+<p class="banner granted">This request is signed by a Jaia root key.</p>
+{}{}
+<p>Jaia is asking for the following, until {}. Approve what you are willing to give
+and leave the rest unticked; you can end any of it here at any time before then.</p>
+<form method="post" action="/">
+<input type="hidden" name="csrf" value="{}">
+<input type="hidden" name="request" value="{}">
+{}
+<button type="submit" name="action" value="approve">Approve</button>
+</form>
+<p><a href="/">Cancel</a></p>""".format(
+        warning, rows(detail), html.escape(stamp(would_end)),
+        html.escape(token), html.escape(pasted), scope_choices(asked)))
 
 
 def done_page(message):
@@ -397,9 +458,17 @@ class Portal(http.server.BaseHTTPRequestHandler):
             return
 
         if action == "approve":
+            # Intersected rather than taken from the form: a box that was never asked
+            # for cannot be added by editing the page
+            granting = [scope for scope in asked["scopes"] if field("scope_" + scope)]
+            if not granting:
+                self.reply(review_page(token, asked, signer, pasted, now,
+                                       "Nothing was ticked, so nothing was granted."))
+                return
             ends = now + min(asked["days"], MAX_DAYS) * 86400
             self.act(lambda: access("approve", "--fleet", str(asked["fleet"]),
                                     "--days", str(asked["days"]), "--source", asked["source"],
+                                    "--scopes", ",".join(granting),
                                     "--reason", asked["reason"],
                                     "--by", self.who(), "--signer", signer),
                      "Jaia has access to this fleet until {}.".format(stamp(ends)),

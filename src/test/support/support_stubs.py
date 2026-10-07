@@ -2,19 +2,24 @@
 
 """The CloudHub a support grant is made on, in miniature.
 
-Stand-ins for the two things a grant touches - the EC2 security group and ufw -
-each recording what it was told, and the environment that points the real
-scripts at them. The stub security group answers like the real one for the two
-cases the scripts rely on converging: authorizing a rule that is already there,
-and revoking one that is not.
+Stand-ins for the three things a grant touches - the EC2 security group, ufw and
+the directory - each recording what it was told, and the environment that points
+the real scripts at them. The stub security group answers like the real one for
+the two cases the scripts rely on converging: authorizing a rule that is already
+there, and revoking one that is not. The stub directory answers LLDAP's own
+GraphQL shapes, including the error for a user it has never heard of, because
+that is what a CloudHub bootstrapped before the support account looks like.
 """
 
+import http.server
 import json
 import os
 import socket
+import threading
 
 FLEET = 7
 SECURITY_GROUP = "sg-0fa1afe1"
+SUPPORT_ACCOUNT = "jaia_support"
 
 
 def free_port():
@@ -79,6 +84,84 @@ with open(os.environ["STUB_SS_LOG"], "a") as f:
 '''
 
 
+LLDAP_PASSWORD = "not-the-real-one"
+LLDAP_GROUPS = ("run", "sim", "jdv", "jcu_developer", "rest_api_read", "lldap_admin")
+
+
+class StubLldap:
+    """Enough of LLDAP 0.6.3's HTTP surface for the real client to drive it."""
+
+    def __init__(self, membership):
+        self.membership = membership        # {user: [group, ...]}, the whole directory
+        self.calls = []
+        stub = self
+
+        class Handler(http.server.BaseHTTPRequestHandler):
+            protocol_version = "HTTP/1.1"
+
+            def log_message(self, *args):
+                pass
+
+            def reply(self, payload):
+                body = json.dumps(payload).encode()
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+
+            def do_POST(self):
+                asked = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
+                if self.path == "/auth/simple/login":
+                    if asked.get("password") != LLDAP_PASSWORD:
+                        self.send_error(401)
+                        return
+                    stub.calls.append("login as {}".format(asked.get("username")))
+                    self.reply({"token": "stub-token"})
+                    return
+
+                query, variables = asked["query"], asked.get("variables", {})
+                if "addUserToGroup" in query or "removeUserFromGroup" in query:
+                    user = variables["user"]
+                    name = dict((i, g) for g, i in stub.ids().items())[variables["group"]]
+                    held = stub.membership.setdefault(user, [])
+                    if "add" in query:
+                        stub.calls.append("add {} to {}".format(user, name))
+                        if name not in held:
+                            held.append(name)
+                    else:
+                        stub.calls.append("remove {} from {}".format(user, name))
+                        if name in held:
+                            held.remove(name)
+                    self.reply({"data": {"ok": True}})
+                elif "user(userId:" in query:
+                    user = variables["user"]
+                    if user not in stub.membership:
+                        self.reply({"errors": [{"message": "Could not find user"}]})
+                        return
+                    stub.calls.append("read {}".format(user))
+                    self.reply({"data": {"user": {"groups": [
+                        {"displayName": name} for name in stub.membership[user]]}}})
+                elif "groups {" in query:
+                    self.reply({"data": {"groups": [
+                        {"id": i, "displayName": name} for name, i in stub.ids().items()]}})
+                else:
+                    self.send_error(400)
+
+        self.server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+        self.port = self.server.server_address[1]
+        self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
+        self.thread.start()
+
+    def ids(self):
+        return {name: number for number, name in enumerate(LLDAP_GROUPS, start=1)}
+
+    def close(self):
+        self.server.shutdown()
+        self.server.server_close()
+        self.thread.join(timeout=5)
+
+
 class CloudHub:
     def __init__(self, directory):
         self.dir = directory
@@ -88,14 +171,24 @@ class CloudHub:
         self.aws_log = os.path.join(directory, "aws.log")
         self.ufw_log = os.path.join(directory, "ufw.log")
         self.ss_log = os.path.join(directory, "ss.log")
+        self.secrets = os.path.join(directory, "secrets")
         os.makedirs(self.bin)
 
         stub(os.path.join(self.bin, "aws"), AWS_STUB)
         stub(os.path.join(self.bin, "ufw"), UFW_STUB)
         stub(os.path.join(self.bin, "ss"), SS_STUB)
 
+        with open(self.secrets, "w") as f:
+            f.write("authelia_ldap_password={}\n".format(LLDAP_PASSWORD))
+        # Bootstrapped groupless, as jaia_configure_authelia.sh writes it
+        self.lldap = StubLldap({SUPPORT_ACCOUNT: []})
+
     def close(self):
-        pass
+        self.lldap.close()
+
+    def forget_the_support_account(self):
+        """A CloudHub bootstrapped before the account existed."""
+        self.lldap.membership.pop(SUPPORT_ACCOUNT, None)
 
     def environment(self, **extra):
         return dict(os.environ,
@@ -109,6 +202,8 @@ class CloudHub:
                     STUB_AWS_LOG=self.aws_log,
                     STUB_UFW_LOG=self.ufw_log,
                     STUB_SS_LOG=self.ss_log,
+                    JAIA_AUTH_SECRETS=self.secrets,
+                    JAIA_LLDAP_URL="http://127.0.0.1:{}".format(self.lldap.port),
                     **extra)
 
     ## What the CloudHub ended up with
@@ -127,6 +222,13 @@ class CloudHub:
                 return [line.strip() for line in f if line.strip()]
         except OSError:
             return []
+
+    def web_groups(self):
+        """The groups the support account is in, as the directory holds them."""
+        return sorted(self.lldap.membership.get(SUPPORT_ACCOUNT, []))
+
+    def lldap_calls(self):
+        return list(self.lldap.calls)
 
     def aws_calls(self):
         return self._log(self.aws_log)

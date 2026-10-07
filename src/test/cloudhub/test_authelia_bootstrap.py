@@ -23,24 +23,42 @@ class AutheliaBootstrapTest(unittest.TestCase):
         with open(SCRIPT) as f:
             cls.text = f.read()
 
-    def jaia_admin_config(self):
-        found = re.search(r"jaia_admin\.json <<EOF\n(.*?)^EOF", self.text,
+    def user_config(self, name):
+        found = re.search(r"{}\.json <<EOF\n(.*?)^EOF".format(name), self.text,
                           re.DOTALL | re.MULTILINE)
-        self.assertIsNotNone(found, "the script no longer writes jaia_admin.json")
+        self.assertIsNotNone(found, "the script no longer writes {}.json".format(name))
         return found.group(1)
 
     def test_the_admin_is_bootstrapped_without_a_password(self):
-        self.assertNotIn("password", self.jaia_admin_config())
+        self.assertNotIn("password", self.user_config("admin"))
 
     def test_the_admin_is_still_created(self):
-        config = self.jaia_admin_config()
-        self.assertIn('"id": "jaia_admin"', config)
+        config = self.user_config("admin")
+        self.assertIn('"id": "admin"', config)
         self.assertIn("lldap_admin", config)
+
+    def test_the_admin_is_not_named_for_jaia(self):
+        """It is the customer's own account - their person, their password - and the
+        old name said the opposite on the one page built to tell the two apart."""
+        self.assertNotIn("jaia_admin", self.text)
 
     def test_no_admin_password_is_generated_or_stored(self):
         """It was written only into the bootstrap config, so with that gone it is a
         secret in the secrets file that nothing can use."""
         self.assertNotIn("lldap_admin_password", self.text)
+
+    def test_the_support_account_is_bootstrapped_in_no_groups(self):
+        """It holds nothing until a grant moves it, so a CloudHub between engagements
+        has an account the customer can audit and an account that reaches nothing."""
+        config = self.user_config("jaia_support")
+        self.assertIn('"id": "jaia_support"', config)
+        self.assertNotIn("groups", config)
+        self.assertNotIn("password", config)
+
+    def test_the_support_account_carries_no_group_key_at_all(self):
+        """An empty "groups" would be bootstrap.sh reapplying "in nothing" over a live
+        grant every time it runs; absent means it leaves membership alone."""
+        self.assertNotIn('"groups": []', self.user_config("jaia_support"))
 
 
 if __name__ == "__main__":

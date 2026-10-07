@@ -614,4 +614,4 @@ cat <<EOF
 	*.$AUTH_BASE_URI_HOST CNAME $AUTH_BASE_URI
 EOF
 
-echo -e "Authelia login at https://$AUTH_BASE_URI\n\tuser: jaia_admin\n\tpass: none yet - set one with \"Reset password?\" on the login page, which emails cloudhub.admin_email"
+echo -e "Authelia login at https://$AUTH_BASE_URI\n\tuser: admin\n\tpass: none yet - set one with \"Reset password?\" on the login page, which emails cloudhub.admin_email"

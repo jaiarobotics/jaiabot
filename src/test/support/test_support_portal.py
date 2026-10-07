@@ -83,12 +83,14 @@ class PortalTest(unittest.TestCase):
     ## Requests
 
     def sign(self, key=None, fleet=FLEET, days=7, reason="Pump fault on bot 3",
-             expires_in=7 * 86400, source="198.51.100.7", tamper=None):
+             expires_in=7 * 86400, source="198.51.100.7", tamper=None, scopes=("shell",)):
         requested_at = int(time.time())
-        payload = json.dumps({"fleet": fleet, "days": days, "requested_at": requested_at,
-                              "expires_at": requested_at + expires_in, "source": source,
-                              "reason": reason},
-                             separators=(",", ":"))
+        asked = {"fleet": fleet, "days": days, "requested_at": requested_at,
+                 "expires_at": requested_at + expires_in, "source": source,
+                 "reason": reason}
+        if scopes is not None:
+            asked["scopes"] = list(scopes)
+        payload = json.dumps(asked, separators=(",", ":"))
         signed = os.path.join(self.dir, "payload")
         with open(signed, "w") as f:
             f.write(payload)
@@ -110,11 +112,15 @@ class PortalTest(unittest.TestCase):
                 self.cookie = cookie.split(";")[0]
             return answer.read().decode()
 
-    def post(self, action, pasted="", csrf=None, user="operator"):
+    def post(self, action, pasted="", csrf=None, user="operator", ticks=None):
         if not hasattr(self, "cookie"):
             self.get()
         fields = {"action": action, "request": pasted,
                   "csrf": self.cookie.split("=", 1)[1] if csrf is None else csrf}
+        # The real form arrives with every box the request asked for already ticked;
+        # the server intersects, so offering both here is what a browser would send
+        for scope in (("shell", "web") if ticks is None else ticks):
+            fields["scope_" + scope] = "yes"
         headers = {"Cookie": self.cookie, "Content-Type": "application/x-www-form-urlencoded"}
         if user:
             headers["Remote-User"] = user
@@ -232,6 +238,79 @@ class PortalTest(unittest.TestCase):
         self.assertIn("Pump fault on bot 3", page)
         self.assertIn("<td>grant</td>", page)
         self.assertIn("<td>end</td>", page)
+
+    ## What is being asked for, and what the customer actually gives
+
+    def test_the_review_offers_only_what_was_asked_for(self):
+        status, page = self.post("review", self.sign(scopes=["shell"]))
+        self.assertIn('name="scope_shell"', page)
+        self.assertNotIn('name="scope_web"', page)
+
+    def test_a_request_for_both_offers_both_already_ticked(self):
+        status, page = self.post("review", self.sign(scopes=["shell", "web"]))
+        self.assertIn('name="scope_shell"', page)
+        self.assertIn('name="scope_web"', page)
+        self.assertEqual(2, page.count("checked"))
+
+    def test_the_customer_can_give_the_shell_and_withhold_the_web(self):
+        """The point of having two: approving a request is not all-or-nothing."""
+        self.post("approve", self.sign(scopes=["shell", "web"]), ticks=["shell"])
+        self.assertEqual(["198.51.100.7/32"], self.hub.open_to())
+        self.assertEqual([], self.hub.web_groups())
+        self.assertEqual(["shell"], self.grant()["scopes"])
+
+    def test_the_customer_can_give_the_web_and_withhold_the_shell(self):
+        self.post("approve", self.sign(scopes=["shell", "web"]), ticks=["web"])
+        self.assertEqual([], self.hub.open_to())
+        self.assertEqual(["jcu_developer", "jdv", "rest_api_read", "run"],
+                         self.hub.web_groups())
+
+    def test_ticking_nothing_grants_nothing_and_says_so(self):
+        status, page = self.post("approve", self.sign(scopes=["shell", "web"]), ticks=[])
+        self.assertEqual([], self.hub.open_to())
+        self.assertEqual([], self.hub.web_groups())
+        self.assertIn("Nothing was ticked", page)
+
+    def test_a_box_that_was_not_asked_for_cannot_be_ticked_into_a_grant(self):
+        """The form is the customer's, so what it carries is theirs to edit; what was
+        asked for is signed, and that is what bounds the grant."""
+        self.post("approve", self.sign(scopes=["shell"]), ticks=["shell", "web"])
+        self.assertEqual([], self.hub.web_groups())
+        self.assertEqual(["shell"], self.grant()["scopes"])
+
+    def test_a_request_signed_before_scopes_existed_is_still_a_shell_request(self):
+        """jaia-support-request.sh gained --scopes after the first CloudHubs shipped.
+        Refusing an older request as malformed would be the wrong answer."""
+        self.post("approve", self.sign(scopes=None))
+        self.assertEqual(["198.51.100.7/32"], self.hub.open_to())
+        self.assertEqual(["shell"], self.grant()["scopes"])
+
+    def test_a_request_for_a_scope_this_cloudhub_does_not_know_is_refused(self):
+        status, page = self.post("review", self.sign(scopes=["root"]))
+        self.assertIn("does not know how to grant", page)
+
+    def test_the_page_says_what_each_half_does_before_approval(self):
+        """The two revoke differently, and the customer is entitled to know that
+        before they decide rather than after."""
+        status, page = self.post("review", self.sign(scopes=["shell", "web"]))
+        self.assertIn("disconnects anyone still logged in", page)
+        self.assertIn("runs to its own expiry", page)
+
+    def test_a_granted_page_names_both_halves(self):
+        self.post("approve", self.sign(scopes=["shell", "web"]))
+        page = self.get()
+        self.assertIn("Log in to this CloudHub", page)
+        self.assertIn("Sign in to the web tools", page)
+
+    def test_a_directory_that_cannot_be_reached_does_not_hide_the_port(self):
+        """LLDAP is one of two gates; losing sight of it must not blank out the one
+        the CloudHub knows for certain."""
+        self.post("approve", self.sign(scopes=["shell"]))
+        self.hub.lldap.close()
+        page = self.get()
+        self.assertIn("Jaia has access to this fleet until", page)
+        self.assertIn("198.51.100.7/32", page)
+        self.assertIn("could not be confirmed", page)
 
     def test_a_request_from_the_real_script_is_accepted(self):
         """The tests above build the payload themselves, so nothing else would

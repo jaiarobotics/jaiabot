@@ -204,7 +204,7 @@ settings are split by where they can be obtained again:
 | `includes_cloudhub` (top level) | `true` — answer no to the CloudHub question in `jaia admin fleet create`/`edit` for a fleet sold without one |
 | `customer` (top level) | `jaia` — the value of the `jaia_customer` tag on every AWS resource the fleet owns |
 | `cloudhub.base_uri` | required — the name the authentication front end is served under |
-| `cloudhub.admin_email` | required — address of the `jaia_admin` user created on first boot |
+| `cloudhub.admin_email` | required — address of the `admin` user created on first boot |
 | `cloudhub.smtp_address` | required — the relay Authelia sends enrolment and reset mail through |
 | `cloudhub.data_bucket` | `jaia--cloudhub-data--fleet<fleet>` — the bucket mounted at the bot offload directory |
 | `cloudhub.smtp_sender` | `noreply@auth.jaia.tech` — the From address, verified with the SMTP provider |
