@@ -14,6 +14,8 @@ export enum LoadResultType {
     CURRENT_FORMAT = "CURRENT_FORMAT",
     OLD_FORMAT = "OLD_FORMAT",
     INVALID_FORMAT = "INVALID_FORMAT",
+    /** Saved with a version this JCC does not know, e.g. by a newer one; not loaded. */
+    UNKNOWN_FORMAT = "UNKNOWN_FORMAT",
 }
 export interface LoadSnapshotResult {
     snapshot: MissionSetSnapshot | null;
@@ -60,6 +62,9 @@ export async function loadSnapshotFromHub(saveName: string): Promise<LoadSnapsho
         };
     }
     const version: string = targetSet.version ?? "2.0";
+    if (!isKnownVersion(version)) {
+        return { snapshot: null, resultType: LoadResultType.UNKNOWN_FORMAT };
+    }
     const migrated = migrateSnapshot(targetSet, version);
     const missions: [number, Mission][] = [];
     if (Array.isArray(migrated.missions)) {
@@ -180,6 +185,11 @@ export async function loadSnapshotFromFile(): Promise<LoadSnapshotResult> {
 
                 // Check version of parsed file
                 if (isCurrentMissionFile(parsed)) {
+                    if (!isKnownVersion(parsed.version)) {
+                        loadSnapshotResult.resultType = LoadResultType.UNKNOWN_FORMAT;
+                        resolve(loadSnapshotResult);
+                        return;
+                    }
                     loadSnapshotResult.snapshot = extractMissionSetSnapshot(
                         parsed.snapshot,
                         parsed.version,
@@ -260,8 +270,75 @@ function migrateSnapshot_2_0(rawSnapshot: any): any {
     };
 }
 
+/**
+ * Migrates one raw mission from 2.1 to 2.2. Segments stop being goal indices: the first
+ * segment's settings move to firstSegment, and later segments and lane starts become markers
+ * on the waypoints that start them. The detour flag is renamed from isBypass, and the
+ * mission-level speeds a 2.0 file carries fold into the first segment.
+ *
+ * @param {any} mission Raw mission as saved in 2.1, or as migrated from 2.0
+ * @returns {any} Raw mission in the 2.2 format
+ */
+export function migrateMission_2_1(mission: any): any {
+    const { segments, speeds, ...rest } = mission;
+    const waypoints = (mission.waypoints ?? []).map(({ isBypass, ...waypoint }: any) =>
+        isBypass ? { ...waypoint, isDetour: true } : waypoint,
+    );
+    // Markers never sit on a detour, so one saved on a detour moves to the next waypoint
+    const markerIndex = (goalIndex: number) => {
+        while (waypoints[goalIndex]?.isDetour) goalIndex++;
+        return goalIndex;
+    };
+    let firstSegment: any = {};
+    for (const { start_goal_index, lane_start_goal_indices, ...params } of segments ?? []) {
+        // Files of this version predate suppression, so a goal index is a stored index
+        if (start_goal_index === 0) firstSegment = params;
+        else {
+            const index = markerIndex(start_goal_index);
+            if (waypoints[index]) waypoints[index] = { ...waypoints[index], segmentStart: params };
+        }
+        for (const laneStart of lane_start_goal_indices ?? []) {
+            const index = markerIndex(laneStart);
+            if (waypoints[index]) waypoints[index] = { ...waypoints[index], isLaneStart: true };
+        }
+    }
+    if (speeds?.transit !== undefined && firstSegment.speed === undefined) {
+        firstSegment = { ...firstSegment, speed: speeds.transit };
+    }
+    return {
+        ...rest,
+        ...(speeds?.stationkeep_outer !== undefined && {
+            stationkeepSpeed: speeds.stationkeep_outer,
+        }),
+        waypoints,
+        firstSegment,
+    };
+}
+
+// Migrates a raw snapshot from 2.1 to 2.2
+function migrateSnapshot_2_1(rawSnapshot: any): any {
+    if (!Array.isArray(rawSnapshot.missions)) return rawSnapshot;
+    return {
+        ...rawSnapshot,
+        missions: rawSnapshot.missions.map(([id, mission]: [any, any]) => [
+            id,
+            migrateMission_2_1(mission),
+        ]),
+    };
+}
+
 // Each entry migrates from that version to the next, applied in order
-const SNAPSHOT_MIGRATIONS: [string, (s: any) => any][] = [["2.0", migrateSnapshot_2_0]];
+const SNAPSHOT_MIGRATIONS: [string, (s: any) => any][] = [
+    ["2.0", migrateSnapshot_2_0],
+    ["2.1", migrateSnapshot_2_1],
+];
+
+// A JCC loads only the versions it can migrate from, and refuses any other, such as a newer one
+function isKnownVersion(version: string): boolean {
+    return (
+        version === MISSION_SET_VERSION || SNAPSHOT_MIGRATIONS.some(([known]) => known === version)
+    );
+}
 
 // Applies all needed snapshot migrations from fromVersion up to current
 function migrateSnapshot(rawSnapshot: any, fromVersion: string): any {

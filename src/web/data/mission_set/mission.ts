@@ -422,18 +422,13 @@ export default class Mission {
      * @returns {Mission} mission Resulting Mission object
      */
     static fromJSON(serializedMission: string): Mission {
-        // Older files carry segments as goal indices, and the oldest mission-level speeds
-        const { segments, speeds: legacySpeeds, ...fields } = serializedMission as any;
-        const mission = Object.assign(new Mission(), fields);
-        mission.firstSegment = cloneDeep(fields.firstSegment ?? {});
-        mission.waypoints = (fields.waypoints ?? []).map((serializedWaypoint: any) => {
-            // Files saved before the detour flag was renamed carry it as isBypass
-            const { isBypass, ...waypointFields } = serializedWaypoint;
+        const mission = Object.assign(new Mission(), serializedMission);
+        mission.firstSegment = cloneDeep(mission.firstSegment ?? {});
+        mission.waypoints = (mission.waypoints ?? []).map((serializedWaypoint: any) => {
             const waypoint = Object.assign(
                 new MissionWaypoint(serializedWaypoint.location),
-                waypointFields,
+                serializedWaypoint,
             );
-            if (isBypass) waypoint.setIsDetour(true);
             if (serializedWaypoint.segmentStart) {
                 waypoint.setSegmentStart(cloneDeep(serializedWaypoint.segmentStart));
             }
@@ -442,35 +437,7 @@ export default class Mission {
             }
             return waypoint;
         });
-        if (segments) mission.applyIndexedSegments(segments);
         mission.promoteFirstMarker();
-        if (legacySpeeds?.transit !== undefined) {
-            mission.firstSegment.speed ??= legacySpeeds.transit;
-        }
-        if (legacySpeeds?.stationkeep_outer !== undefined) {
-            mission.setStationkeepSpeed(legacySpeeds.stationkeep_outer);
-        }
         return mission;
-    }
-
-    /**
-     * Converts segments stored as goal indices into the first segment's settings and markers
-     * on the waypoints that start later segments and lanes. Files with indexed segments
-     * predate suppression, so a goal index is a stored index.
-     *
-     * @param {Segment[]} segments Segments as saved, indexed by goal
-     * @returns {void}
-     */
-    private applyIndexedSegments(segments: Segment[]) {
-        for (const { start_goal_index, lane_start_goal_indices, ...params } of segments) {
-            if (start_goal_index === 0) {
-                this.firstSegment = cloneDeep(params);
-            } else {
-                this.waypoints[start_goal_index]?.setSegmentStart(cloneDeep(params));
-            }
-            for (const laneStart of lane_start_goal_indices ?? []) {
-                this.waypoints[laneStart]?.setIsLaneStart(true);
-            }
-        }
     }
 }

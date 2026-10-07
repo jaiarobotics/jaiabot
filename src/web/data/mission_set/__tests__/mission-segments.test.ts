@@ -7,11 +7,12 @@ import { UNASSIGNED_ID } from "../../../utils/constants";
 import { locationA } from "../../tests/__mocks__/waypoint-mock";
 import { expectSegmentsAscending } from "../../tests/segment-assertions";
 import { combineMissionSets } from "../../../components/MissionsPanel/MissionSetEditor/mission-set-editor";
+import { migrateMission_2_1 } from "../../../components/MissionsPanel/MissionSetStorage/mission-set-storage";
 
-/** Builds a mission the way an older saved file loads: segments given as goal indices. */
+/** Builds a mission the way a 2.1 saved file loads: segments given as goal indices. */
 function makeMission(waypointCount: number, segments?: Segment[]): Mission {
     const waypoints = Array.from({ length: waypointCount }, () => ({ location: locationA }));
-    return Mission.fromJSON({ waypoints, segments } as any);
+    return Mission.fromJSON(migrateMission_2_1({ waypoints, segments }));
 }
 
 function makeCache(entries: [string, Mission[]][]): Map<string, MissionSetSnapshot> {

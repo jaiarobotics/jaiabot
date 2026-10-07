@@ -9,6 +9,7 @@ import {
 } from "../mission-set-editor";
 import { locationA } from "../../../../data/tests/__mocks__/waypoint-mock";
 import { expectSegmentsAscending } from "../../../../data/tests/segment-assertions";
+import { migrateMission_2_1 } from "../../MissionSetStorage/mission-set-storage";
 
 const DEFAULT_SPEEDS = { transit: 2, stationkeep_outer: 2 };
 
@@ -48,7 +49,7 @@ function makeMultiSegmentMission(segmentCount: number): Mission {
         start_goal_index: i * 2,
         speed: DEFAULT_SPEEDS.transit,
     }));
-    return Mission.fromJSON({ waypoints, segments } as any);
+    return Mission.fromJSON(migrateMission_2_1({ waypoints, segments }));
 }
 
 describe("getMaxSegmentsPerOutputMission", () => {

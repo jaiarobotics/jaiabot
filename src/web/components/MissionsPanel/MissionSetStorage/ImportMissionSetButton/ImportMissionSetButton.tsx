@@ -63,6 +63,10 @@ export default function ImportMissionSetButton(props: Props) {
                     setIsDialogVisible(true);
                     return;
                 }
+            } else if (loadResults.resultType === LoadResultType.UNKNOWN_FORMAT) {
+                setDialogWarningType(DialogWarningType.UNKNOWN_FORMAT);
+                setIsDialogVisible(true);
+                return;
             } else {
                 setDialogWarningType(DialogWarningType.INVALID_FORMAT);
                 setIsDialogVisible(true);

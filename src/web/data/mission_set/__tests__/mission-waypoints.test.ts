@@ -15,7 +15,6 @@ interface StoredWaypoint {
     location: GeographicCoordinate;
     isDetour?: boolean;
     isSuppressed?: boolean;
-    isBypass?: boolean;
 }
 
 /** Builds a mission from stored waypoints, the way a saved file loads, flags included. */
@@ -160,13 +159,5 @@ describe("revertWaypoint", () => {
         expect(mission.getWaypoint(1)).toBe(waypoint);
         expect(waypoint.getLocation()).toEqual(locationA);
         expect(waypoint.getTask().getType()).toBe(TaskType.DIVE);
-    });
-});
-
-describe("loading", () => {
-    test("reads the old isBypass field as a detour", () => {
-        const mission = loadMission([{ location: locationA, isBypass: true }]);
-
-        expect(mission.getWaypoint(1)!.getIsDetour()).toBe(true);
     });
 });
