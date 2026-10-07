@@ -182,6 +182,13 @@ comes back to `/etc/wireguard/wg_jaia_ch<fleet>.conf` with its own private key i
 it. `jaia admin fleet generate` puts the CloudHub's base URI in the preseed, and
 leaves the step out for the CloudHub itself and for a fleet that has none.
 
+Before it pairs, the node waits up to two minutes (`JAIA_PAIRING_WAIT_SECONDS`)
+for a TCP connection to the CloudHub's HTTPS port, which answers whether or not
+pairing is open; no ping is needed, so networks that block ICMP still pair. A
+node that cannot reach the CloudHub, or that the CloudHub turns away because
+fleet pairing is closed, keeps its bootstrap key and says which in its log; run
+"Pair Fleet to CloudHub" once pairing is open to try again.
+
 The SSH key it uses (`id_vpn_tmp`) is on the boot media of every node in the
 fleet, so on the CloudHub it is authorized with `restrict`, an expiry, and
 `command="/usr/bin/jaia-vpn-enroll.sh"`. That forced command
