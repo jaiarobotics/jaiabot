@@ -604,6 +604,15 @@ def cmd_has_cloudhub(schema, args):
     return 0
 
 
+def cmd_nodes(schema, args):
+    """The hubs and bots a fleet config lists, one line each, for the upgrade to
+    compare against a hub's inventory."""
+    cfg = load_migrated(schema, args.fleetcfg, echo=lambda _: None)
+    print("hubs " + " ".join(str(h) for h in sorted(cfg.hubs)))
+    print("bots " + " ".join(str(b) for b in sorted(cfg.bots)))
+    return 0
+
+
 def cmd_validate(schema, args):
     cfg = parse_fleet_config(schema, args.fleetcfg)
     print("{}: fleet config version {} (current is {})".format(args.fleetcfg, cfg.version, schema.version))
@@ -1602,6 +1611,10 @@ def build_parser():
     p = sub.add_parser("has_cloudhub", help="Print yes or no: whether this fleet includes a CloudHub")
     p.add_argument("fleetcfg", help="Path to fleet configuration file (protobuf TextFormat version of FleetConfig)")
     p.set_defaults(func=cmd_has_cloudhub)
+
+    p = sub.add_parser("nodes", help="Print the hubs and bots a fleet config lists")
+    p.add_argument("fleetcfg", help="Path to fleet configuration file (protobuf TextFormat version of FleetConfig)")
+    p.set_defaults(func=cmd_nodes)
 
     p = sub.add_parser("set_cloudhub_key", help="Record the public SSH key a CloudHub made for itself")
     p.add_argument("fleetcfg", help="Path to the fleet configuration file to update")

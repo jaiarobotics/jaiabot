@@ -36,6 +36,10 @@
     remote_src: yes
   when: fleet_cfg is not defined and not iso_fleet_file.stat.exists and existing_fleet_file.stat.exists
 
+- name: Note where the staged fleet config came from
+  set_fact:
+    staged_fleet_cfg_source: "{{ 'command line' if fleet_cfg is defined else ('iso' if iso_fleet_file.stat.exists else 'hub') }}"
+
 - name: Handle fleet config failure
   include_tasks: handle_failure.yml
   vars:

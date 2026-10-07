@@ -445,6 +445,21 @@ class CommandTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual("no", result.stdout.strip())
 
+    def test_nodes_lists_the_hubs_and_bots(self):
+        """What the major upgrade compares with the hub's inventory."""
+        result = self.env.run("nodes", fixture("v2_no_permanent_keys.cfg"))
+        self.assertEqual(result.returncode, 0, result.stderr)
+        cfg = fc.parse_fleet_config(SCHEMA, fixture("v2_no_permanent_keys.cfg"))
+        self.assertEqual(result.stdout.splitlines(),
+                         ["hubs " + " ".join(str(h) for h in sorted(cfg.hubs)),
+                          "bots " + " ".join(str(b) for b in sorted(cfg.bots))])
+
+    def test_nodes_reads_a_2y_config(self):
+        """A hub that has not been upgraded yet holds a version 1 file."""
+        result = self.env.run("nodes", fixture("v1_fleet7.cfg"))
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout.splitlines(), ["hubs 1 30", "bots 1 2"])
+
     def test_validate_reports_migration(self):
         result = self.env.run("validate", fixture("v1_fleet7.cfg"))
         self.assertEqual(result.returncode, 0, result.stderr)
