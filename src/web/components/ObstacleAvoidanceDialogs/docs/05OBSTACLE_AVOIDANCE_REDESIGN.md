@@ -661,11 +661,16 @@ Not started. Known items:
   defects carried over from PR #1674's review. (a) Export renames the zone or mission set without
   a tracked action, unlike Save, so undoing the next edit reverts the name. (b) A placement
   refused inside a zone still records an empty undo entry; this fits the handler rework.
-- **Phase 3, with the router's interface:** the router still keeps a module-level
-  `projectionOrigin`, so `buildSharedZoneGeoms` depends on earlier calls as well as the zones
-  passed in. It was kept stable so a stored route and a freshly computed one would agree; decide
-  whether routing status still needs that. Also, `getBlockingZoneIDs` and `routeNeedsBypass`
-  ignore their `zones` argument when given a prebuilt cache or shared geometry.
+- **Phase 3, with the router's interface:** `getBlockingZoneIDs` ignores its `zones` argument
+  when given a prebuilt buffer cache.
+- **Phase 3, with the router's interface:** routing status projects a route from its first
+  waypoint, and the router projects a mission from its first goal. If the reroute routes legs from
+  any other origin, a detour leg that grazes a buffer can test as blocked once stored, and a
+  freshly rerouted mission shows as conflicted. Route and test in the same frame, or test with a
+  tolerance.
+- **Step 4:** `getRoutingStatus` rebuilds and buffers every zone for each mission. When the icon
+  shows status for every mission, share the zone geometry across missions or recompute only when
+  the zones change.
 - **Separate task:** router performance (Finding 12). A fixed 5 m A\* grid makes cost grow with
   the area searched. Candidate fix: scale the cell size with the search area, paired with an exact
   check of the final path against every zone, so a thin zone cannot slip between cell centres.

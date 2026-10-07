@@ -250,12 +250,6 @@ function expandPolygon(poly: XYPt[], margin: number): XYPt[] {
 
 // ── Zone geometry ──────────────────────────────────────────────────────────────
 
-/** A projected zone set sharing one origin, reusable across many routes. */
-export interface SharedZoneGeoms {
-    origin: GeographicCoordinate;
-    zoneGeoms: Array<ZoneGeom & { zoneID: number }>;
-}
-
 interface ZoneGeom {
     /** Raw user-drawn vertices (possibly concave). */
     raw: XYPt[];
@@ -289,10 +283,7 @@ function zonesBlockingSegment(
 }
 
 /**
- * Projects and buffers every exclusion zone relative to a single shared
- * origin. Callers that process multiple missions/waypoints against the same
- * zone set in one pass should build this once and reuse it, instead of
- * letting each per-mission/per-waypoint call rebuild it from scratch.
+ * Projects and buffers every exclusion zone relative to a single origin.
  *
  * @param {ReadonlyMap<number, ExclusionZone>} zones Exclusion zones to project, keyed by zone ID
  * @param {GeographicCoordinate} origin Shared projection origin for every zone
@@ -659,24 +650,18 @@ interface RouteResult {
  * @param {MissionPlan} plan Mission plan whose goal waypoints need routing
  * @param {ReadonlyMap<number, ExclusionZone>} zones Exclusion zones to route around, keyed by zone ID
  * @param {number} [safetyMargin] Safety buffer distance in metres around each zone
- * @param {GeographicCoordinate} [originOverride] Optional projection origin; defaults to the first goal location
- * @param {Array<ZoneGeom & { zoneID: number }>} [zoneGeomsOverride] Optional precomputed zone geometry
- *   (see `buildZoneGeoms`), for callers routing multiple missions against the same zone set in one pass.
- *   Must have been built with the same origin passed as `originOverride`.
  * @returns {RouteResult} Routed plan with bypass waypoints inserted, plus metadata about the routing outcome
  */
 export function routeAroundExclusionZones(
     plan: MissionPlan,
     zones: ReadonlyMap<number, ExclusionZone>,
     safetyMargin = DEFAULT_SAFETY_MARGIN_METERS,
-    originOverride?: GeographicCoordinate,
-    zoneGeomsOverride?: Array<ZoneGeom & { zoneID: number }>,
 ): RouteResult {
     const goals = plan.goal ?? [];
     if (goals.length < 2) return { plan, bypassCount: 0 };
 
-    const origin = originOverride ?? goals[0].location!;
-    const zoneGeoms = zoneGeomsOverride ?? buildZoneGeoms(zones, origin, safetyMargin);
+    const origin = goals[0].location!;
+    const zoneGeoms = buildZoneGeoms(zones, origin, safetyMargin);
     if (zoneGeoms.length === 0) return { plan, bypassCount: 0 };
 
     interface WorkingGoal {
@@ -810,71 +795,6 @@ export function getBlockingZoneIDs(
 }
 
 /**
- * Distance from the projection origin beyond which it is re-anchored. The
- * equirectangular projection holds to <0.1% within this range, so a zone set in a
- * different operating area gets a fresh origin rather than an increasingly skewed one.
- */
-const MAX_ORIGIN_DISTANCE_METERS = 50_000;
-
-let projectionOrigin: GeographicCoordinate | undefined;
-
-/**
- * Returns the reference point every projection in a detection pass is measured from.
- *
- * The origin is kept across zone edits rather than re-derived each pass. Bypass
- * waypoints are computed in this frame but stored as lat/lon, so an origin that moved
- * whenever the first zone in the set changed would make a stored route disagree with
- * the one freshly computed for it — the same route, quantized from a different
- * reference point — and every untouched mission would be reported as needing a reroute.
- *
- * It is re-anchored only when no zone has usable geometry, or when the zones have moved
- * far enough away that the projection would lose accuracy.
- *
- * @param {ReadonlyMap<number, ExclusionZone>} zones Exclusion zones being projected, keyed by zone ID
- * @returns {GeographicCoordinate | undefined} Shared projection origin, or undefined when no zone has usable geometry
- */
-function getProjectionOrigin(
-    zones: ReadonlyMap<number, ExclusionZone>,
-): GeographicCoordinate | undefined {
-    const candidate = Array.from(zones.values()).find((z) => z.vertices && z.vertices.length >= 3)
-        ?.vertices?.[0];
-
-    if (!candidate) {
-        projectionOrigin = undefined;
-        return undefined;
-    }
-
-    if (projectionOrigin) {
-        const { x, y } = toXY(projectionOrigin, candidate);
-        if (Math.hypot(x, y) <= MAX_ORIGIN_DISTANCE_METERS) return projectionOrigin;
-    }
-
-    projectionOrigin = candidate;
-    return projectionOrigin;
-}
-
-/**
- * Projects every zone once, relative to a single shared origin, for callers that test
- * many routes against the same zone set instead of letting each test rebuild the same
- * geometry.
- *
- * Returns undefined when no zone has usable geometry, in which case nothing can be
- * blocked.
- *
- * @param {ReadonlyMap<number, ExclusionZone>} zones Exclusion zones to project, keyed by zone ID
- * @param {number} [safetyMargin] Safety buffer distance in metres around each zone
- * @returns {SharedZoneGeoms | undefined} Shared projection origin and projected zones, or undefined if there are none
- */
-export function buildSharedZoneGeoms(
-    zones: ReadonlyMap<number, ExclusionZone>,
-    safetyMargin = DEFAULT_SAFETY_MARGIN_METERS,
-): SharedZoneGeoms | undefined {
-    const origin = getProjectionOrigin(zones);
-    if (!origin) return undefined;
-    return { origin, zoneGeoms: buildZoneGeoms(zones, origin, safetyMargin) };
-}
-
-/**
  * Reports whether a route still requires a detour around the given zones,
  * without computing the detour itself. Uses the same blocking test as
  * `routeAroundExclusionZones`, so the two can never disagree, but skips the A*
@@ -883,19 +803,17 @@ export function buildSharedZoneGeoms(
  * @param {GeographicCoordinate[]} route Ordered locations of the route's waypoints
  * @param {ReadonlyMap<number, ExclusionZone>} zones Exclusion zones to test against, keyed by zone ID
  * @param {number} [safetyMargin] Safety buffer distance in metres around each zone
- * @param {SharedZoneGeoms} [sharedGeoms] Precomputed geometry (see `buildSharedZoneGeoms`), for callers testing many routes against the same zone set
  * @returns {boolean} Whether any leg of the route is blocked by a zone
  */
 export function routeNeedsBypass(
     route: GeographicCoordinate[],
     zones: ReadonlyMap<number, ExclusionZone>,
     safetyMargin = DEFAULT_SAFETY_MARGIN_METERS,
-    sharedGeoms?: SharedZoneGeoms,
 ): boolean {
     if (route.length < 2) return false;
 
-    const origin = sharedGeoms?.origin ?? route[0];
-    const zoneGeoms = sharedGeoms?.zoneGeoms ?? buildZoneGeoms(zones, origin, safetyMargin);
+    const origin = route[0];
+    const zoneGeoms = buildZoneGeoms(zones, origin, safetyMargin);
     if (zoneGeoms.length === 0) return false;
 
     const xy = route.map((location) => toXY(origin, location));
