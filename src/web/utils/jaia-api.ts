@@ -173,40 +173,6 @@ export class JaiaAPI {
     }
 
     /**
-     * Get a set of depth contours from the backend in GeoJSON format.
-     *
-     * @async
-     * @param {?string} [startDate] sets the lower bound on the TaskPackets displayed
-     * @param {?string} [endDate] sets the upper bound on the TaskPackets displayed
-     * @returns {Promise<FeatureCollection<Geometry>>} The depth contour feature set.
-     * @notes Expected startDate format: yyyy-mm-dd hh:mm Expected endDate format: yyyy-mm-dd hh:mm
-     */
-    async getDepthContours(
-        startDate?: string,
-        endDate?: string,
-    ): Promise<FeatureCollection<Geometry>> {
-        var queryParameters = [];
-        if (startDate) {
-            const startDateStr = convertHTMLStrDateToISO(startDate);
-            queryParameters.push(`startDate=${startDateStr}`);
-        }
-        if (endDate) {
-            const endDateStr = convertHTMLStrDateToISO(endDate);
-            queryParameters.push(`endDate=${endDateStr}`);
-        }
-
-        if (queryParameters.length > 0) {
-            const queryParameterString = queryParameters.join("&");
-            return (await this.get(
-                `jaia/v0/depth-contours?${queryParameterString}`,
-            )) as FeatureCollection<Geometry>;
-        } else {
-            // Let server set default date values
-            return (await this.get(`jaia/v0/depth-contours`)) as FeatureCollection<Geometry>;
-        }
-    }
-
-    /**
      * Gets a GeoJSON object with interpolated drift features
      *
      * @param {string} startDate (optional) Set a lower bound on drift packets used for interpolation

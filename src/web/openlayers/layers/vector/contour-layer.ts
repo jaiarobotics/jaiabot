@@ -1,8 +1,9 @@
 import JaiaVectorLayer from "./jaia-vector-layer";
 import { LayerTitles } from "../../../types/openlayers-types";
 import { layersZIndexes } from "../zindex";
-import { jaiaAPI } from "../../../utils/jaia-api";
 import { generateContourFeatures } from "../../features/contour-feature";
+import { jaia_rest_api } from "../../../utils/jaia-rest-api";
+import { TaskPacketQuery_Format } from "@proto/jaiabot/messages/rest_api";
 
 class ContourLayer extends JaiaVectorLayer {
     constructor() {
@@ -10,13 +11,20 @@ class ContourLayer extends JaiaVectorLayer {
     }
 
     override updateFeatures() {
-        jaiaAPI
-            .getDepthContours()
+        jaia_rest_api
+            .geojson_request({
+                target: {
+                    all: true,
+                },
+                task_packets: {
+                    format: TaskPacketQuery_Format.GEOJSON_CONTOURS,
+                },
+            })
             .then((geoJSON) => {
                 const features = generateContourFeatures(geoJSON);
                 const source = this.getVectorLayer().getSource();
-                source.clear();
-                source.addFeatures(features);
+                source?.clear();
+                source?.addFeatures(features);
             })
             .catch((error) => {
                 console.error(error);

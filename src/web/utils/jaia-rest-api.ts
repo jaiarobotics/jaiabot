@@ -1,5 +1,6 @@
 import { randomBase57 } from "../shared/Utilities";
 import { APIRequest, APIResponse } from "@proto/jaiabot/messages/rest_api";
+import { FeatureCollection, Geometry } from "geojson";
 
 export class JaiaRESTAPI {
     clientId: string;
@@ -38,6 +39,21 @@ export class JaiaRESTAPI {
                     throw new Error(`${response.error?.code}: ${response.error?.details}`);
                 }
                 return response;
+            })
+            .catch((error) => {
+                console.error("API Request Error:", error);
+                throw error;
+            });
+    }
+
+    async geojson_request(api_request: APIRequest): Promise<FeatureCollection<Geometry>> {
+        return fetch(this.base_url.href, {
+            method: "POST",
+            headers: this.headers,
+            body: JSON.stringify(api_request),
+        })
+            .then((response) => {
+                return response.json() as Promise<FeatureCollection<Geometry>>;
             })
             .catch((error) => {
                 console.error("API Request Error:", error);
