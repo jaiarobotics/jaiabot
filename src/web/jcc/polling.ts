@@ -23,7 +23,6 @@ const CONNECTION_WARNING = "connection-warning";
 const CONGESTION_WARNING = "congestion-warning";
 const HUB_CONNECTION_ERROR = "Connection Dropped To HUB";
 
-const TASK_PACKET_URL = "/jaia/v0/task-packets";
 const GITHUB_URL = "https://api.github.com/repos/jaiarobotics/jaiabot/releases/latest";
 
 let statusRequestInFlight = false;
@@ -108,17 +107,33 @@ export async function pollTaskPackets() {
             task_packets_version: true,
         });
 
-        const version = task_packets_version_response.task_packets_version?.version;
-        if (version == null) {
-            console.error("Task packets version is null");
-            throw new Error("Task packets version is null");
-        }
+        const version = task_packets_version_response.task_packets_version?.version ?? 0;
 
         if (version !== taskPackets.getVersion()) {
-            const taskPacketRes = await fetch(TASK_PACKET_URL);
-            const json = await taskPacketRes.json();
-            taskPackets.setIncludedTaskPackets(json.result.included);
-            taskPackets.setExcludedTaskPackets(json.result.excluded);
+            const included_task_packets = await jaia_rest_api
+                .request({
+                    target: {
+                        all: true,
+                    },
+                    task_packets: {
+                        included_only: true,
+                    },
+                })
+                .then((response) => response.task_packets?.packets ?? []);
+
+            const excluded_task_packets = await jaia_rest_api
+                .request({
+                    target: {
+                        all: true,
+                    },
+                    task_packets: {
+                        included_only: false,
+                    },
+                })
+                .then((response) => response.task_packets?.packets ?? []);
+
+            taskPackets.setIncludedTaskPackets(included_task_packets);
+            taskPackets.setExcludedTaskPackets(excluded_task_packets);
             updateTaskLayers();
             taskPackets.setVersion(version);
         }
@@ -151,13 +166,8 @@ export async function pollMetadata() {
         // Get metadata for the first hub
         const metadata = metadata_response.metadata?.hubs?.[0];
 
-        if (metadata == null) {
-            console.error("Metadata is null");
-            throw new Error("Metadata is null");
-        }
-
         const isUpgradeAvailable = compareVersions(
-            metadata.jaiabot_version,
+            metadata?.jaiabot_version,
             jaiaGlobal.getGitHubVersion(),
         );
         jaiaGlobal.setMetadata(metadata);

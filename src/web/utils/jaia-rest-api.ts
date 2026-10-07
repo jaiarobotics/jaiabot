@@ -30,7 +30,15 @@ export class JaiaRESTAPI {
             headers: this.headers,
             body: JSON.stringify(api_request),
         })
-            .then((response) => response.json() as APIResponse)
+            .then((response) => {
+                return response.json() as APIResponse;
+            })
+            .then((response) => {
+                if (response.error) {
+                    throw new Error(`${response.error?.code}: ${response.error?.details}`);
+                }
+                return response;
+            })
             .catch((error) => {
                 console.error("API Request Error:", error);
                 throw error;
