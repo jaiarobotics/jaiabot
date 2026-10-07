@@ -21,7 +21,7 @@ This fleet configuration must then be embedded in the upgrade image (see the nex
 
 If the fleet was generated using a fleet configuration file, a valid file on the hub should already exist at `/etc/jaiabot/fleetN.cfg`. In this case that fleet configuration will be reused and no further action is required.
 
-The hub's copy is not updated when a bot is added with "Pair new Bot", so before reusing it the upgrade compares the hubs and bots it lists with the hub's inventory (`/etc/jaiabot/inventory.yml`). If they differ, the upgrade stops on the hub, before any node is touched, and asks for the fleet's current configuration to be embedded in the upgrade image (see the next step). A configuration embedded in the image is used as it is. An image whose fleet config tool predates this check upgrades without it, with a warning.
+The hub's copy is not updated when a bot is added with "Pair new Bot", so before reusing it the upgrade compares the hubs and bots it lists with the hub's inventory (`/etc/jaiabot/inventory.yml`). If they differ, the upgrade stops on the hub, before any node is touched, and asks for the fleet's current configuration to be embedded in the upgrade image (see the next step). A configuration embedded in the image is used as it is.
 
 From release 3 onwards, fleet configurations carry a version and the upgrade image carries the fleet config tool of the new release. When upgrading to such an image, the hub migrates and validates the fleet configuration with that tool before any bot is touched, and stops with a message if the file cannot be used with the new release (in which case regenerate it with the new release's `jaia admin fleet create` and embed it in the ISO as described below).
 
