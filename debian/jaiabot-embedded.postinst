@@ -94,7 +94,6 @@ set_netenv jaia_network_fleet_ssid "${FLEET_WLAN_SSID}"
 set_netenv jaia_network_fleet_address "${FLEET_ADDRESS}"
 set_netenv jaia_network_fleet_gateway "${FLEET_GATEWAY}"
 set_netenv jaia_network_fleet_dhcp "${FLEET_DHCP}"
-sed -i '/^jaia_network_service_/d' ${NETENV_FILE}
 
 /usr/bin/jaia-update-network.sh
 

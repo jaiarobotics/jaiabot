@@ -51,9 +51,6 @@ DNS=8.8.8.8
 EOF
 
 
-# left behind by releases that also joined a service WiFi network
-rm -f /etc/systemd/network/20-${jaia_network_wifi_iface}-service.network
-
 if [[ "${jaia_network_eth_address}" != "" ]]; then
     cat <<EOF > /etc/systemd/network/30-${jaia_network_eth_iface}.network
 [Match] 
