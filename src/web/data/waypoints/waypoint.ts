@@ -1,6 +1,6 @@
 import * as mgrs from "mgrs";
 import Task from "../tasks/task";
-import { GeographicCoordinate, Goal } from "../../types/protobuf-types";
+import { GeographicCoordinate, Goal, Segment } from "../../types/protobuf-types";
 import { MGRS } from "../../types/jaia-system-types";
 import { validateCoordinate } from "../../utils/input";
 import { MGRS_PLACEHOLDER } from "../../utils/constants";
@@ -11,6 +11,9 @@ const defaultMGRS: MGRS = {
     easting: MGRS_PLACEHOLDER,
     northing: MGRS_PLACEHOLDER,
 };
+
+/** A segment's settings, without the goal indices that are computed when a mission is sent. */
+export type SegmentParams = Omit<Segment, "start_goal_index" | "lane_start_goal_indices">;
 
 /** A mission's waypoint as code outside Mission sees it: read-only. Only Mission changes waypoints. */
 export default interface Waypoint {
@@ -28,6 +31,9 @@ export class MissionWaypoint implements Waypoint {
     private task: Task;
     private isDetour: boolean = false;
     private isSuppressed: boolean = false;
+    /** Settings of the segment this waypoint starts; never set on a mission's first segment. */
+    private segmentStart?: SegmentParams;
+    private isLaneStart: boolean = false;
 
     constructor(location: GeographicCoordinate) {
         this.location = location;
@@ -64,6 +70,22 @@ export class MissionWaypoint implements Waypoint {
 
     getIsSuppressed() {
         return this.isSuppressed;
+    }
+
+    setSegmentStart(segmentStart: SegmentParams | undefined) {
+        this.segmentStart = segmentStart;
+    }
+
+    getSegmentStart() {
+        return this.segmentStart;
+    }
+
+    setIsLaneStart(isLaneStart: boolean) {
+        this.isLaneStart = isLaneStart;
+    }
+
+    getIsLaneStart() {
+        return this.isLaneStart;
     }
 
     packageWaypointForHub(): Goal {

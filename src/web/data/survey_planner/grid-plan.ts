@@ -2,7 +2,7 @@ import cloneDeep from "lodash/cloneDeep";
 import Task from "../tasks/task";
 import Mission from "../mission_set/mission";
 import { UNASSIGNED_ID, MAX_WAYPOINTS, MAX_LANES_PER_BOT } from "../../utils/constants";
-import { BottomDepthSafetyParams, GeographicCoordinate, Segment } from "../../types/protobuf-types";
+import { BottomDepthSafetyParams, GeographicCoordinate } from "../../types/protobuf-types";
 
 export enum GridPlanningStates {
     ACCEPTING_MISSION_START_LOCATION = 1,
@@ -233,7 +233,6 @@ export class GridPlan {
 
         while (lanesCovered < this.numOfLanes) {
             let updatedLanesPerBot = lanesPerBot;
-            let nextLaneStartIndex = 1;
 
             if (extraLanes > 0) {
                 updatedLanesPerBot += 1;
@@ -241,10 +240,6 @@ export class GridPlan {
             }
 
             const baseMission = new Mission();
-            const segment: Segment = {
-                start_goal_index: 0,
-                lane_start_goal_indices: [nextLaneStartIndex],
-            };
             baseMission.setMissionID(missionID);
 
             for (let i = lanesCovered; i < lanesCovered + updatedLanesPerBot; i++) {
@@ -252,17 +247,13 @@ export class GridPlan {
                 const points = mission.getWaypoints();
                 const isFirstLane = i === lanesCovered;
                 const isLastLane = i + 1 === lanesCovered + updatedLanesPerBot;
-                // Do not count start + end points
-                nextLaneStartIndex += points.length - 2;
-                if (!isLastLane) {
-                    segment.lane_start_goal_indices.push(nextLaneStartIndex);
-                }
 
                 // The shared mission start and end points appear once per bot, not once per lane
                 const first = isFirstLane ? 0 : 1;
                 const end = isLastLane ? points.length : points.length - 1;
+                const laneStartNum = baseMission.getWaypoints().length + (isFirstLane ? 2 : 1);
                 baseMission.addWaypoints(points.slice(first, end));
-                baseMission.setSegments([segment]);
+                baseMission.setLaneStart(laneStartNum);
                 this.missions.delete(mission.getMissionID());
             }
             this.missions.set(baseMission.getMissionID(), baseMission);

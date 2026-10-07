@@ -360,18 +360,23 @@ The data formats and code layout that support the Phase 1 workflow.
     ```
 
     `Mission` keeps no segment list, so there is nothing to keep in step with the markers. The
-    first stored waypoint always carries a `segmentStart`.
+    first segment always starts at goal 0, so its settings live on `Mission` itself rather than
+    on a waypoint: a mission with no waypoints, new or emptied by deletes, still has its speed
+    and SRP. Markers sit only on the waypoints that start the second and later segments.
     - Deleting a waypoint that carries a marker moves the marker to the next waypoint. If that
       waypoint already starts a segment, the deleted waypoint's segment is dropped, and its lane
       start with it.
     - Combining joins the source missions' waypoints with their flags and markers through a
       `Mission` operation, `appendWaypointsFrom(source: Mission)`, which reads the source's stored
-      waypoints. The index offsets in `combineMissionSets` go away. The 5-segment limit counts
-      `segmentStart` markers.
-    - `getSegments`/`setSegments` go. Their outside callers move onto `Mission` operations:
-      combining (`mission-set-editor.ts:79-153`) and the survey planner (`grid-plan.ts:266`).
-      `setTransitSpeed` sets the speed on every marker. `setBottomDepthSafetyParams` sets it on a
-      marker.
+      waypoints. The combined mission takes the first contributing source's first-segment
+      settings; each later source's become a marker on its first appended waypoint. The index
+      offsets in `combineMissionSets` go away. The 5-segment limit counts the first segment plus
+      the markers.
+    - `setSegments` goes, and `getSegments` returns the segments as built for sending, read-only.
+      Their callers move onto `Mission` operations: combining (`mission-set-editor.ts:79-153`)
+      and the survey planner (`grid-plan.ts:266`).
+      `setTransitSpeed` sets the speed on the mission's first segment and on every marker.
+      `setBottomDepthSafetyParams` sets the first segment's.
 
 - **Building the MissionPlan's segments at send.** `packageMissionForHub` builds the goal
   list and the segments in one pass over the stored waypoints, so segment indices always count
@@ -379,6 +384,7 @@ The data formats and code layout that support the Phase 1 workflow.
   one join its segment or lane (see the rule below):
 
     ```
+    open Segment { start_goal_index: 0, ...the mission's first-segment settings }
     for each stored waypoint, in order:
         segmentStart marker:  hold its settings as the next segment to open
                               (a held segment that never opened has no goals: drop it)

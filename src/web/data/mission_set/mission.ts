@@ -8,7 +8,7 @@ import {
     Segment,
 } from "../../types/protobuf-types";
 import cloneDeep from "lodash/cloneDeep";
-import Waypoint, { MissionWaypoint } from "../waypoints/waypoint";
+import Waypoint, { MissionWaypoint, SegmentParams } from "../waypoints/waypoint";
 import Task from "../tasks/task";
 import { GhostParameters } from "../../types/jaia-system-types";
 import { DEFAULT_SPEED, UNASSIGNED_ID } from "../../utils/constants";
@@ -18,7 +18,8 @@ export default class Mission {
     private waypoints: MissionWaypoint[];
     private stationkeepSpeed: number;
     private repeats: number;
-    private segments: Segment[];
+    /** Settings of the first segment, which always starts at goal 0. Later segments' are markers on waypoints. */
+    private firstSegment: SegmentParams;
     private ghostParameters: GhostParameters;
 
     constructor() {
@@ -27,7 +28,7 @@ export default class Mission {
         this.waypoints = [];
         this.stationkeepSpeed = DEFAULT_SPEED;
         this.repeats = 1;
-        this.segments = [{ start_goal_index: 0 }];
+        this.firstSegment = {};
         this.ghostParameters = { hasStarted: false, botID: UNASSIGNED_ID, repeats: 1 };
     }
 
@@ -45,13 +46,16 @@ export default class Mission {
         return this.visibleWaypoints();
     }
 
-    getTransitSpeed(segmentIndex: number = 0): number {
-        return this.segments[segmentIndex]?.speed ?? DEFAULT_SPEED;
+    getTransitSpeed(): number {
+        return this.firstSegment.speed ?? DEFAULT_SPEED;
     }
 
+    /** Sets the transit speed of every segment. */
     setTransitSpeed(speed: number) {
-        for (const segment of this.segments) {
-            segment.speed = speed;
+        this.firstSegment.speed = speed;
+        for (const waypoint of this.waypoints) {
+            const segmentStart = waypoint.getSegmentStart();
+            if (segmentStart) segmentStart.speed = speed;
         }
     }
 
@@ -71,23 +75,29 @@ export default class Mission {
         this.repeats = repeats;
     }
 
-    getBottomDepthSafetyParams(segmentIndex: number = 0) {
-        return this.segments[segmentIndex]?.bottom_depth_safety_params;
+    getBottomDepthSafetyParams() {
+        return this.firstSegment.bottom_depth_safety_params;
     }
 
-    setBottomDepthSafetyParams(
-        bottomDepthSafetyParams: BottomDepthSafetyParams,
-        segmentIndex: number = 0,
-    ) {
-        this.segments[segmentIndex].bottom_depth_safety_params = bottomDepthSafetyParams;
+    setBottomDepthSafetyParams(bottomDepthSafetyParams: BottomDepthSafetyParams) {
+        this.firstSegment.bottom_depth_safety_params = bottomDepthSafetyParams;
     }
 
-    getSegments() {
-        return this.segments;
+    /** The segments as they are sent to the bot, computed from the mission's markers. */
+    getSegments(): Segment[] {
+        return this.buildPlan().segments;
     }
 
-    setSegments(segments: Segment[]) {
-        this.segments = segments;
+    /**
+     * Marks a waypoint as the start of a survey lane, where the bot resumes after a safety
+     * return.
+     *
+     * @param {number} waypointNum 1-based visible waypoint number
+     * @returns {void}
+     */
+    setLaneStart(waypointNum: number) {
+        const index = this.storedIndex(waypointNum);
+        if (index !== undefined) this.waypoints[index].setIsLaneStart(true);
     }
 
     getGhostParameters() {
@@ -139,21 +149,58 @@ export default class Mission {
     }
 
     /**
-     * Appends copies of another mission's stored waypoints, flags included, so a combined
-     * mission keeps each source's detour and suppressed waypoints.
+     * Appends copies of another mission's stored waypoints, flags and markers included, so a
+     * combined mission keeps each source's detours, suppressed waypoints and segments. The
+     * source's first segment becomes this mission's first segment if this mission is empty,
+     * and otherwise a marker on the source's first appended waypoint.
      *
      * @param {Mission} source Mission whose stored waypoints are copied
      * @returns {void}
      */
     appendWaypointsFrom(source: Mission) {
-        this.waypoints.push(...cloneDeep(source.waypoints));
+        if (source.waypoints.length === 0) return;
+        const appended = cloneDeep(source.waypoints);
+        if (!appended[0].getSegmentStart()) {
+            appended[0].setSegmentStart(cloneDeep(source.firstSegment));
+        }
+        this.waypoints.push(...appended);
+        this.promoteFirstMarker();
     }
 
+    /**
+     * Deletes a waypoint. A segment or lane start it carried moves to the next waypoint, unless
+     * that waypoint already starts a segment, in which case the deleted one is dropped.
+     *
+     * @param {number} waypointNum 1-based visible waypoint number
+     * @returns {void}
+     */
     deleteWaypoint(waypointNum: number) {
         const index = this.storedIndex(waypointNum);
         if (index === undefined) return;
-        this.waypoints.splice(index, 1);
-        this.reindexSegmentsAfterRemoval(index);
+        const [deleted] = this.waypoints.splice(index, 1);
+        const next = this.waypoints[index];
+        if (next && !next.getSegmentStart()) {
+            if (deleted.getSegmentStart()) {
+                next.setSegmentStart(deleted.getSegmentStart());
+                next.setIsLaneStart(false);
+            } else if (deleted.getIsLaneStart()) {
+                next.setIsLaneStart(true);
+            }
+        }
+        this.promoteFirstMarker();
+    }
+
+    /**
+     * Keeps the first segment's settings on Mission: a marker that ends up on the first stored
+     * waypoint replaces them, since the segment they described has no waypoints left.
+     *
+     * @returns {void}
+     */
+    private promoteFirstMarker() {
+        const first = this.waypoints[0];
+        if (!first?.getSegmentStart()) return;
+        this.firstSegment = first.getSegmentStart()!;
+        first.setSegmentStart(undefined);
     }
 
     /**
@@ -194,57 +241,17 @@ export default class Mission {
         return waypoint ? this.waypoints.indexOf(waypoint) : undefined;
     }
 
-    /**
-     * Keeps segment boundaries on the waypoints they were created for after a goal is removed.
-     * Indices past the removed goal shift back by one. Segments and lane starts left covering
-     * no goals are dropped, so waypoints appended later join the last remaining segment.
-     * At least one segment is always kept.
-     * @param {number} removedIndex 0-based goal index that was removed
-     */
-    private reindexSegmentsAfterRemoval(removedIndex: number) {
-        const shift = (goalIndex: number) => (goalIndex > removedIndex ? goalIndex - 1 : goalIndex);
-        const goalCount = this.waypoints.length;
-
-        const shifted = this.segments.map((segment) => ({
-            ...segment,
-            start_goal_index: shift(segment.start_goal_index),
-            ...(segment.lane_start_goal_indices && {
-                lane_start_goal_indices: segment.lane_start_goal_indices.map(shift),
-            }),
-        }));
-        const segmentEnd = (segments: Segment[], i: number) =>
-            i + 1 < segments.length ? segments[i + 1].start_goal_index : goalCount;
-
-        let remaining = shifted.filter(
-            (segment, i) => segment.start_goal_index < segmentEnd(shifted, i),
-        );
-        if (remaining.length === 0) {
-            remaining = [{ ...shifted[0], start_goal_index: 0 }];
-        }
-
-        // A lane start at or before its segment's start is never a resume target on the bot
-        this.segments = remaining.map((segment, i) => {
-            if (!segment.lane_start_goal_indices) return segment;
-            const end = segmentEnd(remaining, i);
-            return {
-                ...segment,
-                lane_start_goal_indices: segment.lane_start_goal_indices.filter(
-                    (laneStart) => laneStart > segment.start_goal_index && laneStart < end,
-                ),
-            };
-        });
-    }
-
     moveWaypoint(waypointNum: number, location: GeographicCoordinate) {
         const index = this.storedIndex(waypointNum);
         if (index !== undefined) this.waypoints[index].setLocation(location);
     }
 
     packageMissionForHub(missionSetName: string) {
+        const plan = this.buildPlan();
         const missionPlan: MissionPlan = {
             start: MissionStart.START_IMMEDIATELY,
             movement: MovementType.TRANSIT,
-            goal: this.packageWaypointsForHub(),
+            goal: plan.goals,
             recovery: {
                 recover_at_final_goal: true,
             },
@@ -254,20 +261,54 @@ export default class Mission {
             },
             repeats: this.repeats,
             mission_name: missionSetName,
-            segments: this.segments,
+            segments: plan.segments,
         };
 
         return missionPlan;
     }
 
-    packageWaypointsForHub() {
+    /**
+     * Builds the goals and segments sent to the bot in one pass over the stored waypoints, so
+     * segment indices always count the goals sent with them. Suppressed waypoints are skipped;
+     * whatever they mark carries to the next waypoint sent. A run of detours belongs to the
+     * segment and lane of the operator waypoint after it.
+     *
+     * @returns {{ goals: Goal[], segments: Segment[] }} Goals and segments for the MissionPlan
+     */
+    private buildPlan(): { goals: Goal[]; segments: Segment[] } {
         const goals: Goal[] = [];
+        const segments: Segment[] = [{ start_goal_index: 0, ...cloneDeep(this.firstSegment) }];
+        let heldSegment: SegmentParams | undefined;
+        let heldLaneStart = false;
+        let detourRunStart: number | undefined;
 
-        for (const waypoint of this.visibleWaypoints()) {
+        for (const waypoint of this.waypoints) {
+            if (waypoint.getSegmentStart()) heldSegment = waypoint.getSegmentStart();
+            if (waypoint.getIsLaneStart()) heldLaneStart = true;
+            if (waypoint.getIsSuppressed()) continue;
+            if (waypoint.getIsDetour()) {
+                detourRunStart ??= goals.length;
+                goals.push(waypoint.packageWaypointForHub());
+                continue;
+            }
+
+            const start = detourRunStart ?? goals.length;
+            detourRunStart = undefined;
+            const open = segments[segments.length - 1];
+            if (heldSegment) {
+                // A segment opening where the previous one opened means that one has no goals
+                const segment = { start_goal_index: start, ...cloneDeep(heldSegment) };
+                if (open.start_goal_index === start) segments[segments.length - 1] = segment;
+                else segments.push(segment);
+            } else if (heldLaneStart && start > open.start_goal_index) {
+                open.lane_start_goal_indices = [...(open.lane_start_goal_indices ?? []), start];
+            }
+            heldSegment = undefined;
+            heldLaneStart = false;
             goals.push(waypoint.packageWaypointForHub());
         }
 
-        return goals;
+        return { goals, segments };
     }
 
     /**
@@ -277,41 +318,55 @@ export default class Mission {
      * @returns {Mission} mission Resulting Mission object
      */
     static fromJSON(serializedMission: string) {
-        const mission = Object.assign(new Mission(), serializedMission);
-        mission.waypoints = mission.waypoints.map((serializedWaypoint: any) => {
+        // Older files carry segments as goal indices, and the oldest mission-level speeds
+        const { segments, speeds: legacySpeeds, ...fields } = serializedMission as any;
+        const mission = Object.assign(new Mission(), fields);
+        mission.firstSegment = cloneDeep(fields.firstSegment ?? {});
+        mission.waypoints = (fields.waypoints ?? []).map((serializedWaypoint: any) => {
             // Files saved before the detour flag was renamed carry it as isBypass
-            const { isBypass, ...fields } = serializedWaypoint;
+            const { isBypass, ...waypointFields } = serializedWaypoint;
             const waypoint = Object.assign(
                 new MissionWaypoint(serializedWaypoint.location),
-                fields,
+                waypointFields,
             );
             if (isBypass) waypoint.setIsDetour(true);
+            if (serializedWaypoint.segmentStart) {
+                waypoint.setSegmentStart(cloneDeep(serializedWaypoint.segmentStart));
+            }
             if (serializedWaypoint.task) {
                 waypoint.setTask(Object.assign(new Task(), serializedWaypoint.task));
             }
             return waypoint;
         });
-        mission.segments = (mission.segments ?? []).map((seg: any) => ({
-            ...seg,
-            ...(seg.lane_start_goal_indices && {
-                lane_start_goal_indices: [...seg.lane_start_goal_indices],
-            }),
-            ...(seg.bottom_depth_safety_params && {
-                bottom_depth_safety_params: { ...seg.bottom_depth_safety_params },
-            }),
-        }));
-        // Migrate legacy mission-level speeds into the new fields
-        const legacySpeeds = (serializedMission as any).speeds;
-        if (legacySpeeds !== undefined) {
-            if (legacySpeeds.transit !== undefined && mission.segments.length > 0) {
-                if (mission.segments[0].speed === undefined) {
-                    mission.segments[0] = { ...mission.segments[0], speed: legacySpeeds.transit };
-                }
-            }
-            if (legacySpeeds.stationkeep_outer !== undefined) {
-                mission.setStationkeepSpeed(legacySpeeds.stationkeep_outer);
-            }
+        if (segments) mission.applyIndexedSegments(segments);
+        mission.promoteFirstMarker();
+        if (legacySpeeds?.transit !== undefined) {
+            mission.firstSegment.speed ??= legacySpeeds.transit;
+        }
+        if (legacySpeeds?.stationkeep_outer !== undefined) {
+            mission.setStationkeepSpeed(legacySpeeds.stationkeep_outer);
         }
         return mission;
+    }
+
+    /**
+     * Converts segments stored as goal indices into the first segment's settings and markers
+     * on the waypoints that start later segments and lanes. Files with indexed segments
+     * predate suppression, so a goal index is a stored index.
+     *
+     * @param {Segment[]} segments Segments as saved, indexed by goal
+     * @returns {void}
+     */
+    private applyIndexedSegments(segments: Segment[]) {
+        for (const { start_goal_index, lane_start_goal_indices, ...params } of segments) {
+            if (start_goal_index === 0) {
+                this.firstSegment = cloneDeep(params);
+            } else {
+                this.waypoints[start_goal_index]?.setSegmentStart(cloneDeep(params));
+            }
+            for (const laneStart of lane_start_goal_indices ?? []) {
+                this.waypoints[laneStart]?.setIsLaneStart(true);
+            }
+        }
     }
 }

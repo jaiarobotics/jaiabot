@@ -41,14 +41,14 @@ function makeCache(entries: [string, Mission[]][]): Map<string, MissionSetSnapsh
  * as a mission set that was itself produced by combining would be after a save and reload.
  */
 function makeMultiSegmentMission(segmentCount: number): Mission {
-    const mission = makeMission(segmentCount * 2);
-    mission.setSegments(
-        Array.from({ length: segmentCount }, (_, i) => ({
-            start_goal_index: i * 2,
-            speed: DEFAULT_SPEEDS.transit,
-        })),
-    );
-    return mission;
+    const waypoints = makeMission(segmentCount * 2)
+        .getWaypoints()
+        .map((waypoint) => ({ location: waypoint.getLocation() }));
+    const segments = Array.from({ length: segmentCount }, (_, i) => ({
+        start_goal_index: i * 2,
+        speed: DEFAULT_SPEEDS.transit,
+    }));
+    return Mission.fromJSON({ waypoints, segments } as any);
 }
 
 describe("getMaxSegmentsPerOutputMission", () => {

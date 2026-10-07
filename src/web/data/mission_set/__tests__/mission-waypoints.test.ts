@@ -47,7 +47,7 @@ describe("visible waypoints", () => {
     test("are exactly what is sent to the bot", () => {
         const mission = missionWithSuppressedWaypoint();
 
-        expect(mission.packageWaypointsForHub().map((goal) => goal.location)).toEqual([
+        expect(mission.packageMissionForHub("").goal!.map((goal) => goal.location)).toEqual([
             locationA,
             locationC,
         ]);
@@ -59,7 +59,7 @@ describe("visible waypoints", () => {
             { location: locationB, isDetour: true },
         ]);
 
-        expect(mission.packageWaypointsForHub()[1].name).toBeUndefined();
+        expect(mission.packageMissionForHub("").goal![1].name).toBeUndefined();
     });
 
     test("move and delete act on the visible number", () => {
@@ -121,7 +121,7 @@ describe("appendWaypointsFrom", () => {
         combined.appendWaypointsFrom(source);
 
         expect(combined.getWaypoints().map((wp) => wp.getIsDetour())).toEqual([false, false, true]);
-        expect(combined.packageWaypointsForHub()).toHaveLength(3);
+        expect(combined.packageMissionForHub("").goal!).toHaveLength(3);
     });
 });
 
