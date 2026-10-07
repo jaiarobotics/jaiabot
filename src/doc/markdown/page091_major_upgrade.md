@@ -79,7 +79,7 @@ cd /usr/share/jaiabot/config/ansible/major_upgrade
 ansible-playbook -i /etc/jaiabot/inventory.yml major-upgrade.yml -l hub30-fleetN -e hub_id=30 -e do_backup=no -e has_cloudhub=yes
 ```
 
-The CloudHub keeps its VPN server keys (`/etc/wireguard`), and its users and sign-in data on the data partition; any VirtualFleet is deleted (`-e delete_virtualfleet=no` to keep it).
+The CloudHub keeps its VPN server keys (`/etc/wireguard`), and its users and sign-in data on the data partition; any VirtualFleet is deleted (`-e delete_virtualfleet=no` to keep it). It also records the fleet's bootstrap key and is marked as handed over, so that the new release's "Open Fleet Pairing" can admit nodes. Before pairing, give the CloudHub's AWS role the new release's permissions from a workstation with the new release's tools: `jaia admin fleet cloudhub refresh_permissions fleetN.cfg --region <region>`.
 
 ## Major upgrade design
 

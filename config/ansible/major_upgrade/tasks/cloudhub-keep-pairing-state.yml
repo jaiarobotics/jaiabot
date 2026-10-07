@@ -1,0 +1,38 @@
+# A CloudHub built by an earlier release never recorded the fleet's bootstrap key or
+# was marked as handed over, and without them "Open Fleet Pairing" can neither let
+# nodes enrol nor open port 22. Both are kept on the data partition, which survives
+# the upgrade, so they are written there from the fleet config being installed. The
+# owner is the one first boot gives everything under /var/log/jaiabot.
+- name: Look for the fleet's bootstrap key in the new boot fs
+  stat:
+    path: "{{ upgrade_boot_dir }}/jaiabot/init/id_vpn_tmp.pub"
+  register: upgrade_bootstrap_key
+
+- name: Create the support state directory
+  file:
+    path: /var/log/jaiabot/auth/support
+    state: directory
+    owner: jaia
+    group: jaia
+    mode: "0700"
+
+# Replaced rather than kept: nodes are generated with the key in this fleet config
+- name: Keep the fleet's bootstrap key for fleet pairing
+  copy:
+    src: "{{ upgrade_boot_dir }}/jaiabot/init/id_vpn_tmp.pub"
+    dest: /var/log/jaiabot/auth/support/bootstrap.pub
+    remote_src: yes
+    owner: jaia
+    group: jaia
+    mode: "0600"
+  when: upgrade_bootstrap_key.stat.exists
+
+# An upgraded CloudHub was provisioned long ago, so port 22 is the support tool's to manage
+- name: Mark the CloudHub as handed over
+  copy:
+    content: ""
+    dest: /var/log/jaiabot/auth/support/handed-over
+    force: no
+    owner: jaia
+    group: jaia
+    mode: "0600"
