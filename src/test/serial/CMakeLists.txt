@@ -1,0 +1,3 @@
+add_executable(jaiabot_test_serial_mcu mcu.cpp)
+target_link_libraries(jaiabot_test_serial_mcu jaiabot_messages)
+add_test(NAME jaiabot_test_serial_mcu COMMAND jaiabot_test_serial_mcu)
