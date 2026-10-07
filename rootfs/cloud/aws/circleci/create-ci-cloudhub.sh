@@ -56,4 +56,5 @@ jaia admin fleet create_cloudhub "${OUTPUT_DIR}/fleet.cfg" "${JAIA_CI_CUSTOMER}"
     --virtualfleet-instance-type "${INSTANCE_TYPE}" \
     --output-json "${OUTPUT_DIR}/cloudhub.json" \
     --jaiabot-dir "${repo_root}" \
+    --client-vpn \
     --aws-profile OIDC-User

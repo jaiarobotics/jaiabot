@@ -174,8 +174,8 @@ def main():
     parser.add_argument('--govcloud', help=f"Shorthand for --region {GOVCLOUD_REGION}", action="store_true")
     parser.add_argument('--repo', help="Jaiabot Repo", default="release", choices=["release", "beta", "continuous", "test"])
     parser.add_argument('--disk-size-gb', help="CloudHub disk size in GB", default=32, type=int)
-    parser.add_argument('--no-enable-client-vpn', help="If set, do not create a client vpn configuration on this machine", action="store_true")
-    parser.add_argument('--no-update-client-etc-hosts', help="If set, do not add a local entry for the new CloudHub in this machine's /etc/hosts", action="store_true")    
+    parser.add_argument('--client-vpn', help="Make this machine a peer of the CloudHub's VPNs and add the CloudHub to its /etc/hosts. For CI and development: the peer stays on the CloudHub for as long as it runs", action="store_true")
+    parser.add_argument('--no-update-client-etc-hosts', help="With --client-vpn, do not add a local entry for the new CloudHub in this machine's /etc/hosts", action="store_true")
     args = parser.parse_args()
     
     loglevel = args.loglevel
@@ -235,15 +235,9 @@ def main():
         f.write(f'CLOUDHUB_DATA_BUCKET="{data_bucket}"\n')
         f.write(f'FLEET_CONFIG={fleet_cfg_full_path}\n')
 
-        enable_client_vpn='true'
-        if args.no_enable_client_vpn:
-            enable_client_vpn='false'
-        f.write(f'ENABLE_CLIENT_VPN={enable_client_vpn}\n')
-            
-        update_client_etc_hosts='true'
-        if args.no_update_client_etc_hosts:
-            update_client_etc_hosts='false'                
-        f.write(f'UPDATE_CLIENT_ETC_HOSTS={update_client_etc_hosts}\n')
+        f.write(f'ENABLE_CLIENT_VPN={str(args.client_vpn).lower()}\n')
+        update_client_etc_hosts = args.client_vpn and not args.no_update_client_etc_hosts
+        f.write(f'UPDATE_CLIENT_ETC_HOSTS={str(update_client_etc_hosts).lower()}\n')
 
         if args.output_json:
             f.write(f'OUTPUT_JSON={pathlib.Path(args.output_json).resolve()}\n')

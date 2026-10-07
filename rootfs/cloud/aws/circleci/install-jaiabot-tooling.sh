@@ -35,7 +35,10 @@ python3 -c "import sys; from google.protobuf import text_format; print('protobuf
 echo "installed jaiabot: $(jaia version 2>&1 | sed -n 2p)"
 
 # a one-line failure here beats an argparse dump from inside the create step
-if ! jaia admin fleet create_cloudhub --help | grep -q -- --permissions-boundary; then
-    echo "ERROR: installed tooling predates this checkout; it cannot drive this trial" >&2
-    exit 1
-fi
+create_cloudhub_help=$(jaia admin fleet create_cloudhub --help)
+for flag in --permissions-boundary --client-vpn; do
+    if ! grep -q -- "$flag" <<< "$create_cloudhub_help"; then
+        echo "ERROR: installed tooling predates this checkout (no create_cloudhub $flag); it cannot drive this trial" >&2
+        exit 1
+    fi
+done

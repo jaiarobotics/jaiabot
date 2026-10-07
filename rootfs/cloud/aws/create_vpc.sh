@@ -71,6 +71,13 @@ set -a; source $1; set +a
 OUTPUT_JSON=${OUTPUT_JSON:-}
 CLOUDHUB_PERMISSIONS_BOUNDARY=${CLOUDHUB_PERMISSIONS_BOUNDARY:-}
 WAIT_TIMEOUT_SECONDS=${WAIT_TIMEOUT_SECONDS:-1800}
+# Off unless asked: the tunnel is a standing peer on the CloudHub for whoever built it
+ENABLE_CLIENT_VPN=${ENABLE_CLIENT_VPN:-false}
+UPDATE_CLIENT_ETC_HOSTS=${UPDATE_CLIENT_ETC_HOSTS:-false}
+if [[ "$UPDATE_CLIENT_ETC_HOSTS" == "true" && "$ENABLE_CLIENT_VPN" != "true" ]]; then
+    echo "UPDATE_CLIENT_ETC_HOSTS=true names the CloudHub by its VPN address, so it needs ENABLE_CLIENT_VPN=true"
+    exit 1
+fi
 
 # An unattended run has to fail rather than hang, so every wait below is bounded
 function abort_if_timed_out() {
@@ -99,9 +106,12 @@ CLOUDHUB_VPN_NETWORK_IPV6=$(jaia_ip --query_type net --ip_net cloudhub_vpn --fle
 CLOUDHUB_VPN_CLIENT_IPV6=$(jaia_ip --query_type addr --ip_net cloudhub_vpn --fleet_id ${FLEET_ID} --node_type desktop --node_id 1 --ip_version ipv6)
 CLOUDHUB_VPN_SERVER_IPV6=$(jaia_ip --query_type addr --ip_net cloudhub_vpn --fleet_id ${FLEET_ID} --node_type hub --node_id ${CLOUDHUB_ID} --ip_version ipv6)
 
-# generate Wireguard keys
-CLIENT_VPN_WIREGUARD_PRIVATEKEY=$(wg genkey)
-CLIENT_VPN_WIREGUARD_PUBKEY=$(echo $CLIENT_VPN_WIREGUARD_PRIVATEKEY | wg pubkey)
+CLIENT_VPN_WIREGUARD_PRIVATEKEY=""
+CLIENT_VPN_WIREGUARD_PUBKEY=""
+if [[ "$ENABLE_CLIENT_VPN" == "true" ]]; then
+    CLIENT_VPN_WIREGUARD_PRIVATEKEY=$(wg genkey)
+    CLIENT_VPN_WIREGUARD_PUBKEY=$(echo $CLIENT_VPN_WIREGUARD_PRIVATEKEY | wg pubkey)
+fi
 
 export AWS_DEFAULT_REGION=$REGION
 
@@ -540,8 +550,12 @@ if [[ -n "$OUTPUT_JSON" ]]; then
     echo ">>>>>> Wrote the created resource IDs to ${OUTPUT_JSON}"
 fi
 
-CLOUD_VPN=wg_jaia_ch${FLEET_ID}
-cat <<EOF > /tmp/${CLOUD_VPN}.conf
+echo ">>>>>> Started CloudHub in Fleet $FLEET_ID:"
+echo ">>>>>> Public IPv4 address: ${PUBLIC_IPV4_ADDRESS}"
+
+if [[ "$ENABLE_CLIENT_VPN" == "true" ]]; then
+    CLOUD_VPN=wg_jaia_ch${FLEET_ID}
+    cat <<EOF > /tmp/${CLOUD_VPN}.conf
 [Interface]
 # from /etc/wireguard/privatekey on client
 PrivateKey = ...
@@ -563,13 +577,8 @@ Endpoint = ${PUBLIC_IPV4_ADDRESS}:51821
 PersistentKeepalive = 52
 EOF
 
-sed -i "s|.*PrivateKey.*|PrivateKey = ${CLIENT_VPN_WIREGUARD_PRIVATEKEY}|" /tmp/${CLOUD_VPN}.conf
+    sed -i "s|.*PrivateKey.*|PrivateKey = ${CLIENT_VPN_WIREGUARD_PRIVATEKEY}|" /tmp/${CLOUD_VPN}.conf
 
-echo ">>>>>> Started CloudHub in Fleet $FLEET_ID:"
-echo ">>>>>> Public IPv4 address: ${PUBLIC_IPV4_ADDRESS}"
-
-
-if [[ "$ENABLE_CLIENT_VPN" == "true" ]]; then
     echo ">>>>>> Begin installing local VPN to /etc/wireguard/${CLOUD_VPN}.conf"
 
     sudo mv /tmp/${CLOUD_VPN}.conf /etc/wireguard
@@ -588,7 +597,7 @@ if [[ "$ENABLE_CLIENT_VPN" == "true" ]]; then
     echo ">>>>>> Ping successful!"   
     echo -e ">>>>>> Now you can log in with\n\tjaia ssh chf${FLEET_ID} (ssh jaia@${CLOUDHUB_VPN_SERVER_IPV6})"
 else
-    echo ">>>>>> Prototype config for VPNs in /tmp/${CLOUD_VPN}.conf. You will need to enable this VPN to access the Cloudhub VM."
+    echo ">>>>>> No VPN tunnel for this machine (ENABLE_CLIENT_VPN=false): use the CloudHub's web sites, or SSH while a support grant or fleet pairing is open"
 fi
 
 if [[ "$UPDATE_CLIENT_ETC_HOSTS" == "true" ]]; then

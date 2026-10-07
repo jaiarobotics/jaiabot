@@ -291,6 +291,17 @@ upgrade matches the upgraded CloudHub rather than the release it came from.
 
 ## Usage
 
+*This section written by Claude*
+
+The CloudHub's sites (JCC, JDV, JCU and the rest, see "Cloud Login server" below) are
+reached through its login page, with no VPN. A tunnel of your own is for CI and
+development: `jaia admin fleet create_cloudhub --client-vpn` makes the machine running
+it a peer (`desktop1`) of the CloudHub's VPNs, installs `wg_jaia_ch<fleet>`, and adds
+`cloudhub-fleet<fleet>` to its `/etc/hosts`. It is off by default because the peer stays
+on the CloudHub for as long as it runs, which is a standing way in that a customer's
+CloudHub should not ship with. In `vpc.conf` the same switches are `ENABLE_CLIENT_VPN`
+and `UPDATE_CLIENT_ETC_HOSTS`.
+
 Once connected to the appropriate VPN and hosts are configured in `/etc/hosts`, one can open a web-browser as usual to JCC, etc.
 
 For fleet1, these would be:
