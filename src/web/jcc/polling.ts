@@ -15,6 +15,7 @@ import { excludedTaskPacketsLayer } from "../openlayers/layers/vector/excluded-t
 import { DeviceMetadata, DeviceMetadata_Version } from "@proto/jaiabot/messages/metadata";
 import { PodStatus } from "@proto/jaiabot/messages/rest_api";
 import SoundEffects from "../style/audio/sound-effects";
+import { jaia_rest_api } from "../utils/jaia-rest-api";
 
 const MAX_REQUEST_TIME = 10000; // ms;
 const VERSION_LENGTH = 3;
@@ -53,20 +54,29 @@ export async function pollStatus() {
     try {
         statusRequestInFlight = true;
         statusRequestStartTime = new Date().getTime();
-        const response = await fetch(STATUS_URL);
-        if (!response.ok) {
-            console.error(`Response status: ${response.status}`);
+
+        const rest_response = await jaia_rest_api.request({
+            target: {
+                all: true,
+            },
+            pod_status: true,
+        });
+
+        const json = rest_response.pod_status;
+
+        if (json == null) {
+            console.error("Pod status response is null");
+            return;
+        }
+
+        updateBots(json.bots ?? []);
+        updateHubs(json.hubs ?? []);
+        updateJaiaGlobal(json.controllingClientId ?? "");
+        updateOpenLayers();
+        if (json.messages?.error && json.messages?.error === HUB_CONNECTION_ERROR) {
+            updateWarning(CONNECTION_WARNING, true);
         } else {
-            const json = (await response.json()) as PodStatus;
-            updateBots(json.bots ?? []);
-            updateHubs(json.hubs ?? []);
-            updateJaiaGlobal(json.controllingClientId ?? "");
-            updateOpenLayers();
-            if (json.messages?.error && json.messages?.error === HUB_CONNECTION_ERROR) {
-                updateWarning(CONNECTION_WARNING, true);
-            } else {
-                updateWarning(CONNECTION_WARNING, false);
-            }
+            updateWarning(CONNECTION_WARNING, false);
         }
     } catch (error) {
         updateWarning(CONNECTION_WARNING, true);

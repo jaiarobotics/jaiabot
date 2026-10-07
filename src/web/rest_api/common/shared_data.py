@@ -60,6 +60,9 @@ class Data:
 
             if msg.HasField('active_mission_plan'):
                 self.active_mission_plans[msg.bot_status.bot_id] = msg.active_mission_plan
+            else:
+                if msg.bot_status.bot_id in self.active_mission_plans:
+                    del(self.active_mission_plans[msg.bot_status.bot_id])
 
         if msg.HasField('engineering_status'):
             self.bots_engineering[msg.engineering_status.bot_id] = msg.engineering_status

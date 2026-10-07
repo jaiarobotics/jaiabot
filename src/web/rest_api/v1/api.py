@@ -1,6 +1,9 @@
 import jaiabot.messages.rest_api_pb2 as rest_api
 from jaiabot.messages.rest_api_pb2 import TaskPacketQuery, APIRequest, APIResponse
 import jaiabot.messages.portal_pb2
+from jaiabot.messages.jaia_dccl_pb2 import BotStatus
+from jaiabot.messages.hub_pb2 import HubStatus
+from jaiabot.messages.rest_api_pb2 import PodStatus, PortalBotStatus, PortalHubStatus
 
 from pyjaia.kmz import getKMZ
 from pyjaia.csv import task_packets_to_csv
@@ -206,3 +209,49 @@ def command_for_hub(jaia_request: APIRequest) -> APIResponse:
 
     return jaia_response
 
+
+def pod_status(jaia_request: APIRequest) -> APIResponse:
+    jaia_response = APIResponse()
+
+    bots: list[BotStatus] = []
+    hubs: list[HubStatus] = []
+
+    with common.shared_data.data_lock:
+        if jaia_request.target.all:
+            bots = list(common.shared_data.data.bots.values())
+            hubs = list(common.shared_data.data.hubs.values())
+        else:
+            bots = [common.shared_data.data.bots[value] for value in jaia_request.target.bots if value in common.shared_data.data.bots]
+            hubs = [common.shared_data.data.hubs[value] for value in jaia_request.target.hubs if value in common.shared_data.data.hubs]
+
+    jaia_response.target.bots.extend([bot.bot_id for bot in bots])
+
+    for bot in bots:
+        portal_bot_status = PortalBotStatus()
+        portal_bot_status.bot_status.CopyFrom(bot)
+        portal_bot_status.last_status_received_time = bot.received_time
+        portal_bot_status.portalStatusAge = utc_now_microseconds() - bot.received_time
+
+        if bot.bot_id in common.shared_data.data.active_mission_plans:
+            portal_bot_status.active_mission_plan.CopyFrom(common.shared_data.data.active_mission_plans[bot.bot_id])
+
+        if bot.bot_id in common.shared_data.data.bots_engineering:
+            portal_bot_status.engineering.CopyFrom(common.shared_data.data.bots_engineering[bot.bot_id])
+
+        # TODO: portal_bot_status.active_link_status_age
+
+        jaia_response.pod_status.bots.append(portal_bot_status)
+
+    for hub in hubs:
+        portal_hub_status = PortalHubStatus()
+        portal_hub_status.hub_status.CopyFrom(hub)
+        portal_hub_status.last_status_received_time = hub.received_time
+        portal_hub_status.portalStatusAge = utc_now_microseconds() - hub.received_time
+
+        jaia_response.pod_status.hubs.append(portal_hub_status)
+    
+    jaia_response.pod_status.contacts.extend(common.shared_data.data.contacts.values())
+
+    # TODO: pod_status.controllingClientId = common.shared_data.data.controlling_client_id
+
+    return jaia_response
