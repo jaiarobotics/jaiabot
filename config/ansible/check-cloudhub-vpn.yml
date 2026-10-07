@@ -2,7 +2,7 @@
 # Whether this hub is linked to its CloudHub. A view, not a change - and of this
 # hub alone, matching change-cloudhub-vpn.yml.
 - name: Check this hub's CloudHub VPN state
-  hosts: localhost
+  hosts: all
   connection: local
   become: yes
   gather_facts: no

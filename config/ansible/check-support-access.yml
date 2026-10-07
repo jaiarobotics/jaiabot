@@ -4,7 +4,7 @@
 # about to start an upgrade has a legitimate reason to know whether Jaia is
 # connected, which is all this answers.
 - name: Check Jaia support access
-  hosts: localhost
+  hosts: all
   connection: local
   gather_facts: no
   tasks:

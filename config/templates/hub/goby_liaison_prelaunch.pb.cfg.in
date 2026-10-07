@@ -154,6 +154,7 @@ upper_right_logo_link: "https://www.jaia.tech/"
             name: "jaia_support_access"
             display_name: "Jaia Support Access"
         }
+        limit: "$this_hub"
     }
     
     ansible_playbook {
@@ -169,6 +170,7 @@ upper_right_logo_link: "https://www.jaia.tech/"
             name: "cloudhub_vpn_enable_state"
             display_name: "CloudHub VPN Starts On Boot?"
         }
+        limit: "$this_hub"
     }
     
     ansible_playbook {
@@ -184,6 +186,7 @@ upper_right_logo_link: "https://www.jaia.tech/"
             value: "enable"
             value: "disable"
         }
+        limit: "$this_hub"
     }
     
     ansible_playbook {

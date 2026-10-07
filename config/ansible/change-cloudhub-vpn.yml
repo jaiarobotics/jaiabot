@@ -11,7 +11,7 @@
 #
 # Cutting this also cuts HUB2HUB, which runs over the same tunnel.
 - name: Change this hub's CloudHub VPN state
-  hosts: localhost
+  hosts: all
   connection: local
   become: yes
   gather_facts: no
