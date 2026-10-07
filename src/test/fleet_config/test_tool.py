@@ -207,6 +207,24 @@ class MigrationTest(unittest.TestCase):
         self.assertEqual(fc.migrate(SCHEMA, again), ([], []))
 
 
+class NoCloudHubMigrationTest(unittest.TestCase):
+    """A 2.y fleet without hub 30 never had a CloudHub."""
+
+    def setUp(self):
+        self.cfg = fc.parse_fleet_config(SCHEMA, fixture("v1_no_cloudhub.cfg"))
+        self.notes, self.problems = fc.migrate(SCHEMA, self.cfg)
+
+    def test_migrates_without_a_cloudhub(self):
+        self.assertEqual(self.problems, [])
+        self.assertFalse(self.cfg.includes_cloudhub)
+        self.assertEqual(fc.validate(SCHEMA, self.cfg), [])
+
+    def test_a_fleet_with_hub_30_keeps_its_cloudhub(self):
+        cfg = fc.parse_fleet_config(SCHEMA, fixture("v1_fleet7.cfg"))
+        fc.migrate(SCHEMA, cfg)
+        self.assertTrue(cfg.includes_cloudhub)
+
+
 class FluorometerMigrationTest(unittest.TestCase):
     """2.y renamed turner_c_flour, so a v1 file may carry either spelling."""
 
@@ -902,9 +920,8 @@ class CreateTest(unittest.TestCase):
         shutil.copyfile(fixture("v1_bad_values.cfg"), out)
         loaded = SCHEMA.NodeSettings()
         fc.fill_defaults(SCHEMA, loaded)
+        # a 2.y fleet without hub 30 stays without a CloudHub, so no CloudHub questions follow
         answers = ["<default>"] * 5 + ["", "<default>", "<default>"]
-        # a real fleet gains its CloudHub in the edit, so the auth block is asked too
-        answers += ["<default>", "admin@example.com", "<default>", "<default>", "<default>"]
         answers += settings_answers(ALL_GROUPS, {"bot_type": "bio"})
         answers += ["no"] + node_answers([1], [1])
         result, _ = self.run_edit(out, answers)
