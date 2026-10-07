@@ -72,7 +72,7 @@ Run this once, from the hub with the USB flash key or CD connected: it upgrades 
 
 ### Upgrading a CloudHub
 
-A fleet with a CloudHub upgrades the CloudHub first, then the rest of the fleet as above. The CloudHub has no USB port, so it downloads the update image itself (from the `jaia-disk-images` S3 bucket; the next major release from the `release` repository by default, or `-e major_upgrade_iso_version=N.y` and `-e major_upgrade_iso_repo=<repo>`) and upgrades only itself. Run "Major Upgrade" from the CloudHub's own JCU, which limits it to the CloudHub and proposes no backup (a CloudHub's disk is usually too small for one), or on the CloudHub:
+A fleet with a CloudHub upgrades the CloudHub first, then the rest of the fleet as above. The CloudHub has no USB port, so it downloads the update image itself (from the `jaia-disk-images` S3 bucket; the next major release from the repository its packages come from (`test`, `beta`, `release`, ...) by default, or `-e major_upgrade_iso_version=N.y` and `-e major_upgrade_iso_repo=<repo>`) and upgrades only itself. Run "Major Upgrade" from the CloudHub's own JCU, which limits it to the CloudHub and proposes no backup (a CloudHub's disk is usually too small for one), or on the CloudHub:
 
 ```
 cd /usr/share/jaiabot/config/ansible/major_upgrade
