@@ -82,15 +82,13 @@ class AutheliaBootstrapTest(unittest.TestCase):
         self.assertIn("lldap_admin", config)
         self.assertNotIn("password", config)
 
-    def test_jaia_bootstrap_does_not_share_an_email(self):
-        """LLDAP holds emails unique, so a shared one would fail the whole bootstrap and
-        with it the CloudHub's first boot."""
-        email = re.compile(r'"email": "([^"]+)"')
-        mine = email.search(self.jaia_bootstrap_config()).group(1)
-        support = email.search(self.user_config("jaia_support")).group(1)
-        self.assertNotEqual(mine, support)
+    def test_jaia_bootstrap_takes_its_email_from_create_cloudhub(self):
+        """There is no Jaia address built in: create_cloudhub --bootstrap-email names it."""
+        self.assertIn('"email": "$jaia_bootstrap_email"', self.jaia_bootstrap_config())
+        self.assertNotIn("bootstrap@jaia.tech", self.text)
 
-    def run_guard(self, bootstrapped_before=False, marker=False, then_bootstrap=False):
+    def run_guard(self, bootstrapped_before=False, marker=False, then_bootstrap=False,
+                  email="ops@example.com"):
         """The account's guard as the script runs it, against a scratch directory."""
         start = self.text.index("jaia_bootstrap_marker=")
         end = self.text.index("cat > /etc/lldap/bootstrap/user-configs/jaia_support.json")
@@ -99,9 +97,12 @@ class AutheliaBootstrapTest(unittest.TestCase):
         configs = os.path.join(work, "user-configs")
         persistent = os.path.join(work, "auth")
         os.makedirs(configs)
+        os.makedirs(persistent)
         if marker:
-            os.makedirs(persistent)
             open(os.path.join(persistent, "jaia_bootstrap_created"), "w").close()
+        if email is not None:
+            with open(os.path.join(persistent, "jaia_bootstrap_email"), "w") as f:
+                f.write(email + "\n")
         block = self.text[start:end].replace("/etc/lldap/bootstrap/user-configs", configs)
         success = re.search(r"then\n(\s+echo \"jaia_auth_lldap_bootstrap_completed=true\".*?)\s+break",
                             self.text, re.DOTALL).group(1)
@@ -109,13 +110,22 @@ class AutheliaBootstrapTest(unittest.TestCase):
         script = "set -e\nauth_persistent_dir={}\njaia_auth_lldap_bootstrap_completed={}\n{}\n{}\n".format(
             persistent, "true" if bootstrapped_before else "false", block,
             success if then_bootstrap else "")
-        subprocess.run(["bash", "-c", script], check=True)
-        return (os.path.exists(os.path.join(configs, "jaia_bootstrap.json")),
+        subprocess.run(["bash", "-c", script], check=True, stdout=subprocess.DEVNULL)
+        config = os.path.join(configs, "jaia_bootstrap.json")
+        self.written_config = open(config).read() if os.path.exists(config) else None
+        return (os.path.exists(config),
                 os.path.exists(os.path.join(persistent, "jaia_bootstrap_created")))
 
     def test_a_new_cloudhub_is_given_jaia_bootstrap(self):
         written, marked = self.run_guard()
         self.assertTrue(written)
+        self.assertIn('"email": "ops@example.com"', self.written_config)
+
+    def test_with_no_email_from_create_cloudhub_there_is_no_jaia_bootstrap(self):
+        """A CloudHub upgraded from 2.y never had one named; better no account than a
+        guessed address that would receive its reset link."""
+        written, marked = self.run_guard(email=None)
+        self.assertFalse(written)
 
     def test_once_bootstrapped_it_is_recorded_and_its_config_removed(self):
         written, marked = self.run_guard(then_bootstrap=True)

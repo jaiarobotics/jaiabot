@@ -628,18 +628,22 @@ chmod 0600 /etc/lldap/bootstrap/user-configs/fleet_admin.json
 # password, as for the administrator; Jaia sets one through the reset link.
 jaia_bootstrap_marker=$auth_persistent_dir/jaia_bootstrap_created
 jaia_bootstrap_config=/etc/lldap/bootstrap/user-configs/jaia_bootstrap.json
+jaia_bootstrap_email=$(cat "$auth_persistent_dir/jaia_bootstrap_email" 2>/dev/null || true)
 if $jaia_auth_lldap_bootstrap_completed; then
     mkdir -p "$auth_persistent_dir"
     touch "$jaia_bootstrap_marker"
 fi
 if [ -e "$jaia_bootstrap_marker" ]; then
     rm -f "$jaia_bootstrap_config"
+elif [ -z "$jaia_bootstrap_email" ]; then
+    # create_cloudhub --bootstrap-email names it; a CloudHub made any other way has no one to send the reset link to
+    echo "No jaia_bootstrap email in $auth_persistent_dir/jaia_bootstrap_email: not creating jaia_bootstrap"
+    rm -f "$jaia_bootstrap_config"
 else
-    # Not support@: LLDAP holds every email unique, and jaia_support already has it
     cat > "$jaia_bootstrap_config" <<EOF
 {
   "id": "jaia_bootstrap",
-  "email": "support+bootstrap@jaia.tech",
+  "email": "$jaia_bootstrap_email",
   "groups": ["super_admin", "lldap_admin"
   ]
 }

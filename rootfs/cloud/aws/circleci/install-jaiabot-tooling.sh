@@ -36,7 +36,7 @@ echo "installed jaiabot: $(jaia version 2>&1 | sed -n 2p)"
 
 # a one-line failure here beats an argparse dump from inside the create step
 create_cloudhub_help=$(jaia admin fleet create_cloudhub --help)
-for flag in --permissions-boundary --client-vpn; do
+for flag in --permissions-boundary --client-vpn --bootstrap-email; do
     if ! grep -q -- "$flag" <<< "$create_cloudhub_help"; then
         echo "ERROR: installed tooling predates this checkout (no create_cloudhub $flag); it cannot drive this trial" >&2
         exit 1

@@ -26,6 +26,7 @@ import argparse
 import logging
 import pathlib
 import random
+import re
 
 LOG_LEVELS = {
     'critical': logging.CRITICAL,
@@ -156,6 +157,19 @@ def resolve_jaiabot_dir(args, script_dir, logger):
     return jaiabot_dir
 
 
+# jaia_support already has this one, and LLDAP holds every email unique
+SUPPORT_EMAIL = "support@jaia.tech"
+EMAIL_RE = re.compile(r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$")
+
+
+def bootstrap_email(value):
+    if not EMAIL_RE.match(value):
+        raise argparse.ArgumentTypeError(f"'{value}' is not an email address")
+    if value.lower() == SUPPORT_EMAIL:
+        raise argparse.ArgumentTypeError(f"{SUPPORT_EMAIL} belongs to jaia_support; use another address")
+    return value
+
+
 def main():
     parser = argparse.ArgumentParser(description="Jaia Fleet CloudHub creation (including VPC)")
     parser.add_argument('fleetcfg',  help="Path to fleet configuration file (protobuf TextFormat version of FleetConfig)")
@@ -174,6 +188,8 @@ def main():
     parser.add_argument('--govcloud', help=f"Shorthand for --region {GOVCLOUD_REGION}", action="store_true")
     parser.add_argument('--repo', help="Jaiabot Repo", default="release", choices=["release", "beta", "continuous", "test"])
     parser.add_argument('--disk-size-gb', help="CloudHub disk size in GB", default=32, type=int)
+    parser.add_argument('--bootstrap-email', type=bootstrap_email, required=True,
+                        help="Email of the jaia_bootstrap account, Jaia's for commissioning this CloudHub; its password is set through the reset link sent here")
     parser.add_argument('--client-vpn', help="Make this machine a peer of the CloudHub's VPNs and add the CloudHub to its /etc/hosts. For CI and development: the peer stays on the CloudHub for as long as it runs", action="store_true")
     parser.add_argument('--no-update-client-etc-hosts', help="With --client-vpn, do not add a local entry for the new CloudHub in this machine's /etc/hosts", action="store_true")
     args = parser.parse_args()
@@ -234,6 +250,7 @@ def main():
         f.write(f'DISK_SIZE_GB={args.disk_size_gb}\n')
         f.write(f'CLOUDHUB_DATA_BUCKET="{data_bucket}"\n')
         f.write(f'FLEET_CONFIG={fleet_cfg_full_path}\n')
+        f.write(f'BOOTSTRAP_EMAIL={args.bootstrap_email}\n')
 
         f.write(f'ENABLE_CLIENT_VPN={str(args.client_vpn).lower()}\n')
         update_client_etc_hosts = args.client_vpn and not args.no_update_client_etc_hosts

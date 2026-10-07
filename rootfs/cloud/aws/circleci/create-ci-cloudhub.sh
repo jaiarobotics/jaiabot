@@ -52,6 +52,7 @@ jaia admin fleet create_cloudhub "${OUTPUT_DIR}/fleet.cfg" "${JAIA_CI_CUSTOMER}"
     --region "${AWS_DEFAULT_REGION}" \
     --repo "${JAIA_CI_REPO}" \
     --permissions-boundary JaiaCloudHubBoundary \
+    --bootstrap-email ci-bootstrap@example.invalid \
     --instance-type "${INSTANCE_TYPE}" \
     --virtualfleet-instance-type "${INSTANCE_TYPE}" \
     --output-json "${OUTPUT_DIR}/cloudhub.json" \

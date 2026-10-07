@@ -79,6 +79,11 @@ if [[ "$UPDATE_CLIENT_ETC_HOSTS" == "true" && "$ENABLE_CLIENT_VPN" != "true" ]];
     exit 1
 fi
 
+if [ -z "${BOOTSTRAP_EMAIL:-}" ]; then
+    echo "BOOTSTRAP_EMAIL is required: the email of the jaia_bootstrap account (create_cloudhub --bootstrap-email)"
+    exit 1
+fi
+
 # An unattended run has to fail rather than hang, so every wait below is bounded
 function abort_if_timed_out() {
     # $1: deadline, $2: what is being waited for
@@ -340,6 +345,7 @@ cp ${USER_DATA_SCRIPT_IN} ${USER_DATA_SCRIPT}
 declare -A replacements=(
     ["{{CLIENT_VPN_WIREGUARD_PUBKEY}}"]="$CLIENT_VPN_WIREGUARD_PUBKEY"
     ["{{FLEET_ID}}"]="$FLEET_ID"
+    ["{{BOOTSTRAP_EMAIL}}"]="$BOOTSTRAP_EMAIL"
     ["{{VPN_TMP_PUBKEY}}"]="$(cat ${USER_DATA_FIRST_BOOT_DIR}/jaiabot/init/id_vpn_tmp.pub)"
 )
 
@@ -629,6 +635,6 @@ cat <<EOF
 EOF
 
 echo -e "Authelia login at https://$AUTH_BASE_URI"
-echo -e "\tjaia_bootstrap: Jaia's, to commission this CloudHub and pair its fleet. Set a password with \"Reset password?\" on the login page, which emails support+bootstrap@jaia.tech."
+echo -e "\tjaia_bootstrap: Jaia's, to commission this CloudHub and pair its fleet. Set a password with \"Reset password?\" on the login page, which emails ${BOOTSTRAP_EMAIL}."
 echo -e "\t\tDelete it at https://users.$AUTH_BASE_URI before the CloudHub is shipped."
 echo -e "\tfleet_admin: the customer's. Set a password the same way, which emails cloudhub.admin_email."

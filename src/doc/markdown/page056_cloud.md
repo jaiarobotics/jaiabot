@@ -241,7 +241,7 @@ A new CloudHub's directory has two accounts, neither with a password: set one wi
 
 | Account | Whose | Groups | Email |
 | --- | --- | --- | --- |
-| `jaia_bootstrap` | Jaia's, for commissioning | `super_admin`, `lldap_admin` | `support+bootstrap@jaia.tech` |
+| `jaia_bootstrap` | Jaia's, for commissioning | `super_admin`, `lldap_admin` | `create_cloudhub --bootstrap-email` |
 | `fleet_admin` | the customer's | `super_admin`, `lldap_admin` | `cloudhub.admin_email` |
 
 Commissioning, signed in as `jaia_bootstrap`:
@@ -254,7 +254,8 @@ Commissioning, signed in as `jaia_bootstrap`:
 5. Before the CloudHub is shipped, delete `jaia_bootstrap` at `https://users.<base uri>`.
 
 `jaia_bootstrap` is created the first time the CloudHub's directory is set up and never
-again. A major upgrade sets the directory up a second time, so a marker in the persistent
+again. `--bootstrap-email` is required, and cannot be `support@jaia.tech`, which `jaia_support`
+already has. A CloudHub made without it, such as one upgraded from 2.y, gets no `jaia_bootstrap`. A major upgrade sets the directory up a second time, so a marker in the persistent
 `/var/log/jaiabot/auth` records that the account has had its turn; deleting it is final.
 There is also a `jaia_support` account, in no groups, which the support page moves into
 the web groups when a customer grants Jaia web access.
