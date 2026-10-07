@@ -228,6 +228,13 @@ persist and nothing to keep in sync. Testing it takes two checks, not one: a way
 inside a zone's buffer registers no _blocked leg_, because routing treats a leg touching
 such a waypoint as unroutable rather than blocked.
 
+**Loading a zone set is one tracked action, and the set's name travels in its snapshot.**
+When the load was a rename followed by a load, undo could land between the two, leaving
+one set's name over another set's zones, so the next save overwrote the wrong file.
+`LOAD_EXCLUSION_ZONE_SET` must also stay `tracked: true`: it was once registered
+untracked, which made the most destructive zone operation the only one undo could not
+reverse.
+
 ## 5. Producing an unroutable route
 
 Two statuses mean "cannot be routed", and both are hard to create deliberately — worth
