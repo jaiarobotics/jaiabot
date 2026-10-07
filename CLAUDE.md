@@ -10,6 +10,11 @@ Guidance for Claude when working in this repository.
 - Don't explain *what* the code does, restate the diff, or reference the current task/fix/caller (e.g. "used by X", "added for the Y flow"). That belongs in the commit message or PR description, not the code.
 - Don't overly emphasis historical reasons for the change, assume the current state of the code speaks for itself.
 
+## Branches and PR titles
+
+- Name branches `<issue type>/<release branch>/<short-name>/<JIRA key>`, e.g. `task/3.y/mark-claude-docs/SW-2594`: the JIRA issue type in lowercase (`task`, `bug`, ...), the release branch the PR targets, a short kebab-case name, and the JIRA issue ID.
+- Title PRs the same way: `<issue type> / <release branch> / <short description> / <JIRA key>`, e.g. `task / 3.y / Mark Claude-authored sections of the Markdown docs / SW-2594`.
+
 ## Github PR
 
 - When replying to Github PRs, prefix each comment with `# Claude` so the other users can clearly see it is your text.
