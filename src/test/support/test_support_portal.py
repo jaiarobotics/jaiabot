@@ -278,12 +278,13 @@ class PortalTest(unittest.TestCase):
         self.assertEqual([], self.hub.web_groups())
         self.assertEqual(["shell"], self.grant()["scopes"])
 
-    def test_a_request_signed_before_scopes_existed_is_still_a_shell_request(self):
-        """jaia-support-request.sh gained --scopes after the first CloudHubs shipped.
-        Refusing an older request as malformed would be the wrong answer."""
-        self.post("approve", self.sign(scopes=None))
-        self.assertEqual(["198.51.100.7/32"], self.hub.open_to())
-        self.assertEqual(["shell"], self.grant()["scopes"])
+    def test_a_request_that_does_not_say_what_it_wants_is_refused(self):
+        """Nothing has shipped, so there is no older shape to accommodate - and
+        guessing on the customer's behalf is the one thing this page must not do."""
+        status, page = self.post("approve", self.sign(scopes=None))
+        self.assertIn("malformed", page)
+        self.assertEqual([], self.hub.open_to())
+        self.assertEqual([], self.hub.web_groups())
 
     def test_a_request_for_a_scope_this_cloudhub_does_not_know_is_refused(self):
         status, page = self.post("review", self.sign(scopes=["root"]))
@@ -321,13 +322,30 @@ class PortalTest(unittest.TestCase):
         made = subprocess.run(
             ["bash", str(request), "--binary=jaia admin fleet support_request",
              "--fleet", str(FLEET), "--key", self.key,
-             "--reason", "Pump fault on bot 3", "--days", "5", "--from", "198.51.100.7"],
+             "--reason", "Pump fault on bot 3", "--days", "5", "--from", "198.51.100.7",
+             "--scopes", "shell,web"],
             stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True, check=True).stdout
 
         status, page = self.post("approve", made)
         self.assertEqual(200, status)
         self.assertIn("Jaia has access to this fleet until", page)
         self.assertEqual(["198.51.100.7/32"], self.hub.open_to())
+        self.assertEqual(["jcu_developer", "jdv", "rest_api_read", "run"],
+                         self.hub.web_groups())
+
+    def test_the_real_script_asks_for_the_smaller_scope_by_default(self):
+        """Both ends default to web, and a disagreement between them would show up
+        as a customer approving something nobody meant to ask for."""
+        request = SOURCE_DIR / "src" / "sh" / "utils" / "jaia-support-request.sh"
+        made = subprocess.run(
+            ["bash", str(request), "--fleet", str(FLEET), "--key", self.key,
+             "--reason", "Pump fault on bot 3", "--from", "198.51.100.7"],
+            stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True, check=True).stdout
+
+        self.post("approve", made)
+        self.assertEqual([], self.hub.open_to())
+        self.assertEqual(["jcu_developer", "jdv", "rest_api_read", "run"],
+                         self.hub.web_groups())
 
     def test_a_post_from_another_site_is_refused(self):
         status, _ = self.post("approve", self.sign(), csrf="not-the-token")

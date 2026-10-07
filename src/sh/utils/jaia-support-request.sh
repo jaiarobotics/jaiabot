@@ -29,10 +29,11 @@ Usage: ${BINARY} --fleet <id> --key <signing key> --reason <text> [--days <n>]
                     to this machine's public address. The grant opens port 22 to
                     this and nothing else, so it is what you will connect from.
   --scopes <list>   What to ask for, comma separated (default ${SCOPES}):
-                      shell  a shell on the CloudHub, and the fleet through it
                       web    sign-in to JCC, JDV, the JCU and the read-only API
-                    Ask for the smaller one when it is enough; the customer can
-                    approve either on its own whatever is asked for.
+                      shell  a shell on the CloudHub, and the fleet through it
+                    Defaults to the smaller one, so asking for a shell is a thing
+                    you do on purpose. The customer can approve either on its own
+                    whatever is asked for.
 
 Prints the request for the customer to paste into https://support.<their fleet>.
 EOF
@@ -44,7 +45,7 @@ KEY=""
 REASON=""
 DAYS=7
 SOURCE=""
-SCOPES=shell
+SCOPES=web
 
 while (( $# > 0 )); do
     case "$1" in

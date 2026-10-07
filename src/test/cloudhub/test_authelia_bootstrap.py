@@ -24,17 +24,18 @@ class AutheliaBootstrapTest(unittest.TestCase):
             cls.text = f.read()
 
     def user_config(self, name):
-        found = re.search(r"{}\.json <<EOF\n(.*?)^EOF".format(name), self.text,
+        # Anchored on the directory, or asking for "admin" would match fleet_admin.json
+        found = re.search(r"user-configs/{}\.json <<EOF\n(.*?)^EOF".format(name), self.text,
                           re.DOTALL | re.MULTILINE)
         self.assertIsNotNone(found, "the script no longer writes {}.json".format(name))
         return found.group(1)
 
     def test_the_admin_is_bootstrapped_without_a_password(self):
-        self.assertNotIn("password", self.user_config("admin"))
+        self.assertNotIn("password", self.user_config("fleet_admin"))
 
     def test_the_admin_is_still_created(self):
-        config = self.user_config("admin")
-        self.assertIn('"id": "admin"', config)
+        config = self.user_config("fleet_admin")
+        self.assertIn('"id": "fleet_admin"', config)
         self.assertIn("lldap_admin", config)
 
     def test_the_admin_is_not_named_for_jaia(self):

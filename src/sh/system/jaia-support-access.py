@@ -40,7 +40,7 @@ MAX_DAYS = 14
 SSH_PORT = 22
 
 SCOPES = ("shell", "web")
-DEFAULT_SCOPES = ("shell",)
+DEFAULT_SCOPES = ("web",)
 
 ACCOUNT = "jaia_support"
 # Read-oriented: what tier 1 is for is seeing the fleet, not driving it. jcu_developer
@@ -309,11 +309,10 @@ def granted_cidr():
 
 
 def granted_scopes():
-    """Absent means shell, so a grant written by an older CloudHub still means what
-    it meant when it was written."""
+    """A record that does not say what it granted granted nothing: the safe reading
+    of a damaged file is the one that withdraws access rather than keeps it."""
     granted = read_json(GRANT_FILE) or {}
-    asked = granted.get("scopes", DEFAULT_SCOPES)
-    return {scope for scope in asked if scope in SCOPES}
+    return {scope for scope in granted.get("scopes", []) if scope in SCOPES}
 
 
 #################

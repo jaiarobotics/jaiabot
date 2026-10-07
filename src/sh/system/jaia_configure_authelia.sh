@@ -605,15 +605,15 @@ done
 # No password: bootstrap.sh reapplies every password its user configs carry, so one
 # here would be restored over whatever the admin has since chosen. They set their
 # own through the portal's reset link.
-cat > /etc/lldap/bootstrap/user-configs/admin.json <<EOF
+cat > /etc/lldap/bootstrap/user-configs/fleet_admin.json <<EOF
 {
-  "id": "admin",
+  "id": "fleet_admin",
   "email": "$admin_email",
   "groups": ["super_admin", "lldap_admin"
   ]
 }
 EOF
-chmod 0600 /etc/lldap/bootstrap/user-configs/admin.json
+chmod 0600 /etc/lldap/bootstrap/user-configs/fleet_admin.json
 
 # Groupless, and no "groups" key rather than an empty one, so re-running bootstrap
 # cannot withdraw a grant that is in force. The account exists so the support page

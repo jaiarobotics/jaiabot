@@ -266,16 +266,26 @@ class FirewallTest(unittest.TestCase):
                     "--scopes", "root", expect=1)
         self.assertEqual([], self.hub.open_to())
 
-    def test_a_grant_written_before_scopes_existed_still_means_the_shell(self):
-        """Absent is not empty: an older record asked for a shell and must keep it."""
-        self.approve(scopes="shell")
+    def test_a_record_that_does_not_say_what_it_granted_grants_nothing(self):
+        """The safe reading of a damaged file withdraws access rather than keeping it,
+        and this one is reachable by hand on a CloudHub Jaia has a shell on."""
+        self.approve(scopes="shell,web")
         with open(self.grant_file()) as f:
             granted = json.load(f)
         del granted["scopes"]
         with open(self.grant_file(), "w") as f:
             json.dump(granted, f)
         self.access("reconcile")
-        self.assertEqual([CIDR], self.hub.open_to())
+        self.assertEqual([], self.hub.open_to())
+        self.assertEqual([], self.hub.web_groups())
+
+    def test_the_default_scope_is_the_smaller_one(self):
+        """Asking for a shell should be deliberate, so the default is what cannot
+        touch anything."""
+        self.access("approve", "--fleet", str(FLEET), "--days", "7",
+                    "--source", SOURCE, "--reason", "Pump fault on bot 3")
+        self.assertEqual([], self.hub.open_to())
+        self.assertEqual(self.WEB_GROUPS, self.hub.web_groups())
 
 
 if __name__ == "__main__":

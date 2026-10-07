@@ -113,9 +113,7 @@ def check(payload, fleet, now):
                  "requested_at": int(request["requested_at"]),
                  "expires_at": int(request["expires_at"]),
                  "source": str(request["source"]),
-                 # Defaulted, not required: a request signed before this field existed
-                 # asks for a shell, and refusing it as malformed would be wrong
-                 "scopes": [str(scope) for scope in request.get("scopes", ["shell"])],
+                 "scopes": [str(scope) for scope in request["scopes"]],
                  "reason": str(request["reason"])}
     except (TypeError, ValueError, KeyError):
         raise Refused("The signature is good but the request itself is malformed.")
