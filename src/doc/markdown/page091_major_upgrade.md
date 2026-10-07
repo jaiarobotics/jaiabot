@@ -59,10 +59,10 @@ Use Ansible to run the major upgrade, either on the command line or via the JCU 
 ```
 # in /usr/share or local git clone
 cd jaiabot/config/ansible/major_upgrade
-ansible-playbook -i /etc/jaiabot/inventory.yml major-upgrade.yml -e hub_id=1 -e do_backup=yes
+ansible-playbook -i /etc/jaiabot/inventory.yml major-upgrade.yml -e hub_id=1 -e do_backup=yes -e has_cloudhub=no
 ```
 
-where `hub_id` is the hub in use (the one with the upgrade USB flash key or CD connected) and `do_backup` is a boolean set to whether the existing (old) rootfs and overlay should be backed up to the `/var/log/jaiabot/major_upgrade/vX_codename` directory prior to the upgrade.
+where `hub_id` is the hub in use (the one with the upgrade USB flash key or CD connected) and `do_backup` is a boolean set to whether the existing (old) rootfs and overlay should be backed up to the `/var/log/jaiabot/major_upgrade/vX_codename` directory prior to the upgrade. `has_cloudhub` (default `yes`) says whether the fleet has a CloudHub after this upgrade, including one added as part of it; the upgrade stops before touching any node if the fleet configuration disagrees.
 
 Each node downloads the new images from the hub one at a time, capped at 1.5 MB/s so the upgrade does not saturate the fleet's radio link. Fleets in simulation mode (VirtualBox fleets and VirtualFleets) download uncapped. Pass `-e major_upgrade_download_limit_rate=<rate>` (a curl `--limit-rate` value such as `500K`, or `0` for no cap) to override either.
 
@@ -103,7 +103,7 @@ A backup of the old rootfs and overlayfs is copied and compressed to `/var/log/j
 
 The Wireguard files are copied into the staging directory to be reused to avoid having to reconfigure the service VPN on the new image.
 
-The new boot filesystem is prepared using `jaia admin fleet generate` using the fleet configuration file. The VPN keys (id_vpn_tmp) are removed to avoid regenerated the service VPN.
+The new boot filesystem is prepared from the fleet configuration file by the new release's `jaia-fleet-config.py`, taken from its boot tarball. The CloudHub bootstrap key (id_vpn_tmp) is kept, so each node can pair with the fleet's CloudHub after the upgrade.
 
 Finally the `do-major-upgrade.sh` is configured to `/var/log/jaiabot/major_upgrade/v{X}_{ubuntucode}` and run.
 

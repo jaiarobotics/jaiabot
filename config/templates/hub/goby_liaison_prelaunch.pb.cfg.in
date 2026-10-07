@@ -128,6 +128,13 @@ upper_right_logo_link: "https://www.jaia.tech/"
             value: "no"
         }
 
+        input_var {
+            name: "has_cloudhub"
+            display_name: "This fleet has a CloudHub after this upgrade"
+            value: "yes"
+            value: "no"
+        }
+
         output_var {
             name: "major_upgrade_error"
             display_name: "Error"
