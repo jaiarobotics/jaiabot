@@ -1,5 +1,9 @@
 # VPN Setup
 
+*This section written by Claude*
+
+From release 3, each fleet's VPN is served by its own CloudHub. Its bots and hubs pair with the CloudHub (see "Enrolling a node at first boot" below) and reach it, and through it the fleet's other hubs, over `wg_jaia_ch<fleet>`. Addressing on it is in [Cloud Computing](page056_cloud.md). `vpn.jaia.tech` no longer enrolls a fleet's nodes; what follows on it is kept for servicing release 2 fleets.
+
 We use a VPN to securely connect to the JaiaBots for development and testing.
 
 ## Wireguard
@@ -203,9 +207,25 @@ whoever `jaia admin ssh add` has let into the same file alone.
 
 **Pair Fleet to CloudHub**, run from a hub on site, re-runs enrollment on every bot
 and hub over the fleet WLAN. A node remembers the CloudHub it was given at first boot,
-so the re-run needs no argument; one already paired only makes sure its tunnel is up.
+so the re-run needs no argument; one already paired is left as it is.
 
 A node whose enrollment is refused keeps `id_vpn_tmp` in `/home/jaia/.ssh`, so
-once the authorization is renewed the node can be made to run
-`pair-with-cloudhub.sh` again rather than be re-imaged. The key is
-deleted only once a config has been installed.
+once fleet pairing is open again **Pair Fleet to CloudHub** picks it up rather than
+it having to be re-imaged. The key is deleted only once a config has been installed.
+
+*This section written by Claude*
+
+### Starting at boot
+
+Whether a node's tunnel starts by itself at boot is the fleet configuration's
+`service_vpn_enabled`, and nothing else: enrollment happens whenever the fleet has a
+CloudHub, and leaves the tunnel stopped on a node set not to start it. On site, the
+JCU's **Change CloudHub VPN State** starts, stops, enables or disables it on the hub,
+and **Check CloudHub VPN Status** reports both. The hub-to-hub link (HUB2HUB) runs
+through the CloudHub, so a hub whose tunnel is down loses it.
+
+### After a major upgrade
+
+A major upgrade carries no node's enrollment over, only the CloudHub's own
+`/etc/wireguard`, so afterwards the fleet is paired again as a new fleet would be
+(see [Major software upgrade](page091_major_upgrade.md)).
