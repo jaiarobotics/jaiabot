@@ -41,7 +41,11 @@ STUBS = {
     "sudo": 'exec "$@"\n',
     "mount": 'echo "mount $*" >> "$JAIA_TEST_CALLS"\n',
     "chown": 'echo "chown $*" >> "$JAIA_TEST_CALLS"\n',
-    "ping": 'exit 0\n',
+    # Unreachable for the first $JAIA_TEST_NC_FAILURES probes, then reachable
+    "nc": 'echo "nc $*" >> "$JAIA_TEST_CALLS"\n'
+          'n=$(grep -c "^nc " "$JAIA_TEST_CALLS")\n'
+          '[ "$n" -gt "${JAIA_TEST_NC_FAILURES:-0}" ]\n',
+    "sleep": 'exit 0\n',
     "systemctl": 'echo "systemctl $*" >> "$JAIA_TEST_CALLS"\n'
                  'case "$1" in is-enabled) exit ${JAIA_TEST_ENABLED:-0} ;; esac\n',
     "wg": """
@@ -276,6 +280,40 @@ class NodeEnrollTest(unittest.TestCase):
         result = self.run_again()
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(self.recorded(), "")
+
+    ## Reaching the CloudHub
+
+    def test_the_cloudhub_is_reached_over_tcp_not_ping(self):
+        """Some ship, satellite and corporate networks pass TCP but block ICMP"""
+        result = self.run_script()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("nc -z -w 5 fleet7.jaia.tech 443", self.recorded())
+        self.assertNotIn("ping", self.recorded())
+
+    def test_a_network_that_comes_up_late_is_waited_for(self):
+        self.env["JAIA_TEST_NC_FAILURES"] = "3"
+        result = self.run_script()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.recorded().count("nc -z"), 4)
+        self.assertIsNotNone(self.installed_config())
+
+    def test_an_unreachable_cloudhub_leaves_the_key_and_says_so(self):
+        self.env["JAIA_TEST_NC_FAILURES"] = "1000"
+        self.env["JAIA_PAIRING_WAIT_SECONDS"] = "0"
+        result = self.run_script()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("Could not reach fleet7.jaia.tech (TCP port 443)", result.stderr)
+        self.assertNotIn("ssh ", self.recorded())
+        self.assertTrue(os.path.exists(self.bootstrap_key), "the bootstrap key was moved off the boot partition")
+
+    def test_a_refusal_points_at_fleet_pairing(self):
+        """Reachable on 443 but turned away on 22: pairing is closed, not the network down"""
+        self.env["JAIA_TEST_SSH_STATUS"] = "255"
+        self.write_answer("")
+        result = self.run_script()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("is fleet pairing open", result.stderr)
+        self.assertTrue(os.path.exists(self.moved_key))
 
     def test_the_attempt_is_bounded(self):
         """A CloudHub not open for pairing drops the connection, which would otherwise

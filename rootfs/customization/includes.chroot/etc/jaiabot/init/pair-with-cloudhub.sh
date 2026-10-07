@@ -52,10 +52,17 @@ if [ ! -e "${BOOT_KEY}" ] && [ ! -e "${PRIVATE_KEY}" ]; then
     exit 0
 fi
 
-if ! timeout 10 bash -c "until ping -c1 1.1.1.1 >/dev/null 2>&1; do :; done"; then
-    echo "No network after 10 seconds, not pairing"
-    exit 1
-fi
+# Whether the CloudHub can be reached the way pairing reaches it, over TCP, rather than
+# by a ping some networks block. Its HTTPS port answers whether or not pairing is open.
+WAIT_SECONDS="${JAIA_PAIRING_WAIT_SECONDS:-120}"
+deadline=$((SECONDS + WAIT_SECONDS))
+until nc -z -w 5 "${CLOUDHUB_HOST}" 443 >/dev/null 2>&1; do
+    if (( SECONDS >= deadline )); then
+        echo "Could not reach ${CLOUDHUB_HOST} (TCP port 443) within ${WAIT_SECONDS} seconds, not pairing" >&2
+        exit 1
+    fi
+    sleep 2
+done
 
 if [ -e "${BOOT_KEY}" ]; then
     sudo mount -o remount,rw ${BOOT_DIR}
@@ -75,8 +82,12 @@ fi
 # The CloudHub is told the public half only, and answers with a config whose
 # PrivateKey is a placeholder, so this node's key never leaves it. Bounded, because
 # a CloudHub not open for pairing drops the connection rather than refusing it.
-ssh -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15 -i ${PRIVATE_KEY} \
-    jaia@${CLOUDHUB_HOST} "$type $id $(sudo cat ${WG_DIR}/publickey)" > ${CONF}
+if ! ssh -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15 -i ${PRIVATE_KEY} \
+    jaia@${CLOUDHUB_HOST} "$type $id $(sudo cat ${WG_DIR}/publickey)" > ${CONF}; then
+    # The CloudHub answered on 443 just now, so this is pairing, not the network
+    echo "${CLOUDHUB_HOST} did not accept ${type} ${id} for pairing: is fleet pairing open on its JCU?" >&2
+    exit 1
+fi
 
 if ! grep -q "^PrivateKey = ${PLACEHOLDER}\$" ${CONF}; then
     echo "${CLOUDHUB_HOST} did not return a usable Wireguard config for ${type} ${id}" >&2
