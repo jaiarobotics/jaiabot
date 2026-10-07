@@ -32,6 +32,7 @@ set(scripts_to_install
   utils/jaia-vpn-gen.sh
   utils/jaia-vpn-peers.sh
   utils/jaia-vpn-enroll.sh
+  utils/jaia-vpn-inventory.sh
   utils/jaia-vpn-authorize.sh
   utils/jaia-support-request.sh
   # System scripts
