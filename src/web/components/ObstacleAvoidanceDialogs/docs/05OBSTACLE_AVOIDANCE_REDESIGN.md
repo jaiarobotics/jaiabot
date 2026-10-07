@@ -89,7 +89,7 @@ details that come up early go in [Parked for later phases](#parked-for-later-pha
    waypoint array, modify it, and hand it back with `setWaypoints`, or mutate the array an
    accessor returns. Every change goes through a named `Mission` operation, such as append, move,
    delete, reroute or restore original waypoints. Accessors return read-only arrays typed as the
-   `Waypoint` interface, which has no location, flag or marker setters, so the compiler enforces
+   `Waypoint` interface, which has no setters, so the compiler enforces
    this rather than convention.
 10. **A waypoint selection never outlives a change in numbering.** The selection records a mission
     and a visible waypoint number. Any operation that renumbers a mission's visible waypoints, or
@@ -257,11 +257,10 @@ The data formats and code layout that support the Phase 1 workflow.
   `Mission` holds.** Both are in `waypoint.ts`:
 
     ```ts
-    /** A mission's waypoint as code outside Mission sees it. Only Mission moves waypoints and sets flags and markers. */
+    /** A mission's waypoint as code outside Mission sees it: read-only. Only Mission changes waypoints. */
     export default interface Waypoint {
         getLocation(): GeographicCoordinate;
         getTask(): Task;
-        setTask(task: Task): void;
         getIsDetour(): boolean;
         getIsSuppressed(): boolean;
         getSegmentStart(): SegmentParams | undefined;
@@ -273,22 +272,25 @@ The data formats and code layout that support the Phase 1 workflow.
 
     /** Used only by Mission. */
     export class MissionWaypoint implements Waypoint {
-        // today's Waypoint class, plus setLocation, setIsDetour, setIsSuppressed,
+        // today's Waypoint class (setLocation, setTask), plus setIsDetour, setIsSuppressed,
         // setSegmentStart and setIsLaneStart
     }
     ```
 
     - `Mission` holds `private waypoints: MissionWaypoint[]`. Its accessors return the same objects
-      typed as `readonly Waypoint[]`: no copies, so in-place task edits still work, but the
-      compiler rejects a move, flag change or marker change outside `Mission`.
+      typed as `readonly Waypoint[]`: no copies, so edits to a task's settings still work, but
+      the compiler rejects a move, a task replacement, or a flag or marker change outside
+      `Mission`.
     - `export default interface` keeps today's `import Waypoint from ".../waypoint"` working, so
-      code that only reads waypoints and edits tasks does not change.
+      code that only reads waypoints or edits a task's settings does not change.
     - `addWaypoints(waypoints: readonly Waypoint[])` copies only location and task into new
       `MissionWaypoint`s, so flags or markers on a waypoint built outside `Mission` never reach a
       mission. That is why exporting the class is safe: outside code can build loose waypoints,
       and a cast (`as MissionWaypoint`) is the only way past the interface.
-    - Outside code creating waypoints today: the legacy file loader
-      (`mission-set-storage.ts:340`) moves onto `mission.addWaypoint(location)` and sets the task;
+    - Outside code creating waypoints today: the legacy file loader (`extractLegacyMissionData`,
+      `mission-set-storage.ts:334-379`) stays where it is, but builds each waypoint with
+      `mission.addWaypoint(location)` and `mission.setWaypointTask(n, task)` instead of
+      `new Waypoint()`;
       the router's (`exclusion-zone-router.ts:1003`) goes away with `detectReroutesWithOverrides`;
       tests and mocks use the class or `Mission` operations.
     - The interface lists its methods by hand, so a getter outside code needs is added to both;
@@ -409,9 +411,9 @@ The data formats and code layout that support the Phase 1 workflow.
     - **A JCC refuses a mission set version it does not know.** A version that is neither the
       current one nor in `SNAPSHOT_MIGRATIONS` is reported as an unknown format and not loaded,
       from the hub or from a file. This applies from 2.2 on; earlier builds are not changed.
-- **Code that writes into the array `getWaypoints()` returns moves onto `Mission` operations
-  .** There are two places. `survey-handlers.ts:76` sets tasks on the waypoints, not the
-  array, so it is unaffected.
+- **Code that writes into the array `getWaypoints()` returns moves onto `Mission`
+  operations.** There are two places. `survey-handlers.ts:76,82,84` sets tasks on the waypoints,
+  not the array; it moves onto `setWaypointTask` (see the methods table below).
     - **Waypoint panel cancel** (`panel-handlers.ts:43`). The panel keeps a `cloneDeep` copy of the
       waypoint when it opens (`WaypointPanel.tsx:75`); cancel puts that copy into the array in
       place of the waypoint. That would also put back the copy's flags and markers, though the
@@ -448,21 +450,24 @@ The data formats and code layout that support the Phase 1 workflow.
   themselves; they call a `Mission` method that makes the change (principle 9). There is one such
   method for each operator action that changes waypoints:
 
-    | Operator action             | `Mission` method                                                                         |
-    | --------------------------- | ---------------------------------------------------------------------------------------- |
-    | Append a waypoint           | exists                                                                                   |
-    | Move a waypoint             | exists                                                                                   |
-    | Delete a waypoint           | exists                                                                                   |
-    | Change a waypoint's task    | none: the waypoint panel and the survey planner edit the waypoint object's task in place |
-    | Reroute                     | **new**                                                                                  |
-    | Restore original waypoints  | **new**                                                                                  |
-    | Cancel waypoint panel edits | **new**: `revertWaypoint`                                                                |
-    | Survey planner lane starts  | **new**: `setLaneStart`                                                                  |
-    | Combine missions            | **new**: `appendWaypointsFrom`                                                           |
+    | Operator action             | `Mission` method               |
+    | --------------------------- | ------------------------------ |
+    | Append a waypoint           | exists                         |
+    | Move a waypoint             | exists                         |
+    | Delete a waypoint           | exists                         |
+    | Change a waypoint's task    | **new**: `setWaypointTask`     |
+    | Reroute                     | **new**                        |
+    | Restore original waypoints  | **new**                        |
+    | Cancel waypoint panel edits | **new**: `revertWaypoint`      |
+    | Survey planner lane starts  | **new**: `setLaneStart`        |
+    | Combine missions            | **new**: `appendWaypointsFrom` |
 
-    Task edits in place change a waypoint's contents, not the array or the numbering, so they do not
-    conflict with principle 9. They work because accessors return the waypoint objects the mission
-    actually holds, typed as the `Waypoint` interface.
+    `setWaypointTask(waypointNum, task)` replaces a waypoint's task: the survey planner, the
+    legacy file loader and `revertWaypoint` use it, and it refuses a detour waypoint. A task's own
+    settings (type, dive and drift parameters) are still edited in place on the `Task` object
+    that `getTask()` returns, as the waypoint panel does today: that changes the task's contents,
+    not the waypoint list, its numbering or its flags, so principle 9 does not cover it. The
+    panel's Cancel restores the whole task through `revertWaypoint`.
 
 - **Reroute and restore: the router returns geometry, and `Mission` makes the change.**
   Restore original waypoints takes no input: `Mission` removes the detours and clears the
