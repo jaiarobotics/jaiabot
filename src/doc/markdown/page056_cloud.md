@@ -232,6 +232,31 @@ be regenerated without every client peer, including the login server, having to 
 reissued. The same goes for its SSH key, `/home/jaia/.ssh/hub30_fleetN`, which no fleet
 config holds (see below).
 
+## Accounts and commissioning
+
+A new CloudHub's directory has two accounts, neither with a password: set one with
+**Reset password?** on the login page, which emails the address shown.
+
+| Account | Whose | Groups | Email |
+| --- | --- | --- | --- |
+| `jaia_bootstrap` | Jaia's, for commissioning | `super_admin`, `lldap_admin` | `support+bootstrap@jaia.tech` |
+| `fleet_admin` | the customer's | `super_admin`, `lldap_admin` | `cloudhub.admin_email` |
+
+Commissioning, signed in as `jaia_bootstrap`:
+
+1. Test the CloudHub's sites.
+2. In the CloudHub's JCU (`https://run.<base uri>/jcu`), **Open Fleet Pairing**.
+3. From a hub on site, **Pair Fleet to CloudHub**, and check every bot and hub reports it
+   is paired.
+4. **Close Fleet Pairing**.
+5. Before the CloudHub is shipped, delete `jaia_bootstrap` at `https://users.<base uri>`.
+
+`jaia_bootstrap` is created the first time the CloudHub's directory is set up and never
+again. A major upgrade sets the directory up a second time, so a marker in the persistent
+`/var/log/jaiabot/auth` records that the account has had its turn; deleting it is final.
+There is also a `jaia_support` account, in no groups, which the support page moves into
+the web groups when a customer grants Jaia web access.
+
 ## CloudHub SSH key
 
 A physical hub's SSH key lives on its Yubikey, so the key handle in the fleet config is

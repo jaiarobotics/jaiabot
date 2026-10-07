@@ -619,4 +619,7 @@ cat <<EOF
 	*.$AUTH_BASE_URI_HOST CNAME $AUTH_BASE_URI
 EOF
 
-echo -e "Authelia login at https://$AUTH_BASE_URI\n\tuser: fleet_admin\n\tpass: none yet - set one with \"Reset password?\" on the login page, which emails cloudhub.admin_email"
+echo -e "Authelia login at https://$AUTH_BASE_URI"
+echo -e "\tjaia_bootstrap: Jaia's, to commission this CloudHub and pair its fleet. Set a password with \"Reset password?\" on the login page, which emails support+bootstrap@jaia.tech."
+echo -e "\t\tDelete it at https://users.$AUTH_BASE_URI before the CloudHub is shipped."
+echo -e "\tfleet_admin: the customer's. Set a password the same way, which emails cloudhub.admin_email."

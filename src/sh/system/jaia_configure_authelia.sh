@@ -619,6 +619,34 @@ chmod 0600 /etc/lldap/bootstrap/user-configs/fleet_admin.json
 # cannot withdraw a grant that is in force. The account exists so the support page
 # has something to move in and out of the web groups, and so the customer has one
 # name to audit; it reaches nothing until a grant puts it somewhere.
+# Jaia's account for commissioning: testing the CloudHub and pairing its first fleet,
+# deleted from the directory before the CloudHub is shipped. Created only the first
+# time this CloudHub bootstraps, which the marker in the persistent directory records:
+# bootstrap.sh runs again after a major upgrade - its own record of having run lives in
+# cloud.env, on the root filesystem the upgrade replaces - and would otherwise bring a
+# deleted account back with super_admin on a fleet the customer already owns. No
+# password, as for the administrator; Jaia sets one through the reset link.
+jaia_bootstrap_marker=$auth_persistent_dir/jaia_bootstrap_created
+jaia_bootstrap_config=/etc/lldap/bootstrap/user-configs/jaia_bootstrap.json
+if $jaia_auth_lldap_bootstrap_completed; then
+    mkdir -p "$auth_persistent_dir"
+    touch "$jaia_bootstrap_marker"
+fi
+if [ -e "$jaia_bootstrap_marker" ]; then
+    rm -f "$jaia_bootstrap_config"
+else
+    # Not support@: LLDAP holds every email unique, and jaia_support already has it
+    cat > "$jaia_bootstrap_config" <<EOF
+{
+  "id": "jaia_bootstrap",
+  "email": "support+bootstrap@jaia.tech",
+  "groups": ["super_admin", "lldap_admin"
+  ]
+}
+EOF
+    chmod 0600 "$jaia_bootstrap_config"
+fi
+
 cat > /etc/lldap/bootstrap/user-configs/jaia_support.json <<EOF
 {
   "id": "jaia_support",
@@ -685,6 +713,9 @@ if ! $jaia_auth_lldap_bootstrap_completed; then
     for attempt in $(seq 1 120); do
         if docker compose -f /etc/lldap/docker-compose.yaml exec -T lldap /app/bootstrap.sh; then
             echo "jaia_auth_lldap_bootstrap_completed=true" >> /etc/jaiabot/cloud.env
+            mkdir -p "$auth_persistent_dir"
+            touch "$jaia_bootstrap_marker"
+            rm -f "$jaia_bootstrap_config"
             break
         fi
         if (( attempt == 120 )); then
