@@ -362,8 +362,6 @@ message MissionPlan
         optional MissionTask task = 3
             [(jaia.field).rest_api.presence = GUARANTEED];
         optional bool moveWptMode = 4;
-        // STORM: perform this goal's task wherever the bot is (it is rudderless and cannot transit)
-        optional bool storm_task_in_place = 5 [default = false];
     }
 
     repeated Goal goal = 3 [

@@ -157,4 +157,4 @@ stop_camera_command {
 camera_available: $camera_available
 
 $delegated_states
-storm_manager_sends_task_packets: $storm_manager_sends_task_packets
+bot_type: $bot_type

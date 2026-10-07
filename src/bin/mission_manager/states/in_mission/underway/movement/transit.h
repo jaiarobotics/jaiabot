@@ -42,10 +42,10 @@ struct Transit
         {
             // STORM: rudderless, so never engage the helm transit (a drifting bot would just
             // drive in whatever direction it happens to point)
-            if (goal->storm_task_in_place())
+            if (cfg().bot_type() == protobuf::STORM)
             {
-                glog.is_debug1() && glog << "Goal has storm_task_in_place; performing task "
-                                            "in place without transiting"
+                glog.is_debug1() && glog << "STORM bot; performing task in place without "
+                                            "transiting"
                                          << std::endl;
                 post_event(EvWaypointReached());
                 return;

@@ -685,7 +685,6 @@ export interface Goal {
     location?: GeographicCoordinate;
     task?: MissionTask;
     moveWptMode?: boolean;
-    storm_task_in_place?: boolean;
 }
 
 export interface Recovery {

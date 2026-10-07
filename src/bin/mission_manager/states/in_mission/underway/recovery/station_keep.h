@@ -38,7 +38,7 @@ struct StationKeep : IvPSensorPauseCommon<StationKeep, Recovery,
         {
             auto final_goal = context<InMission>().final_goal();
             // STORM: don't station keep at the pre-dive location the bot has drifted from
-            if (!final_goal.storm_task_in_place())
+            if (cfg().bot_type() != protobuf::STORM)
             {
                 update = create_location_stationkeep_update(
                     final_goal.location(),

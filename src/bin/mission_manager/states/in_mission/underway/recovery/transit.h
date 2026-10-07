@@ -42,10 +42,10 @@ struct Transit
             auto final_goal = context<InMission>().final_goal();
 
             // STORM: rudderless, so recover in place and never engage the helm transit
-            if (final_goal.storm_task_in_place())
+            if (cfg().bot_type() == protobuf::STORM)
             {
-                glog.is_debug1() && glog << "Final goal has storm_task_in_place; recovering "
-                                            "in place without transiting"
+                glog.is_debug1() && glog << "STORM bot; recovering in place without "
+                                            "transiting"
                                          << std::endl;
                 post_event(EvWaypointReached());
                 return;
