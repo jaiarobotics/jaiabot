@@ -41,6 +41,8 @@ Generally you will need to `source preseed.goby` before running any of these Gen
 
 ## Environmental variables
 
+*This section written by Claude*
+
 The Generators read their inputs from environmental variables. Where those come from depends on how the applications were launched:
 
 - **Simulation** (`goby_launch`): from `config/preseed.goby`, which `goby_launch` sources before launching any applications.

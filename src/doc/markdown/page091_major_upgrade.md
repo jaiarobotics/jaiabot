@@ -23,6 +23,8 @@ This fleet configuration must then be embedded in the upgrade image (see the nex
 
 If the fleet was generated using a fleet configuration file, a valid file on the hub should already exist at `/etc/jaiabot/fleetN.cfg`. In this case that fleet configuration will be reused and no further action is required.
 
+*This section written by Claude*
+
 Fleet configurations carry a version (see [Fleet configuration versioning](#fleet-configuration-versioning) below). An older file is migrated automatically by the upgrade when that is possible; when it is not, the upgrade stops on the hub, before any bot is touched, with a message saying what must be changed or that the fleet configuration must be regenerated with `jaia admin fleet create`. To find out in advance, run `jaia admin fleet validate /path/to/fleetN.cfg` with the release you are upgrading to.
 
 Major upgrades go one release at a time (1.y to 2.y to 3.y): the upgrade refuses to skip a release, since each release only migrates fleet configurations from the release before it.
@@ -37,6 +39,8 @@ If you need to embed the fleet configuration (see previous section), do so now w
 ```
 jaia admin fleet update_iso /path/to/fleetN.cfg /path/to/jaiabot_updates_resolute_3.0.0_arm64.iso
 ```
+
+*This section written by Claude*
 
 This migrates and validates the fleet config with the fleet config tool of the release on the ISO, embeds it (at `major_upgrade/fleetN.cfg` within the ISO) and writes a new ISO called `/path/to/jaiabot_updates_resolute_3.0.0_arm64_fleetN.iso`. If the fleet config cannot be used with that release, this is where you find out.
 
@@ -65,6 +69,8 @@ ansible-playbook -i /etc/jaiabot/inventory.yml major-upgrade.yml -e hub_id=1 -e 
 ```
 
 where `hub_id` is the hub in use (the one with the upgrade USB flash key or CD connected) and `do_backup` is a boolean set to whether the existing (old) rootfs and overlay should be backed up to the `/var/log/jaiabot/major_upgrade/vX_codename` directory prior to the upgrade.
+
+*This section written by Claude*
 
 Each node downloads the new images from the hub one at a time, capped at 1.5 MB/s so the upgrade does not saturate the fleet's radio link. Fleets in simulation mode (VirtualBox fleets and VirtualFleets) download uncapped. Pass `-e major_upgrade_download_limit_rate=<rate>` (a curl `--limit-rate` value such as `500K`, or `0` for no cap) to override either.
 
@@ -124,6 +130,8 @@ This is necessary to allow the running rootfs to bootstrap the new image. This w
 
 See major-upgrade.yml for full details on the steps performed.
 
+*This section written by Claude*
+
 The playbook ensures that the new Ubuntu version is newer than the existing version and new Jaiabot version is not older than the existing version, to prevent meaningless double-upgrades or accidental major upgrades that should be normal upgrades (e.g. 1.16.0->1.17.0). It also checks that the system runs the release immediately before the one being installed (`major_upgrade_previous_major` in the ISO's `version.txt`), so releases are never skipped.
 
 On the hub, before anything else, the staged fleet configuration is migrated and validated with the fleet config tool (`jaia-fleet-config.py`) taken from the *new* release's boot tarball on the updates disk (`tasks/hub-check-fleet-config.yml`). A fleet configuration that the new release cannot use stops the upgrade here, on the hub, with the reason.
@@ -135,6 +143,8 @@ The new upgrade image for the rootfs and bootfs are downloaded from the Hub into
 A backup of the old rootfs and overlayfs is copied and compressed to `/var/log/jaiabot/major_upgrade/v{X}_{ubuntucode}/backup/rootfs.tar.gz and overlay.tar.gz`, respectively, as the major upgrade will clear both the old rootfs and overlayfs.
 
 The Wireguard files are copied into the staging directory to be reused to avoid having to reconfigure the service VPN on the new image.
+
+*This section written by Claude*
 
 The new boot filesystem is prepared from the fleet configuration file by the fleet config tool found inside the new boot tarball (`jaiabot/init/fleet_config/jaia-fleet-config.py generate`), never by the installed `jaia` tool: this way the template, schema and migrations always come from the release being installed, whatever release the node runs today (so a hub already on the new release can upgrade bots that are still on the previous one). The VPN keys (id_vpn_tmp) are removed to avoid regenerated the service VPN.
 

@@ -6,6 +6,8 @@
 
 #### What lives inside this directory?
 
+*This section written by Copilot*
+
 - React components used to build the JCC interface, from small reusable widgets to full panels. Each component lives in its own directory alongside its `.less` styles and (where present) a `__tests__` directory.
 - _Examples:_
   - `JaiaToggle`
@@ -18,6 +20,8 @@
 
 #### What lives inside this directory?
 
+*This section written by Copilot*
+
 - The React context for the app, which holds state for the whole interface in a global fashion.
 - _Contents:_
   - `JaiaContext.tsx` — context instantiation, reducer, and provider
@@ -29,6 +33,8 @@
 
 #### What lives inside this directory?
 
+*This section written by Copilot*
+
 - The data model: singleton objects that own the application data and communicate with the server, independent of React.
 - _Examples:_
   - `bots`
@@ -39,6 +45,8 @@
 ## types
 
 #### What lives inside this directory?
+
+*This section written by Copilot*
 
 - Shared TypeScript interfaces and enums.
 - _Examples:_
@@ -55,6 +63,8 @@
 # Context Structure
 
 ### JaiaContext
+
+*This section written by Copilot*
 
 `JaiaContext` is the single context for the JCC interface. It holds:
 
@@ -83,6 +93,8 @@ The full shape is defined by the `JaiaContextType` interface in `src/web/types/c
   - Identifies the properties and types that will be stored in the context
   - Think of this as the state interface
 
+*This section written by Copilot*
+
 ```
 // Example (src/web/types/context-types.ts)
 export interface JaiaContextType {
@@ -98,6 +110,8 @@ export interface JaiaContextType {
 - Action
   - Lays out the properties and types of the action object passed to the reducer function. `type` is the only required property.
   - The optional properties are used to pass data to specific reducer helper functions
+
+*This section written by Copilot*
 
 ```
 // Example (src/web/types/context-types.ts)
@@ -122,6 +136,8 @@ interface JaiaContextProviderProps {
 
 #### 3. Constant Variables and Enums
 
+*This section written by Copilot*
+
 The dispatchable action types are declared as the `JaiaActions` enum in `src/web/context/jaia-actions.ts`. Using an enum (rather than bare strings) means TypeScript catches typos in both the dispatch sites and the handler map.
 
 #### 4. Context Instantiation
@@ -138,6 +154,8 @@ export const JaiaDispatchContext = createContext(null)
 #### 5. Reducer Function
 
 A reducer function is called by a dispatch function that comes from "using" the dispatch context. The only required property of the `action` object is `type`, a `JaiaActions` value describing the action to dispatch. In some cases, you will want to pass data to the handler function to set state to your desired value. If that is the case, add the property to the `JaiaAction` interface, so you can pass that data in with the `action` object.
+
+*This section written by Copilot*
 
 Rather than a large `switch` statement, `jaiaReducer` looks the action up in the `actionConfigs` map (`src/web/context/action-configs.ts`), which associates each action type with its handler function and a `tracked` flag indicating whether the resulting state should be pushed onto the undo/redo history.
 
@@ -186,6 +204,8 @@ export const actionConfigs: Map<JaiaActions, ActionConfig> = new Map([
 #### 6. Reducer Helper Functions
 
 Prevents the reducer function from becoming bloated with logic. This allows the team to quickly scan `action-configs.ts` for the different actions that can be dispatched. These functions live in `src/web/context/handlers` and return the updated `mutableState` object _(a custom convention)_ which is returned by the reducer to update the state tied to the context.
+
+*This section written by Copilot*
 
 ```
 // src/web/context/handlers/panel-handlers.ts

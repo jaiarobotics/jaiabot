@@ -20,6 +20,8 @@ The JaiaBot software depends on Goby3, MOOS, and other packages.
 
 When using the `jaiabot` Debian packages (see the CI/CD section below), these dependencies are automatically installed by `apt`.
 
+*This section written by Claude*
+
 When building from source, these can be installed from the regular Ubuntu package repositories plus the `packages.jaia.tech` mirror of the `packages.gobysoft.org` repository (also reference the steps in jaiabot/.docker/resolute/amd64/Dockerfile). If you have the `jaia` tool already installed (e.g. from a package), `jaia dev setup` runs these steps for you (see below).
 
 ```
@@ -50,6 +52,8 @@ sudo apt-get -y install libgoby3:amd64 \
 
 ## CMake
 
+*This section written by Claude*
+
 The `jaiabot` software is configured using CMake, which generates a Ninja build by default (Ninja is faster than, and otherwise a drop-in replacement for, the Makefiles CMake generates by default).
 
 This process is summarized by:
@@ -63,6 +67,8 @@ cmake -G Ninja ../..
 # build it
 cmake --build .
 ```
+
+*This section written by Claude*
 
 This project provides a convenience script called `build.sh` that runs cmake to configure and build the project (using as many jobs as your machine has processors). The build.sh script segregates the CMake working directory by machine architecture (e.g. build/amd64, build/arm64, etc.). Additionally, you can set the environmental variables `JAIABOT_CMAKE_FLAGS` and/or `JAIABOT_MAKE_FLAGS` to pass command line parameters to CMake (during configure) or the underlying build tool, respectively. Pass `--make` to `build.sh` to use GNU Make instead of Ninja (e.g. if `ninja-build` isn't installed); switching between the two automatically discards the existing CMake cache, since CMake can't reconfigure a directory with a different generator than the one it was first configured with.
 
@@ -357,6 +363,8 @@ To create the docker image initially (should only need to be done initially and 
 cd jaiabot
 ./scripts/build/container-image-build.sh
 ```
+
+*This section written by Copilot*
 
 This generates the Dockerfile from `.docker/${jaia_version_ubuntu_codename}/arm64/Dockerfile.in` (or `.../amd64/Dockerfile.in` when `jaiabot_machine_type=virtualbox`) and builds an image tagged `jaia_build_${distro}_${repo}_${version}` (e.g. `jaia_build_resolute_release_3.y`). The `jaiabot_repo`, `jaiabot_version` and `jaiabot_distro` environmental variables can be used to override the defaults taken from `scripts/common-versions.env`.
 

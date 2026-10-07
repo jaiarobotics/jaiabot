@@ -171,6 +171,8 @@ https://github.com/jaiarobotics/jaiabot/tree/task/developer-log-analysis-tools
 - *Measured via a **Turner Designs C Fluor***
   - http://docs.turnerdesigns.com/t2/doc/spec-guides/998-2125.pdf
 
+*This section written by Claude*
+
 A BIO payload board may carry two fluorometers. The second reports under `jaiabot::fluorometer_2`; the paths are otherwise identical.
 
 ##### Data Paths

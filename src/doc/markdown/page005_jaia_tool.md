@@ -36,7 +36,11 @@ Bots or Hubs may be connected via the Cloud (see the [Cloud Computing](page056_c
 
 Thus, Bot 5 on VirtualFleet 3 would be `b5vf3`, or (real) Hub 1 Fleet 10 via the Cloud would be `h1cf10`. For servicing hosts remotely, Bot 2 on Fleet 4 would be `b2sf4`.
 
+*This section written by Claude*
+
 Additionally, if you are on a bot or hub, you can omit `fN` and the current fleet will be used. The fleet is taken from the `jaia_fleet_id` environmental variable, which login shells pick up from `/etc/profile.d/jaia.sh` (which reads `/etc/jaiabot/jaia.env`, written from the debconf database when `jaiabot-embedded` is configured). Where no profile has been sourced — for example under `cron` or `ssh <host> <command>` — the fleet is read from the hostname instead (`hub0-fleet3`).
+
+*This section written by Copilot*
 
 The host shorthand format is `b<bot_id>[svc]f<fleet_id>`, `h<hub_id>[svc]f<fleet_id>` or `chf<fleet_id>` (for CloudHub); the `f<fleet_id>` portion may be omitted as described above. Parsing is implemented in `jaiabot::parse_host_code` (`src/lib/utils/ip.h`).
 
@@ -56,6 +60,8 @@ These related commands provide remote functionality using host codes given above
 - `jaia ip b1sf2` - Bot 1 Fleet 2 via service VPN
 - `jaia ip h3vf1` - Hub 3 VirtualFleet 1
 - `jaia ip b4` - Bot 4 for the same fleet as the machine this was run on.
+
+*This section written by Claude*
 
 `jaia ip` is a thin wrapper around the standalone `jaia_ip` binary, which can also be run directly (`jaia_ip b1sf2`). `jaia_ip` does not load the `jaia` tool (or goby/protobuf) and so starts up considerably faster; prefer it in scripts and other non-interactive callers that query many addresses. `jaia_ip` additionally supports an explicit query mode (`jaia_ip --query_type net --fleet_id 3 --ip_net fleet_vpn`); see `jaia_ip --help`. Both modes give the address in whichever IP version the fleet uses on the network asked for; `--ip_version ipv4` or `--ip_version ipv6` asks for one in particular, and works with a host code too (`jaia ip b5sf3 --ip_version ipv6`). The rest of the explicit mode flags cannot be combined with a host code, which already names the node, its fleet and its network.
 
@@ -105,9 +111,13 @@ jaia ssh b1f10 sudo jaia ctl restart
 
 ## doc
 
+*This section written by Copilot*
+
 `jaia doc` provides command line access to this documentation (Markdown). Run with no arguments to list all the available pages, or provide a page name to display it in the terminal.
 
 ## admin
+
+*This section written by Copilot*
 
 These subactions are used to administer a fleet of JaiaBots:
 
