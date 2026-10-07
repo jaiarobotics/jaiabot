@@ -6,6 +6,8 @@ A major software upgrade is defined as updating the Ubuntu release as well as th
 
 ### Ensure all bots have a BNO085 IMU
 
+*This section written by Claude*
+
 The BNO055 IMU is no longer supported. Any bot still fitted with one must have it replaced with a BNO085 before the fleet can be upgraded. For each of those bots:
 
 1. Set the imu type to `bno085` on the bot itself with `jaia admin debconf set imu_type bno085`. This is what the major upgrade checks.
@@ -70,9 +72,13 @@ Only the hub named by `hub_id` stages the upgrade (mounts the updates disk and c
 
 ### Use the playbook from the release you are installing
 
+*This section written by Claude*
+
 Run the playbook from a git checkout of the release being installed, not from the copy installed on the hub. A hub still running the old release has the old playbook under `/usr/share/jaiabot/config/ansible`, and that playbook builds the new boot filesystem with the old release's fleet config tool, which cannot write a preseed the new image can read. Nothing reports an error until after the root filesystem has already been swapped, so the node reboots into the new release unconfigured: no hostname, no network, no `jaiabot`, reachable only over a serial console.
 
 ### Upgrading a fleet a few nodes at a time
+
+*This section written by Claude*
 
 The fleet does not have to be upgraded in one pass. A hub that has already been upgraded can upgrade bots still running the old release, so bots that were out of the water, switched off or otherwise absent can be brought up to the new release whenever they next appear:
 
@@ -147,6 +153,8 @@ Finally the `do-major-upgrade.sh` is configured to `/var/log/jaiabot/major_upgra
 This script logs to `/var/log/jaiabot/major_upgrade/v{X}_{ubuntucode}/major_upgrade_final.log`
 
 ## Fleet configuration versioning
+
+*This section written by Claude*
 
 The fleet configuration is written once when a fleet is created and read again at every major upgrade, possibly years later by a newer release (see the Ansible steps above). This section describes how changes to what a fleet config must contain are tracked, so that a major upgrade either migrates an older file automatically or fails early with a clear message rather than silently producing a misconfigured system.
 

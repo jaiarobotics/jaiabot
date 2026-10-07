@@ -118,6 +118,8 @@ These subactions are used to administer a fleet of JaiaBots:
 
 ### bounds
 
+*This section written by Claude*
+
 The bot, hub and fleet id ranges are defined once, in `src/lib/utils/ip.h`, and this subaction is how a caller outside that header asks what they are rather than hardcoding them:
 
 ```
@@ -155,6 +157,8 @@ jaia admin bounds --hub_id --format json
 As with `jaia ip`, this is a thin wrapper around a standalone binary (`jaia_bounds`) that does not load goby/protobuf; prefer calling that directly from scripts. `jaia-update-dns.sh` uses it to enumerate the fleet's names.
 
 ### debconf
+
+*This section written by Claude*
 
 The `jaiabot-embedded` debconf database is the single source of truth for a bot or hub's configuration, and the generated systemd units are derived from it. This subaction reads and writes it without having to go through the interactive `dpkg-reconfigure` menus. Questions are named without the `jaiabot-embedded/` prefix.
 

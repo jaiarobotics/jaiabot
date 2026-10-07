@@ -171,6 +171,8 @@ The config it writes carries no private key, so it can be copied to the node by 
 
 ### Enrolling a node at first boot
 
+*This section written by Claude*
+
 A bot or hub enrolls with its own fleet's CloudHub rather than `vpn.jaia.tech`:
 `/etc/jaiabot/init/configure-wireguard-service-vpn.sh` generates the node's key
 pair, hands the public half to the CloudHub over SSH, and writes the config that

@@ -30,3 +30,7 @@ your own section:
 - Leave the author's section empty for them to fill in. Never write in it, and
   never remove text already there.
 - When updating a PR description, rewrite only the `# Claude` section.
+
+## Documentation
+
+- Prefix everything Claude writes in `src/doc/markdown` with `*This section written by Claude*`: directly below the heading of a new section, or on its own line above text added to an existing section.

@@ -78,6 +78,8 @@ Additionally, each VPC has two subnets assigned as previously mentioned:
 
 ### Fleet ID ranges
 
+*This section written by Claude*
+
 The fleet WLAN, the fleet VPN and the VirtualFleet WLAN carry the fleet id in a single IPv4 octet, which is what limits how many fleets those schemes can address. Rather than renumber the fleets already using them, the fleet id range is split:
 
 | Fleet ID | Fleet WLAN, fleet VPN | VirtualFleet WLAN | Other networks |
@@ -192,6 +194,8 @@ CircleCI builds the AMI in `us-east-1` (and separately in `us-gov-east-1` for Go
 
 ## CloudHub settings
 
+*This section written by Claude*
+
 A CloudHub keeps its creation-time settings in `/etc/jaiabot/cloud.env`, written by
 cloud-init on first boot. That file lives on the rootfs, so a major upgrade discards
 it along with everything else outside the reuse set. Rather than carry it across, the
@@ -225,6 +229,8 @@ reissued. The same goes for its SSH key, `/home/jaia/.ssh/hub30_fleetN`, which n
 config holds (see below).
 
 ## CloudHub SSH key
+
+*This section written by Claude*
 
 A physical hub's SSH key lives on its Yubikey, so the key handle in the fleet config is
 of no use without the hub itself. A CloudHub has no USB port for one, and its key is an
@@ -392,6 +398,8 @@ An instance of all three of these runs on each CloudHub.
 
 ### Required DNS entries
 
+*This section written by Claude*
+
 Each Cloudhub can be supported from either `jaia.tech` or a custom domain.
 
 For fleet6, assuming the IPv4 address for CloudHub is 203.0.113.42 and the IvP6 address is 2001:db8::42, enter the following in the DNS configuration for `jaia.tech`:
@@ -410,6 +418,8 @@ jaiaf6      AAAA    2001:db8::42
 ```
 
 ### Required SMTP
+
+*This section written by Claude*
 
 Sending email from the Authelia instance is required for registering new 2FA tokens and password resets. By default these emails are sent from `noreply@auth.jaia.tech` through [Postmark](https://postmarkapp.com/), for every fleet.
 
@@ -441,6 +451,8 @@ You can use `https://www.mail-tester.com/` to check the likelihood that your ema
 
 #### jaia.tech Domains
 
+*This section written by Claude*
+
 CloudHub access (https://fleetN.jaia.tech):
 
 - https://fleetN.jaia.tech: Landing page listing the sites below that the signed-in user can open, with a link to log out.
@@ -470,9 +482,13 @@ Supporting web pages:
 
 #### Custom Domains
 
+*This section written by Claude*
+
 Replace `.fleetN.jaia.tech` with your custom domain in the examples above, where your custom domain might be `jaiafleet6.mybusiness.com` or `jaiaf3.university.edu`, as you prefer.
 
 #### Navigation menu
+
+*This section written by Claude*
 
 Every page on these sites shows a floating Jaia button in the bottom left corner with the fleet number and the login name of the signed-in user. It opens a menu linking to the landing page, Run (JCC, JCU, JDV), Sim (JCC, JCU, JDV), Users and Account, showing only the sites the user's groups allow, plus a Log out button. Sim is shown as "Not running" until the VirtualFleet has been started from JCU, and the sim site itself says so instead of a blank error while it is down.
 

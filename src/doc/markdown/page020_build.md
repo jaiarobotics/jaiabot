@@ -4,6 +4,8 @@ JaiaBot development is done on Ubuntu Linux, with the version of Ubuntu supporte
 
 ## Bootstrapping a fresh clone
 
+*This section written by Claude*
+
 On a fresh clone there's no `jaia` tool yet to run `jaia dev setup` or `jaia dev build`, so `init.sh` bridges that gap: it runs the underlying setup and build steps directly, then puts `build/<arch>/bin` on `PATH` so `jaia` is available right away.
 
 ```bash
@@ -85,6 +87,8 @@ export JAIABOT_CMAKE_FLAGS="-Dbuild_doc=ON"
 ```
 
 ### Using `jaia dev`
+
+*This section written by Claude*
 
 If you have the `jaia` tool available (from a package, or already built from this source tree), `jaia dev` provides a friendlier front end for the day-to-day build workflow:
 
@@ -384,6 +388,8 @@ rsync -aP build/bin build/lib jaia@172.20.11.10:/home/jaia/jaiabot/build
 
 
 ### Build and copy in one step
+
+*This section written by Claude*
 
 Use `jaia dev local_deploy` from anywhere within your jaiabot source tree:
 

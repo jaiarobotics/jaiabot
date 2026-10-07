@@ -181,6 +181,9 @@ A BIO payload board may carry two fluorometers. The second reports under `jaiabo
 |**Analyte**       |*N/A*   |*10 Hz*    |`jaiabot::fluorometer` ➔ `analyte_name`         |`/jaiabot::fluorometer/jaiabot.sensor.protobuf.TurnerCFluor/analyte_name`        |
 
 ##### Data Paths (Second Fluorometer)
+
+*This section written by Claude*
+
 | Data Field       | Unit   | Frequency | JDV Path                                         | HDF5 Log Path                                                                      |
 |------------------|--------|-----------|--------------------------------------------------|------------------------------------------------------------------------------------|
 |**Concentration** |*Varies*|*10 Hz*    |`jaiabot::fluorometer_2` ➔ `concentration`        |`/jaiabot::fluorometer_2/jaiabot.sensor.protobuf.TurnerCFluor/concentration`        |

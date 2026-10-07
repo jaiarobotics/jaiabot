@@ -31,6 +31,8 @@ Re-running fleet configuration with a new key will the key for that hub on all b
 
 ### CloudHub key
 
+*This section written by Claude*
+
 The CloudHub has no Yubikey. It generates its own key on first boot, the private half never leaves it, and the fleet config records only the public half. Every node accepts that key only from the CloudHub's address on the CloudHub VPN. See [CloudHub SSH key](page056_cloud.md#cloudhub-ssh-key).
 
 ## Temporary Yubikeys
