@@ -48,7 +48,7 @@ mkdir -p "${OUTPUT_DIR}"
     --warp "${WARP}" \
     "${OUTPUT_DIR}/fleet.cfg"
 
-jaia admin fleet create_cloudhub "${OUTPUT_DIR}/fleet.cfg" "${JAIA_CI_CUSTOMER}" \
+jaia admin fleet cloudhub create "${OUTPUT_DIR}/fleet.cfg" "${JAIA_CI_CUSTOMER}" \
     --region "${AWS_DEFAULT_REGION}" \
     --repo "${JAIA_CI_REPO}" \
     --permissions-boundary JaiaCloudHubBoundary \

@@ -219,7 +219,7 @@ built without one. It has to say so — `includes_cloudhub: false` — rather th
 omitting hub 30, because a fleet that never had one and a fleet that lost it by mistake
 would otherwise look identical, and only the first should validate. `jaia admin fleet
 has_cloudhub fleetN.cfg` prints `yes` or `no`, which is what the major upgrade compares
-against the `has_cloudhub` answer the operator gives it. `jaia admin fleet create_cloudhub` renders
+against the `has_cloudhub` answer the operator gives it. `jaia admin fleet cloudhub create` renders
 them into `vpc.conf` for `create_vpc.sh`, and its `customer` argument overrides the
 config, which is how CI gives each run its own customer name.
 
@@ -270,7 +270,7 @@ ordinary file instead, so it is made on the CloudHub and never leaves it:
 2. On first boot the CloudHub finds no key in its preseed and generates
    `/home/jaia/.ssh/hub30_fleetN`, nothing secret having been put in its EC2 user data.
 3. `create_cloudhub` copies the public half back and records it in the fleet config it
-   was given (`jaia admin fleet set_cloudhub_key fleetN.cfg hub30_fleetN.pub`), with an
+   was given (`jaia admin fleet cloudhub set_key fleetN.cfg hub30_fleetN.pub`), with an
    empty `private_key`.
 
 Create the CloudHub before generating the boot files of the other nodes. A node
@@ -296,7 +296,7 @@ upgrade matches the upgraded CloudHub rather than the release it came from.
 
 The CloudHub's sites (JCC, JDV, JCU and the rest, see "Cloud Login server" below) are
 reached through its login page, with no VPN. A tunnel of your own is for CI and
-development: `jaia admin fleet create_cloudhub --client-vpn` makes the machine running
+development: `jaia admin fleet cloudhub create --client-vpn` makes the machine running
 it a peer (`desktop1`) of the CloudHub's VPNs, installs `wg_jaia_ch<fleet>`, and adds
 `cloudhub-fleet<fleet>` to its `/etc/hosts`. It is off by default because the peer stays
 on the CloudHub for as long as it runs, which is a standing way in that a customer's

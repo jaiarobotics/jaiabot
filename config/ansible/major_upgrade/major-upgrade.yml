@@ -103,6 +103,8 @@
         - include_tasks: tasks/fetch-reuse-files.yml
         - include_tasks: tasks/backup-old-rootfs-overlay.yml
         - include_tasks: tasks/prepare-boot-fs.yml
+        - include_tasks: tasks/cloudhub-keep-pairing-state.yml
+          when: is_cloudhub | bool
         - include_tasks: tasks/generate-upgrade-script.yml
           # Nohup so we complete the ansible job and get to the reboot splash screen before the crazy happens
         - name: Run upgrade script

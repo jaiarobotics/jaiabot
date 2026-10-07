@@ -30,6 +30,8 @@ FLEET_CONFIG_TYPE = "jaiabot.protobuf.FleetConfig"
 NODE_SETTINGS_TYPE = "jaiabot.protobuf.NodeSettings"
 DESCRIPTOR_SET_NAME = "fleet_config.desc"
 CLOUDHUB_ID = 30
+# "jaia admin fleet cloudhub <action>" names for this script's own sub-commands
+CLOUDHUB_ACTIONS = {"set_key": "set_cloudhub_key"}
 
 # Fields whose values never appear in output or error messages
 SECRET_FIELDS = {"private_key", "password", "wlan_password", "rf_encryption_password",
@@ -782,7 +784,7 @@ def cmd_generate(schema, args):
     if CLOUDHUB_ID in cfg.hubs and not any(k.id == CLOUDHUB_ID for k in cfg.ssh.hub) \
             and not (node_type == "hub" and args.id == CLOUDHUB_ID):
         print("WARNING: no key for the CloudHub (hub {}) yet, so this {} will not accept it until it is "
-              "paired with a fleet config that has one ('jaia admin fleet create_cloudhub' adds it)".format(
+              "paired with a fleet config that has one ('jaia admin fleet cloudhub create' adds it)".format(
                   CLOUDHUB_ID, node_type))
     context[TEMPLATE_SENTINEL] = {"v{}".format(v): "" for v in range(1, schema.version + 1)}
 
@@ -1645,9 +1647,13 @@ def build_parser():
 
 def main(argv=None):
     argv = list(sys.argv[1:] if argv is None else argv)
-    # "jaia admin fleet <action>" runs this script as "<script> --binary=jaia admin fleet <action> args..."
+    # "jaia admin fleet <action>" runs this script as "<script> --binary=jaia admin fleet <action> args...",
+    # and "jaia admin fleet cloudhub <action>" with that as the binary
     if argv and argv[0].startswith("--binary="):
-        action = argv[0].split()[-1]
+        words = argv[0].split()
+        action = words[-1]
+        if len(words) > 1 and words[-2] == "cloudhub":
+            action = CLOUDHUB_ACTIONS.get(action, action)
         argv = [action] + argv[1:]
     parser = build_parser()
     args = parser.parse_args(argv)
