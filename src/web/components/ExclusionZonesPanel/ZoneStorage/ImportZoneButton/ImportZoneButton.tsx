@@ -44,8 +44,8 @@ export default function ImportZoneButton(props: Props) {
             const result = await importZonesFromFile();
             if (result.resultType === ImportZoneResultType.SUCCESS && result.snapshot) {
                 jaiaDispatch({
-                    type: JaiaActions.RESTORE_EXCLUSION_ZONE_SNAPSHOT,
-                    exclusionZoneSnapshot: result.snapshot,
+                    type: JaiaActions.LOAD_EXCLUSION_ZONE_SET,
+                    exclusionZoneSetSnapshot: result.snapshot,
                 });
                 props.onClose();
             } else if (result.resultType === ImportZoneResultType.INVALID_FORMAT) {
