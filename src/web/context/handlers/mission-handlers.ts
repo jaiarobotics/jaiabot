@@ -10,11 +10,6 @@ import { NodeTypes } from "../../types/jaia-system-types";
 import { JaiaAction, JaiaContextType } from "../../types/context-types";
 import { UNASSIGNED_ID } from "../../utils/constants";
 import { syncOpenLayers } from "./handler-utils";
-import {
-    detectWaypointRemovals,
-    detectMissionReroutes,
-} from "../../data/obstacle_avoidance_data/exclusion_zones/exclusion-zone-detection";
-import { RevertContext } from "../../data/obstacle_avoidance_data/pending-route-data";
 
 /**
  * Makes a call to add a new, default mission to the data model
@@ -60,15 +55,6 @@ export function handleDeleteMission(mutableState: JaiaContextType, action: JaiaA
  */
 export function handleDuplicateMission(mutableState: JaiaContextType, action: JaiaAction) {
     jaiaGlobal.setSelectedNode({ type: NodeTypes.NONE, id: UNASSIGNED_ID });
-    const priorMissionSetSnapshot = missionSet.captureSnapshot();
-    const priorMissionsManagerSnapshot = missionsManager.captureSnapshot();
-    const revert: RevertContext[] = [
-        {
-            kind: "restoreMissionSnapshot",
-            missionSet: priorMissionSetSnapshot,
-            missionsManager: priorMissionsManagerSnapshot,
-        },
-    ];
 
     // Create a complete clone of the existing mission
     const missionCopy = cloneDeep(missionSet.getMission(action.missionID));
@@ -77,24 +63,6 @@ export function handleDuplicateMission(mutableState: JaiaContextType, action: Ja
     mutableState.missionAccordionStates[newMissionID] = true;
 
     syncOpenLayers();
-
-    // Check whether the duplicated mission's waypoints conflict with existing exclusion zones.
-    const pendingRemoval = detectWaypointRemovals();
-    if (pendingRemoval) {
-        mutableState.obstacleAvoidanceData.setPendingChange({
-            type: "waypointRemoval",
-            data: { ...pendingRemoval, revert },
-        });
-    } else {
-        const pendingReroute = detectMissionReroutes();
-        if (pendingReroute) {
-            mutableState.obstacleAvoidanceData.setPendingChange({
-                type: "reroute",
-                data: { ...pendingReroute, revert },
-            });
-        }
-    }
-
     return mutableState;
 }
 
@@ -203,27 +171,5 @@ export function handleLoadMissionSet(mutableState: JaiaContextType, action: Jaia
     mutableState.missionAccordionStates = {};
     missionsManager.autoAssign();
     missionLayer.updateFeatures();
-
-    // Nothing here mutates missionSet — detection only computes proposals — so there's
-    // nothing to revert on cancel beyond closing the dialog. The load itself stays.
-    const pendingRemoval = detectWaypointRemovals();
-    if (pendingRemoval) {
-        mutableState.obstacleAvoidanceData.setPendingChange({
-            type: "waypointRemoval",
-            data: { ...pendingRemoval, revert: [] },
-        });
-        return mutableState;
-    }
-
-    // Every mission in the file is loaded; those that cannot be routed around the zones
-    // are reported as conflicts in the dialog rather than withheld from the load.
-    const pending = detectMissionReroutes();
-    if (pending) {
-        mutableState.obstacleAvoidanceData.setPendingChange({
-            type: "reroute",
-            data: { ...pending, revert: [] },
-        });
-    }
-
     return mutableState;
 }

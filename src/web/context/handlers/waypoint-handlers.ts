@@ -16,10 +16,7 @@ import { MapModes } from "../../types/openlayers-types";
 import { jaiaAPI } from "../../utils/jaia-api";
 import { MAX_WAYPOINTS, UNASSIGNED_ID } from "../../utils/constants";
 import { isLocationBlockedByZone } from "../../data/obstacle_avoidance_data/exclusion_zones/exclusion-zone-router";
-import { detectMissionReroutes } from "../../data/obstacle_avoidance_data/exclusion_zones/exclusion-zone-detection";
-import { RevertContext } from "../../data/obstacle_avoidance_data/pending-route-data";
-import { stripStaleBypasses, syncTaskLayers } from "./handler-utils";
-import cloneDeep from "lodash/cloneDeep";
+import { syncTaskLayers } from "./handler-utils";
 
 /**
  * Makes call to add waypoint if mission is in edit mode
@@ -30,7 +27,6 @@ import cloneDeep from "lodash/cloneDeep";
  */
 export function handleAddWaypoint(mutableState: JaiaContextType, action: JaiaAction) {
     const missionIDInEditMode = missionSet.getMissionIDInEditMode();
-    let priorMissionWaypoints;
 
     if (missionIDInEditMode !== UNASSIGNED_ID) {
         if (action.location && isLocationBlockedByZone(action.location)) {
@@ -42,7 +38,6 @@ export function handleAddWaypoint(mutableState: JaiaContextType, action: JaiaAct
         }
 
         const mission = missionSet.getMission(missionIDInEditMode);
-        priorMissionWaypoints = cloneDeep(mission.getWaypoints());
         if (mission.getWaypoints().length < MAX_WAYPOINTS) {
             mission.addWaypoint(action.location);
         } else {
@@ -55,32 +50,11 @@ export function handleAddWaypoint(mutableState: JaiaContextType, action: JaiaAct
     }
 
     missionLayer.updateFeatures();
-
-    const pending = detectMissionReroutes();
-    if (pending) {
-        const revert: RevertContext[] =
-            missionIDInEditMode !== UNASSIGNED_ID && priorMissionWaypoints
-                ? [
-                      {
-                          kind: "restoreWaypoints",
-                          missions: [
-                              { missionID: missionIDInEditMode, waypoints: priorMissionWaypoints },
-                          ],
-                      },
-                  ]
-                : [];
-        mutableState.obstacleAvoidanceData.setPendingChange({
-            type: "reroute",
-            data: { ...pending, revert },
-        });
-    }
-
     return mutableState;
 }
 
 /**
- * Makes call to remove a waypoint from a mission. If the remaining route
- * crosses a zone, applies the same reroute detection as add/move.
+ * Makes call to remove a waypoint from a mission
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
  * @returns {JaiaContextType} Updated mutable state object
@@ -88,7 +62,6 @@ export function handleAddWaypoint(mutableState: JaiaContextType, action: JaiaAct
 export function handleDeleteWaypoint(mutableState: JaiaContextType) {
     const selectedWaypoint = jaiaGlobal.getSelectedWaypoint();
     const mission = missionSet.getMission(selectedWaypoint.missionID);
-    const priorMissionWaypoints = cloneDeep(mission.getWaypoints());
 
     mission.deleteWaypoint(selectedWaypoint.waypointNum);
     jaiaGlobal.setSelectedWaypoint({
@@ -100,33 +73,6 @@ export function handleDeleteWaypoint(mutableState: JaiaContextType) {
     mutableState.visiblePanel = ButtonNames.NONE;
 
     missionLayer.updateFeatures();
-
-    const pending = detectMissionReroutes();
-    if (pending) {
-        mutableState.obstacleAvoidanceData.setPendingChange({
-            type: "reroute",
-            data: {
-                ...pending,
-                revert: [
-                    {
-                        kind: "restoreWaypoints",
-                        missions: [
-                            {
-                                missionID: selectedWaypoint.missionID,
-                                waypoints: priorMissionWaypoints,
-                            },
-                        ],
-                    },
-                ],
-            },
-        });
-    }
-
-    // Deleting a waypoint can remove the need for a detour the mission is still
-    // carrying. Detection reports nothing in that case — the freshly computed clean
-    // route needs no bypass — so the obsolete waypoints have to be cleared here.
-    stripStaleBypasses(new Set(pending?.proposals.map((p) => p.missionID) ?? []));
-
     return mutableState;
 }
 
@@ -148,46 +94,19 @@ export function handleMoveWaypoint(mutableState: JaiaContextType, action: JaiaAc
 
     const selectedWaypoint = jaiaGlobal.getSelectedWaypoint();
     const mission = missionSet.getMission(selectedWaypoint.missionID);
-    const priorMissionWaypoints = cloneDeep(mission.getWaypoints());
-
-    // Strip all bypass waypoints before moving so we recompute the full mission
-    // from a clean state. Recalculate waypointNum to match the shorter array.
-    const allWaypoints = mission.getWaypoints();
-    const cleanWaypoints = allWaypoints.filter((wp) => !wp.getIsBypass());
-    if (cleanWaypoints.length !== allWaypoints.length) {
-        mission.setWaypoints(cleanWaypoints);
-        const cleanNum = allWaypoints
-            .slice(0, selectedWaypoint.waypointNum)
-            .filter((wp) => !wp.getIsBypass()).length;
-        jaiaGlobal.setSelectedWaypoint({ ...selectedWaypoint, waypointNum: cleanNum });
-    }
-    const waypointNum = jaiaGlobal.getSelectedWaypoint().waypointNum;
-
-    mission.moveWaypoint(waypointNum, action.location);
+    mission.moveWaypoint(selectedWaypoint.waypointNum, action.location);
     missionLayer.updateFeatures();
+    return mutableState;
+}
 
-    const pending = detectMissionReroutes();
-
-    if (pending) {
-        mutableState.obstacleAvoidanceData.setPendingChange({
-            type: "reroute",
-            data: {
-                ...pending,
-                revert: [
-                    {
-                        kind: "restoreWaypoints",
-                        missions: [
-                            {
-                                missionID: selectedWaypoint.missionID,
-                                waypoints: priorMissionWaypoints,
-                            },
-                        ],
-                    },
-                ],
-            },
-        });
-    }
-
+/**
+ * Clears the placement error dialog, e.g. after the operator dismisses it.
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @returns {JaiaContextType} Updated mutable state object
+ */
+export function handleClearPlacementError(mutableState: JaiaContextType) {
+    mutableState.obstacleAvoidanceData.setPendingChange(null);
     return mutableState;
 }
 

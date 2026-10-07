@@ -1,7 +1,5 @@
 import { useContext } from "react";
 import { JaiaContext } from "../../context/JaiaContext";
-import MissionRerouteDialog from "./MissionRerouteDialog/MissionRerouteDialog";
-import WaypointRemovalDialog from "./WaypointRemovalDialog/WaypointRemovalDialog";
 import PlacementErrorDialog from "./PlacementErrorDialog/PlacementErrorDialog";
 
 export default function ObstacleAvoidanceDialog() {
@@ -9,12 +7,5 @@ export default function ObstacleAvoidanceDialog() {
     const pending = jaiaContext?.obstacleAvoidanceData.getPendingChange();
     if (!pending) return null;
 
-    switch (pending.type) {
-        case "reroute":
-            return <MissionRerouteDialog pending={pending.data} />;
-        case "waypointRemoval":
-            return <WaypointRemovalDialog pending={pending.data} />;
-        case "placementError":
-            return <PlacementErrorDialog message={pending.message} />;
-    }
+    return <PlacementErrorDialog message={pending.message} />;
 }

@@ -11,11 +11,6 @@ import { DEFAULT_MISSION_SET_NAME, MISSION_ENDPOINTS, UNASSIGNED_ID } from "../.
 import { MapModes } from "../../types/openlayers-types";
 import { TaskType } from "../../types/protobuf-types";
 import { ButtonNames, JaiaAction, JaiaContextType } from "../../types/context-types";
-import {
-    detectMissionReroutes,
-    detectWaypointRemovals,
-} from "../../data/obstacle_avoidance_data/exclusion_zones/exclusion-zone-detection";
-import { RevertContext } from "../../data/obstacle_avoidance_data/pending-route-data";
 
 /**
  * Makes map and grid plan changes based on survey state change
@@ -26,8 +21,6 @@ import { RevertContext } from "../../data/obstacle_avoidance_data/pending-route-
  */
 export function handleChangeGridPlanningState(mutableState: JaiaContextType, action: JaiaAction) {
     gridPlan.setState(action.gridPlanningState);
-    const priorMissionSetSnapshot = missionSet.captureSnapshot();
-    const priorMissionsManagerSnapshot = missionsManager.captureSnapshot();
 
     switch (action.gridPlanningState) {
         case GridPlanningStates.ACCEPTING_GRID_DRAWING:
@@ -102,29 +95,6 @@ export function handleChangeGridPlanningState(mutableState: JaiaContextType, act
             handleMapModeChange(MapModes.DEFAULT);
             mutableState.visiblePanel = ButtonNames.NONE;
             missionLayer.updateFeatures();
-
-            const revert: RevertContext[] = [
-                {
-                    kind: "restoreMissionSnapshot",
-                    missionSet: priorMissionSetSnapshot,
-                    missionsManager: priorMissionsManagerSnapshot,
-                },
-            ];
-            const pendingRemoval = detectWaypointRemovals();
-            if (pendingRemoval) {
-                mutableState.obstacleAvoidanceData.setPendingChange({
-                    type: "waypointRemoval",
-                    data: { ...pendingRemoval, revert },
-                });
-            } else {
-                const pending = detectMissionReroutes();
-                if (pending) {
-                    mutableState.obstacleAvoidanceData.setPendingChange({
-                        type: "reroute",
-                        data: { ...pending, revert },
-                    });
-                }
-            }
             break;
     }
     return mutableState;

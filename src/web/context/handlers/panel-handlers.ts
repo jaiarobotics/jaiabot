@@ -76,8 +76,7 @@ export function handleClosedRallyPanel(mutableState: JaiaContextType) {
 
 /**
  * Handles cleanup when the zone vertex panel closes. On cancel, restores the
- * full vertex list from the snapshot taken when the panel opened and clears
- * any pending dialogs that were triggered by edits in this session.
+ * full vertex list from the snapshot taken when the panel opened.
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
  * @param {JaiaAction} action Includes panelAction, zoneID, and prior vertex locations for cancel
@@ -94,15 +93,6 @@ export function handleClosedZoneVertexPanel(mutableState: JaiaContextType, actio
             obstacleAvoidanceData
                 .getExclusionZoneSet()
                 .updateZone(action.zoneID, { ...zone, vertices: action.locations });
-        }
-        // Clear any pending dialogs triggered by the now-cancelled edits.
-        const pending = mutableState.obstacleAvoidanceData.getPendingChange();
-        if (
-            pending &&
-            pending.type !== "placementError" &&
-            pending.data.revert.some((r) => r.kind === "restoreZoneShape")
-        ) {
-            mutableState.obstacleAvoidanceData.setPendingChange(null);
         }
     }
     jaiaGlobal.setZoneInEditMode(UNASSIGNED_ID);

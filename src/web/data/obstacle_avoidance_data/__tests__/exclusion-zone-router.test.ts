@@ -1,15 +1,11 @@
 import { GeographicCoordinate, MissionPlan } from "../../../types/protobuf-types";
 import { ExclusionZone } from "../exclusion_zones/exclusion-zone-set";
 import { obstacleAvoidanceData } from "../obstacle-avoidance-data";
-import { missionSet } from "../../mission_set/mission-set";
-import Mission from "../../mission_set/mission";
-import Waypoint from "../../waypoints/waypoint";
 import {
     routeAroundExclusionZones,
     getZoneBufferVertices,
     getBlockingZoneIDs,
     isLocationBlockedByZone,
-    detectReroutesWithOverrides,
     routeNeedsBypass,
 } from "../exclusion_zones/exclusion-zone-router";
 import { METERS_PER_DEG } from "../../../utils/constants";
@@ -26,13 +22,6 @@ function goal(lat: number, lon: number) {
 
 function plan(...goals: { location: GeographicCoordinate }[]): MissionPlan {
     return { goal: goals };
-}
-
-function makeWaypoint(lat: number, lon: number, bypass = false): Waypoint {
-    const wp = new Waypoint();
-    wp.setLocation(coord(lat, lon));
-    wp.setIsBypass(bypass);
-    return wp;
 }
 
 /** A small square zone (~60m sides) centred at the given point. */
@@ -471,174 +460,6 @@ describe("routeAroundExclusionZones", () => {
         expect(result.bypassCount).toBeGreaterThan(0);
     });
 });
-
-// ── detectReroutesWithOverrides ────────────────────────────────────────────────
-
-describe("detectReroutesWithOverrides", () => {
-    beforeEach(() => {
-        obstacleAvoidanceData.getExclusionZoneSet().clearZones();
-        missionSet.deleteAllMissions();
-    });
-
-    test("returns null when no missions exist", () => {
-        obstacleAvoidanceData.getExclusionZoneSet().addZone(squareZone(41.0, -72.0, 0.0005));
-        const result = detectReroutesWithOverrides(new Map());
-        expect(result).toBeNull();
-    });
-
-    test("returns null when no zones exist", () => {
-        const m = new Mission();
-        m.addWaypoint(coord(41.0, -72.005));
-        m.addWaypoint(coord(41.0, -71.995));
-        missionSet.addMission(m);
-
-        const result = detectReroutesWithOverrides(new Map());
-        expect(result).toBeNull();
-    });
-
-    test("detects reroute for a mission crossing a zone", () => {
-        obstacleAvoidanceData.getExclusionZoneSet().addZone(squareZone(41.0, -72.0, 0.0005));
-        const m = new Mission();
-        m.addWaypoint(coord(41.0, -72.005));
-        m.addWaypoint(coord(41.0, -71.995));
-        const missionID = missionSet.addMission(m);
-
-        const result = detectReroutesWithOverrides(new Map());
-        expect(result).not.toBeNull();
-        expect(result!.proposals.length).toBe(1);
-        expect(result!.proposals[0].missionID).toBe(missionID);
-        expect(result!.proposals[0].bypassCount).toBeGreaterThan(0);
-        expect(result!.totalBypassCount).toBeGreaterThan(0);
-    });
-
-    test("returns null for a mission that does not cross any zone", () => {
-        obstacleAvoidanceData.getExclusionZoneSet().addZone(squareZone(41.0, -72.0, 0.0005));
-        const m = new Mission();
-        m.addWaypoint(coord(42.0, -73.0));
-        m.addWaypoint(coord(42.01, -73.0));
-        missionSet.addMission(m);
-
-        const result = detectReroutesWithOverrides(new Map());
-        expect(result).toBeNull();
-    });
-
-    test("skips missions with fewer than 2 clean waypoints", () => {
-        obstacleAvoidanceData.getExclusionZoneSet().addZone(squareZone(41.0, -72.0, 0.0005));
-        const m = new Mission();
-        m.addWaypoint(coord(41.0, -72.005));
-        missionSet.addMission(m);
-
-        const result = detectReroutesWithOverrides(new Map());
-        expect(result).toBeNull();
-    });
-
-    test("strips existing bypass waypoints before re-routing", () => {
-        obstacleAvoidanceData.getExclusionZoneSet().addZone(squareZone(41.0, -72.0, 0.0005));
-
-        const m = new Mission();
-        const wp1 = makeWaypoint(41.0, -72.005);
-        const wpBypass = makeWaypoint(41.001, -72.0, true);
-        const wp2 = makeWaypoint(41.0, -71.995);
-        m.setWaypoints([wp1, wpBypass, wp2]);
-        const missionID = missionSet.addMission(m);
-
-        const result = detectReroutesWithOverrides(new Map());
-        if (result) {
-            const proposal = result.proposals.find((p) => p.missionID === missionID);
-            if (proposal) {
-                // The proposal's newWaypoints should not contain old bypass waypoints
-                // reinserted verbatim — they should be freshly computed
-                const cleanCount = proposal.newWaypoints.filter((w) => !w.getIsBypass()).length;
-                expect(cleanCount).toBe(2);
-            }
-        }
-    });
-
-    test("uses override waypoints when provided", () => {
-        obstacleAvoidanceData.getExclusionZoneSet().addZone(squareZone(41.0, -72.0, 0.0005));
-
-        const m = new Mission();
-        m.addWaypoint(coord(42.0, -73.0)); // far from zone
-        m.addWaypoint(coord(42.01, -73.0));
-        const missionID = missionSet.addMission(m);
-
-        // Override with waypoints that DO cross the zone
-        const overrideWps = [makeWaypoint(41.0, -72.005), makeWaypoint(41.0, -71.995)];
-        const overrides = new Map<number, Waypoint[]>();
-        overrides.set(missionID, overrideWps);
-
-        const result = detectReroutesWithOverrides(overrides);
-        expect(result).not.toBeNull();
-        expect(result!.proposals[0].missionID).toBe(missionID);
-    });
-
-    test("detects reroutes across multiple missions", () => {
-        obstacleAvoidanceData.getExclusionZoneSet().addZone(squareZone(41.0, -72.0, 0.0005));
-
-        const m1 = new Mission();
-        m1.addWaypoint(coord(41.0, -72.005));
-        m1.addWaypoint(coord(41.0, -71.995));
-        missionSet.addMission(m1);
-
-        const m2 = new Mission();
-        m2.addWaypoint(coord(41.0, -72.003));
-        m2.addWaypoint(coord(41.0, -71.997));
-        missionSet.addMission(m2);
-
-        const result = detectReroutesWithOverrides(new Map());
-        expect(result).not.toBeNull();
-        expect(result!.proposals.length).toBe(2);
-    });
-
-    test("proposal newWaypoints form a valid path around the zone", () => {
-        obstacleAvoidanceData.getExclusionZoneSet().addZone(squareZone(41.0, -72.0, 0.0005));
-
-        const m = new Mission();
-        m.addWaypoint(coord(41.0, -72.005));
-        m.addWaypoint(coord(41.0, -71.995));
-        missionSet.addMission(m);
-
-        const result = detectReroutesWithOverrides(new Map());
-        expect(result).not.toBeNull();
-
-        const hull = squareZone(41.0, -72.0, 0.0005).vertices!;
-        const wps = result!.proposals[0].newWaypoints;
-        for (let i = 0; i < wps.length - 1; i++) {
-            const a = wps[i].getLocation();
-            const b = wps[i + 1].getLocation();
-            expect(segmentCrossesHull(a, b, hull)).toBe(false);
-        }
-    });
-
-    test("does not re-propose a settled route when an unrelated zone is deleted", () => {
-        const zones = obstacleAvoidanceData.getExclusionZoneSet();
-        // The first zone with usable geometry supplies the projection origin for the
-        // whole pass, so deleting it is what moves the frame the surviving zone's
-        // bypass waypoints were computed in.
-        const originZoneID = zones.addZone(squareZone(41.02, -72.04, 0.0005));
-        zones.addZone(squareZone(41.0, -72.0, 0.0005));
-
-        const m = new Mission();
-        m.addWaypoint(coord(41.0, -72.005));
-        m.addWaypoint(coord(41.0, -71.995));
-        const missionID = missionSet.addMission(m);
-
-        const proposed = detectReroutesWithOverrides(new Map());
-        expect(proposed!.proposals[0].missionID).toBe(missionID);
-
-        // The operator confirms, so the mission now carries that bypass.
-        missionSet.getMission(missionID)!.setWaypoints(proposed!.proposals[0].newWaypoints);
-        expect(detectReroutesWithOverrides(new Map())).toBeNull();
-
-        zones.deleteZone(originZoneID);
-
-        // The mission's route is unchanged and still clears the remaining zone, so
-        // there is nothing to propose and no dialog to raise.
-        expect(detectReroutesWithOverrides(new Map())).toBeNull();
-    });
-});
-
-// ── routeNeedsBypass ───────────────────────────────────────────────────────────
 
 describe("routeNeedsBypass", () => {
     beforeEach(() => {

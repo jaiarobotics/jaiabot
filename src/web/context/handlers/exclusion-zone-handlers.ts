@@ -4,95 +4,10 @@ import { handleMapModeChange, setExclusionZoneDrawActive } from "../../openlayer
 import { JaiaContextType, JaiaAction, ButtonNames } from "../../types/context-types";
 import { MapModes } from "../../types/openlayers-types";
 import { UNASSIGNED_ID } from "../../utils/constants";
-import {
-    stripAllBypasses,
-    stripStaleBypasses,
-    stripBypassesInsideZoneWithSnapshot,
-} from "./handler-utils";
 import { exclusionZoneLayer } from "../../openlayers/layers/vector/exclusion-zone-layer";
-import { missionLayer } from "../../openlayers/layers/vector/mission-layer";
-import {
-    detectMissionReroutes,
-    detectWaypointRemovals,
-} from "../../data/obstacle_avoidance_data/exclusion_zones/exclusion-zone-detection";
-import { RevertContext } from "../../data/obstacle_avoidance_data/pending-route-data";
 
 /**
- * Options describing how one zone-set mutation should be followed up.
- */
-interface ZoneMutationOptions {
-    /** Revert actions that undo the mutation itself, staged with whichever dialog appears. */
-    revert: RevertContext[];
-    /**
-     * Zone whose safety buffer may now contain bypass waypoints belonging to an
-     * existing detour. Those bypasses are stripped (and snapshotted for revert)
-     * before re-routing, so the router re-plans from clean waypoints. Undefined
-     * when the mutation only ever shrinks or removes zones.
-     */
-    strippableZoneID?: number;
-    /** Whether waypoints newly enclosed by a zone are detected before rerouting. */
-    detectRemovals: boolean;
-    /** Whether missions whose routes now cross a zone are re-detected. */
-    detectReroutes: boolean;
-    /** Whether missions left without a proposal have their bypass waypoints stripped. */
-    stripStale: boolean;
-}
-
-/**
- * Runs the detection and cleanup sequence shared by every handler that mutates the
- * zone set. Waypoints enclosed by a zone take priority over rerouting around it, so
- * a waypoint-removal dialog short-circuits the rest of the sequence.
- *
- * @param {JaiaContextType} mutableState State object ref for making modifications
- * @param {ZoneMutationOptions} options Which steps this mutation requires
- * @returns {void}
- */
-function applyZoneMutation(mutableState: JaiaContextType, options: ZoneMutationOptions) {
-    const { revert, strippableZoneID, detectRemovals, detectReroutes, stripStale } = options;
-
-    if (detectRemovals) {
-        const pendingRemoval = detectWaypointRemovals();
-        if (pendingRemoval) {
-            mutableState.obstacleAvoidanceData.setPendingChange({
-                type: "waypointRemoval",
-                data: { ...pendingRemoval, revert },
-            });
-            return;
-        }
-    }
-
-    const stripped =
-        strippableZoneID !== undefined
-            ? stripBypassesInsideZoneWithSnapshot(strippableZoneID)
-            : undefined;
-    if (stripped && stripped.affected.size > 0) missionLayer.updateFeatures();
-
-    const pending = detectReroutes ? detectMissionReroutes() : null;
-    if (pending) {
-        const rerouteRevert: RevertContext[] = [...revert];
-        if (stripped && stripped.priorMissionWaypoints.size > 0) {
-            rerouteRevert.unshift({
-                kind: "restoreWaypoints",
-                missions: Array.from(stripped.priorMissionWaypoints.entries()).map(
-                    ([missionID, waypoints]) => ({ missionID, waypoints }),
-                ),
-            });
-        }
-        mutableState.obstacleAvoidanceData.setPendingChange({
-            type: "reroute",
-            data: { ...pending, revert: rerouteRevert },
-        });
-    }
-
-    if (stripStale) {
-        stripStaleBypasses(new Set(pending?.proposals.map((p) => p.missionID) ?? []));
-    }
-}
-
-/**
- * Adds a new exclusion zone and triggers waypoint removal or mission reroute detection.
- * Unroutable proposals (over-limit or impossible) are staged into the dialog like any
- * other proposal; the dialog's own render branches handle presenting them.
+ * Adds a new exclusion zone.
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
  * @param {JaiaAction} action Provides the exclusion zone to add
@@ -105,24 +20,11 @@ export function handleAddExclusionZone(mutableState: JaiaContextType, action: Ja
     setExclusionZoneDrawActive(false);
     handleMapModeChange(MapModes.DEFAULT);
 
-    applyZoneMutation(mutableState, {
-        revert: [{ kind: "deleteZone", zoneID }],
-        strippableZoneID: zoneID,
-        detectRemovals: true,
-        detectReroutes: true,
-        stripStale: false,
-    });
     return mutableState;
 }
 
 /**
- * Deletes an exclusion zone and re-detects against the zones that remain, so a mission
- * whose route still crosses one of them is proposed a new detour rather than silently
- * reverting to a blocked route. Removal detection runs first even though a deletion can
- * never enclose a waypoint itself: routing treats a waypoint already sitting inside any
- * zone as unroutable, so a mission in that state must be resolved before its route is
- * re-planned. Cancelling the resulting dialog declines the proposal only — the deletion
- * itself stands.
+ * Deletes an exclusion zone.
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
  * @param {JaiaAction} action Provides the ID of the zone to delete
@@ -138,30 +40,18 @@ export function handleDeleteExclusionZone(mutableState: JaiaContextType, action:
         jaiaGlobal.setZoneInEditMode(UNASSIGNED_ID);
     }
     obstacleAvoidanceData.getExclusionZoneSet().deleteZone(action.zoneID);
-    applyZoneMutation(mutableState, {
-        revert: [],
-        detectRemovals: true,
-        detectReroutes: true,
-        stripStale: true,
-    });
     exclusionZoneLayer.updateFeatures();
     return mutableState;
 }
 
 /**
- * Removes all exclusion zones, strips all bypass waypoints, and resets zone edit state.
+ * Removes all exclusion zones and resets zone edit state.
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
  * @returns {JaiaContextType} Updated mutable state object
  */
 export function handleClearExclusionZones(mutableState: JaiaContextType) {
     obstacleAvoidanceData.getExclusionZoneSet().clearZones();
-    applyZoneMutation(mutableState, {
-        revert: [],
-        detectRemovals: false,
-        detectReroutes: false,
-        stripStale: true,
-    });
     jaiaGlobal.resetSelectedZoneVertex();
     jaiaGlobal.setZoneInEditMode(UNASSIGNED_ID);
     exclusionZoneLayer.updateFeatures();
@@ -181,18 +71,9 @@ export function handleToggleExclusionZoneDrawing(mutableState: JaiaContextType) 
 }
 
 /**
- * Replaces the whole zone set with a loaded one and detects the resulting waypoint
- * removals or reroutes. Reached from both the Load and Import buttons, which each ask
- * the operator to confirm before dispatching.
- *
- * Every zone in the set is loaded: one that leaves a mission unroutable is reported
- * through the dialog rather than withheld, since withholding it would silently discard
- * part of a zone set the operator saved.
- *
- * Replacing the set invalidates every detour in every mission at once — each was
- * computed against a zone that no longer exists. All of them are removed and the routes
- * recomputed against the loaded set from clean waypoints, rather than some being carried
- * across because they happen to still fit.
+ * Replaces the whole zone set with a loaded one. Reached from both the Load and Import
+ * buttons, which each ask the operator to confirm before dispatching. Every zone in the
+ * set is loaded.
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
  * @param {JaiaAction} action Provides the exclusion zone set snapshot to load
@@ -203,16 +84,8 @@ export function handleLoadExclusionZoneSet(mutableState: JaiaContextType, action
     obstacleAvoidanceData
         .getExclusionZoneSet()
         .restoreFromSnapshot(action.exclusionZoneSetSnapshot);
-    stripAllBypasses();
     exclusionZoneLayer.updateFeatures();
-    missionLayer.updateFeatures();
 
-    applyZoneMutation(mutableState, {
-        revert: [],
-        detectRemovals: true,
-        detectReroutes: true,
-        stripStale: false,
-    });
     return mutableState;
 }
 
@@ -249,10 +122,7 @@ export function handleSelectZoneVertex(mutableState: JaiaContextType, action: Ja
 }
 
 /**
- * Moves the currently selected zone vertex to a new location and triggers
- * mission reroute/waypoint-removal detection. If any waypoints fall inside
- * the new zone shape the move is staged and the operator is shown the
- * waypoint-removal dialog; cancelling reverts the zone.
+ * Moves the currently selected zone vertex to a new location.
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
  * @param {JaiaAction} action Provides the new geographic location for the selected vertex
@@ -265,12 +135,6 @@ export function handleMoveZoneVertex(mutableState: JaiaContextType, action: Jaia
     const zone = obstacleAvoidanceData.getExclusionZoneSet().getZone(selected.zoneID);
     if (!zone?.vertices) return mutableState;
 
-    // Snapshot so we can restore on cancel.
-    const priorZone = {
-        zoneID: selected.zoneID,
-        zone: { ...zone, vertices: [...zone.vertices] },
-    };
-
     const newIdx = obstacleAvoidanceData
         .getExclusionZoneSet()
         .moveVertex(selected.zoneID, selected.vertexIndex, action.location);
@@ -281,13 +145,6 @@ export function handleMoveZoneVertex(mutableState: JaiaContextType, action: Jaia
     });
     exclusionZoneLayer.updateFeatures();
 
-    applyZoneMutation(mutableState, {
-        revert: [{ kind: "restoreZoneShape", zoneID: priorZone.zoneID, zone: priorZone.zone }],
-        strippableZoneID: selected.zoneID,
-        detectRemovals: true,
-        detectReroutes: true,
-        stripStale: true,
-    });
     return mutableState;
 }
 
@@ -336,7 +193,7 @@ export function handleToggleZoneVertexTapToMove(mutableState: JaiaContextType) {
 
 /**
  * Adds a new vertex at the clicked map location, appended to the end of the
- * zone's vertex list. Same reroute/removal detection path as a vertex move.
+ * zone's vertex list.
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
  * @param {JaiaAction} action Provides the zone ID and the geographic location of the new vertex
@@ -346,12 +203,6 @@ export function handleAddZoneVertex(mutableState: JaiaContextType, action: JaiaA
     if (action.zoneID === undefined || !action.location) return mutableState;
     const zone = obstacleAvoidanceData.getExclusionZoneSet().getZone(action.zoneID);
     if (!zone?.vertices || zone.vertices.length < 3) return mutableState;
-
-    // Snapshot for cancel/revert.
-    const priorZone = {
-        zoneID: action.zoneID,
-        zone: { ...zone, vertices: [...zone.vertices] },
-    };
 
     const newIdx = obstacleAvoidanceData
         .getExclusionZoneSet()
@@ -367,21 +218,11 @@ export function handleAddZoneVertex(mutableState: JaiaContextType, action: JaiaA
 
     exclusionZoneLayer.updateFeatures();
 
-    applyZoneMutation(mutableState, {
-        revert: [{ kind: "restoreZoneShape", zoneID: priorZone.zoneID, zone: priorZone.zone }],
-        strippableZoneID: action.zoneID,
-        detectRemovals: true,
-        detectReroutes: true,
-        stripStale: false,
-    });
     return mutableState;
 }
 
 /**
  * Deletes a vertex from a zone. Requires at least 3 vertices to remain.
- * Removing a reflex vertex fills in the notch it formed, so a deletion can enlarge a
- * concave zone rather than shrink it — detection therefore runs the same way it does
- * for the handlers that grow a zone outright.
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
  * @param {JaiaAction} action Provides the zone ID and vertex index to delete
@@ -391,11 +232,6 @@ export function handleDeleteZoneVertex(mutableState: JaiaContextType, action: Ja
     if (action.zoneID === undefined || action.vertexIndex === undefined) return mutableState;
     const zone = obstacleAvoidanceData.getExclusionZoneSet().getZone(action.zoneID);
     if (!zone?.vertices || zone.vertices.length <= 3) return mutableState;
-    const priorZone = {
-        zoneID: action.zoneID,
-        zone: { ...zone, vertices: [...zone.vertices] },
-    };
-
     obstacleAvoidanceData.getExclusionZoneSet().updateZone(action.zoneID, {
         ...zone,
         vertices: zone.vertices.filter((_, i) => i !== action.vertexIndex),
@@ -403,13 +239,6 @@ export function handleDeleteZoneVertex(mutableState: JaiaContextType, action: Ja
     jaiaGlobal.resetSelectedZoneVertex();
     exclusionZoneLayer.updateFeatures();
 
-    applyZoneMutation(mutableState, {
-        revert: [{ kind: "restoreZoneShape", zoneID: priorZone.zoneID, zone: priorZone.zone }],
-        strippableZoneID: action.zoneID,
-        detectRemovals: true,
-        detectReroutes: true,
-        stripStale: true,
-    });
     return mutableState;
 }
 
