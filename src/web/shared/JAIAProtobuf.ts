@@ -690,6 +690,7 @@ export interface Goal {
 export interface Recovery {
     recover_at_final_goal?: boolean;
     location?: GeographicCoordinate;
+    sleep_once_goal_reached?: boolean;
 }
 
 export interface MissionPlan {
