@@ -21,6 +21,6 @@ ansible_playbook {
     file: "pair-fleet-to-cloudhub.yml"
     name: "Pair Fleet to CloudHub (every Bot and Hub; open Fleet Pairing first)"
     section: "Fleet Changes"
-    role: ADVANCED
+    role: USER
     limit: "all"
 }
