@@ -226,8 +226,10 @@ elif common.app == 'goby_liaison_prelaunch':
     inventory='/etc/jaiabot/inventory.yml'
     if is_cloudhub:
         vfleet_playbooks=config.template_substitute(templates_dir+'/hub/_liaison_prelaunch_vfleet_playbooks.pb.cfg.in', this_hub=this_hub)
+        hub_vpn_playbooks=''
     else:
         vfleet_playbooks=''
+        hub_vpn_playbooks=config.template_substitute(templates_dir+'/hub/_liaison_prelaunch_hub_vpn_playbooks.pb.cfg.in', this_hub=this_hub)
 
     limit=''
     if is_cloudhub:
@@ -240,6 +242,7 @@ elif common.app == 'goby_liaison_prelaunch':
                                      user_role=user_role,
                                      inventory=inventory,
                                      vfleet_playbooks=vfleet_playbooks,
+                                     hub_vpn_playbooks=hub_vpn_playbooks,
                                      this_hub_id=hub_id,
                                      limit=limit,
                                      ansible_log_dir=common.jaia_log_dir + '/ansible'))

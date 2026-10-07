@@ -173,21 +173,7 @@ upper_right_logo_link: "https://www.jaia.tech/"
         limit: "$this_hub"
     }
     
-    ansible_playbook {
-        file: "change-cloudhub-vpn.yml" 
-        name: "Change CloudHub VPN State (this hub only; also carries HUB2HUB)"
-        section: "Security"
-        role: USER
-        input_var {
-            name: "state"
-            display_name: "State"
-            value: "start"
-            value: "stop"
-            value: "enable"
-            value: "disable"
-        }
-        limit: "$this_hub"
-    }
+    $hub_vpn_playbooks
     
     ansible_playbook {
         file: "update-dccl-password.yml" 

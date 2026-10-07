@@ -1,0 +1,17 @@
+# Not on a CloudHub: there it would act on the server end of the tunnel and cut
+# off every hub
+ansible_playbook {
+    file: "change-cloudhub-vpn.yml"
+    name: "Change CloudHub VPN State (this hub only; also carries HUB2HUB)"
+    section: "Security"
+    role: USER
+    input_var {
+        name: "state"
+        display_name: "State"
+        value: "start"
+        value: "stop"
+        value: "enable"
+        value: "disable"
+    }
+    limit: "$this_hub"
+}
