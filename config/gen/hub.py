@@ -167,7 +167,7 @@ if common.app == 'goby_intervehicle_portal':
         link_block += config.template_substitute(templates_dir+'/link_udp.pb.cfg.in',
                                                  subnet_mask=common.comms.subnet_mask,
                                                  modem_id=common.comms.hub2hub_modem_id(hub_id),
-                                                 local_port=common.udp.hub2hub_udp_port(hub_id),
+                                                 local_port=common.udp.hub2hub_udp_port(hub_id, common.comms.hub2hub_single_machine_sim(hub_id, fleet_id)),
                                                  remotes=common.comms.hub2hub_remotes(hub_id, fleet_id),
                                                  hub_endpoints='',
                                                  mac_slots=common.comms.hub2hub_mac_slots(hub_id),

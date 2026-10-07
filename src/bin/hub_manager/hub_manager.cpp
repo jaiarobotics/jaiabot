@@ -147,6 +147,7 @@ class HubManager : public ApplicationBase
     goby::time::SteadyClock::time_point last_health_report_time_{std::chrono::seconds(0)};
 
     std::set<int> managed_bot_ids_;
+    std::set<int> other_hub_ids_;
     std::set<jaiabot::protobuf::Link> links_to_subscribe_on_;
 
     // Map bot id to previouse task packet timestamp to ignore duplicates
@@ -386,17 +387,18 @@ jaiabot::apps::HubManager::HubManager()
         [this](const jaiabot::protobuf::LinuxHardwareStatus& hardware_status)
         { handle_hardware_status(hardware_status); });
 
+    for (int other_hub_id : cfg().expected_hubs().id())
+    {
+        if (other_hub_id != cfg().hub_id())
+            other_hub_ids_.insert(other_hub_id);
+    }
+
     interprocess().subscribe<jaiabot::groups::intervehicle_subscribe_request>(
         [this](const jaiabot::protobuf::IntervehicleSubscribeRequest& req)
         {
             if (req.link() == jaiabot::protobuf::LINK_HUB2HUB)
             {
-                // subscribe to other hubs
-                for (int other_hub_id : cfg().expected_hubs().id())
-                {
-                    if (other_hub_id != cfg().hub_id())
-                        hub2hub_subscribe(other_hub_id);
-                }
+                for (int other_hub_id : other_hub_ids_) hub2hub_subscribe(other_hub_id);
             }
         });
 
@@ -487,6 +489,15 @@ void jaiabot::apps::HubManager::handle_subscription_report(
                         ? protobuf::ERROR__VERSION__MISMATCH_INTERVEHICLE__UPGRADE_OTHER_HUB
                         : protobuf::ERROR__VERSION__MISMATCH_INTERVEHICLE__UPGRADE_HUB;
                 hub_errors_.insert(error);
+            }
+            // a hub missing from our inventory (e.g. one paired after the CloudHub was built)
+            else if (sub_report.changed().action() ==
+                         goby::middleware::intervehicle::protobuf::Subscription::SUBSCRIBE &&
+                     other_hub_id != cfg().hub_id() && other_hub_ids_.insert(other_hub_id).second)
+            {
+                glog.is_verbose() && glog << group("main") << "Subscribe to hub: " << other_hub_id
+                                          << std::endl;
+                hub2hub_subscribe(other_hub_id);
             }
         }
     }
