@@ -241,6 +241,7 @@ class BOT_TYPE(Enum):
     HYDRO = 'HYDRO'
     PAM = 'PAM'
     BIO = 'BIO'
+    STORM = 'STORM'
     NONE = 'NONE'
 
 class DATA_OFFLOAD_IGNORE_TYPE(Enum):
@@ -321,6 +322,8 @@ elif dc('bot_type') == 'pam':
     jaia_bot_type = BOT_TYPE.PAM
 elif dc('bot_type') == 'bio':
     jaia_bot_type = BOT_TYPE.BIO
+elif dc('bot_type') == 'storm':
+    jaia_bot_type = BOT_TYPE.STORM
 else:
     jaia_bot_type = BOT_TYPE.NONE
 
@@ -650,6 +653,12 @@ jaiabot_apps = [
      'extra_service': 'Environment=PATH=' + args.jaiabot_bin_dir + ':/usr/bin', # to execute correct data pre/post offload scripts
      'runs_on': [Type.BOT],
      'wanted_by': 'jaiabot_health.service'},
+    {'exe': 'jaiabot_storm_manager',
+     'description': 'JaiaBot Storm Manager',
+     'template': 'goby-app.service.in',
+     'error_on_fail': 'ERROR__NOT_RESPONDING__JAIABOT_STORM_MANAGER',
+     'runs_on': [BOT_TYPE.STORM],
+     'wanted_by': 'jaiabot_health.service'},
     {'exe': 'jaiabot_pid_control',
      'description': 'JaiaBot PID Controller',
      'template': 'goby-app.service.in',
@@ -721,7 +730,7 @@ jaiabot_apps = [
      'template': 'goby-py-app.service.in',
      'subdir': 'pressure_sensor',
      'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_PRESSURE_SENSOR',
-     'runs_on': [BOT_TYPE.HYDRO, BOT_TYPE.PAM],
+     'runs_on': [BOT_TYPE.HYDRO, BOT_TYPE.PAM, BOT_TYPE.STORM],
      'wanted_by': 'jaiabot_health.service',
      'restart': 'on-failure'},
     {'exe': 'jaiabot_driver_salinity.py',
@@ -729,7 +738,7 @@ jaiabot_apps = [
      'template': 'goby-py-app.service.in',
      'subdir': 'atlas_scientific_ezo_ec',
      'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_AS_EZO_EC',
-     'runs_on': [BOT_TYPE.HYDRO, BOT_TYPE.PAM],
+     'runs_on': [BOT_TYPE.HYDRO, BOT_TYPE.PAM, BOT_TYPE.STORM],
      'wanted_by': 'jaiabot_health.service',
      'restart': 'on-failure'},
 

@@ -188,6 +188,7 @@ message NodeSettings
         BOT_TYPE_HYDRO = 0;
         BOT_TYPE_PAM = 1;
         BOT_TYPE_BIO = 2;
+        BOT_TYPE_STORM = 5;
         BOT_TYPE_NONE = 3;
         BOT_TYPE_ECHO = 4 [deprecated = true, (jaia.ev).debconf.replaced_by = "pam"];
     }
