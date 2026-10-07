@@ -32,6 +32,8 @@ using boost::units::quantity;
 #include <goby/middleware/protobuf/intervehicle.pb.h>
 #include <goby/middleware/transport/intervehicle/groups.h>
 #include <goby/middleware/protobuf/gpsd.pb.h>
+#include <goby/middleware/protobuf/intervehicle.pb.h>
+#include <goby/middleware/transport/intervehicle/groups.h>
 #include <goby/util/seawater.h>
 using goby::glog;
 namespace middleware = goby::middleware;
@@ -105,6 +107,18 @@ jaiabot::apps::StormManager::StormManager()
         {
             glog.is_debug2() && glog << "Received delegate request: " << req.ShortDebugString()
                                      << std::endl;
+
+            // our self test may have finished before jaiabot_mission_manager reached
+            // SELF_TEST, in which case it ignored our response; answer again
+            if (req.state() == protobuf::PRE_DEPLOYMENT__SELF_TEST && self_test_result_)
+            {
+                glog.is_verbose() && glog << group("statechart")
+                                          << "Self test already complete; re-sending result: "
+                                          << self_test_result_->ShortDebugString() << std::endl;
+                interprocess().publish<jaiabot::groups::state_delegate_response>(
+                    *self_test_result_);
+            }
+
             process_mission_manager_state(req.state());
         });
 
@@ -390,6 +404,13 @@ void jaiabot::apps::StormManager::send_activate_command()
                                           << "Sending command: " << command.ShortDebugString()
                                           << std::endl;
     interprocess().publish<jaiabot::groups::self_command>(command);
+}
+
+void jaiabot::apps::StormManager::publish_self_test_result(
+    const protobuf::MissionStateDelegateResponse& resp)
+{
+    self_test_result_ = resp;
+    interprocess().publish<jaiabot::groups::state_delegate_response>(resp);
 }
 
 void jaiabot::apps::StormManager::process_mission_manager_state(protobuf::MissionState state)

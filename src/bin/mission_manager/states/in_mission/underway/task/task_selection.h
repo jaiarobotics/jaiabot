@@ -53,13 +53,6 @@ struct TaskSelection : boost::statechart::state<TaskSelection, Task>,
             switch (current_task->type())
             {
                 case protobuf::MissionTask::NONE: return discard_event();
-                case protobuf::MissionTask::STORM_AIR_DESCENT:
-                case protobuf::MissionTask::STORM_CTD_PROFILE:
-                    // used to report STORM air descent / CTD profile TaskPackets - not
-                    // regular tasks we can perform, so treat them as already complete and
-                    // move on to the next goal
-                    post_event(EvTaskComplete());
-                    return discard_event();
                 case protobuf::MissionTask::DIVE: return transit<Dive>();
                 case protobuf::MissionTask::STATION_KEEP: return transit<StationKeep>();
                 case protobuf::MissionTask::SURFACE_DRIFT: return transit<SurfaceDrift>();

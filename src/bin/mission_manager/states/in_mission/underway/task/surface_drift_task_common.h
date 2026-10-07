@@ -51,8 +51,10 @@ struct SurfaceDriftTaskCommon : boost::statechart::state<Derived, Parent>,
             start.set_lat_with_units(pos.lat_with_units());
             start.set_lon_with_units(pos.lon_with_units());
         }
-        else
+        else if (this->cfg().reacquire_gps_timeout() > 0)
         {
+            // bots that continue without GPS (STORM) report 0,0 so the user can see the drift
+            // happened without a fix; other bot types leave the location unset
             gps_unavailable_ = true;
             auto& start = *drift_packet().mutable_start_location();
             start.set_lat(0);
@@ -90,7 +92,7 @@ struct SurfaceDriftTaskCommon : boost::statechart::state<Derived, Parent>,
             end.set_lat_with_units(pos.lat_with_units());
             end.set_lon_with_units(pos.lon_with_units());
         }
-        else
+        else if (this->cfg().reacquire_gps_timeout() > 0)
         {
             gps_unavailable_ = true;
             auto& end = *drift_packet().mutable_end_location();
@@ -121,30 +123,30 @@ struct SurfaceDriftTaskCommon : boost::statechart::state<Derived, Parent>,
             if (heading < 0 * boost::units::si::radians)
                 heading = heading + (goby::util::pi<double> * 2 * boost::units::si::radians);
             drift.set_heading_with_units(heading);
+        }
 
-            // Set the wave height and period
-            drift_packet().set_significant_wave_height(
-                this->machine().latest_significant_wave_height());
+        // Wave height comes from the IMU, so record it (and stop sampling) even without GPS
+        drift_packet().set_significant_wave_height(
+            this->machine().latest_significant_wave_height());
 
-            goby::glog.is_debug1() &&
-                goby::glog << group("task")
-                           << "~SurfaceDriftTaskCommon Stopping Wave Height Sampling" << std::endl;
+        goby::glog.is_debug1() &&
+            goby::glog << group("task") << "~SurfaceDriftTaskCommon Stopping Wave Height Sampling"
+                       << std::endl;
 
-            // Stop wave height sampling
-            auto imu_command = IMUCommand();
-            imu_command.set_type(IMUCommand::STOP_WAVE_HEIGHT_SAMPLING);
-            this->interprocess().template publish<jaiabot::groups::imu>(imu_command);
+        // Stop wave height sampling
+        auto imu_command = IMUCommand();
+        imu_command.set_type(IMUCommand::STOP_WAVE_HEIGHT_SAMPLING);
+        this->interprocess().template publish<jaiabot::groups::imu>(imu_command);
 
-            // Is echo recording?
-            bool stop_echo_sensor = this->template context<InMission>().is_echo_recording();
+        // Is echo recording?
+        bool stop_echo_sensor = this->template context<InMission>().is_echo_recording();
 
-            if (stop_echo_sensor)
-            {
-                // Stop echo recording
-                auto echo_command = EchoCommand();
-                echo_command.set_type(EchoCommand::CMD_STOP);
-                this->interprocess().template publish<jaiabot::groups::echo>(echo_command);
-            }
+        if (stop_echo_sensor)
+        {
+            // Stop echo recording
+            auto echo_command = EchoCommand();
+            echo_command.set_type(EchoCommand::CMD_STOP);
+            this->interprocess().template publish<jaiabot::groups::echo>(echo_command);
         }
     }
 

@@ -62,18 +62,18 @@ template <typename Derived, typename DataOffloadCompletedEvent> struct TaskPacke
                      });
         };
 
-        auto expired_func =
-            [common, weak_lifetime, attempt](
-                const protobuf::TaskPacket& msg,
-                const goby::middleware::intervehicle::protobuf::ExpireData& expire)
+        auto expired_func = [common, weak_lifetime, attempt](
+                                const protobuf::TaskPacket& msg,
+                                const goby::middleware::intervehicle::protobuf::ExpireData& expire)
         {
             goby::glog.is_warn() &&
-                goby::glog << group("statechart")
-                           << "[iridium] Expiry received for TaskPacket with id: " << msg.storm_id()
-                           << ", reason: "
-                           << goby::middleware::intervehicle::protobuf::ExpireData::ExpireReason_Name(
-                                  expire.reason())
-                           << ", link: " << expire.header().ShortDebugString() << std::endl;
+                goby::glog
+                    << group("statechart")
+                    << "[iridium] Expiry received for TaskPacket with id: " << msg.storm_id()
+                    << ", reason: "
+                    << goby::middleware::intervehicle::protobuf::ExpireData::ExpireReason_Name(
+                           expire.reason())
+                    << ", link: " << expire.header().ShortDebugString() << std::endl;
 
             // goby itself retransmits a queued ack_required message until it is acked or its
             // ttl runs out, so TTL/overflow expiries are final. But a copy expired because no

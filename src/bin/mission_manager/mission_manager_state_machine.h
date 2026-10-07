@@ -219,10 +219,6 @@ struct MissionManagerStateMachine
     }
     const uint32_t& after_dive_gps_fix_checks() { return after_dive_gps_fix_checks_; }
 
-    // set when ReacquireGPS gives up, so the dive is recorded with an unknown location
-    void set_dive_without_gps(bool dive_without_gps) { dive_without_gps_ = dive_without_gps; }
-    bool dive_without_gps() const { return dive_without_gps_; }
-
     void
     set_bottom_depth_safety_constant_heading(const double& bottom_depth_safety_constant_heading)
     {
@@ -266,6 +262,27 @@ struct MissionManagerStateMachine
     const boost::units::quantity<boost::units::si::velocity>& transit_speed_with_units()
     {
         return transit_speed_;
+    }
+
+    void set_bottom_depth_safety_params(const jaiabot::protobuf::BottomDepthSafetyParams& params)
+    {
+        set_bottom_depth_safety_constant_heading(params.constant_heading());
+        set_bottom_depth_safety_constant_heading_speed(params.constant_heading_speed());
+        set_bottom_depth_safety_constant_heading_time(params.constant_heading_time());
+        set_bottom_safety_depth(params.safety_depth());
+    }
+
+    // Plan-level transit speed and bottom depth safety params, which segment params override.
+    // Bottom depth safety params fall back to their defaults when the plan omits them.
+    void apply_plan_baseline_params(const jaiabot::protobuf::MissionPlan& plan)
+    {
+        if (plan.has_bottom_depth_safety_params())
+            set_bottom_depth_safety_params(plan.bottom_depth_safety_params());
+        else
+            set_bottom_depth_safety_params(jaiabot::protobuf::BottomDepthSafetyParams());
+
+        if (plan.has_speeds())
+            set_transit_speed(plan.speeds().transit_with_units());
     }
 
     void set_latest_lat(const boost::units::quantity<boost::units::degree::plane_angle>& latest_lat)
@@ -363,7 +380,6 @@ struct MissionManagerStateMachine
     uint32_t transit_gps_fix_checks_{cfg().total_gps_fix_checks()};
     uint32_t transit_gps_degraded_fix_checks_{cfg().total_gps_degraded_fix_checks()};
     uint32_t after_dive_gps_fix_checks_{cfg().total_after_dive_gps_fix_checks()};
-    bool dive_without_gps_{false};
     double start_of_dive_pressure_{0};
     double start_of_dive_depth_{0};
     double current_pressure_{0};

@@ -41,7 +41,6 @@
 #include <filesystem>
 #include <fstream>
 #include <iomanip>
-#include <sstream>
 
 #include "config.pb.h"
 #include "jaiabot/comms/comms.h"
@@ -1096,37 +1095,7 @@ void jaiabot::apps::HubManager::handle_task_packet(const jaiabot::protobuf::Task
         }
         else
         {
-            glog.is_warn() && glog << group("task_packet")
-                                   << "Ignoring empty CTD profile" << std::endl;
-        }
-    }
-
-    if (task_packet.type() == protobuf::MissionTask::STORM_CTD_PROFILE &&
-        task_packet.has_legacy_storm_ctd_profile())
-    {
-        std::istringstream profile(task_packet.legacy_storm_ctd_profile());
-        std::string version;
-        std::string timestamp;
-        std::getline(profile, version);
-        std::getline(profile, timestamp);
-
-        const bool valid_timestamp = !timestamp.empty() &&
-                                     timestamp.find_first_not_of(
-                                         "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_-." ) ==
-                                         std::string::npos;
-        if (valid_timestamp)
-        {
-            const std::filesystem::path offload_dir(cfg().log_offload_dir());
-            std::filesystem::create_directories(offload_dir);
-            const auto file = offload_dir / ("bot" + std::to_string(task_packet.bot_id()) + "_" +
-                                             timestamp + ".unb");
-            std::ofstream out(file);
-            out << task_packet.legacy_storm_ctd_profile() << '\n';
-        }
-        else
-        {
-            glog.is_warn() && glog << group("task_packet")
-                                   << "Ignoring legacy CTD profile with invalid timestamp"
+            glog.is_warn() && glog << group("task_packet") << "Ignoring empty CTD profile"
                                    << std::endl;
         }
     }
@@ -1158,8 +1127,7 @@ void jaiabot::apps::HubManager::handle_ctd_profile_part(
     const auto timestamp = goby::time::file_str(part.profile_time_with_units());
     const std::filesystem::path offload_dir(cfg().log_offload_dir());
     std::filesystem::create_directories(offload_dir);
-    const auto file =
-        offload_dir / ("bot" + std::to_string(bot_id) + "_" + timestamp + ".unb");
+    const auto file = offload_dir / ("bot" + std::to_string(bot_id) + "_" + timestamp + ".unb");
     std::ofstream out(file);
     if (!out)
     {
@@ -1179,8 +1147,8 @@ void jaiabot::apps::HubManager::handle_ctd_profile_part(
         {
             for (const auto& sample : received_part.sample())
             {
-                out << sample_index++ << " " << sample.depth() << " 0.000 "
-                    << sample.temperature() << " " << sample.salinity() << "\n";
+                out << sample_index++ << " " << sample.depth() << " 0.000 " << sample.temperature()
+                    << " " << sample.salinity() << "\n";
             }
         }
         if (!out)
@@ -1189,8 +1157,8 @@ void jaiabot::apps::HubManager::handle_ctd_profile_part(
     }
 
     glog.is_verbose() && glog << group("task_packet") << "CTD profile " << file << ": "
-                              << parts_received << "/" << part.num_parts()
-                              << " parts received" << std::endl;
+                              << parts_received << "/" << part.num_parts() << " parts received"
+                              << std::endl;
 
     if (parts_received >= part.num_parts())
     {

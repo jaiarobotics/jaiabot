@@ -24,6 +24,7 @@
 #define JAIABOT_BIN_STORM_MANAGER_STORM_MANAGER_H
 
 #include <filesystem>
+#include <optional>
 
 #include <goby/middleware/marshalling/protobuf.h>
 // this space intentionally left blank
@@ -53,6 +54,9 @@ class StormManager : public goby::zeromq::MultiThreadApplication<config::StormMa
     void send_activate_command();
     void enqueue_task_packet(protobuf::TaskPacket task_packet);
     void acknowledge_task_packet(const protobuf::TaskPacket& task_packet);
+    // publish the self test result to jaiabot_mission_manager, and keep it to re-send if
+    // jaiabot_mission_manager asks again (it may not have been in SELF_TEST to accept it)
+    void publish_self_test_result(const protobuf::MissionStateDelegateResponse& resp);
 
   private:
     void initialize() override;
@@ -79,6 +83,7 @@ class StormManager : public goby::zeromq::MultiThreadApplication<config::StormMa
 
   private:
     std::unique_ptr<statechart::StormManagerStateMachine> machine_;
+    std::optional<protobuf::MissionStateDelegateResponse> self_test_result_;
 
     utils::RollingStatsAccumulator<boost::units::quantity<jaiabot::units::microsiemens_per_cm_unit>>
         raw_conductivity_;

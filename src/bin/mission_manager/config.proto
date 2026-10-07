@@ -6,6 +6,7 @@ import "goby/middleware/protobuf/transporter_config.proto";
 import "dccl/option_extensions.proto";
 import "jaiabot/messages/health.proto";
 import "jaiabot/messages/mission.proto";
+import "jaiabot/messages/node.proto";
 import "jaiabot/messages/camera_driver.proto";
 
 package jaiabot.config;
@@ -261,7 +262,7 @@ message MissionManager
     // states that are managed external (their transitions are delegated to an
     // external app)
     repeated jaiabot.protobuf.MissionState delegated_states = 97;
-    optional bool send_task_packets_to_hub = 98 [default = true];
+    optional jaiabot.protobuf.BotType bot_type = 98 [default = HYDRO];
 
     optional bool allow_gps_error_during_pre_deployment_startup = 99 [default = false];
 
@@ -271,4 +272,11 @@ message MissionManager
     // improve a degraded fix by maneuvering.
     optional int32 reacquire_gps_timeout = 100
         [default = 0, (dccl.field).units = { base_dimensions: "T" }];
+
+    // while in a delegated PRE_DEPLOYMENT__SELF_TEST, re-send the delegate request at this
+    // interval. The request is otherwise only sent once on entering SELF_TEST, so a delegate
+    // that already finished (and responded) before this app got there would never respond
+    // again, leaving the bot stuck in SELF_TEST. 0 disables.
+    optional double self_test_delegate_retry_interval = 101
+        [default = 10, (dccl.field).units = { base_dimensions: "T" }];
 }

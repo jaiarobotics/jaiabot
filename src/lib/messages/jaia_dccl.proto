@@ -713,8 +713,6 @@ message TaskPacket
     {
         DivePacket dive = 10 [(jaia.field).rest_api.presence = GUARANTEED];
         StormAirDescentData storm_air_descent = 12;
-        string legacy_storm_ctd_profile = 13
-            [deprecated = true, (dccl.field).max_length = 180];
         StormCTDProfile storm_ctd_profile = 14;
     }
 

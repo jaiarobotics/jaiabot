@@ -33,6 +33,8 @@ struct StartingUp : boost::statechart::state<StartingUp, PreDeployment>,
     {
         goby::time::SteadyClock::time_point timeout_start = goby::time::SteadyClock::now();
 
+        // STORM: We need to activate without requiring input from the user. This means
+        // we should not timeout during startup for STORM bots.
         int timeout_seconds = cfg().startup_timeout_with_units<goby::time::SITime>().value();
         startup_timeout_enabled_ = timeout_seconds > 0;
         if (startup_timeout_enabled_)

@@ -41,7 +41,7 @@ struct Wrapup : boost::statechart::state<Wrapup, SelfTest>,
         // but we always want to continue the mission no matter what,
         // which means we always consider the self test successful.
         resp.set_event(protobuf::MissionStateDelegateResponse::EV_SELF_TEST_SUCCESSFUL);
-        interprocess().publish<::jaiabot::groups::state_delegate_response>(resp);
+        this->app().publish_self_test_result(resp);
     }
     ~Wrapup() {}
 

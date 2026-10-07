@@ -40,14 +40,12 @@ struct Transit
 
         if (goal)
         {
-            // moveWptMode == false means "the goal is wherever the vehicle is" (used by
-            // rudderless STORM bots, which cannot steer to a waypoint): never engage the
-            // helm transit, since a drifting bot that slips outside the capture radius
-            // would just drive in whatever direction it happens to be pointing
-            if (!goal->movewptmode())
+            // STORM: rudderless, so never engage the helm transit (a drifting bot would just
+            // drive in whatever direction it happens to point)
+            if (cfg().bot_type() == protobuf::STORM)
             {
-                glog.is_debug1() && glog << "Goal has moveWptMode == false; performing task "
-                                            "in place without transiting"
+                glog.is_debug1() && glog << "STORM bot; performing task in place without "
+                                            "transiting"
                                          << std::endl;
                 post_event(EvWaypointReached());
                 return;
