@@ -130,7 +130,7 @@ upper_right_logo_link: "https://www.jaia.tech/"
 
         input_var {
             name: "has_cloudhub"
-            display_name: "This fleet has a CloudHub (answer no only for a fleet sold without one)"
+            display_name: "This fleet has a CloudHub after this upgrade"
             value: "yes"
             value: "no"
         }
