@@ -227,9 +227,11 @@ elif common.app == 'goby_liaison_prelaunch':
     if is_cloudhub:
         vfleet_playbooks=config.template_substitute(templates_dir+'/hub/_liaison_prelaunch_vfleet_playbooks.pb.cfg.in', this_hub=this_hub)
         hub_vpn_playbooks=''
+        node_pairing_playbooks=''
     else:
         vfleet_playbooks=''
         hub_vpn_playbooks=config.template_substitute(templates_dir+'/hub/_liaison_prelaunch_hub_vpn_playbooks.pb.cfg.in', this_hub=this_hub)
+        node_pairing_playbooks=config.template_substitute(templates_dir+'/hub/_liaison_prelaunch_node_pairing_playbooks.pb.cfg.in')
 
     if common.comms.has_cloudhub_vpn(fleet_id):
         pairing_playbooks=config.template_substitute(templates_dir+'/hub/_liaison_prelaunch_pairing_playbooks.pb.cfg.in', this_hub=this_hub)
@@ -248,6 +250,7 @@ elif common.app == 'goby_liaison_prelaunch':
                                      inventory=inventory,
                                      vfleet_playbooks=vfleet_playbooks,
                                      hub_vpn_playbooks=hub_vpn_playbooks,
+                                     node_pairing_playbooks=node_pairing_playbooks,
                                      pairing_playbooks=pairing_playbooks,
                                      this_hub_id=hub_id,
                                      limit=limit,
