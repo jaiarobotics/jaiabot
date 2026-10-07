@@ -15,7 +15,7 @@
  * to by "dst".
  */
 #define COBSFinishBlock(X) (*code_ptr = (X), code_ptr = dst++, code = 0x01)
-void COBSStuffData(const unsigned char* ptr, unsigned long length, unsigned char* dst)
+static inline void COBSStuffData(const unsigned char* ptr, unsigned long length, unsigned char* dst)
 {
     const unsigned char* end = ptr + length;
     unsigned char* code_ptr = dst++;
@@ -43,24 +43,34 @@ void COBSStuffData(const unsigned char* ptr, unsigned long length, unsigned char
  * writing the output to the location pointed
  * to by "dst".
  */
-unsigned long COBSUnStuffData(const unsigned char* ptr, unsigned long length, unsigned char* dst)
+static inline unsigned long COBSUnStuffData(const unsigned char* ptr, unsigned long length,
+                                            unsigned char* dst)
 {
     const unsigned char* end = ptr + length;
     unsigned long len = 0;
+    int trailing_zero = 0;
     while (ptr < end)
     {
         int i, code = *ptr++;
         for (i = 1; i < code; i++)
         {
-        	len++;
-        	*dst++ = *ptr++;
+            len++;
+            *dst++ = *ptr++;
         }
         if (code < 0xFF)
         {
+            // Each block shorter than 0xFF implies a zero byte, which counts toward the
+            // length except after the final block, where it is the implied frame delimiter.
             *dst++ = 0;
+            len++;
+            trailing_zero = 1;
+        }
+        else
+        {
+            trailing_zero = 0;
         }
     }
 
-    return len;
+    return trailing_zero ? len - 1 : len;
 }
 #endif

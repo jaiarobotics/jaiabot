@@ -142,6 +142,23 @@ static void step_motor_toward_target(void)
 
 int controls_get_motor_actual(void) { return motor_actual_; }
 
+void controls_stop_outputs(void)
+{
+    if (esc_pwm_started)
+    {
+        HAL_TIM_PWM_Stop(&htim16, TIM_CHANNEL_1);
+        esc_pwm_started = false;
+    }
+
+    // Power is about to be cut, so drop straight to neutral rather than
+    // resuming a ramp from a stale pulse width after waking.
+    target_motor_ = motor_off_;
+    motor_tracked_ = motor_off_;
+    motor_actual_ = motor_off_;
+    motor_timeout_active = false;
+    motor_timeout_event_pending = false;
+}
+
 void handle_control_surfaces(const jaiabot_protobuf_ControlSurfaces* control_surfaces)
 {
     if (control_surfaces == NULL)

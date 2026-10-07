@@ -34,6 +34,7 @@ extern "C" {
 
 #include "command.h"
 #include "MS5837.h"
+#include "celsius_tsys01.h"
 #include "oem_library.h"
 #include "cfluor.h"
 #include "aml.h"
@@ -137,12 +138,14 @@ typedef jaiabot_sensor_protobuf_AtlasScientificOEMDO AtlasScientificOEMDO;
 typedef jaiabot_sensor_protobuf_AtlasScientificOEMpH AtlasScientificOEMPH;
 typedef jaiabot_sensor_protobuf_TurnerCFluor TurnerCFluor;
 typedef jaiabot_sensor_protobuf_AML Aml;
+typedef jaiabot_sensor_protobuf_TSYS01 Tsys01;
 
 extern float adc_voltage1;
 extern float adc_voltage2;
 extern float adc_voltage3;
 extern float adc_voltage4;
 extern float adc_voltage5;
+extern float adc_voltage6;
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus

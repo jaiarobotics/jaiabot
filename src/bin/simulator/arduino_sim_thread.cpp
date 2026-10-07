@@ -47,8 +47,6 @@ jaiabot::apps::ArduinoSimThread::ArduinoSimThread(const jaiabot::config::Arduino
 
 }
 
-void jaiabot::apps::ArduinoSimThread::loop() {}
-
 void jaiabot::apps::ArduinoSimThread::handle_arduino_command(const jaiabot::protobuf::ArduinoCommand& arduino_command)
 {
     glog.is_debug2() && glog << group(thread_name()) << "Received Arduino Command: "
@@ -72,9 +70,6 @@ void jaiabot::apps::ArduinoSimThread::handle_arduino_command(const jaiabot::prot
         arduino_response.set_status_code(jaiabot::protobuf::ArduinoStatusCode::ACK); 
     }
 
-    auto now = goby::time::SteadyClock::now();
-
-
     if (arduino_command.has_actuators())
     {
         auto actuators = arduino_command.actuators();
@@ -83,12 +78,38 @@ void jaiabot::apps::ArduinoSimThread::handle_arduino_command(const jaiabot::prot
         }
     }
 
-    // Simulate the voltage decreasing over time, and resetting when it gets too low
+    update_voltage(arduino_response);
+
+    interprocess().publish<groups::arduino_to_pi>(arduino_response);
+}
+
+// jaiabot_driver_arduino runs on real hardware only, so in simulation nothing sends the
+// commands that the handler above answers. Report unprompted as the Arduino itself does,
+// otherwise no vccvoltage ever reaches jaiabot_fusion and every simulated bot fails its
+// health check on a battery level it never received.
+void jaiabot::apps::ArduinoSimThread::loop()
+{
+    jaiabot::protobuf::ArduinoResponse arduino_response;
+    arduino_response.set_status_code(jaiabot::protobuf::ArduinoStatusCode::ACK);
+    arduino_response.set_version(3);
+    arduino_response.set_thermistor_voltage(2.5);
+
+    update_voltage(arduino_response);
+
+    interprocess().publish<groups::arduino_to_pi>(arduino_response);
+}
+
+// Simulate the voltage decreasing over time, and resetting when it gets too low
+void jaiabot::apps::ArduinoSimThread::update_voltage(
+    jaiabot::protobuf::ArduinoResponse& arduino_response)
+{
+    auto now = goby::time::SteadyClock::now();
+
     if ((voltage_updated_ + std::chrono::seconds(voltage_period_)) < now)
     {
         voltage_start_ = voltage_start_ - voltage_step_decrease_;
         arduino_response.set_vccvoltage(voltage_start_);
-        voltage_updated_ = goby::time::SteadyClock::now();
+        voltage_updated_ = now;
 
         if (voltage_start_ < reset_voltage_level_)
         {
@@ -98,7 +119,4 @@ void jaiabot::apps::ArduinoSimThread::handle_arduino_command(const jaiabot::prot
 
     glog.is_debug1() && glog << group("arduino") << "resp: " << arduino_response.ShortDebugString()
                              << std::endl;
-
-    interprocess().publish<groups::arduino_to_pi>(arduino_response);
 }
-

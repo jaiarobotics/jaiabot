@@ -1,7 +1,7 @@
 // Copyright 2024:
 //   JaiaRobotics LLC
 // File authors:
-//   Matthew Ferro <matt.ferro@jaia.tech>
+//   Nick Marshall <nick.marshall@jaia.tech>
 //
 //
 // This file is part of the JaiaBot Project Binaries
@@ -20,30 +20,27 @@
 // You should have received a copy of the GNU General Public License
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef JAIABOT_SENSORS_DRIVERS_TURNER_C_FLUOR_H
-#define JAIABOT_SENSORS_DRIVERS_TURNER_C_FLUOR_H
+#ifndef JAIABOT_SENSORS_DRIVERS_TSYS01_H
+#define JAIABOT_SENSORS_DRIVERS_TSYS01_H
 
 #include "config.pb.h"
 #include "jaiabot/messages/health.pb.h"
-#include "jaiabot/messages/sensor/catalog.pb.h"
+#include "jaiabot/messages/sensor/tsys01.pb.h"
 #include "jaiabot/messages/sensor/sensor_core.pb.h"
-#include "jaiabot/messages/sensor/turner__c_fluor.pb.h"
 #include <goby/zeromq/application/multi_thread.h>
 
 namespace jaiabot
 {
 namespace apps
 {
-class TurnerCFluorDriver
-    : public goby::middleware::SimpleThread<jaiabot::config::TurnerCFluorThreadConfig>
+class TSYS01Driver
+    : public goby::middleware::SimpleThread<jaiabot::config::TSYS01ThreadConfig>
 {
   public:
-    // index is the jaiabot::sensor::protobuf::SensorInstance this thread serves, which
-    // distinguishes the driver threads when the payload board has more than one fluorometer
-    TurnerCFluorDriver(const jaiabot::config::TurnerCFluorThreadConfig& config, int index);
+    TSYS01Driver(const jaiabot::config::TSYS01ThreadConfig& config);
 
   private:
-    void receive_data(const sensor::protobuf::TurnerCFluor& fluor_data);
+    void receive_data(const sensor::protobuf::TSYS01& tsys01_data);
     void health(goby::middleware::protobuf::ThreadHealth& health) override;
     void send_cfg();
 
@@ -53,10 +50,6 @@ class TurnerCFluorDriver
     int32_t sample_rate_{10};
     int32_t report_timeout_{20};
     int32_t resend_cfg_timeout_{20};
-    jaiabot::sensor::protobuf::SensorInstance instance_{jaiabot::sensor::protobuf::INSTANCE_1};
-    // distinct per instance so the two threads are distinguishable in the debug log
-    std::string glog_group_{"turner_c_fluor"};
-    jaiabot::sensor::protobuf::FluorCoefficients fluorometer_coefficients_;
 };
 
 } // namespace apps
