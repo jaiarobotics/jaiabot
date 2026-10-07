@@ -1109,6 +1109,16 @@ def hub_key(ui, fleet, hub):
     return private_key, "no-touch-required " + public_key
 
 
+TEST_KEYS_WARNING = ("WARNING: --test-keys gives each new hub an ordinary SSH key instead of one on a Yubikey. "
+                     "Anyone with a copy of this fleet config can then log in as that hub. "
+                     "For test fleets only; never use it for a real deployment.")
+
+
+def test_hub_key(fleet, hub):
+    # the comment marks the key wherever it is authorized
+    return ssh_keygen("hub{}_fleet{}_test_key".format(hub, fleet))
+
+
 # Answers proposed for questions whose default is empty
 GENERATED_DEFAULTS = {"rf_encryption_password": lambda: secrets.token_hex(16)}
 
@@ -1248,7 +1258,7 @@ def per_node_answers(schema, cfg):
     return answers
 
 
-def create(schema, ui, banner=None, existing=None):
+def create(schema, ui, banner=None, existing=None, test_keys=False):
     """Ask every question, starting from an existing configuration when given."""
     cfg = schema.FleetConfig()
     if existing is not None:
@@ -1313,7 +1323,7 @@ def create(schema, ui, banner=None, existing=None):
                 if hub == CLOUDHUB_ID:
                     # no USB port for a Yubikey, so it makes its own key and create_cloudhub records it
                     continue
-                state["keys"][hub] = hub_key(ui, cfg.fleet, hub)
+                state["keys"][hub] = test_hub_key(cfg.fleet, hub) if test_keys else hub_key(ui, cfg.fleet, hub)
             key = cfg.ssh.hub.add()
             key.id = hub
             key.private_key, key.public_key = state["keys"][hub]
@@ -1536,14 +1546,20 @@ def ask_and_write(schema, args, existing, out):
     def banner(text):
         print("## " + text)
 
+    if args.test_keys:
+        print(TEST_KEYS_WARNING, file=sys.stderr)
+        ui.msgbox(TEST_KEYS_WARNING)
     try:
-        cfg = create(schema, ui, banner, existing)
+        cfg = create(schema, ui, banner, existing, args.test_keys)
     except GoBack:
         print("Cancelled; nothing written", file=sys.stderr)
         return 1
     with open(out, "w") as f:
         f.write(fleet_config_text(cfg))
     print("Output written to " + out)
+    # repeated so it is the last thing on screen, after the dialogs
+    if args.test_keys:
+        print(TEST_KEYS_WARNING, file=sys.stderr)
     return 0
 
 
@@ -1578,12 +1594,16 @@ def build_parser():
     p = sub.add_parser("create", help="Interactively create a new fleet configuration")
     p.add_argument("fleetcfg", help="Path to write the fleet configuration file to")
     p.add_argument("--answers", help=argparse.SUPPRESS)
+    p.add_argument("--test-keys", action="store_true",
+                   help="Testing only: give new hubs ordinary SSH keys instead of Yubikeys. Never for a real deployment.")
     p.set_defaults(func=cmd_create)
 
     p = sub.add_parser("edit", help="Interactively re-answer the questions of an existing fleet configuration")
     p.add_argument("fleetcfg", help="Path to the fleet configuration file to edit")
     p.add_argument("-o", "--output", help="Write here instead of in place")
     p.add_argument("--answers", help=argparse.SUPPRESS)
+    p.add_argument("--test-keys", action="store_true",
+                   help="Testing only: give new hubs ordinary SSH keys instead of Yubikeys. Never for a real deployment.")
     p.set_defaults(func=cmd_edit)
 
     p = sub.add_parser("generate", help="Generate first boot configuration and write to disk")

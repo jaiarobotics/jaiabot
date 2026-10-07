@@ -736,13 +736,50 @@ class CreateTest(unittest.TestCase):
             f.write("\n".join(answers) + "\n")
         return self.env.run("edit", path, "--answers", answers_file), path
 
-    def run_create(self, answers):
+    def run_create(self, answers, *extra):
         path = os.path.join(self.env.dir, "answers.txt")
         with open(path, "w") as f:
             f.write("\n".join(answers) + "\n")
         out = os.path.join(self.env.dir, "fleet7.cfg")
-        result = self.env.run("create", out, "--answers", path)
+        result = self.env.run("create", out, "--answers", path, *extra)
         return result, out
+
+    def test_test_keys_need_no_yubikey(self):
+        with open(os.path.join(self.env.dir, "bin", "ykman"), "w") as f:
+            f.write("#!/bin/sh\necho 'no Yubikey here' >&2\nexit 1\n")
+        answers = ["7", "no", "no", "1, 2", "1", "", "wifipass", "no"]
+        answers += settings_answers(ALL_GROUPS, {}) + ["no"] + node_answers([1, 2], [1])
+        result, out = self.run_create(answers, "--test-keys")
+        self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+        self.assertIn("never use it for a real deployment", result.stderr)
+        keys = {k.id: k for k in fc.parse_fleet_config(SCHEMA, out).ssh.hub}
+        self.assertEqual(keys[1].public_key, "ssh-ed25519 AAAAhub1_fleet7_test_key hub1_fleet7_test_key")
+        self.assertEqual(keys[2].private_key, "PRIVATE hub2_fleet7_test_key\n")
+
+    def test_without_test_keys_a_hub_key_needs_a_yubikey(self):
+        with open(os.path.join(self.env.dir, "bin", "ykman"), "w") as f:
+            f.write("#!/bin/sh\nexit 1\n")
+        answers = ["7", "no", "no", "1", "1", "", "wifipass", "no"]
+        result, _ = self.run_create(answers)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("ykman failed", result.stderr)
+
+    def test_edit_with_test_keys_keeps_existing_hub_keys(self):
+        answers = ["7", "no", "no", "1", "1", "", "wifipass", "no"]
+        answers += settings_answers(ALL_GROUPS, {}) + ["no"] + node_answers([1], [1])
+        result, out = self.run_create(answers)
+        self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+        before = {k.id: k.public_key for k in fc.parse_fleet_config(SCHEMA, out).ssh.hub}
+        edit = ["<default>"] * 3 + ["1, 2"] + ["<default>"] * 3 + ["<default>"]
+        edit += accept(fc.parse_fleet_config(SCHEMA, out).settings) + ["no"] + node_answers([1, 2], [1])
+        answers_file = os.path.join(self.env.dir, "edit-answers.txt")
+        with open(answers_file, "w") as f:
+            f.write("\n".join(edit) + "\n")
+        result = self.env.run("edit", out, "--answers", answers_file, "--test-keys")
+        self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+        after = {k.id: k.public_key for k in fc.parse_fleet_config(SCHEMA, out).ssh.hub}
+        self.assertEqual(after[1], before[1])
+        self.assertEqual(after[2], "ssh-ed25519 AAAAhub2_fleet7_test_key hub2_fleet7_test_key")
 
     def test_creates_a_valid_current_version_file(self):
         answers = [

@@ -29,6 +29,10 @@ Each hub ships with its own Yubikey permanently installed into the USB port of t
 
 Re-running fleet configuration with a new key will the key for that hub on all bots.
 
+### Test fleets without Yubikeys
+
+For a test fleet (for example a VirtualBox fleet), `jaia admin fleet create --test-keys` (also accepted by `edit`) gives each new hub an ordinary ed25519 key instead of asking for its Yubikey. The private key is then only a file in the fleet config, so anyone with a copy of the config can log in as that hub. Never use it for a real deployment. Such keys are marked by their comment, `hub<N>_fleet<M>_test_key`.
+
 ### CloudHub key
 
 The CloudHub has no Yubikey. It generates its own key on first boot, the private half never leaves it, and the fleet config records only the public half. Every node accepts that key only from the CloudHub's address on the CloudHub VPN. See [CloudHub SSH key](page056_cloud.md#cloudhub-ssh-key).
