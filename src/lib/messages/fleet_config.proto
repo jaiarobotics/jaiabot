@@ -417,6 +417,9 @@ message FleetConfig
     }
     repeated Debconf debconf = 5 [deprecated = true];
     required string wlan_password = 6;
+    // Whether each node's CloudHub VPN tunnel starts by itself at boot. Pairing does
+    // not depend on it; a node paired while this is false is left with its tunnel
+    // stopped. Not renamed to match, since every fleet config names it in text.
     required bool service_vpn_enabled = 7;
 
     message DebconfOverride

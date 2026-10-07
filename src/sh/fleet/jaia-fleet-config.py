@@ -1343,7 +1343,7 @@ def create(schema, ui, banner=None, existing=None):
         cfg.wlan_password = ui.inputbox("Enter the WIFI password", cfg.wlan_password)
 
     def service_vpn():
-        cfg.service_vpn_enabled = ui.yesno("Should the service Wireguard VPN be enabled at boot?",
+        cfg.service_vpn_enabled = ui.yesno("Should each node's CloudHub VPN start by itself at boot?",
                                            default="yes" if cfg.service_vpn_enabled else "no")
 
     def optional_field(msg, name, value):
