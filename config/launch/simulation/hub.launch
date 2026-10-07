@@ -26,4 +26,4 @@ goby_coroner <(../../gen/hub.py goby_coroner) --expected_name goby_liaison --exp
 jaiabot_health <(../../gen/hub.py jaiabot_health)
 
 # The Jaia REST API v1 server
-[env=JAIA_REST_API_PRIVATE_KEY="";kill=SIGTERM] ${jaia_share_dir}/jaiabot/python/venv/bin/python3 ${jaia_share_dir}/jaiabot/web/rest_api/app.py
+[env=JAIA_REST_API_PRIVATE_KEY="";kill=SIGTERM] ${jaia_share_dir}/jaiabot/python/venv/bin/python3 ${jaia_share_dir}/jaiabot/web/rest_api/app.py > /tmp/jaia_rest_api.log 2>&1

@@ -12,21 +12,35 @@ import logging
 from common.time import utc_now_microseconds
 from pyjaia.task_packet_database import TaskPacketDatabase
 
+# Messages
+from jaiabot.messages.hub_pb2 import HubStatus
+from jaiabot.messages.jaia_dccl_pb2 import BotStatus, ContactUpdate
+from jaiabot.messages.mission_pb2 import MissionPlan
+from jaiabot.messages.engineering_pb2 import Engineering
+from jaiabot.messages.metadata_pb2 import DeviceMetadata
+from jaiabot.messages.portal_pb2 import PortalToClientMessage
+
 
 log = logging.getLogger()
 
 class Data:
     # Dict from hub_id => hubStatus
-    hubs = {}
+    hubs: Dict[int, HubStatus] = {}
 
     # Dict from bot_id => botStatus
-    bots = {}
+    bots: Dict[int, BotStatus] = {}
+
+    # Dict from bot_id => activeMissionPlan
+    active_mission_plans: Dict[int, MissionPlan] = {}
+
+    # Dict from contact_id => contactUpdate
+    contacts: Dict[int, ContactUpdate] = {}
 
     # Dict from bot_id => engineeringStatus
-    bots_engineering = {}
+    bots_engineering: Dict[int, Engineering] = {}
     
     # Dict from hub_id => MetaData
-    hub_metadata = {}
+    hub_metadata: Dict[int, DeviceMetadata] = {}
 
     # Task Packets
     task_packet_database = TaskPacketDatabase()
@@ -39,13 +53,19 @@ class Data:
         pass
 
 
-    def process_portal_to_client_message(self, hub_id, msg):
+    def process_portal_to_client_message(self, hub_id, msg: PortalToClientMessage):
         if msg.HasField('bot_status'):
             msg.bot_status.received_time = utc_now_microseconds()
             self.bots[msg.bot_status.bot_id] = msg.bot_status
 
+            if msg.HasField('active_mission_plan'):
+                self.active_mission_plans[msg.bot_status.bot_id] = msg.active_mission_plan
+
         if msg.HasField('engineering_status'):
             self.bots_engineering[msg.engineering_status.bot_id] = msg.engineering_status
+
+        if msg.HasField('contact_update'):
+            self.contacts[msg.contact_update.contact] = msg.contact_update
 
         if msg.HasField('hub_status'):            
             msg.hub_status.received_time = utc_now_microseconds()
