@@ -239,6 +239,18 @@ elif common.app == 'goby_liaison_prelaunch':
     limit=''
     if cloudhub_type == 'PRIMARY':
         limit='limit: "all"'
+
+    if is_cloudhub:
+        # The CloudHub downloads its image and upgrades only itself; its nodes upgrade
+        # from a hub on site. Its default disk is too small for the backup.
+        major_upgrade_limit='limit: "' + this_hub + '"'
+        major_upgrade_note='this CloudHub only; downloads the Major Upgrade image'
+        major_upgrade_backup_values='value: "no"\n            value: "yes"'
+    else:
+        major_upgrade_limit=limit
+        major_upgrade_note='Requires Major Upgrade image to be connected to this Hub via USB Key or CD'
+        major_upgrade_backup_values='value: "yes"\n            value: "no"'
+
     print(config.template_substitute(templates_dir+'/hub/goby_liaison_prelaunch.pb.cfg.in',
                                      app_block=app_common,
                                      http_port=liaison_port,
@@ -249,6 +261,9 @@ elif common.app == 'goby_liaison_prelaunch':
                                      vfleet_playbooks=vfleet_playbooks,
                                      this_hub_index=hub_index,
                                      limit=limit,
+                                     major_upgrade_limit=major_upgrade_limit,
+                                     major_upgrade_note=major_upgrade_note,
+                                     major_upgrade_backup_values=major_upgrade_backup_values,
                                      ansible_log_dir=common.jaia_log_dir + '/ansible'))
 elif common.app == 'goby_gps':
     print(config.template_substitute(templates_dir+'/goby_gps.pb.cfg.in',

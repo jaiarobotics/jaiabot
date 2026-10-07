@@ -70,6 +70,17 @@ Each node downloads the new images from the hub one at a time, capped at 1.5 MB/
 
 Run this once, from the hub with the USB flash key or CD connected: it upgrades every bot and every hub in the fleet. Only that hub stages the upgrade (mounts the updates disk and checks the fleet configuration and its SSH key); the other hubs skip staging and download the new images from it like the bots do.
 
+### Upgrading a CloudHub
+
+A fleet with a CloudHub upgrades the CloudHub first, then the rest of the fleet as above. The CloudHub has no USB port, so it downloads the update image itself (from the `jaia-disk-images` S3 bucket; the next major release from the `release` repository by default, or `-e major_upgrade_iso_version=N.y` and `-e major_upgrade_iso_repo=<repo>`) and upgrades only itself. Run "Major Upgrade" from the CloudHub's own JCU, which limits it to the CloudHub and proposes no backup (a CloudHub's disk is usually too small for one), or on the CloudHub:
+
+```
+cd /usr/share/jaiabot/config/ansible/major_upgrade
+ansible-playbook -i /etc/jaiabot/inventory.yml major-upgrade.yml -l hub30-fleetN -e hub_id=30 -e do_backup=no -e has_cloudhub=yes
+```
+
+The CloudHub keeps its VPN server keys (`/etc/wireguard`), and its users and sign-in data on the data partition; any VirtualFleet is deleted (`-e delete_virtualfleet=no` to keep it).
+
 ## Major upgrade design
 
 The major upgrade extracts a new filesystem image and configures it, much like a generating a new bot or hub as described in the [Embedded Board Deployment](page025_embedded_setup.md) document. This means that the state of the previous installation filesystem is largely irrelevant.
