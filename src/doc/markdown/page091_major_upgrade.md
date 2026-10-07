@@ -128,9 +128,11 @@ The new upgrade image for the rootfs and bootfs are downloaded from the Hub into
 
 A backup of the old rootfs and overlayfs is copied and compressed to `/var/log/jaiabot/major_upgrade/v{X}_{ubuntucode}/backup/rootfs.tar.gz and overlay.tar.gz`, respectively, as the major upgrade will clear both the old rootfs and overlayfs.
 
-The Wireguard files are copied into the staging directory to be reused to avoid having to reconfigure the service VPN on the new image.
+*This section written by Claude*
 
-The new boot filesystem is prepared from the fleet configuration file by the fleet config tool found inside the new boot tarball (`jaiabot/init/fleet_config/jaia-fleet-config.py generate`), never by the installed `jaia` tool: this way the template, schema and migrations always come from the release being installed, whatever release the node runs today (so a hub already on the new release can upgrade bots that are still on the previous one). The VPN keys (id_vpn_tmp) are removed to avoid regenerated the service VPN.
+Nothing of a node's previous installation is carried over except on the CloudHub, whose `/etc/wireguard` (the VPN server's keys and peer list, which only its creation makes) is copied into the staging directory and restored on the new image. Every other node comes out of the upgrade as a new node would: with the bootstrap key (`id_vpn_tmp`) written from the fleet configuration and no CloudHub VPN enrollment. After every major upgrade, re-pair the fleet as for a new fleet: run "Open Fleet Pairing" and then "Pair Fleet to CloudHub" from the JCU on the hub (see [CloudHub VPN](page055_vpn.md)). Until then nothing reaches the CloudHub over the VPN, including the hub-to-hub link through it.
+
+The new boot filesystem is prepared from the fleet configuration file by the fleet config tool found inside the new boot tarball (`jaiabot/init/fleet_config/jaia-fleet-config.py generate`), never by the installed `jaia` tool: this way the template, schema and migrations always come from the release being installed, whatever release the node runs today (so a hub already on the new release can upgrade bots that are still on the previous one).
 
 Finally the `do-major-upgrade.sh` is configured to `/var/log/jaiabot/major_upgrade/v{X}_{ubuntucode}` and run.
 

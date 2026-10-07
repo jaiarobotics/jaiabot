@@ -2,8 +2,8 @@
   args:
     executable: /bin/bash
   shell: |
-    # the block ends in an rm, whose status would otherwise become the task status and
-    # hide a generator that refused to write a preseed
+    # so a generator that refused to write a preseed fails the task rather than being
+    # hidden behind the status of whatever ran after it
     set -e -o pipefail
     mkdir -p {{ upgrade_boot_dir }}
     tar -xz -f {{ upgrade_dir }}/{{ major_upgrade_rootfs_version }}.boot.tar.gz -C {{ upgrade_boot_dir }}
@@ -16,7 +16,6 @@
       cp /home/jaia/.ssh/${hub_key} /home/jaia/.ssh/${hub_key}.pub {{ upgrade_boot_dir }}/jaiabot/init/
     fi
     {% endif %}
-    rm -f {{ upgrade_boot_dir }}/jaiabot/init/id_vpn_tmp*
 
 # Nothing after this point reports a boot filesystem that was never written, and by then
 # the rootfs has been swapped: the node reboots into the new release with no preseed to
