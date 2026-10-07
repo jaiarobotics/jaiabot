@@ -28,6 +28,12 @@ def free_port():
         return s.getsockname()[1]
 
 
+def closed_port():
+    """Bound and released, so connecting to it is refused at once rather than
+    hanging until the timeout."""
+    return free_port()
+
+
 def stub(path, body):
     with open(path, "w") as f:
         f.write("#!/usr/bin/env python3\n" + body)
@@ -191,7 +197,7 @@ class CloudHub:
         self.lldap.membership.pop(SUPPORT_ACCOUNT, None)
 
     def environment(self, **extra):
-        return dict(os.environ,
+        held = dict(os.environ,
                     JAIA_FLEET_ID=str(FLEET),
                     JAIA_SUPPORT_STATE_DIR=self.state,
                     JAIA_AWS=os.path.join(self.bin, "aws"),
@@ -203,8 +209,15 @@ class CloudHub:
                     STUB_UFW_LOG=self.ufw_log,
                     STUB_SS_LOG=self.ss_log,
                     JAIA_AUTH_SECRETS=self.secrets,
-                    JAIA_LLDAP_URL="http://127.0.0.1:{}".format(self.lldap.port),
-                    **extra)
+                    JAIA_LLDAP_URL="http://127.0.0.1:{}".format(self.lldap.port))
+        held.update(extra)
+        return held
+
+    def off_ec2(self):
+        """A CloudHub that is not in EC2: no configured group, and an instance
+        metadata service that refuses rather than answers."""
+        return {"JAIA_SECURITY_GROUP": "",
+                "JAIA_IMDS": "http://127.0.0.1:{}".format(closed_port())}
 
     ## What the CloudHub ended up with
 

@@ -8,10 +8,13 @@ access left behind - standing access of exactly the kind this design exists to e
 - is withdrawn on the next run instead of persisting.
 
 Two scopes, deliberately separate, because they answer different questions.
-'shell' is reach: port 22 at the CloudHub's security group, which AWS enforces off
-the instance and which lives in the customer's own account, with ufw set to match
-so the gate also exists on a CloudHub that is not in EC2. Bots and hubs are reached
-onward from that shell with the tooling that already does it. 'web' is sight: the
+'shell' is reach: port 22, gated at the CloudHub's security group where there is one
+and at ufw where there is not. Exactly one of them, never both - AWS enforces the
+security group off the instance and the customer can open it from their own console,
+so it is what can still let somebody in when this CloudHub's Authelia will not start
+and the support page is down with it; a second lock on the box could only be lifted
+from the box. Bots and hubs are reached onward from that shell with the tooling that
+already does it. 'web' is sight: the
 support account in the directory's read-oriented groups, so Jaia can sign in to
 JCC, JDV, the JCU and the read-only API and see what is happening without being
 able to touch anything.
@@ -40,6 +43,8 @@ MAX_DAYS = 14
 SSH_PORT = 22
 
 SCOPES = ("shell", "web")
+SECURITY_GROUP_GATE = "security-group"
+UFW_GATE = "ufw"
 DEFAULT_SCOPES = ("web",)
 
 ACCOUNT = "jaia_support"
@@ -138,14 +143,27 @@ def imds(path, token=None):
 
 
 def security_group():
-    """The CloudHub's own group, asked of the instance rather than configured, so
-    a rebuilt CloudHub needs nothing rewritten."""
+    """The CloudHub's own group, asked of the instance rather than configured, so a
+    rebuilt CloudHub needs nothing rewritten. None off EC2, where there is no such
+    thing - which is also what decides which firewall is the gate."""
     if os.environ.get("JAIA_SECURITY_GROUP"):
         return os.environ["JAIA_SECURITY_GROUP"]
-    token = imds(None)
-    mac = imds("network/interfaces/macs/", token).splitlines()[0].strip("/")
-    return imds("network/interfaces/macs/{}/security-group-ids".format(mac),
-                token).split()[0]
+    try:
+        token = imds(None)
+        mac = imds("network/interfaces/macs/", token).splitlines()[0].strip("/")
+        return imds("network/interfaces/macs/{}/security-group-ids".format(mac),
+                    token).split()[0]
+    except Exception:
+        return None
+
+
+def gate():
+    """Exactly one firewall decides, and it is the security group wherever there is
+    one. AWS enforces that off the instance and the customer can reach it from their
+    own console, so a CloudHub whose Authelia will not start can still be let into -
+    which a second lock on the box itself would quietly prevent, its only key being
+    the page that is down. ufw is the gate only where there is no security group."""
+    return SECURITY_GROUP_GATE if security_group() else UFW_GATE
 
 
 def permissions(cidr):
@@ -159,9 +177,15 @@ def permissions(cidr):
 def security_group_rule(action, cidr):
     """Absent when it should go and present when it should come is success either
     way: this runs on a timer, so it must converge rather than complain."""
+    group = security_group()
+    if not group:
+        # Loud rather than skipped: a rule opened through a group we can no longer
+        # name is still open, and treating that as done would leave it that way
+        raise RuntimeError("this CloudHub has a security group rule to change and "
+                           "could not work out which group")
     done = subprocess.run(
         [AWS, "ec2", "{}-security-group-ingress".format(action),
-         "--group-id", security_group(), "--ip-permissions", permissions(cidr)],
+         "--group-id", group, "--ip-permissions", permissions(cidr)],
         stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True)
     if done.returncode == 0:
         return
@@ -180,8 +204,14 @@ def ufw_rule(action, cidr):
 
 
 def open_to(cidr):
-    security_group_rule("authorize", cidr)
-    ufw_rule("allow", cidr)
+    """Returns the gate it used, so closing can go back through the same one rather
+    than re-deciding later and leaving a rule behind in the other."""
+    using = gate()
+    if using == SECURITY_GROUP_GATE:
+        security_group_rule("authorize", cidr)
+    else:
+        ufw_rule("allow", cidr)
+    return using
 
 
 def disconnect(cidr):
@@ -191,9 +221,11 @@ def disconnect(cidr):
                     "dst", cidr], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
-def close_to(cidr):
-    security_group_rule("revoke", cidr)
-    ufw_rule("delete", cidr)
+def close_to(cidr, using=None):
+    if (using or gate()) == SECURITY_GROUP_GATE:
+        security_group_rule("revoke", cidr)
+    else:
+        ufw_rule("delete", cidr)
     disconnect(cidr)
 
 
@@ -334,14 +366,14 @@ def reconcile():
 
     held = read_json(OPEN_FILE)
     if held and held.get("cidr") != wanted:
-        close_to(held["cidr"])
+        close_to(held["cidr"], held.get("gate"))
         os.unlink(OPEN_FILE)
         held = None
 
     if wanted and not held:
-        open_to(wanted)
+        using = open_to(wanted)
         os.makedirs(STATE_DIR, mode=0o700, exist_ok=True)
-        write_json(OPEN_FILE, {"cidr": wanted, "opened_at": now})
+        write_json(OPEN_FILE, {"cidr": wanted, "gate": using, "opened_at": now})
 
     # Tracked here rather than asked of LLDAP every run, as the firewall rule is:
     # a timer that talks to the directory when it has nothing to change is a timer

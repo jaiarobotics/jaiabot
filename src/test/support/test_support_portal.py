@@ -186,8 +186,8 @@ class PortalTest(unittest.TestCase):
         self.assertEqual(["198.51.100.7/32"], self.hub.open_to())
         self.assertTrue(any("authorize-security-group-ingress" in call
                             for call in self.hub.aws_calls()))
-        self.assertTrue(any(call.startswith("allow from 198.51.100.7/32")
-                            for call in self.hub.ufw_calls()))
+        # One gate, and on EC2 it is the security group
+        self.assertEqual([], self.hub.ufw_calls())
 
         granted = self.grant()
         self.assertEqual("198.51.100.7/32", granted["source"])

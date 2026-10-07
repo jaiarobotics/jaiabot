@@ -36,17 +36,19 @@ class FirewallTest(unittest.TestCase):
         self.hub = CloudHub(self.dir)
         self.addCleanup(self.hub.close)
 
-    def access(self, *args, expect=0):
+    def access(self, *args, expect=0, off_ec2=False):
         done = subprocess.run([sys.executable, str(ACCESS)] + list(args),
-                              env=self.hub.environment(), stdout=subprocess.PIPE,
+                              env=self.hub.environment(**(self.hub.off_ec2() if off_ec2
+                                                          else {})),
+                              stdout=subprocess.PIPE,
                               stderr=subprocess.PIPE, text=True)
         self.assertEqual(expect, done.returncode, done.stderr)
         return done.stdout.strip()
 
-    def approve(self, days=7, source=SOURCE, scopes="shell"):
+    def approve(self, days=7, source=SOURCE, scopes="shell", off_ec2=False):
         return self.access("approve", "--fleet", str(FLEET), "--days", str(days),
                            "--source", source, "--reason", "Pump fault on bot 3",
-                           "--scopes", scopes, "--by", "operator")
+                           "--scopes", scopes, "--by", "operator", off_ec2=off_ec2)
 
     def grant_file(self):
         return os.path.join(self.hub.state, "grant.json")
@@ -137,14 +139,51 @@ class FirewallTest(unittest.TestCase):
         self.access("reconcile")
         self.assertEqual([], self.hub.open_to())
 
-    def test_ufw_is_set_to_match(self):
-        """The security group is the gate that matters, but it only exists on EC2."""
+    def test_on_ec2_ufw_is_left_alone(self):
+        """One gate, and on EC2 it is the security group. A ufw rule in front of it
+        could only ever be lifted from the box it was locking, which is exactly the
+        box that is unreachable when the support page is down."""
         self.approve()
+        self.assertEqual([], self.hub.ufw_calls())
+        self.access("revoke", "--by", "operator")
+        self.assertEqual([], self.hub.ufw_calls())
+
+    def test_off_ec2_ufw_is_the_gate_instead(self):
+        """No security group to hide behind, so the rule has to be on the box."""
+        self.approve(off_ec2=True)
         self.assertTrue(any(call.startswith("allow from {}".format(CIDR))
                             for call in self.hub.ufw_calls()))
+        self.assertEqual([], self.hub.aws_calls())
+        self.access("revoke", "--by", "operator", off_ec2=True)
+        self.assertTrue(any("delete allow from {}".format(CIDR) in call
+                            for call in self.hub.ufw_calls()))
+
+    def test_a_rule_that_cannot_be_closed_is_not_called_closed(self):
+        """Opened through a security group this run can no longer name. The rule is
+        still open, so saying so and failing is the only honest answer; treating it
+        as done would leave standing access behind a record that denies it."""
+        self.approve()
+        self.access("revoke", "--by", "operator", off_ec2=True, expect=1)
+        self.assertEqual([CIDR], self.hub.open_to())
+        self.assertTrue(os.path.exists(os.path.join(self.hub.state, "open.json")))
+
+    def test_and_the_next_run_that_can_name_it_closes_it(self):
+        """Which is what makes the failure above safe to have: it is retried, not
+        abandoned."""
+        self.approve()
+        self.access("revoke", "--by", "operator", off_ec2=True, expect=1)
+        self.access("reconcile")
+        self.assertEqual([], self.hub.open_to())
+
+    def test_a_rule_is_closed_through_the_gate_that_opened_it(self):
+        """Deciding again at closing time could leave the rule open in one firewall
+        while the record says it is shut."""
+        self.approve(off_ec2=True)
+        self.assertEqual([], self.hub.aws_calls())
         self.access("revoke", "--by", "operator")
         self.assertTrue(any("delete allow from {}".format(CIDR) in call
                             for call in self.hub.ufw_calls()))
+        self.assertEqual([], self.hub.aws_calls())
 
     def test_ending_access_disconnects_sessions_from_that_address(self):
         """Closing the port admits nobody new, but a session already open would

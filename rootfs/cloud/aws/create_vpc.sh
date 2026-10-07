@@ -492,9 +492,12 @@ ssh "${SSH_OPTS[@]}" jaia@${PUBLIC_IPV4_ADDRESS} "cat /home/jaia/.ssh/hub${CLOUD
 jaia admin fleet set_cloudhub_key ${FLEET_CONFIG} ${CLOUDHUB_SSH_PUBKEY}
 echo ">>>>>> Recorded the CloudHub's SSH public key in ${FLEET_CONFIG}"
 
-# No blanket rule for SSH: jaia-support-access.py writes one for the address a
-# grant names, and removes it when the grant ends.
-ssh "${SSH_OPTS[@]}" jaia@${PUBLIC_IPV4_ADDRESS} "sudo ufw allow in on eth0 proto udp to any port 51820; sudo ufw allow in on eth0 proto udp to any port 51821; sudo ufw allow in on wg_cloudhub; sudo ufw --force enable"
+# SSH is allowed through ufw and gated at the security group alone. Two locks would
+# be one too many here: the security group is the one the customer can reach from
+# their own AWS console, so it is the one that can still let somebody in when this
+# CloudHub's Authelia will not start and the support page is therefore down. A ufw
+# rule in front of it could only be lifted from the box it is locking.
+ssh "${SSH_OPTS[@]}" jaia@${PUBLIC_IPV4_ADDRESS} "sudo ufw allow in on eth0 to any port 22 proto tcp; sudo ufw allow in on eth0 proto udp to any port 51820; sudo ufw allow in on eth0 proto udp to any port 51821; sudo ufw allow in on wg_cloudhub; sudo ufw --force enable"
 echo ">>>>>> Updated CloudHub ufw firewall rules to exclude connecting on VirtualFleet VPN"
 
 # Hand-over: from here the CloudHub is the customer's, and Jaia reaches it only
