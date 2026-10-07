@@ -168,6 +168,14 @@ message APIRequest
                 response: '{"command_result": {"command_sent": true}, "request": {"api_key": "4vS6s2jnulxVjrKSB-__tQ", "command_for_hub": {"hub_id": 1, "hub_location": {"lat": 41.7, "lon": -70.3}, "time": "1722895686821358", "type": "SET_HUB_LOCATION"}, "target": {"all": true}}, "target": {"hubs": [1]}}'
             }
         }];
+        bool pod_status = 17 [(jaia.field).rest_api = {
+            presence: GUARANTEED,
+            doc: "This endpoint is used by JCC to check the overall status of the pod."
+            example {
+                request: '{"target": {"all": true}, "pod_status": true,"api_key": "4vS6s2jnulxVjrKSB-__tQ"}'
+                response: '{"pod_status": true, "request": {"api_key": "4vS6s2jnulxVjrKSB-__tQ", "target": {"all": true}}, "target": {"hubs": [1], "bots": [1]}}'
+            }
+        }];
     }
 }
 
@@ -257,6 +265,10 @@ message APIResponse
             presence: GUARANTEED,
             doc: "Command result. This is sent in response to a successful Request 'command' or 'command_for_hub' action."
         }];
+        PodStatus pod_status = 16 [(jaia.field).rest_api = {
+            presence: GUARANTEED,
+            doc: "Overall pod status. This is sent in response to a successful Request 'pod_status' action."
+        }];
     }
 
     // copy of original request
@@ -293,11 +305,12 @@ message APIConfig
                     'task_packets',
                     'missions',
                     'command',
-                    'command_for_hub'
+                    'command_for_hub',
+                    'pod_status'
                 ]
             }];
             READ = 1 [(jaia.ev).rest_api = {
-                permitted_action: [ 'status', 'metadata', 'task_packets', 'missions' ]
+                permitted_action: [ 'status', 'metadata', 'task_packets', 'missions', 'pod_status' ]
             }];
             WRITE = 2 [(jaia.ev).rest_api = {
                 permitted_action: [ 'command', 'command_for_hub' ]
@@ -314,6 +327,9 @@ message APIConfig
                 [(jaia.ev).rest_api = { permitted_action: [ 'command' ] }];
             COMMAND_FOR_HUB = 7 [
                 (jaia.ev).rest_api = { permitted_action: [ 'command_for_hub' ] }
+            ];
+            POD_STATUS = 9 [
+                (jaia.ev).rest_api = { permitted_action: [ 'pod_status' ] }
             ];
         }
 
