@@ -21,26 +21,34 @@ function(stm32_sketch sketchname nickname device interface programmer baudrate)
   set(hex_output ${outdir}/${hex_name})
 
   # Like the Arduino cmake: symlink the nanopb include dir into the sketch folder
-  # so the Makefile finds both the runtime headers and the generated .pb.h files
-  add_custom_command(
-    OUTPUT ${STM32_SOURCE_DIR}/nanopb
-    DEPENDS ${project_INC_DIR}/nanopb
-    COMMAND ${CMAKE_COMMAND} -E make_directory ${STM32_SOURCE_DIR}/
-    COMMAND ${CMAKE_COMMAND} -E create_symlink
-      ${project_INC_DIR}/nanopb
-      ${STM32_SOURCE_DIR}/nanopb
-    COMMENT "Creating nanopb symlink for ${sketchname}"
-  )
+  # so the Makefile finds both the runtime headers and the generated .pb.h files.
+  # Shared by all nicknames of a sketch so parallel builds don't race creating the same symlink.
+  set(links_target stm32_links_${sketchname})
+  if(NOT TARGET ${links_target})
+    add_custom_command(
+      OUTPUT ${STM32_SOURCE_DIR}/nanopb
+      DEPENDS ${project_INC_DIR}/nanopb
+      COMMAND ${CMAKE_COMMAND} -E make_directory ${STM32_SOURCE_DIR}/
+      COMMAND ${CMAKE_COMMAND} -E create_symlink
+        ${project_INC_DIR}/nanopb
+        ${STM32_SOURCE_DIR}/nanopb
+      COMMENT "Creating nanopb symlink for ${sketchname}"
+    )
 
-  add_custom_command(
-    OUTPUT ${STM32_SOURCE_DIR}/jaiabot
-    DEPENDS ${project_INC_DIR}/jaiabot
-    COMMAND ${CMAKE_COMMAND} -E make_directory ${STM32_SOURCE_DIR}
-    COMMAND ${CMAKE_COMMAND} -E create_symlink
-      ${project_INC_DIR}/jaiabot
-      ${STM32_SOURCE_DIR}/jaiabot
-    COMMENT "Creating jaiabot messages symlink for ${sketchname}"
-  )
+    add_custom_command(
+      OUTPUT ${STM32_SOURCE_DIR}/jaiabot
+      DEPENDS ${project_INC_DIR}/jaiabot
+      COMMAND ${CMAKE_COMMAND} -E make_directory ${STM32_SOURCE_DIR}
+      COMMAND ${CMAKE_COMMAND} -E create_symlink
+        ${project_INC_DIR}/jaiabot
+        ${STM32_SOURCE_DIR}/jaiabot
+      COMMENT "Creating jaiabot messages symlink for ${sketchname}"
+    )
+
+    add_custom_target(${links_target}
+      DEPENDS ${STM32_SOURCE_DIR}/nanopb ${STM32_SOURCE_DIR}/jaiabot
+    )
+  endif()
 
   # compile STM32 firmware via CubeMX-generated Makefile
   add_custom_command(
@@ -57,8 +65,8 @@ function(stm32_sketch sketchname nickname device interface programmer baudrate)
       JAIABOT_INC=${project_INC_DIR}
       NANOPB_SYS_INC=${STM32_NANOPB_SYSTEM_INCLUDE_DIR}
     DEPENDS
-      ${STM32_SOURCE_DIR}/nanopb
-      ${STM32_SOURCE_DIR}/jaiabot
+      ${project_INC_DIR}/nanopb
+      ${project_INC_DIR}/jaiabot
       jaiabot_messages_c
     COMMENT "Building STM32 firmware ${sketchname} for ${nickname}"
   )
@@ -68,6 +76,7 @@ function(stm32_sketch sketchname nickname device interface programmer baudrate)
     ALL
     DEPENDS ${hex_output}
   )
+  add_dependencies(stm32_compile_${sketchname}_${nickname} ${links_target})
 
   # set upload variables for configure_file
   if(${nickname} STREQUAL "uart")
