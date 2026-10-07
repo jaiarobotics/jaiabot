@@ -1,6 +1,7 @@
 ---
 - name: Pair new bot
-  hosts: hubs
+  # the CloudHub keeps its own inventory, from the nodes paired with it
+  hosts: "hubs:!hub30-*"
   become: yes
   gather_facts: no
   pre_tasks:
@@ -24,7 +25,27 @@
         # need to use jaia's user's ssh configuration
         sudo -u jaia rsync -aP ${ip}:/etc/jaiabot/inventory.yml /tmp/inventory.yml
         mv /tmp/inventory.yml /etc/jaiabot/inventory.yml
- 
+
+    # The new bot's boot files were generated from the fleet config that lists it,
+    # so its copy is newer than the hub's. A major upgrade falls back to the hub's.
+    - name: Fetch the fleet configuration from the new bot
+      shell: |
+        set -e
+        ip=$(jaia_ip b{{ bot_id }}f{{ jaiabot_embedded_fleet_id }})
+        cfg=/etc/jaiabot/fleet{{ jaiabot_embedded_fleet_id }}.cfg
+        tmp=$(mktemp)
+        chown jaia "$tmp"
+        # it holds the fleet keys, so it is readable only by root on the bot
+        if ! sudo -u jaia rsync --rsync-path="sudo rsync" ${ip}:${cfg} "$tmp"; then
+          rm -f "$tmp"
+          echo "The new bot has no fleet configuration; the hub keeps its own"
+          exit 0
+        fi
+        install -m 600 -o root -g root "$tmp" "$cfg"
+        rm -f "$tmp"
+      register: fetch_fleet_cfg
+      changed_when: "'keeps its own' not in fetch_fleet_cfg.stdout"
+
     - name: Reboot hub to allow new inventory to take effect
       # since we're running this on the hub, we will reboot the machine running ansible
       # this precludes using the reboot builtin

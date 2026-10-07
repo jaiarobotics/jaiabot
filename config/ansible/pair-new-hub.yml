@@ -1,6 +1,8 @@
 ---
+# The CloudHub is left out throughout: it keeps its own inventory, from the nodes
+# paired with it, and is not on the fleet WLAN that new_hub.sh addresses.
 - name: Pair new hub - Hub staging
-  hosts: hubs
+  hosts: "hubs:!hub30-*"
   become: yes
   gather_facts: no
   vars_files:
@@ -13,26 +15,33 @@
         iso_fleet_cfg: "/var/www/html/updates/major_upgrade/fleet{{ jaiabot_embedded_fleet_id }}.cfg"
         local_fleet_cfg: "/etc/jaiabot/fleet{{ jaiabot_embedded_fleet_id }}.cfg"
 
-    - name: Check if the iso fleet config file exists 
+    - name: Check if the iso fleet config file exists
       stat:
         path: "{{ iso_fleet_cfg }}"
       register: iso_fleet_file
 
-    - name: Fail if file doesn't exist
+    - name: Fail if no hub has the fleet configuration
       fail:
         msg: "Fleet configuration doesn't exist: ensure USB key or CD is installed with embedded fleet configuration"
+      run_once: true
+      when: ansible_play_hosts | map('extract', hostvars, ['iso_fleet_file', 'stat', 'exists']) | select | list | length == 0
+
+    # Failing instead would drop these hubs from the next play too, so they would
+    # not be told about the new hub
+    - name: Only a hub with the update ISO stages the change
+      meta: end_host
       when: not iso_fleet_file.stat.exists
-      
+
     - name: Create staging directory
       file:
         path: "{{ staging_dir }}"
         state: directory
-      
+
     - name: Copy new_hub.sh.j2 template script to hub
       copy:
         src: "files/new_hub.sh.j2"
         dest: "{{ staging_dir }}/new_hub.sh.j2"
-      
+
     - name: Create new_hub.sh file using fleet configuration
       shell: |
         # update the local fleet configuration
@@ -46,14 +55,22 @@
         src: "{{ staging_dir }}/new_hub.sh"
         dest: "{{ control_staging_dir }}/new_hub.sh"
         flat: true
-        
+
+    - name: Fetch the fleet configuration to control computer, for the other hubs
+      fetch:
+        src: "{{ iso_fleet_cfg }}"
+        dest: "{{ control_staging_dir }}/fleet.cfg"
+        flat: true
+
 - name: Pair new hub - Update all bots and hub
-  hosts: all
+  hosts: "all:!hub30-*"
   become: yes
   gather_facts: yes
   vars_files:
     - vars/new-hub.yml
   tasks:
+    - include_tasks: tasks/read-debconf.yml
+
     - name: Create staging directory
       file:
         path: "{{ staging_dir }}"
@@ -63,9 +80,25 @@
       copy:
         src: "{{ control_staging_dir }}/new_hub.sh"
         dest: "{{ staging_dir }}/new_hub.sh"
-        mode: a+x        
+        mode: a+x
 
     - name: Run the script
-      shell: |      
+      shell: |
         {{ staging_dir }}/new_hub.sh
 
+    # A major upgrade falls back to a hub's own copy when its ISO carries none
+    - name: Give every hub the fleet configuration that lists the new hub
+      copy:
+        src: "{{ control_staging_dir }}/fleet.cfg"
+        dest: "/etc/jaiabot/fleet{{ jaiabot_embedded_fleet_id }}.cfg"
+        owner: root
+        group: root
+        mode: "0600"
+      when: jaiabot_embedded_type == 'hub'
+
+    - name: Remove the control computer's copy of the fleet configuration
+      file:
+        path: "{{ control_staging_dir }}/fleet.cfg"
+        state: absent
+      delegate_to: localhost
+      run_once: true
