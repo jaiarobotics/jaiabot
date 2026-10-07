@@ -16,6 +16,12 @@ Guidance for AI coding agents (Claude, Codex, Copilot, ...) working in this repo
 - Title PRs the same way: `<issue type> / <release branch> / <short description> / <JIRA key>`, e.g. `task / 3.y / Mark Claude-authored sections of the Markdown docs / SW-2594`.
 - Take the issue type and key from the JIRA issue itself, or from the current branch name if it already follows this pattern. If you can't determine them, ask; never guess or invent a JIRA key or issue type.
 
+## JIRA issue status
+
+- Keep the JIRA issue's status in step with the work, if it doesn't move on its own: `In Progress` when you create the branch, `In Review` when you open the PR, and `Done` when the PR is merged.
+- An issue still in `To Do` hasn't been approved for work. Ask before moving it on rather than approving it yourself.
+- If you can't reach JIRA, tell the user which status to set the issue to, and when.
+
 ## Github PR
 
 - When replying to Github PRs, prefix each comment with `# <agent>` so the other users can clearly see it is your text.
