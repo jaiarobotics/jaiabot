@@ -95,7 +95,8 @@ function ButtonRow(props: ButtonRowProps) {
             );
         }
         case DisabledCodes.NO_NAME:
-        case DisabledCodes.FILE_NOT_FOUND: {
+        case DisabledCodes.FILE_NOT_FOUND:
+        case DisabledCodes.UNKNOWN_FORMAT: {
             return (
                 <button className="dialog-button" onClick={() => props.onClose(DialogActions.NONE)}>
                     Close

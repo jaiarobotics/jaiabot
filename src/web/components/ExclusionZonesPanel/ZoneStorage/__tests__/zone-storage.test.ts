@@ -1,10 +1,15 @@
-import { ExclusionZoneSetSnapshot } from "../../../../data/obstacle_avoidance_data/exclusion_zones/exclusion-zone-set";
+import {
+    ExclusionZoneSetSnapshot,
+    EXCLUSION_ZONE_SET_VERSION,
+} from "../../../../data/obstacle_avoidance_data/exclusion_zones/exclusion-zone-set";
 import { obstacleAvoidanceData } from "../../../../data/obstacle_avoidance_data/obstacle-avoidance-data";
 import {
     listSavedZoneSetsFromHub,
     saveToHub,
     loadSnapshotFromHub,
     deleteFromHub,
+    importZonesFromFile,
+    ZoneLoadResultType,
 } from "../zone-storage";
 
 jest.mock("../../../../utils/jaia-api", () => ({
@@ -49,6 +54,7 @@ describe("Zone hub storage", () => {
         const [name, snapshot] = mockJaiaAPI.saveExclusionZone.mock.calls[0];
         expect(name).toBe("my-zones");
         expect(snapshot.zones.length).toBe(1);
+        expect(snapshot.version).toBe(EXCLUSION_ZONE_SET_VERSION);
     });
 
     test("saveToHub stores the set under the name the snapshot carries", async () => {
@@ -69,7 +75,7 @@ describe("Zone hub storage", () => {
 
         const result = await loadSnapshotFromHub("my-zones");
 
-        expect(result!.name).toBe("my-zones");
+        expect(result.snapshot!.name).toBe("my-zones");
     });
 
     test("loadSnapshotFromHub returns a snapshot from the hub", async () => {
@@ -78,22 +84,81 @@ describe("Zone hub storage", () => {
             nextZoneID: 1,
             name: "my-zones",
         };
-        mockJaiaAPI.loadExclusionZone.mockResolvedValue(fakeSnapshot);
+        mockJaiaAPI.loadExclusionZone.mockResolvedValue({
+            ...fakeSnapshot,
+            version: EXCLUSION_ZONE_SET_VERSION,
+        });
 
         const result = await loadSnapshotFromHub("my-zones");
-        expect(result).toEqual(fakeSnapshot);
+        expect(result).toEqual({ snapshot: fakeSnapshot, resultType: ZoneLoadResultType.SUCCESS });
         expect(mockJaiaAPI.loadExclusionZone).toHaveBeenCalledWith("my-zones");
     });
 
-    test("loadSnapshotFromHub returns null when the hub has no entry", async () => {
+    test("loadSnapshotFromHub reads an entry saved without a version as 1.0", async () => {
+        mockJaiaAPI.loadExclusionZone.mockResolvedValue({ zones: [], nextZoneID: 1, name: "a" });
+
+        const result = await loadSnapshotFromHub("a");
+
+        expect(result.resultType).toBe(ZoneLoadResultType.SUCCESS);
+    });
+
+    test("loadSnapshotFromHub refuses a version it does not know", async () => {
+        mockJaiaAPI.loadExclusionZone.mockResolvedValue({
+            zones: [],
+            nextZoneID: 1,
+            name: "newer",
+            version: "9.9",
+        });
+
+        const result = await loadSnapshotFromHub("newer");
+
+        expect(result).toEqual({ snapshot: null, resultType: ZoneLoadResultType.UNKNOWN_FORMAT });
+    });
+
+    test("loadSnapshotFromHub reports nothing loaded when the hub has no entry", async () => {
         mockJaiaAPI.loadExclusionZone.mockResolvedValue(null);
         const result = await loadSnapshotFromHub("nonexistent");
-        expect(result).toBeNull();
+        expect(result.snapshot).toBeNull();
     });
 
     test("deleteFromHub calls the API with the correct name", async () => {
         mockJaiaAPI.deleteExclusionZone.mockResolvedValue(undefined);
         await deleteFromHub("my-zones");
         expect(mockJaiaAPI.deleteExclusionZone).toHaveBeenCalledWith("my-zones");
+    });
+});
+
+describe("Zone file import", () => {
+    /** Feeds a JSON file to importZonesFromFile through a mocked file input. */
+    async function importFile(content: object) {
+        const fileContent = JSON.stringify(content);
+        const file = new File([fileContent], "zones.json", { type: "application/json" });
+        (file as any).text = () => Promise.resolve(fileContent);
+        const mockInput = document.createElement("input");
+        jest.spyOn(document, "createElement").mockReturnValueOnce(mockInput);
+        const resultPromise = importZonesFromFile();
+        Object.defineProperty(mockInput, "files", { value: [file] });
+        mockInput.dispatchEvent(new Event("change"));
+        return resultPromise;
+    }
+
+    const snapshot: ExclusionZoneSetSnapshot = { zones: [], nextZoneID: 1, name: "zones" };
+
+    test("imports a file of the current version", async () => {
+        const result = await importFile({ version: EXCLUSION_ZONE_SET_VERSION, snapshot });
+
+        expect(result).toEqual({ snapshot, resultType: ZoneLoadResultType.SUCCESS });
+    });
+
+    test("refuses a file with a version it does not know", async () => {
+        const result = await importFile({ version: "9.9", snapshot });
+
+        expect(result).toEqual({ snapshot: null, resultType: ZoneLoadResultType.UNKNOWN_FORMAT });
+    });
+
+    test("reports a file without a version as an invalid format", async () => {
+        const result = await importFile({ snapshot });
+
+        expect(result.resultType).toBe(ZoneLoadResultType.INVALID_FORMAT);
     });
 });

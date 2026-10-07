@@ -3,6 +3,7 @@ import { DialogActions } from "../../../../types/context-types";
 export enum DialogWarningType {
     CLEAR_ZONES,
     INVALID_FORMAT,
+    UNKNOWN_FORMAT,
 }
 
 interface DialogProps {
@@ -42,6 +43,8 @@ export function ImportZoneDialog(props: DialogProps) {
                 return "The obstacle zone panel will be cleared and all bypass waypoints removed prior to importing.";
             case DialogWarningType.INVALID_FORMAT:
                 return "The file could not be imported, it is an invalid format.";
+            case DialogWarningType.UNKNOWN_FORMAT:
+                return "The file could not be imported. It was saved in an unknown format, possibly by a newer version of JCC.";
         }
     };
 
