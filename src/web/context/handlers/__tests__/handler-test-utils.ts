@@ -6,8 +6,7 @@ import { gridPlan } from "../../../data/survey_planner/grid-plan";
 import { rallyPoints } from "../../../data/rally_points/rally-points";
 import { jaiaGlobal } from "../../../data/jaia_global/jaia-global";
 import { missionsManager } from "../../../data/missions_manager/missions-manager";
-import { obstacleAvoidanceData } from "../../../data/obstacle_avoidance_data/obstacle-avoidance-data";
-import { ExclusionZone } from "../../../data/obstacle_avoidance_data/exclusion_zones/exclusion-zone-set";
+import { ExclusionZone, exclusionZoneSet } from "../../../data/exclusion_zones/exclusion-zone-set";
 import { NodeTypes } from "../../../types/jaia-system-types";
 import {
     ButtonNames,
@@ -49,7 +48,7 @@ const defaultMapLayerAccordionStates: MapLayerAccordionStates = {
 
 /**
  * Builds a JaiaContextType wired to the real singleton data models, the same way
- * handleInit() does. Handlers under test read/write `mutableState.obstacleAvoidanceData`
+ * handleInit() does. Handlers under test read/write `mutableState.placementError`
  * and `mutableState.missionAccordionStates`, but resolve `missionSet`/`missionsManager`/
  * `jaiaGlobal` via their own module-level singleton imports — so pointing every field at
  * the same singleton instances keeps mutableState and direct singleton assertions in sync.
@@ -64,9 +63,10 @@ export function makeMutableState(): JaiaContextType {
         rallyPoints,
         jaiaGlobal,
         missionsManager,
-        obstacleAvoidanceData,
+        exclusionZoneSet,
         visibleDetails: NodeTypes.NONE,
         visiblePanel: ButtonNames.NONE,
+        placementError: null,
         visibleWaypointSection: WaypointSections.NONE,
         hubAccordionStates: defaultHubAccordionStates,
         botAccordionStates: defaultBotAccordionStates,
@@ -80,8 +80,7 @@ export function makeMutableState(): JaiaContextType {
 export function resetHandlerSingletons() {
     missionSet.deleteAllMissions();
     missionsManager.clear();
-    obstacleAvoidanceData.getExclusionZoneSet().clearZones();
-    obstacleAvoidanceData.setPendingChange(null);
+    exclusionZoneSet.clearZones();
     jaiaGlobal.resetSelectedWaypoint();
     jaiaGlobal.resetSelectedZoneVertex();
     jaiaGlobal.setZoneInEditMode(UNASSIGNED_ID);

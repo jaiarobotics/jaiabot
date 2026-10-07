@@ -30,10 +30,8 @@ export function handleAddWaypoint(mutableState: JaiaContextType, action: JaiaAct
 
     if (missionIDInEditMode !== UNASSIGNED_ID) {
         if (action.location && isLocationBlockedByZone(action.location)) {
-            mutableState.obstacleAvoidanceData.setPendingChange({
-                type: "placementError",
-                message: "Cannot place a point inside an exclusion zone or its safety buffer.",
-            });
+            mutableState.placementError =
+                "Cannot place a point inside an exclusion zone or its safety buffer.";
             return mutableState;
         }
 
@@ -41,10 +39,7 @@ export function handleAddWaypoint(mutableState: JaiaContextType, action: JaiaAct
         if (mission.getWaypoints().length < MAX_WAYPOINTS) {
             mission.addWaypoint(action.location);
         } else {
-            mutableState.obstacleAvoidanceData.setPendingChange({
-                type: "placementError",
-                message: `Mission has reached the maximum of ${MAX_WAYPOINTS} waypoints.`,
-            });
+            mutableState.placementError = `Mission has reached the maximum of ${MAX_WAYPOINTS} waypoints.`;
             return mutableState;
         }
     }
@@ -85,10 +80,8 @@ export function handleDeleteWaypoint(mutableState: JaiaContextType) {
  */
 export function handleMoveWaypoint(mutableState: JaiaContextType, action: JaiaAction) {
     if (action.location && isLocationBlockedByZone(action.location)) {
-        mutableState.obstacleAvoidanceData.setPendingChange({
-            type: "placementError",
-            message: "Cannot place a point inside an exclusion zone or its safety buffer.",
-        });
+        mutableState.placementError =
+            "Cannot place a point inside an exclusion zone or its safety buffer.";
         return mutableState;
     }
 
@@ -106,7 +99,7 @@ export function handleMoveWaypoint(mutableState: JaiaContextType, action: JaiaAc
  * @returns {JaiaContextType} Updated mutable state object
  */
 export function handleClearPlacementError(mutableState: JaiaContextType) {
-    mutableState.obstacleAvoidanceData.setPendingChange(null);
+    mutableState.placementError = null;
     return mutableState;
 }
 

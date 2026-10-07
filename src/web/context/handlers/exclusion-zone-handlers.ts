@@ -1,5 +1,5 @@
 import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
-import { obstacleAvoidanceData } from "../../data/obstacle_avoidance_data/obstacle-avoidance-data";
+import { exclusionZoneSet } from "../../data/exclusion_zones/exclusion-zone-set";
 import { handleMapModeChange, setExclusionZoneDrawActive } from "../../openlayers/maps/map";
 import { JaiaContextType, JaiaAction, ButtonNames } from "../../types/context-types";
 import { MapModes } from "../../types/openlayers-types";
@@ -15,7 +15,7 @@ import { exclusionZoneLayer } from "../../openlayers/layers/vector/exclusion-zon
  */
 export function handleAddExclusionZone(mutableState: JaiaContextType, action: JaiaAction) {
     if (!action.exclusionZone) return mutableState;
-    const zoneID = obstacleAvoidanceData.getExclusionZoneSet().addZone(action.exclusionZone);
+    const zoneID = exclusionZoneSet.addZone(action.exclusionZone);
     exclusionZoneLayer.updateFeatures();
     setExclusionZoneDrawActive(false);
     handleMapModeChange(MapModes.DEFAULT);
@@ -39,7 +39,7 @@ export function handleDeleteExclusionZone(mutableState: JaiaContextType, action:
     if (jaiaGlobal.getZoneInEditMode() === action.zoneID) {
         jaiaGlobal.setZoneInEditMode(UNASSIGNED_ID);
     }
-    obstacleAvoidanceData.getExclusionZoneSet().deleteZone(action.zoneID);
+    exclusionZoneSet.deleteZone(action.zoneID);
     exclusionZoneLayer.updateFeatures();
     return mutableState;
 }
@@ -51,7 +51,7 @@ export function handleDeleteExclusionZone(mutableState: JaiaContextType, action:
  * @returns {JaiaContextType} Updated mutable state object
  */
 export function handleClearExclusionZones(mutableState: JaiaContextType) {
-    obstacleAvoidanceData.getExclusionZoneSet().clearZones();
+    exclusionZoneSet.clearZones();
     jaiaGlobal.resetSelectedZoneVertex();
     jaiaGlobal.setZoneInEditMode(UNASSIGNED_ID);
     exclusionZoneLayer.updateFeatures();
@@ -81,9 +81,7 @@ export function handleToggleExclusionZoneDrawing(mutableState: JaiaContextType) 
  */
 export function handleLoadExclusionZoneSet(mutableState: JaiaContextType, action: JaiaAction) {
     if (!action.exclusionZoneSetSnapshot) return mutableState;
-    obstacleAvoidanceData
-        .getExclusionZoneSet()
-        .restoreFromSnapshot(action.exclusionZoneSetSnapshot);
+    exclusionZoneSet.restoreFromSnapshot(action.exclusionZoneSetSnapshot);
     exclusionZoneLayer.updateFeatures();
 
     return mutableState;
@@ -132,12 +130,14 @@ export function handleMoveZoneVertex(mutableState: JaiaContextType, action: Jaia
     const selected = jaiaGlobal.getSelectedZoneVertex();
     if (!selected || !action.location) return mutableState;
 
-    const zone = obstacleAvoidanceData.getExclusionZoneSet().getZone(selected.zoneID);
+    const zone = exclusionZoneSet.getZone(selected.zoneID);
     if (!zone?.vertices) return mutableState;
 
-    const newIdx = obstacleAvoidanceData
-        .getExclusionZoneSet()
-        .moveVertex(selected.zoneID, selected.vertexIndex, action.location);
+    const newIdx = exclusionZoneSet.moveVertex(
+        selected.zoneID,
+        selected.vertexIndex,
+        action.location,
+    );
     jaiaGlobal.setSelectedZoneVertex({
         zoneID: selected.zoneID,
         vertexIndex: newIdx,
@@ -201,12 +201,10 @@ export function handleToggleZoneVertexTapToMove(mutableState: JaiaContextType) {
  */
 export function handleAddZoneVertex(mutableState: JaiaContextType, action: JaiaAction) {
     if (action.zoneID === undefined || !action.location) return mutableState;
-    const zone = obstacleAvoidanceData.getExclusionZoneSet().getZone(action.zoneID);
+    const zone = exclusionZoneSet.getZone(action.zoneID);
     if (!zone?.vertices || zone.vertices.length < 3) return mutableState;
 
-    const newIdx = obstacleAvoidanceData
-        .getExclusionZoneSet()
-        .addVertex(action.zoneID, action.location);
+    const newIdx = exclusionZoneSet.addVertex(action.zoneID, action.location);
     if (newIdx >= 0) {
         jaiaGlobal.setSelectedZoneVertex({
             zoneID: action.zoneID,
@@ -230,9 +228,9 @@ export function handleAddZoneVertex(mutableState: JaiaContextType, action: JaiaA
  */
 export function handleDeleteZoneVertex(mutableState: JaiaContextType, action: JaiaAction) {
     if (action.zoneID === undefined || action.vertexIndex === undefined) return mutableState;
-    const zone = obstacleAvoidanceData.getExclusionZoneSet().getZone(action.zoneID);
+    const zone = exclusionZoneSet.getZone(action.zoneID);
     if (!zone?.vertices || zone.vertices.length <= 3) return mutableState;
-    obstacleAvoidanceData.getExclusionZoneSet().updateZone(action.zoneID, {
+    exclusionZoneSet.updateZone(action.zoneID, {
         ...zone,
         vertices: zone.vertices.filter((_, i) => i !== action.vertexIndex),
     });
@@ -254,6 +252,6 @@ export function handleChangeExclusionZoneSetName(
     action: JaiaAction,
 ) {
     if (action.exclusionZoneSetName === undefined) return mutableState;
-    obstacleAvoidanceData.getExclusionZoneSet().setName(action.exclusionZoneSetName);
+    exclusionZoneSet.setName(action.exclusionZoneSetName);
     return mutableState;
 }

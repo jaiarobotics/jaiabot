@@ -1,8 +1,8 @@
 import {
     ExclusionZoneSetSnapshot,
     EXCLUSION_ZONE_SET_VERSION,
-} from "../../../../data/obstacle_avoidance_data/exclusion_zones/exclusion-zone-set";
-import { obstacleAvoidanceData } from "../../../../data/obstacle_avoidance_data/obstacle-avoidance-data";
+    exclusionZoneSet,
+} from "../../../../data/exclusion_zones/exclusion-zone-set";
 import {
     listSavedZoneSetsFromHub,
     saveToHub,
@@ -27,7 +27,7 @@ const mockJaiaAPI = jaiaAPI as jest.Mocked<typeof jaiaAPI>;
 
 describe("Zone hub storage", () => {
     beforeEach(() => {
-        obstacleAvoidanceData.getExclusionZoneSet().clearZones();
+        exclusionZoneSet.clearZones();
         jest.clearAllMocks();
     });
 
@@ -39,7 +39,7 @@ describe("Zone hub storage", () => {
     });
 
     test("saveToHub calls the API with the current zone set snapshot", async () => {
-        obstacleAvoidanceData.getExclusionZoneSet().addZone({
+        exclusionZoneSet.addZone({
             vertices: [
                 { lat: 41.0, lon: -72.0 },
                 { lat: 41.001, lon: -72.0 },
@@ -58,8 +58,7 @@ describe("Zone hub storage", () => {
     });
 
     test("saveToHub stores the set under the name the snapshot carries", async () => {
-        const zoneSet = obstacleAvoidanceData.getExclusionZoneSet();
-        zoneSet.setName("old-name");
+        exclusionZoneSet.setName("old-name");
         mockJaiaAPI.saveExclusionZone.mockResolvedValue(undefined);
 
         await saveToHub("new-name");
@@ -67,7 +66,7 @@ describe("Zone hub storage", () => {
         const [name, snapshot] = mockJaiaAPI.saveExclusionZone.mock.calls[0];
         expect(name).toBe("new-name");
         expect(snapshot.name).toBe("new-name");
-        expect(zoneSet.getName()).toBe("new-name");
+        expect(exclusionZoneSet.getName()).toBe("new-name");
     });
 
     test("loadSnapshotFromHub falls back to the requested name for an entry saved without one", async () => {

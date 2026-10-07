@@ -10,13 +10,13 @@ import {
     handleLoadExclusionZoneSet,
 } from "../exclusion-zone-handlers";
 import { missionSet } from "../../../data/mission_set/mission-set";
-import { obstacleAvoidanceData } from "../../../data/obstacle_avoidance_data/obstacle-avoidance-data";
-import { jaiaGlobal } from "../../../data/jaia_global/jaia-global";
-import Mission from "../../../data/mission_set/mission";
 import {
+    exclusionZoneSet,
     ExclusionZone,
     ExclusionZoneSetSnapshot,
-} from "../../../data/obstacle_avoidance_data/exclusion_zones/exclusion-zone-set";
+} from "../../../data/exclusion_zones/exclusion-zone-set";
+import { jaiaGlobal } from "../../../data/jaia_global/jaia-global";
+import Mission from "../../../data/mission_set/mission";
 import { ButtonNames, JaiaContextType } from "../../../types/context-types";
 import { UNASSIGNED_ID } from "../../../utils/constants";
 import { makeMutableState, resetHandlerSingletons, coord, squareZone } from "./handler-test-utils";
@@ -60,7 +60,7 @@ function addRoutedMission(): number {
 }
 
 function zoneIDs(): number[] {
-    return Array.from(obstacleAvoidanceData.getExclusionZoneSet().getZones().keys());
+    return Array.from(exclusionZoneSet.getZones().keys());
 }
 
 beforeEach(resetHandlerSingletons);
@@ -98,20 +98,21 @@ describe("zone edits never change a mission's waypoints", () => {
     ];
 
     test.each(edits)("%s leaves waypoints, detours and the dialog alone", (_, edit) => {
-        const zoneID = obstacleAvoidanceData.getExclusionZoneSet().addZone(rectZone());
+        const zoneID = exclusionZoneSet.addZone(rectZone());
         const missionID = addRoutedMission();
         const before = cloneDeep(missionSet.getMission(missionID).getWaypoints());
 
-        edit(makeMutableState(), zoneID);
+        const mutableState = makeMutableState();
+        edit(mutableState, zoneID);
 
         expect(missionSet.getMission(missionID).getWaypoints()).toEqual(before);
-        expect(obstacleAvoidanceData.getPendingChange()).toBeNull();
+        expect(mutableState.placementError).toBeNull();
     });
 });
 
 describe("handleAddZoneVertex", () => {
     test("selects the new vertex and opens the vertex panel", () => {
-        const zoneID = obstacleAvoidanceData.getExclusionZoneSet().addZone(rectZone());
+        const zoneID = exclusionZoneSet.addZone(rectZone());
 
         const state = handleAddZoneVertex(makeMutableState(), { zoneID, location: APEX } as any);
 
@@ -127,19 +128,17 @@ describe("handleAddZoneVertex", () => {
 describe("handleDeleteZoneVertex", () => {
     test("refuses to delete when only three vertices remain", () => {
         const triangle: ExclusionZone = { vertices: [RECT_SW, RECT_SE, RECT_NE] };
-        const zoneID = obstacleAvoidanceData.getExclusionZoneSet().addZone(triangle);
+        const zoneID = exclusionZoneSet.addZone(triangle);
 
         handleDeleteZoneVertex(makeMutableState(), { zoneID, vertexIndex: 0 } as any);
 
-        expect(obstacleAvoidanceData.getExclusionZoneSet().getZone(zoneID)!.vertices).toHaveLength(
-            3,
-        );
+        expect(exclusionZoneSet.getZone(zoneID)!.vertices).toHaveLength(3);
     });
 });
 
 describe("handleDeleteExclusionZone", () => {
     test("clears vertex selection and edit mode belonging to the deleted zone", () => {
-        const zoneID = obstacleAvoidanceData.getExclusionZoneSet().addZone(squareZone(41.0, -72.0));
+        const zoneID = exclusionZoneSet.addZone(squareZone(41.0, -72.0));
         jaiaGlobal.setSelectedZoneVertex({ zoneID, vertexIndex: 2, isMoveable: true });
         jaiaGlobal.setZoneInEditMode(zoneID);
 
@@ -154,12 +153,8 @@ describe("handleDeleteExclusionZone", () => {
     });
 
     test("leaves vertex selection and edit mode belonging to a different zone alone", () => {
-        const keptZoneID = obstacleAvoidanceData
-            .getExclusionZoneSet()
-            .addZone(squareZone(41.0, -72.0));
-        const doomedZoneID = obstacleAvoidanceData
-            .getExclusionZoneSet()
-            .addZone(squareZone(41.05, -72.05));
+        const keptZoneID = exclusionZoneSet.addZone(squareZone(41.0, -72.0));
+        const doomedZoneID = exclusionZoneSet.addZone(squareZone(41.05, -72.05));
         jaiaGlobal.setSelectedZoneVertex({ zoneID: keptZoneID, vertexIndex: 2, isMoveable: true });
         jaiaGlobal.setZoneInEditMode(keptZoneID);
 
@@ -176,16 +171,16 @@ describe("handleDeleteExclusionZone", () => {
 
 describe("handleClearExclusionZones", () => {
     test("removes every zone", () => {
-        obstacleAvoidanceData.getExclusionZoneSet().addZone(squareZone(41.0, -72.0));
-        obstacleAvoidanceData.getExclusionZoneSet().addZone(squareZone(41.05, -72.05));
+        exclusionZoneSet.addZone(squareZone(41.0, -72.0));
+        exclusionZoneSet.addZone(squareZone(41.05, -72.05));
 
         handleClearExclusionZones(makeMutableState());
 
-        expect(obstacleAvoidanceData.getExclusionZoneSet().getZones().size).toBe(0);
+        expect(exclusionZoneSet.getZones().size).toBe(0);
     });
 
     test("resets vertex selection and edit mode", () => {
-        const zoneID = obstacleAvoidanceData.getExclusionZoneSet().addZone(squareZone(41.0, -72.0));
+        const zoneID = exclusionZoneSet.addZone(squareZone(41.0, -72.0));
         jaiaGlobal.setSelectedZoneVertex({ zoneID, vertexIndex: 1, isMoveable: true });
         jaiaGlobal.setZoneInEditMode(zoneID);
 
@@ -202,13 +197,13 @@ describe("handleClearExclusionZones", () => {
 
 describe("handleLoadExclusionZoneSet", () => {
     test("replaces the existing zone set rather than merging into it", () => {
-        obstacleAvoidanceData.getExclusionZoneSet().addZone(squareZone(41.5, -72.5));
+        exclusionZoneSet.addZone(squareZone(41.5, -72.5));
 
         handleLoadExclusionZoneSet(makeMutableState(), {
             exclusionZoneSetSnapshot: zoneSetSnapshot([squareZone(41.0, -72.0)], "harbour"),
         } as any);
 
         expect(zoneIDs()).toHaveLength(1);
-        expect(obstacleAvoidanceData.getExclusionZoneSet().getName()).toBe("harbour");
+        expect(exclusionZoneSet.getName()).toBe("harbour");
     });
 });

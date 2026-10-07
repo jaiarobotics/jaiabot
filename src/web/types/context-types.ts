@@ -9,9 +9,9 @@ import { RallyPoints, RallyPointsSnapshot } from "../data/rally_points/rally-poi
 import { JaiaGlobal, JaiaGlobalSnapshot } from "../data/jaia_global/jaia-global";
 import {
     ExclusionZone,
+    ExclusionZoneSet,
     ExclusionZoneSetSnapshot,
-} from "../data/obstacle_avoidance_data/exclusion_zones/exclusion-zone-set";
-import { ObstacleAvoidanceData } from "../data/obstacle_avoidance_data/obstacle-avoidance-data";
+} from "../data/exclusion_zones/exclusion-zone-set";
 import { Bots } from "../data/bots/bots";
 import { Hubs } from "../data/hubs/hubs";
 import { TaskPackets } from "../data/task_packets/task-packets";
@@ -37,10 +37,12 @@ export interface JaiaContextType {
     rallyPoints: RallyPoints;
     jaiaGlobal: JaiaGlobal;
     missionsManager: MissionsManager;
-    obstacleAvoidanceData: ObstacleAvoidanceData;
+    exclusionZoneSet: ExclusionZoneSet;
 
     visibleDetails: NodeTypes;
     visiblePanel: ButtonNames;
+    // Why the last waypoint placement was refused; shown until dismissed or undone
+    placementError: string | null;
     visibleWaypointSection: WaypointSections;
     hubAccordionStates: HubAccordionStates;
     botAccordionStates: BotAccordionStates;

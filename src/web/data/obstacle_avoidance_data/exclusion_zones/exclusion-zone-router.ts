@@ -9,8 +9,7 @@
 import { Clipper, JoinType, EndType, FillRule } from "clipper2-ts";
 import { GeographicCoordinate, Goal, MissionPlan } from "../../../types/protobuf-types";
 import { METERS_PER_DEG } from "../../../utils/constants";
-import { ExclusionZone } from "./exclusion-zone-set";
-import { obstacleAvoidanceData } from "../obstacle-avoidance-data";
+import { ExclusionZone, exclusionZoneSet } from "../../exclusion_zones/exclusion-zone-set";
 
 interface XYPt {
     x: number;
@@ -304,7 +303,7 @@ function buildZoneGeoms(
     safetyMargin: number,
 ): Array<ZoneGeom & { zoneID: number }> {
     const zoneGeoms: Array<ZoneGeom & { zoneID: number }> = [];
-    for (const [zoneID, zone] of obstacleAvoidanceData.getExclusionZoneSet().getZones()) {
+    for (const [zoneID, zone] of exclusionZoneSet.getZones()) {
         if (!zone.vertices || zone.vertices.length < 3) continue;
         const raw = zone.vertices.map((v) => toXY(origin, v));
         if (raw.length < 3) continue;
@@ -759,7 +758,7 @@ type ZoneBufferCache = Map<number, { origin: GeographicCoordinate; expanded: XYP
  */
 export function buildZoneBufferCache(safetyMargin = DEFAULT_SAFETY_MARGIN_METERS): ZoneBufferCache {
     const cache: ZoneBufferCache = new Map();
-    for (const [zoneID, zone] of obstacleAvoidanceData.getExclusionZoneSet().getZones()) {
+    for (const [zoneID, zone] of exclusionZoneSet.getZones()) {
         if (!zone.vertices || zone.vertices.length < 3) continue;
         const origin = zone.vertices[0];
         const raw = zone.vertices.map((v) => toXY(origin, v));
@@ -790,7 +789,7 @@ export function getBlockingZoneIDs(
         }
         return ids;
     }
-    for (const [zoneID, zone] of obstacleAvoidanceData.getExclusionZoneSet().getZones()) {
+    for (const [zoneID, zone] of exclusionZoneSet.getZones()) {
         if (!zone.vertices || zone.vertices.length < 3) continue;
         const origin = zone.vertices[0];
         const raw = zone.vertices.map((v) => toXY(origin, v));
@@ -824,9 +823,9 @@ let projectionOrigin: GeographicCoordinate | undefined;
  * @returns {GeographicCoordinate | undefined} Shared projection origin, or undefined when no zone has usable geometry
  */
 function getProjectionOrigin(): GeographicCoordinate | undefined {
-    const candidate = Array.from(
-        obstacleAvoidanceData.getExclusionZoneSet().getZones().values(),
-    ).find((z) => z.vertices && z.vertices.length >= 3)?.vertices?.[0];
+    const candidate = Array.from(exclusionZoneSet.getZones().values()).find(
+        (z) => z.vertices && z.vertices.length >= 3,
+    )?.vertices?.[0];
 
     if (!candidate) {
         projectionOrigin = undefined;

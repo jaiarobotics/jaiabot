@@ -1,5 +1,4 @@
-import { ExclusionZone } from "../exclusion_zones/exclusion-zone-set";
-import { obstacleAvoidanceData } from "../obstacle-avoidance-data";
+import { ExclusionZone, exclusionZoneSet } from "../../exclusion_zones/exclusion-zone-set";
 import { missionSet } from "../../mission_set/mission-set";
 import Mission from "../../mission_set/mission";
 import { getMissionsInConflict } from "../exclusion_zones/exclusion-zone-detection";
@@ -23,7 +22,7 @@ function squareZone(lat: number, lon: number, halfSide = 0.0005): ExclusionZone 
 
 describe("getMissionsInConflict", () => {
     beforeEach(() => {
-        obstacleAvoidanceData.getExclusionZoneSet().clearZones();
+        exclusionZoneSet.clearZones();
         missionSet.deleteAllMissions();
     });
 
@@ -42,7 +41,7 @@ describe("getMissionsInConflict", () => {
     });
 
     test("is empty when there are no missions", () => {
-        obstacleAvoidanceData.getExclusionZoneSet().addZone(squareZone(41.0, -72.0));
+        exclusionZoneSet.addZone(squareZone(41.0, -72.0));
         expect(getMissionsInConflict().size).toBe(0);
     });
 
@@ -51,7 +50,7 @@ describe("getMissionsInConflict", () => {
             [41.0, -72.005],
             [41.0, -71.995],
         ]);
-        obstacleAvoidanceData.getExclusionZoneSet().addZone(squareZone(41.01, -72.0));
+        exclusionZoneSet.addZone(squareZone(41.01, -72.0));
 
         expect(getMissionsInConflict().size).toBe(0);
     });
@@ -61,7 +60,7 @@ describe("getMissionsInConflict", () => {
             [41.0, -72.005],
             [41.0, -71.995],
         ]);
-        obstacleAvoidanceData.getExclusionZoneSet().addZone(squareZone(41.0, -72.0));
+        exclusionZoneSet.addZone(squareZone(41.0, -72.0));
 
         expect(getMissionsInConflict()).toEqual(new Set([missionID]));
     });
@@ -74,21 +73,21 @@ describe("getMissionsInConflict", () => {
             [41.0, -72.0002],
             [41.0, -71.9998],
         ]);
-        obstacleAvoidanceData.getExclusionZoneSet().addZone(squareZone(41.0, -72.0));
+        exclusionZoneSet.addZone(squareZone(41.0, -72.0));
 
         expect(getMissionsInConflict()).toEqual(new Set([missionID]));
     });
 
     test("includes a mission whose single waypoint is inside a zone", () => {
         const missionID = addMission([[41.0, -72.0]]);
-        obstacleAvoidanceData.getExclusionZoneSet().addZone(squareZone(41.0, -72.0));
+        exclusionZoneSet.addZone(squareZone(41.0, -72.0));
 
         expect(getMissionsInConflict()).toEqual(new Set([missionID]));
     });
 
     test("excludes a mission with no waypoints", () => {
         addMission([]);
-        obstacleAvoidanceData.getExclusionZoneSet().addZone(squareZone(41.0, -72.0));
+        exclusionZoneSet.addZone(squareZone(41.0, -72.0));
 
         expect(getMissionsInConflict().size).toBe(0);
     });
@@ -98,7 +97,7 @@ describe("getMissionsInConflict", () => {
             [41.0, -72.005],
             [41.0, -71.995],
         ]);
-        obstacleAvoidanceData.getExclusionZoneSet().addZone(squareZone(41.0, -72.0));
+        exclusionZoneSet.addZone(squareZone(41.0, -72.0));
         expect(getMissionsInConflict()).toEqual(new Set([missionID]));
 
         // Replace the mission with the detoured route the router computes.
@@ -125,7 +124,7 @@ describe("getMissionsInConflict", () => {
             [41.02, -72.005],
             [41.02, -71.995],
         ]);
-        obstacleAvoidanceData.getExclusionZoneSet().addZone(squareZone(41.0, -72.0));
+        exclusionZoneSet.addZone(squareZone(41.0, -72.0));
 
         expect(getMissionsInConflict()).toEqual(new Set([crossing]));
     });

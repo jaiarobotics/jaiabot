@@ -1,5 +1,5 @@
 import cloneDeep from "lodash/cloneDeep";
-import { GeographicCoordinate } from "../../../types/protobuf-types";
+import { GeographicCoordinate } from "../../types/protobuf-types";
 
 export interface ExclusionZone {
     label?: string;
@@ -179,3 +179,4 @@ export class ExclusionZoneSet {
         this.name = restored.name ?? "";
     }
 }
+export const exclusionZoneSet = new ExclusionZoneSet();

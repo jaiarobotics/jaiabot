@@ -4,8 +4,8 @@ import PlacementErrorDialog from "./PlacementErrorDialog/PlacementErrorDialog";
 
 export default function ObstacleAvoidanceDialog() {
     const jaiaContext = useContext(JaiaContext);
-    const pending = jaiaContext?.obstacleAvoidanceData.getPendingChange();
-    if (!pending) return null;
+    const placementError = jaiaContext?.placementError;
+    if (!placementError) return null;
 
-    return <PlacementErrorDialog message={pending.message} />;
+    return <PlacementErrorDialog message={placementError} />;
 }
