@@ -575,6 +575,17 @@ The data formats and code layout that support the Phase 1 workflow.
 
 Not started. Known items:
 
+- **Routing status icon:** match PR #1554's predicted-battery icon, a coloured icon rather than a
+  tinted header, as that PR's review asked. Two per-mission health signals in the accordion
+  header share one affordance. Battery prediction is stored because it comes from an async server
+  call; routing status is derived at render.
+- **The reroute stays synchronous, with a working indicator while it runs.** A\* cost grows with
+  the area searched (Finding 12 in `00FINDINGS_AND_DECISIONS.md`): about 2 s for a 6 km zone on
+  a development machine. Under this design only an explicit Reroute runs A\*; editing only
+  recomputes status, which uses the cheap blocked-leg test. An asynchronous router would let
+  tracked actions land while the report dialog is open (see the Undo button below). Speeding up the
+  router is a separate task (Parked).
+
 - **Proposal, not yet agreed: one dialog for status, actions and results, in two variants.**
     - _One mission:_ tapping the mission's routing-status icon opens a dialog with its status
       details (which suppressed waypoints are clear, whether detours are still needed) and its
@@ -625,6 +636,18 @@ Not started. Known items:
 
 ## Parked for later phases
 
+- **In this PR, revisited once the reworked code can be tested in the browser:** two undo
+  defects carried over from PR #1674's review. (a) Export renames the zone or mission set without
+  a tracked action, unlike Save, so undoing the next edit reverts the name. (b) A placement
+  refused inside a zone still records an empty undo entry; this fits the handler rework.
+- **Separate task:** router performance (Finding 12). A fixed 5 m A\* grid makes cost grow with
+  the area searched. Candidate fix: scale the cell size with the search area, paired with an exact
+  check of the final path against every zone, so a thin zone cannot slip between cell centres.
+  Moving the search off the UI thread is the other option, and reopens the Undo-guard question in
+  Phase 3.
+- **Later:** letting the operator acknowledge a conflict ("I've seen this, stop flagging it") is
+  a stored decision, not derived. It was planned for `ObstacleAvoidanceData`, which this design
+  removes; it would go in context state, scoped to the session and kept out of saved files.
 - **Later:** `utils/conversions.ts` imports `data/tasks/task.ts`, while `data/bots/bot.ts` and
   `data/hubs/hub.ts` import `utils/conversions.ts`: a two-way dependency between `utils/` and
   `data/` that predates this work.
