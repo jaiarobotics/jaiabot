@@ -416,6 +416,9 @@ def migrate_1_to_2(schema, cfg, notes, problems):
         notes.append("debconf_override {} {}: converted".format(node_type_name(schema, old.type), old.id))
     cfg.ClearField("debconf")
     cfg.ClearField("debconf_override")
+    if CLOUDHUB_ID not in cfg.hubs:
+        cfg.includes_cloudhub = False
+        notes.append("includes_cloudhub: false, as hub {} (CloudHub) is not in the fleet".format(CLOUDHUB_ID))
     if not cfg.HasField("settings"):
         cfg.settings.SetInParent()
     fill_defaults(schema, cfg.settings)
