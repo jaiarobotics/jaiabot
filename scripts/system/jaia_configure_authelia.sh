@@ -552,15 +552,15 @@ done
 
 # No password: the admin sets their own through the portal's reset link, and
 # bootstrap.sh reapplies any password its configs carry if it is ever run again.
-cat > /etc/lldap/bootstrap/user-configs/admin.json <<EOF
+cat > /etc/lldap/bootstrap/user-configs/fleet_admin.json <<EOF
 {
-  "id": "admin",
+  "id": "fleet_admin",
   "email": "$admin_email",
   "groups": ["super_admin", "lldap_admin"
   ]
 }
 EOF
-chmod 0600 /etc/lldap/bootstrap/user-configs/admin.json
+chmod 0600 /etc/lldap/bootstrap/user-configs/fleet_admin.json
 
 cat <<EOF > /etc/lldap/docker-compose.yaml
 services:
