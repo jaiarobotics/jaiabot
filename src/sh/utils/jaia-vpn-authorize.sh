@@ -60,6 +60,9 @@ chmod 600 "${AUTHORIZED_KEYS}"
 # 'jaia admin ssh add' has let in. Dropping it first makes renewing a renewal
 # rather than a second, still-expired entry.
 sed -i "\|${blob}|d" "${AUTHORIZED_KEYS}"
+# sshd reads this file as the user logging in, and both touch and sed -i leave it
+# owned by whoever runs this (root, from the reconcile timer)
+chown --reference="$(dirname "${AUTHORIZED_KEYS}")" "${AUTHORIZED_KEYS}"
 
 if [ "${remove}" = true ]; then
     echo "Removed VPN enrollment authorization for ${blob}"
