@@ -31,16 +31,13 @@ export function handleClosedDetails(mutableState: JaiaContextType) {
  * @param {JaiaContextType} mutableState State object ref for making modifications
  * @param {JaiaAction} action Includes panelAction and waypoint in reverted state (optional)
  * @returns {JaiaContextType} Updated mutable state object
- *
- * @notes
- * When the waypoint is passed through the dispatch function it is serialized. To restore
- * its methods, we use Object.setPrototypeOf.
  */
 export function handleClosedWaypointPanel(mutableState: JaiaContextType, action: JaiaAction) {
     if (action.panelAction === PanelActions.CANCEL) {
-        const mission = missionSet.getMission(jaiaGlobal.getSelectedWaypoint().missionID);
-        // Reset waypoint to state when first selected
-        mission.getWaypoints()[jaiaGlobal.getSelectedWaypoint().waypointNum - 1] = action.waypoint;
+        const selected = jaiaGlobal.getSelectedWaypoint();
+        missionSet
+            .getMission(selected.missionID)
+            .revertWaypoint(selected.waypointNum, action.waypoint);
         missionLayer.updateFeatures();
     }
     jaiaGlobal.resetSelectedWaypoint();

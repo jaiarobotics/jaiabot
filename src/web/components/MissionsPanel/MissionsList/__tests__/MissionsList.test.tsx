@@ -16,10 +16,9 @@ test.skip("Exercise Duplicate Mission Button", async () => {
     const originalID = missionSet.addMission(originalMission);
     originalMission.addWaypoint(locationA);
 
-    let waypoint1 = originalMission.getWaypoint(1);
     let task1 = new Task();
     task1.setType(TaskType.DIVE);
-    waypoint1.setTask(task1);
+    originalMission.setWaypointTask(1, task1);
 
     // Render the missions list
     await act(async () => {

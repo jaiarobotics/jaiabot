@@ -59,19 +59,17 @@ describe("Exercise functions to save and load missions from the hub", () => {
         // Create test mission set
         let mission1 = new Mission();
         mission1.addWaypoint(locationA);
-        let waypoint1 = mission1.getWaypoint(1);
         let task1 = new Task();
         task1.setType(TaskType.DIVE);
         task1.setParameter({ key: TaskParameterKeys.MAX_DEPTH, value: 13 });
-        waypoint1.setTask(task1);
+        mission1.setWaypointTask(1, task1);
         mission1.addWaypoint(locationB);
 
         let mission2 = new Mission();
         mission2.addWaypoint(locationC);
-        let waypoint2 = mission2.getWaypoint(1);
         let task2 = new Task();
         task2.setType(TaskType.STATION_KEEP);
-        waypoint2.setTask(task2);
+        mission2.setWaypointTask(1, task2);
         mission2.addWaypoint(locationD);
 
         const mission1ID = missionSet.addMission(mission1);

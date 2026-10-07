@@ -13,7 +13,6 @@ import { missionSet } from "../../../data/mission_set/mission-set";
 import { obstacleAvoidanceData } from "../../../data/obstacle_avoidance_data/obstacle-avoidance-data";
 import { jaiaGlobal } from "../../../data/jaia_global/jaia-global";
 import Mission from "../../../data/mission_set/mission";
-import Waypoint from "../../../data/waypoints/waypoint";
 import {
     ExclusionZone,
     ExclusionZoneSetSnapshot,
@@ -49,13 +48,14 @@ function zoneSetSnapshot(zones: ExclusionZone[], name = "loaded-set"): Exclusion
  * can tell whether a zone edit touched either the operator's waypoints or the detour.
  */
 function addRoutedMission(): number {
-    const mission = new Mission();
-    mission.addWaypoint(coord(40.998, -72.002));
-    const detour = new Waypoint();
-    detour.setLocation(coord(41.0, -72.003));
-    detour.setIsBypass(true);
-    mission.addWaypoints([detour]);
-    mission.addWaypoint(coord(41.002, -72.002));
+    const mission = Mission.fromJSON({
+        waypoints: [
+            { location: coord(40.998, -72.002) },
+            { location: coord(41.0, -72.003), isDetour: true },
+            { location: coord(41.002, -72.002) },
+        ],
+    } as any);
+    expect(mission.getWaypoint(2)!.getIsDetour()).toBe(true);
     return missionSet.addMission(mission);
 }
 

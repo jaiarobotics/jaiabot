@@ -321,7 +321,7 @@ export default function Map() {
      * @returns {void}
      */
     const handleWaypointClick = (feature: Feature<Geometry>) => {
-        if (feature.get("isBypass")) return;
+        if (feature.get("isDetour")) return;
         jaiaDispatch({
             type: JaiaActions.CLICKED_WAYPOINT,
             clickedWaypoint: {

@@ -63,18 +63,19 @@ export function handleChangeGridPlanningState(mutableState: JaiaContextType, act
 
         case GridPlanningStates.APPROVED:
             for (const [missionID, mission] of gridPlan.getMissions()) {
-                const waypoints = mission.getWaypoints();
-                for (let i = 0; i < waypoints.length; i++) {
+                const count = mission.getWaypoints().length;
+                for (let i = 0; i < count; i++) {
+                    const waypointNum = i + 1;
                     if (i === 0) {
-                        waypoints[i].setTask(cloneDeep(gridPlan.getStartTask()));
-                    } else if (i === waypoints.length - 1) {
+                        mission.setWaypointTask(waypointNum, cloneDeep(gridPlan.getStartTask()));
+                    } else if (i === count - 1) {
                         // End mission task
                         continue;
-                    } else if (i === waypoints.length - MISSION_ENDPOINTS) {
+                    } else if (i === count - MISSION_ENDPOINTS) {
                         // End survey task
-                        waypoints[i].setTask(cloneDeep(gridPlan.getEndTask()));
+                        mission.setWaypointTask(waypointNum, cloneDeep(gridPlan.getEndTask()));
                     } else {
-                        waypoints[i].setTask(cloneDeep(gridPlan.getSurveyTask()));
+                        mission.setWaypointTask(waypointNum, cloneDeep(gridPlan.getSurveyTask()));
                     }
                 }
             }

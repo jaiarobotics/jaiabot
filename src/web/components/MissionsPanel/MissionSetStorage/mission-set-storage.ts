@@ -4,7 +4,6 @@ import {
     MissionSetSnapshot,
     MISSION_SET_VERSION,
 } from "../../../data/mission_set/mission-set";
-import Waypoint from "../../../data/waypoints/waypoint";
 import Task from "../../../data/tasks/task";
 import { TaskType } from "../../../types/protobuf-types";
 import { LegacyMissionInterface, LegacyRunInterface } from "../../../types/legacy-types";
@@ -337,8 +336,6 @@ function extractLegacyMissionData(rawMission: LegacyMissionInterface) {
         mission.setMissionID(Number(run.id));
         // Build waypoints from goals
         for (const goal of run.command.plan.goal) {
-            const waypoint = new Waypoint();
-            waypoint.setLocation(goal.location);
             const task = new Task();
             const originalTask = goal.task?.type ?? TaskType.NONE;
             task.setType(originalTask);
@@ -372,8 +369,8 @@ function extractLegacyMissionData(rawMission: LegacyMissionInterface) {
                     });
                     break;
             }
-            waypoint.setTask(task);
-            mission.addWaypoints([waypoint]);
+            mission.addWaypoint(goal.location);
+            mission.setWaypointTask(mission.getWaypoints().length, task);
         }
         snapshot.missions.push([Number(run.id), mission]);
     }

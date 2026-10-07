@@ -11,11 +11,10 @@ test("Clone a mission and test values", () => {
     const originalID: number = missionSet.addMission(originalMission);
     originalMission.addWaypoint(locationA);
 
-    let waypoint1 = originalMission.getWaypoint(1);
     let task1 = new Task();
     task1.setType(TaskType.DIVE);
     task1.setParameter({ key: TaskParameterKeys.MAX_DEPTH, value: 13 });
-    waypoint1.setTask(task1);
+    originalMission.setWaypointTask(1, task1);
 
     // Clone the mission and add it to the missions data
     let cloneMission = cloneDeep(originalMission);
@@ -30,7 +29,7 @@ test("Clone a mission and test values", () => {
     expect(cloneMission.getWaypoint(1).getTask().getDiveParameters().max_depth).toEqual(13);
 
     // Modify the original location and max depth
-    waypoint1.setLocation(locationB);
+    originalMission.moveWaypoint(1, locationB);
     task1.setParameter({ key: TaskParameterKeys.MAX_DEPTH, value: 24 });
 
     // Verify the copy did not change

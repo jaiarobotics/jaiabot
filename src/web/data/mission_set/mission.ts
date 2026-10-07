@@ -7,14 +7,15 @@ import {
     MovementType,
     Segment,
 } from "../../types/protobuf-types";
-import Waypoint from "../waypoints/waypoint";
+import cloneDeep from "lodash/cloneDeep";
+import Waypoint, { MissionWaypoint } from "../waypoints/waypoint";
 import Task from "../tasks/task";
 import { GhostParameters } from "../../types/jaia-system-types";
 import { DEFAULT_SPEED, UNASSIGNED_ID } from "../../utils/constants";
 
 export default class Mission {
     private missionID: number;
-    private waypoints: Waypoint[];
+    private waypoints: MissionWaypoint[];
     private stationkeepSpeed: number;
     private repeats: number;
     private segments: Segment[];
@@ -39,12 +40,9 @@ export default class Mission {
         this.missionID = missionID;
     }
 
-    getWaypoints() {
-        return this.waypoints;
-    }
-
-    setWaypoints(waypoints: Waypoint[]) {
-        this.waypoints = waypoints;
+    /** The waypoints that are shown and sent: every stored waypoint that is not suppressed. */
+    getWaypoints(): readonly Waypoint[] {
+        return this.visibleWaypoints();
     }
 
     getTransitSpeed(segmentIndex: number = 0): number {
@@ -104,28 +102,96 @@ export default class Mission {
         this.ghostParameters = { hasStarted: false, botID: UNASSIGNED_ID, repeats: 1 };
     }
 
-    getWaypoint(waypointNum: number) {
-        if (waypointNum > 0 && waypointNum <= this.waypoints.length) {
-            return this.waypoints[waypointNum - 1];
-        }
-        return undefined;
+    getWaypoint(waypointNum: number): Waypoint | undefined {
+        return this.visibleWaypoints()[waypointNum - 1];
+    }
+
+    /**
+     * Visible number of a waypoint this mission holds, or undefined if it is suppressed or
+     * not in this mission. Waypoint objects persist through an operation, so a caller can
+     * renumber a selection after the operation renumbers the mission.
+     *
+     * @param {Waypoint} waypoint Waypoint previously returned by this mission
+     * @returns {number | undefined} 1-based visible waypoint number
+     */
+    getWaypointNum(waypoint: Waypoint): number | undefined {
+        const index = this.visibleWaypoints().indexOf(waypoint as MissionWaypoint);
+        return index >= 0 ? index + 1 : undefined;
     }
 
     addWaypoint(location: GeographicCoordinate) {
-        const waypoint = new Waypoint();
-        waypoint.setLocation(location);
-        this.waypoints.push(waypoint);
+        this.waypoints.push(new MissionWaypoint(location));
     }
 
-    addWaypoints(waypoints: Waypoint[]) {
-        this.waypoints.push(...waypoints);
+    /**
+     * Appends copies of the given waypoints' locations and tasks. Flags are not copied:
+     * only Mission's own operations make detour or suppressed waypoints.
+     *
+     * @param {readonly Waypoint[]} waypoints Waypoints to copy onto the end of the mission
+     * @returns {void}
+     */
+    addWaypoints(waypoints: readonly Waypoint[]) {
+        for (const source of waypoints) {
+            const waypoint = new MissionWaypoint(cloneDeep(source.getLocation()));
+            waypoint.setTask(cloneDeep(source.getTask()));
+            this.waypoints.push(waypoint);
+        }
+    }
+
+    /**
+     * Appends copies of another mission's stored waypoints, flags included, so a combined
+     * mission keeps each source's detour and suppressed waypoints.
+     *
+     * @param {Mission} source Mission whose stored waypoints are copied
+     * @returns {void}
+     */
+    appendWaypointsFrom(source: Mission) {
+        this.waypoints.push(...cloneDeep(source.waypoints));
     }
 
     deleteWaypoint(waypointNum: number) {
-        const index = waypointNum - 1;
-        if (index < 0 || index >= this.waypoints.length) return;
+        const index = this.storedIndex(waypointNum);
+        if (index === undefined) return;
         this.waypoints.splice(index, 1);
         this.reindexSegmentsAfterRemoval(index);
+    }
+
+    /**
+     * Replaces a waypoint's task. A detour waypoint never carries a task.
+     *
+     * @param {number} waypointNum 1-based visible waypoint number
+     * @param {Task} task Task to give the waypoint
+     * @returns {void}
+     */
+    setWaypointTask(waypointNum: number, task: Task) {
+        const index = this.storedIndex(waypointNum);
+        if (index === undefined || this.waypoints[index].getIsDetour()) return;
+        this.waypoints[index].setTask(task);
+    }
+
+    /**
+     * Puts back a waypoint's location and task from a copy saved before editing began,
+     * leaving its flags and identity unchanged.
+     *
+     * @param {number} waypointNum 1-based visible waypoint number
+     * @param {Waypoint} saved Copy of the waypoint taken before the edits
+     * @returns {void}
+     */
+    revertWaypoint(waypointNum: number, saved: Waypoint) {
+        const index = this.storedIndex(waypointNum);
+        if (index === undefined || !saved) return;
+        this.waypoints[index].setLocation(cloneDeep(saved.getLocation()));
+        this.waypoints[index].setTask(cloneDeep(saved.getTask()));
+    }
+
+    private visibleWaypoints(): MissionWaypoint[] {
+        return this.waypoints.filter((waypoint) => !waypoint.getIsSuppressed());
+    }
+
+    /** Stored array index of a 1-based visible waypoint number, or undefined if out of range. */
+    private storedIndex(waypointNum: number): number | undefined {
+        const waypoint = this.visibleWaypoints()[waypointNum - 1];
+        return waypoint ? this.waypoints.indexOf(waypoint) : undefined;
     }
 
     /**
@@ -170,11 +236,8 @@ export default class Mission {
     }
 
     moveWaypoint(waypointNum: number, location: GeographicCoordinate) {
-        const index = waypointNum - 1;
-        if (index >= 0 && index < this.waypoints.length) {
-            const waypoint = this.waypoints[index];
-            waypoint.setLocation(location);
-        }
+        const index = this.storedIndex(waypointNum);
+        if (index !== undefined) this.waypoints[index].setLocation(location);
     }
 
     packageMissionForHub(missionSetName: string) {
@@ -200,7 +263,7 @@ export default class Mission {
     packageWaypointsForHub() {
         const goals: Goal[] = [];
 
-        for (const waypoint of this.waypoints) {
+        for (const waypoint of this.visibleWaypoints()) {
             goals.push(waypoint.packageWaypointForHub());
         }
 
@@ -216,11 +279,16 @@ export default class Mission {
     static fromJSON(serializedMission: string) {
         const mission = Object.assign(new Mission(), serializedMission);
         mission.waypoints = mission.waypoints.map((serializedWaypoint: any) => {
-            const waypoint = Object.assign(new Waypoint(), serializedWaypoint);
+            // Files saved before the detour flag was renamed carry it as isBypass
+            const { isBypass, ...fields } = serializedWaypoint;
+            const waypoint = Object.assign(
+                new MissionWaypoint(serializedWaypoint.location),
+                fields,
+            );
+            if (isBypass) waypoint.setIsDetour(true);
             if (serializedWaypoint.task) {
                 waypoint.setTask(Object.assign(new Task(), serializedWaypoint.task));
             }
-            waypoint.setLocation(serializedWaypoint.location);
             return waypoint;
         });
         mission.segments = (mission.segments ?? []).map((seg: any) => ({

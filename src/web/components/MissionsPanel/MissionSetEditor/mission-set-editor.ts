@@ -1,4 +1,3 @@
-import cloneDeep from "lodash/cloneDeep";
 import Mission from "../../../data/mission_set/mission";
 import { missionSet, MissionSetSnapshot } from "../../../data/mission_set/mission-set";
 import { UNASSIGNED_ID } from "../../../utils/constants";
@@ -95,7 +94,7 @@ function applySourceMission(sourceMission: Mission, combined: Mission): void {
     if (sourceMission.getWaypoints().length === 0) return;
 
     const waypointOffset = combined.getWaypoints().length;
-    combined.addWaypoints(cloneDeep(sourceMission.getWaypoints()));
+    combined.appendWaypointsFrom(sourceMission);
     const combinedSegments = combined.getSegments();
 
     for (const seg of sourceMission.getSegments()) {

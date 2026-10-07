@@ -12,12 +12,25 @@ const defaultMGRS: MGRS = {
     northing: MGRS_PLACEHOLDER,
 };
 
-export default class Waypoint {
+/** A mission's waypoint as code outside Mission sees it: read-only. Only Mission changes waypoints. */
+export default interface Waypoint {
+    getLocation(): GeographicCoordinate;
+    getTask(): Task;
+    getIsDetour(): boolean;
+    getIsSuppressed(): boolean;
+    packageWaypointForHub(): Goal;
+    latLonToMGRS(): MGRS;
+}
+
+/** The waypoint a Mission stores. Used only by Mission. */
+export class MissionWaypoint implements Waypoint {
     private location: GeographicCoordinate;
     private task: Task;
-    private isBypass: boolean = false;
+    private isDetour: boolean = false;
+    private isSuppressed: boolean = false;
 
-    constructor() {
+    constructor(location: GeographicCoordinate) {
+        this.location = location;
         this.task = new Task();
     }
 
@@ -37,25 +50,27 @@ export default class Waypoint {
         this.task = task;
     }
 
-    setIsBypass(isBypass: boolean) {
-        this.isBypass = isBypass;
+    setIsDetour(isDetour: boolean) {
+        this.isDetour = isDetour;
     }
 
-    getIsBypass() {
-        return this.isBypass;
+    getIsDetour() {
+        return this.isDetour;
     }
 
-    packageWaypointForHub() {
-        const goal: Goal = {
+    setIsSuppressed(isSuppressed: boolean) {
+        this.isSuppressed = isSuppressed;
+    }
+
+    getIsSuppressed() {
+        return this.isSuppressed;
+    }
+
+    packageWaypointForHub(): Goal {
+        return {
             location: this.location,
             task: this.task.packageTaskForHub(),
         };
-
-        if (this.isBypass) {
-            goal.name = "route_bypass";
-        }
-
-        return goal;
     }
 
     /**
@@ -63,7 +78,7 @@ export default class Waypoint {
      *
      * @returns {MGRS} MGRS components for waypoints current location
      */
-    latLonToMGRS() {
+    latLonToMGRS(): MGRS {
         const [lat, lon] = validateCoordinate(
             this.location.lat?.toString(),
             this.location.lon?.toString(),
@@ -96,21 +111,5 @@ export default class Waypoint {
             northing: digits.slice(half),
         };
         return mgrsComponents;
-    }
-
-    /**
-     * Converts an MGRS string to lat/lon coordinate
-     *
-     * @param {string} mgrsStr Location to convert
-     * @returns {number[]} Coordinates [lon, lat]
-     */
-    mgrsToLonLat(mgrsStr: string) {
-        try {
-            const [lon, lat] = mgrs.toPoint(mgrsStr);
-            return [lon, lat];
-        } catch (err) {
-            console.error("Failed to convert MGRS to lon/lat", err);
-            return [NaN, NaN];
-        }
     }
 }

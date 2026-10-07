@@ -4,7 +4,6 @@ import { missionSet } from "../../mission_set/mission-set";
 import Mission from "../../mission_set/mission";
 import { getMissionsInConflict } from "../exclusion_zones/exclusion-zone-detection";
 import { routeAroundExclusionZones } from "../exclusion_zones/exclusion-zone-router";
-import Waypoint from "../../waypoints/waypoint";
 import { GeographicCoordinate } from "../../../types/protobuf-types";
 
 function coord(lat: number, lon: number): GeographicCoordinate {
@@ -102,17 +101,16 @@ describe("getMissionsInConflict", () => {
         obstacleAvoidanceData.getExclusionZoneSet().addZone(squareZone(41.0, -72.0));
         expect(getMissionsInConflict()).toEqual(new Set([missionID]));
 
-        // Apply the detour the router computes.
-        const mission = missionSet.getMission(missionID);
+        // Replace the mission with the detoured route the router computes.
         const { plan } = routeAroundExclusionZones({
-            goal: mission.getWaypoints().map((wp) => wp.packageWaypointForHub()),
+            goal: missionSet
+                .getMission(missionID)
+                .getWaypoints()
+                .map((wp) => wp.packageWaypointForHub()),
         });
-        mission.setWaypoints(
-            plan.goal!.map((goal) => {
-                const waypoint = new Waypoint();
-                waypoint.setLocation(goal.location!);
-                return waypoint;
-            }),
+        missionSet.deleteAllMissions();
+        addMission(
+            plan.goal!.map((goal): [number, number] => [goal.location!.lat, goal.location!.lon]),
         );
 
         expect(getMissionsInConflict().size).toBe(0);
