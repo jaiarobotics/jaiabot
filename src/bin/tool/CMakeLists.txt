@@ -16,6 +16,7 @@ add_jaiabot_application(TARGET jaia
     actions/admin/ssh/clear.proto
     actions/admin/ssh/known.proto
     actions/admin/fleet.proto
+    actions/admin/fleet/cloudhub.proto
     actions/dev.proto
     actions/dev/local_deploy.proto
     actions/dev/build.proto
@@ -40,6 +41,7 @@ add_jaiabot_application(TARGET jaia
     actions/admin/ssh/clear.cpp
     actions/admin/ssh/known.cpp
     actions/admin/fleet.cpp
+    actions/admin/fleet/cloudhub.cpp
     actions/dev.cpp
     actions/dev/local_deploy.cpp
     actions/dev/build.cpp

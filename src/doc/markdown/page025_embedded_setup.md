@@ -107,7 +107,7 @@ cd /path/to/boot/jaiabot/init
 HUB=1; FLEET=5; ssh-keygen -f hub${HUB}_fleet${FLEET} -t ed25519 -N "" -C "hub${HUB}_fleet${FLEET}"
 ```
 
-- For Wireguard setup: A key called `id_vpn_tmp` (private) / `id_vpn_tmp.pub` (public) can be provided. `jaia admin fleet create` generates it, and `jaia admin fleet create_cloudhub` gives the public half to the fleet's CloudHub, where during fleet pairing it may do nothing but enroll one node on the CloudHub VPN (see [VPN](page055_vpn.md)). A node spends it once it has enrolled. To make one by hand:
+- For Wireguard setup: A key called `id_vpn_tmp` (private) / `id_vpn_tmp.pub` (public) can be provided. `jaia admin fleet create` generates it, and `jaia admin fleet cloudhub create` gives the public half to the fleet's CloudHub, where during fleet pairing it may do nothing but enroll one node on the CloudHub VPN (see [VPN](page055_vpn.md)). A node spends it once it has enrolled. To make one by hand:
 ```
 cd /path/to/boot/jaiabot/init
 ssh-keygen -f id_vpn_tmp -t ed25519 -N "" -C "id_vpn_tmp"

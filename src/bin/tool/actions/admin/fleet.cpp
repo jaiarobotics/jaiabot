@@ -1,6 +1,7 @@
 #include "goby/middleware/application/tool.h"
 
 #include "fleet.h"
+#include "fleet/cloudhub.h"
 
 #include <boost/filesystem.hpp>
 
@@ -20,6 +21,11 @@ jaiabot::apps::admin::FleetTool::FleetTool()
                 {
                     switch (action_for_help)
                     {
+                        case jaiabot::config::admin::FleetTool::cloudhub:
+                            tool_helper.help<jaiabot::apps::admin::fleet::CloudHubTool,
+                                             jaiabot::apps::admin::fleet::CloudHubToolConfigurator>(
+                                action_for_help);
+                            break;
 
                         default:
                             throw(goby::Exception(
@@ -27,6 +33,11 @@ jaiabot::apps::admin::FleetTool::FleetTool()
                             break;
                     }
                 }
+                break;
+
+            case jaiabot::config::admin::FleetTool::cloudhub:
+                tool_helper.run_subtool<jaiabot::apps::admin::fleet::CloudHubTool,
+                                        jaiabot::apps::admin::fleet::CloudHubToolConfigurator>();
                 break;
 
             default:

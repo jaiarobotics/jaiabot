@@ -504,7 +504,7 @@ done
 
 CLOUDHUB_SSH_PUBKEY=${TMPDIR}/hub${CLOUDHUB_ID}_fleet${FLEET_ID}.pub
 ssh "${SSH_OPTS[@]}" jaia@${PUBLIC_IPV4_ADDRESS} "cat /home/jaia/.ssh/hub${CLOUDHUB_ID}_fleet${FLEET_ID}.pub" > ${CLOUDHUB_SSH_PUBKEY}
-jaia admin fleet set_cloudhub_key ${FLEET_CONFIG} ${CLOUDHUB_SSH_PUBKEY}
+jaia admin fleet cloudhub set_key ${FLEET_CONFIG} ${CLOUDHUB_SSH_PUBKEY}
 echo ">>>>>> Recorded the CloudHub's SSH public key in ${FLEET_CONFIG}"
 
 # SSH is allowed through ufw and gated at the security group alone. Two locks would

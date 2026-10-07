@@ -639,6 +639,15 @@ class CommandTest(unittest.TestCase):
         cfg = fc.parse_fleet_config(SCHEMA, path)
         self.assertEqual([k.public_key for k in cfg.ssh.hub if k.id == 30], ["ssh-ed25519 AAAAnewer hub30_fleet6"])
 
+    def test_set_key_under_the_cloudhub_subtool_is_set_cloudhub_key(self):
+        """How "jaia admin fleet cloudhub set_key" runs this script"""
+        path = self.env.without_cloudhub_key()
+        result = self.env.run("--binary=jaia admin fleet cloudhub set_key", path,
+                              self.env.pubkey_file("ssh-ed25519 AAAAnew hub30_fleet6\n"))
+        self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+        cfg = fc.parse_fleet_config(SCHEMA, path)
+        self.assertEqual([k.public_key for k in cfg.ssh.hub if k.id == 30], ["ssh-ed25519 AAAAnew hub30_fleet6"])
+
     def test_set_cloudhub_key_refuses_a_fleet_without_a_cloudhub(self):
         pubkey = self.env.pubkey_file("ssh-ed25519 AAAAnew hub30_fleet6\n")
         no_cloudhub = os.path.join(self.env.dir, "no_cloudhub.cfg")

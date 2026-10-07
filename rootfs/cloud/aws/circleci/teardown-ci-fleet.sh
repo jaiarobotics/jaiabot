@@ -38,7 +38,7 @@ repo_root=$(realpath "${script_dir}/../../../..")
 
 # only this run's fleet: a concurrent trial reuses the same fleet id, and this runs even
 # when create never got there
-jaia admin fleet delete_cloudhub --region "${AWS_DEFAULT_REGION}" \
+jaia admin fleet cloudhub delete --region "${AWS_DEFAULT_REGION}" \
     --aws-profile OIDC-User --jaiabot-dir "${repo_root}" --yes \
     --customer "${JAIA_CI_CUSTOMER}" "${FLEET}"
 
