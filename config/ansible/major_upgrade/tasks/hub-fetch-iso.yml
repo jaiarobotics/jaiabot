@@ -1,10 +1,18 @@
 # A CloudHub has no updates disk. CircleCI publishes the same ISO to S3, so it is
 # fetched and loop-mounted where the rest of the playbook already looks for it.
+# The image comes from the same repo (test, beta, release, ...) as the node's packages
+- name: Read the repo this node installs from
+  shell: "grep -rhoE 'packages\\.jaia\\.tech/ubuntu/[a-z]+/' /etc/apt/sources.list /etc/apt/sources.list.d/ | grep -v '/ubuntu/gobysoft/' | head -n 1 | cut -d/ -f3"
+  register: apt_repo_result
+  changed_when: false
+  failed_when: false
+  when: major_upgrade_iso_repo is not defined
+
 - name: Set ISO facts
   set_fact:
     iso_mountpoint: /var/www/html/updates
     iso_dir: "{{ upgrade_dir_base }}/iso"
-    iso_repo: "{{ major_upgrade_iso_repo | default('release') }}"
+    iso_repo: "{{ major_upgrade_iso_repo if major_upgrade_iso_repo is defined else (apt_repo_result.stdout | default('') | trim | default('release', true)) }}"
 
 - name: Create the ISO directory
   file:
