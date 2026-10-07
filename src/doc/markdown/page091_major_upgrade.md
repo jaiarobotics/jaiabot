@@ -70,6 +70,8 @@ Each node downloads the new images from the hub one at a time, capped at 1.5 MB/
 
 Only the hub named by `hub_id` stages the upgrade (mounts the updates disk and checks the fleet configuration and its SSH key); the other hubs skip staging and download the new images from it like the bots do.
 
+A CloudHub has no USB port: it downloads the update image itself and upgrades only itself, before the rest of the fleet. Its JCU's "Major Upgrade" is limited to the CloudHub and proposes no backup, which a CloudHub's disk is usually too small for.
+
 ### Use the playbook from the release you are installing
 
 Run the playbook from a git checkout of the release being installed, not from the copy installed on the hub. A hub still running the old release has the old playbook under `/usr/share/jaiabot/config/ansible`, and that playbook builds the new boot filesystem with the old release's fleet config tool, which cannot write a preseed the new image can read. Nothing reports an error until after the root filesystem has already been swapped, so the node reboots into the new release unconfigured: no hostname, no network, no `jaiabot`, reachable only over a serial console.
