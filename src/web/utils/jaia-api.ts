@@ -172,48 +172,6 @@ export class JaiaAPI {
         });
     }
 
-    /**
-     * Gets a GeoJSON object with interpolated drift features
-     *
-     * @param {string} startDate (optional) Set a lower bound on drift packets used for interpolation
-     * @param {string} endDate (optional) Set an upper bound of drift packets used for interpolation
-     *
-     * @returns {Feature<Geometry>[] | void} A GeoJSON feature set containing interpolated drift features
-     */
-    getDriftMap(startDate?: string, endDate?: string) {
-        var queryParameters = [];
-        if (startDate) {
-            const startDateStr = convertHTMLStrDateToISO(startDate);
-            queryParameters.push(`startDate=${startDateStr}`);
-        }
-        if (endDate) {
-            const endDateStr = convertHTMLStrDateToISO(endDate);
-            queryParameters.push(`endDate=${endDateStr}`);
-        }
-
-        if (queryParameters.length > 0) {
-            const queryParameterString = queryParameters.join("&");
-            return this.get(`jaia/v0/drift-map?${queryParameterString}`)
-                .then((geoJSON) => {
-                    const features = new GeoJSON().readFeatures(geoJSON);
-                    return features;
-                })
-                .catch((err) => {
-                    logResReqError("getDriftMap", err);
-                });
-        } else {
-            // Let server set default date values
-            return this.get(`jaia/v0/drift-map`)
-                .then((geoJSON) => {
-                    const features = new GeoJSON().readFeatures(geoJSON);
-                    return features;
-                })
-                .catch((err) => {
-                    logResReqError("getDriftMap", err);
-                });
-        }
-    }
-
     async getOfflineMaps() {
         return this.get("maps/").then((response) => {
             return response as Promise<MapsDirectory>;
