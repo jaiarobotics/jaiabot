@@ -115,23 +115,6 @@ export class JaiaAPI {
         return this.clientId;
     }
 
-    getMetadata() {
-        return this.get("jaia/v0/metadata");
-    }
-
-    getStatus() {
-        return this.get("jaia/v0/status");
-    }
-
-    /**
-     * Gets most recent status for hub(s)
-     *
-     * @returns {{[key: string]: PortalHubStatus}} Object containing most recent status for hub(s)
-     */
-    getStatusHubs() {
-        return this.get("jaia/v0/status-hubs");
-    }
-
     /**
      * Queries the server for TaskPackets within a specified range. If no start and end date, the
      * server defaults to a 14 hour window with the end date set to now
@@ -156,10 +139,6 @@ export class JaiaAPI {
             // Let server set default date values
             return this.get(`jaia/v0/task-packets`);
         }
-    }
-
-    getTaskPacketsVersion() {
-        return this.get(`jaia/v0/task-packets-version`);
     }
 
     async postTaskPacketInclude(
@@ -211,36 +190,8 @@ export class JaiaAPI {
         });
     }
 
-    allStop() {
-        return this.post("jaia/v0/all-stop");
-    }
-
-    allActivate() {
-        return this.post("jaia/v0/all-activate", null);
-    }
-
-    nextTaskAll() {
-        return this.post("jaia/v0/next-task-all", null);
-    }
-
-    allRecover() {
-        return this.post("jaia/v0/all-recover", null);
-    }
-
-    postCommand(command: Command) {
-        return this.post("jaia/v0/command", command);
-    }
-
-    postCommandForHub(command: CommandForHub) {
-        return this.post("jaia/v0/command-for-hub", command);
-    }
-
     postEngineeringPanel(engineeringPanelCommand: Engineering) {
         return this.post("jaia/v0/ep-command", engineeringPanelCommand);
-    }
-
-    takeControl() {
-        return this.post("jaia/v0/take-control", null);
     }
 
     postEngineering(engineeringCommand: Engineering) {
@@ -296,18 +247,6 @@ export class JaiaAPI {
     async deleteMissionSet(name: string): Promise<void> {
         await this.delete(`jaia/v0/mission-sets/${encodeURIComponent(name)}`);
     }
-}
-
-/**
- * Combine console.error and console.log into one function to reduce code repetition
- *
- * @param {string} functionName Used as location input to the error msg to help debug
- * @param {Error} error Prints the error object to make all debug data visible
- * @returns {void}
- */
-function logResReqError(functionName: string, error: Error) {
-    console.error(`${functionName}:`, error);
-    console.log(`${functionName}:`, error);
 }
 
 export const jaiaAPI = new JaiaAPI(randomBase57(22), "/", false);

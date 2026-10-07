@@ -3,15 +3,15 @@ import { APIRequest, APIResponse } from "@proto/jaiabot/messages/rest_api";
 import { FeatureCollection, Geometry } from "geojson";
 
 export class JaiaRESTAPI {
-    clientId: string;
+    client_id: string;
     port: number;
     base_url: URL;
     headers: { [key: string]: string };
 
-    constructor(clientId: string | null = null, port = 9092) {
-        this.clientId = clientId ?? randomBase57(22);
+    constructor(client_id: string | null = null, port = 9092) {
+        this.client_id = client_id ?? randomBase57(22);
 
-        console.info(`Jaia REST API v1 clientId = ${this.clientId}`);
+        console.info(`Jaia REST API v1 clientId = ${this.client_id}`);
 
         this.base_url = new URL("/jaia/v1", window.location.href);
         this.base_url.port = port.toString();
@@ -21,7 +21,7 @@ export class JaiaRESTAPI {
 
         this.headers = {
             "Content-Type": "application/json; charset=utf-8",
-            clientId: this.clientId,
+            clientId: this.client_id,
         };
     }
 
@@ -59,6 +59,16 @@ export class JaiaRESTAPI {
                 console.error("API Request Error:", error);
                 throw error;
             });
+    }
+
+    // Higher level helpers
+    async takeControl(): Promise<APIResponse> {
+        return this.request({
+            target: {
+                all: true,
+            },
+            take_control_client_id: this.client_id,
+        });
     }
 }
 

@@ -1,4 +1,4 @@
-import { jaiaAPI } from "../../../../utils/jaia-api";
+import { jaia_rest_api } from "../../../../utils/jaia-rest-api";
 import "./TakeControlButton.less";
 
 /**
@@ -11,7 +11,12 @@ export default function TakeControlButton() {
      * @returns {void}
      */
     const handleTakeControlClick = async () => {
-        const res = await jaiaAPI.takeControl();
+        try {
+            const response = await jaia_rest_api.takeControl(); // Will throw if request fails
+            console.log(response);
+        } catch (error) {
+            console.error("Error taking control:", error);
+        }
     };
 
     return (

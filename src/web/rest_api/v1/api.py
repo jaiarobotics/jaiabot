@@ -224,6 +224,8 @@ def pod_status(jaia_request: APIRequest) -> APIResponse:
             bots = [common.shared_data.data.bots[value] for value in jaia_request.target.bots if value in common.shared_data.data.bots]
             hubs = [common.shared_data.data.hubs[value] for value in jaia_request.target.hubs if value in common.shared_data.data.hubs]
 
+        jaia_response.pod_status.controlling_client_id = common.shared_data.data.controlling_client_id
+
     jaia_response.target.bots.extend([bot.bot_id for bot in bots])
 
     for bot in bots:
@@ -252,12 +254,19 @@ def pod_status(jaia_request: APIRequest) -> APIResponse:
     
     jaia_response.pod_status.contacts.extend(common.shared_data.data.contacts.values())
 
-    # TODO: pod_status.controllingClientId = common.shared_data.data.controlling_client_id
+    return jaia_response
 
+
+def take_control_client_id(jaia_request: APIRequest) -> APIResponse:
+    jaia_response = APIResponse()
+    with common.shared_data.data_lock:
+        common.shared_data.data.controlling_client_id = jaia_request.take_control_client_id
+        jaia_response.controlling_client_id = common.shared_data.data.controlling_client_id
     return jaia_response
 
 
 def task_packets_version(jaia_request: APIRequest) -> APIResponse:
     jaia_response = APIResponse()
-    jaia_response.task_packets_version.version = common.shared_data.data.task_packet_database.task_packets_version
+    with common.shared_data.data_lock:
+        jaia_response.task_packets_version.version = common.shared_data.data.task_packet_database.task_packets_version
     return jaia_response

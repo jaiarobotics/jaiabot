@@ -286,7 +286,7 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
             },
         };
         const res = await sendBotCommand(rcDiveCommand);
-        if (res.message) {
+        if (res.error) {
             error("Unable to send RC dive command");
         } else {
             success("Beginning RC dive");

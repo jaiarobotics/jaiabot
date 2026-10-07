@@ -123,7 +123,7 @@ export default function StartAllMissionsButton(props: Props) {
                     plan: missionPlan,
                 };
                 const res = await sendBotCommand(startMissionCommand);
-                if (res.status === "ok") {
+                if (!res.error) {
                     jaiaDispatch({ type: JaiaActions.SENT_COMMAND, command: startMissionCommand });
                 }
             }

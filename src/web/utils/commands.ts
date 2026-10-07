@@ -1,3 +1,4 @@
+import { jaia_rest_api } from "./jaia-rest-api";
 import { jaiaAPI } from "./jaia-api";
 import { Engineering } from "@proto/jaiabot/messages/engineering";
 import { Command, CommandForHub, Command_CommandType } from "@proto/jaiabot/messages/jaia_dccl";
@@ -66,7 +67,12 @@ export function isCommandAvailable(commandType: Command_CommandType, missionStat
  * @returns {Promise} Response from sending command
  */
 export function sendBotCommand(command: Command) {
-    return jaiaAPI.postCommand(command);
+    return jaia_rest_api.request({
+        target: {
+            bots: [command.bot_id ?? 0],
+        },
+        command: command,
+    });
 }
 
 /**
@@ -76,7 +82,12 @@ export function sendBotCommand(command: Command) {
  * @returns {Promise} Response from sending command
  */
 export function sendHubCommand(command: CommandForHub) {
-    return jaiaAPI.postCommandForHub(command);
+    return jaia_rest_api.request({
+        target: {
+            hubs: [command.hub_id ?? 0],
+        },
+        command_for_hub: command,
+    });
 }
 
 /**
@@ -97,7 +108,7 @@ export function sendEngineeringCommand(command: Engineering) {
  */
 export function isControllingClient() {
     const controllingID = jaiaGlobal.getControllingClientID();
-    if (controllingID === jaiaAPI.getClientId() || controllingID === null) {
+    if (controllingID === jaia_rest_api.client_id || controllingID === null) {
         return true;
     }
 

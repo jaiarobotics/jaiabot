@@ -49,6 +49,8 @@ class Data:
     task_packet_files_path = "/var/log/jaiabot/bot_offload"
     task_packet_loaded_filenames: Set[str] = set()
 
+    controlling_client_id = "NONE"
+
     def __init__(self) -> None:
         pass
 

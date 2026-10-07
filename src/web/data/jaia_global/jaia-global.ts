@@ -146,6 +146,7 @@ export class JaiaGlobal {
     }
 
     setControllingClientID(controllingClientID: string) {
+        console.log(`Setting controlling client ID to: ${controllingClientID}`);
         this.controllingClientID = controllingClientID;
     }
 

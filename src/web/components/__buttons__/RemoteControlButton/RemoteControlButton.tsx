@@ -106,7 +106,7 @@ export default function RemoteControlButton(props: Props) {
         if (dialogAction === DialogActions.CONFIRMED) {
             const command = rcActive ? getExitRCCommand(props.bot) : getEnterRCCommand(props.bot);
             const response = await sendBotCommand(command);
-            if (response && response.status === "ok") {
+            if (!response.error) {
                 jaiaDispatch({
                     type: JaiaActions.SENT_COMMAND,
                     botID: props.bot.getBotID(),

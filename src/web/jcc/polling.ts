@@ -66,7 +66,7 @@ export async function pollStatus() {
 
         updateBots(pod_status.bots ?? []);
         updateHubs(pod_status.hubs ?? []);
-        updateJaiaGlobal(pod_status.controllingClientId ?? "");
+        updateJaiaGlobal(pod_status.controlling_client_id ?? "");
         updateOpenLayers();
         if (pod_status.messages?.error && pod_status.messages?.error === HUB_CONNECTION_ERROR) {
             updateWarning(CONNECTION_WARNING, true);
