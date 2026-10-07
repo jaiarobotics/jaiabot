@@ -2,7 +2,7 @@ import { ExclusionZone, exclusionZoneSet } from "../../exclusion_zones/exclusion
 import { missionSet } from "../../mission_set/mission-set";
 import Mission from "../../mission_set/mission";
 import { getMissionsInConflict } from "../exclusion_zones/exclusion-zone-detection";
-import { routeAroundExclusionZones } from "../exclusion_zones/exclusion-zone-router";
+import { routeAroundExclusionZones } from "../../../utils/routing/router";
 import { GeographicCoordinate } from "../../../types/protobuf-types";
 
 function coord(lat: number, lon: number): GeographicCoordinate {
@@ -101,12 +101,15 @@ describe("getMissionsInConflict", () => {
         expect(getMissionsInConflict()).toEqual(new Set([missionID]));
 
         // Replace the mission with the detoured route the router computes.
-        const { plan } = routeAroundExclusionZones({
-            goal: missionSet
-                .getMission(missionID)
-                .getWaypoints()
-                .map((wp) => wp.packageWaypointForHub()),
-        });
+        const { plan } = routeAroundExclusionZones(
+            {
+                goal: missionSet
+                    .getMission(missionID)
+                    .getWaypoints()
+                    .map((wp) => wp.packageWaypointForHub()),
+            },
+            exclusionZoneSet.getZones(),
+        );
         missionSet.deleteAllMissions();
         addMission(
             plan.goal!.map((goal): [number, number] => [goal.location!.lat, goal.location!.lon]),

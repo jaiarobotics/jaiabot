@@ -4,7 +4,8 @@ import {
     buildZoneBufferCache,
     buildSharedZoneGeoms,
     routeNeedsBypass,
-} from "./exclusion-zone-router";
+} from "../../../utils/routing/router";
+import { exclusionZoneSet } from "../../exclusion_zones/exclusion-zone-set";
 
 /**
  * Returns the IDs of missions whose route is not clear of the current exclusion zones —
@@ -20,9 +21,10 @@ import {
  */
 export function getMissionsInConflict(): Set<number> {
     const conflicted = new Set<number>();
-    const shared = buildSharedZoneGeoms();
+    const zones = exclusionZoneSet.getZones();
+    const shared = buildSharedZoneGeoms(zones);
     if (!shared) return conflicted;
-    const zoneBufferCache = buildZoneBufferCache();
+    const zoneBufferCache = buildZoneBufferCache(zones);
 
     for (const [missionID, mission] of missionSet.getMissions()) {
         const route = mission
@@ -34,10 +36,11 @@ export function getMissionsInConflict(): Set<number> {
         // touching such a waypoint as unroutable rather than blocked, so the leg test
         // alone reports nothing for a mission sitting entirely inside a zone.
         const hasEnclosedWaypoint = route.some(
-            (location) => getBlockingZoneIDs(location, undefined, zoneBufferCache).length > 0,
+            (location) =>
+                getBlockingZoneIDs(location, zones, undefined, zoneBufferCache).length > 0,
         );
 
-        if (hasEnclosedWaypoint || routeNeedsBypass(route, undefined, shared)) {
+        if (hasEnclosedWaypoint || routeNeedsBypass(route, zones, undefined, shared)) {
             conflicted.add(missionID);
         }
     }

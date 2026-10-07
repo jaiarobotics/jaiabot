@@ -7,9 +7,9 @@
  */
 
 import { Clipper, JoinType, EndType, FillRule } from "clipper2-ts";
-import { GeographicCoordinate, Goal, MissionPlan } from "../../../types/protobuf-types";
-import { METERS_PER_DEG } from "../../../utils/constants";
-import { ExclusionZone, exclusionZoneSet } from "../../exclusion_zones/exclusion-zone-set";
+import { GeographicCoordinate, Goal, MissionPlan } from "../../types/protobuf-types";
+import { METERS_PER_DEG } from "../constants";
+import { ExclusionZone } from "../../data/exclusion_zones/exclusion-zone-set";
 
 interface XYPt {
     x: number;
@@ -264,16 +264,6 @@ interface ZoneGeom {
 }
 
 /**
- * Projects and buffers every exclusion zone relative to a single shared
- * origin. Callers that process multiple missions/waypoints against the same
- * zone set in one pass should build this once and reuse it, instead of
- * letting each per-mission/per-waypoint call rebuild it from scratch.
- *
- * @param {GeographicCoordinate} origin Shared projection origin for every zone
- * @param {number} safetyMargin Safety buffer distance in metres around each zone
- * @returns {Array<ZoneGeom & { zoneID: number }>} Projected, buffered geometry for every valid zone
- */
-/**
  * Returns the zones whose safety buffer blocks direct travel from A to B.
  * A zone is skipped when either endpoint lies inside its raw hull: the segment is
  * then unroutable rather than blocked, and routing around it is not attempted.
@@ -298,12 +288,24 @@ function zonesBlockingSegment(
     );
 }
 
+/**
+ * Projects and buffers every exclusion zone relative to a single shared
+ * origin. Callers that process multiple missions/waypoints against the same
+ * zone set in one pass should build this once and reuse it, instead of
+ * letting each per-mission/per-waypoint call rebuild it from scratch.
+ *
+ * @param {ReadonlyMap<number, ExclusionZone>} zones Exclusion zones to project, keyed by zone ID
+ * @param {GeographicCoordinate} origin Shared projection origin for every zone
+ * @param {number} safetyMargin Safety buffer distance in metres around each zone
+ * @returns {Array<ZoneGeom & { zoneID: number }>} Projected, buffered geometry for every valid zone
+ */
 function buildZoneGeoms(
+    zones: ReadonlyMap<number, ExclusionZone>,
     origin: GeographicCoordinate,
     safetyMargin: number,
 ): Array<ZoneGeom & { zoneID: number }> {
     const zoneGeoms: Array<ZoneGeom & { zoneID: number }> = [];
-    for (const [zoneID, zone] of exclusionZoneSet.getZones()) {
+    for (const [zoneID, zone] of zones) {
         if (!zone.vertices || zone.vertices.length < 3) continue;
         const raw = zone.vertices.map((v) => toXY(origin, v));
         if (raw.length < 3) continue;
@@ -655,6 +657,7 @@ interface RouteResult {
  * Returns the original plan unchanged if no intersections are found.
  *
  * @param {MissionPlan} plan Mission plan whose goal waypoints need routing
+ * @param {ReadonlyMap<number, ExclusionZone>} zones Exclusion zones to route around, keyed by zone ID
  * @param {number} [safetyMargin] Safety buffer distance in metres around each zone
  * @param {GeographicCoordinate} [originOverride] Optional projection origin; defaults to the first goal location
  * @param {Array<ZoneGeom & { zoneID: number }>} [zoneGeomsOverride] Optional precomputed zone geometry
@@ -664,6 +667,7 @@ interface RouteResult {
  */
 export function routeAroundExclusionZones(
     plan: MissionPlan,
+    zones: ReadonlyMap<number, ExclusionZone>,
     safetyMargin = DEFAULT_SAFETY_MARGIN_METERS,
     originOverride?: GeographicCoordinate,
     zoneGeomsOverride?: Array<ZoneGeom & { zoneID: number }>,
@@ -672,7 +676,7 @@ export function routeAroundExclusionZones(
     if (goals.length < 2) return { plan, bypassCount: 0 };
 
     const origin = originOverride ?? goals[0].location!;
-    const zoneGeoms = zoneGeomsOverride ?? buildZoneGeoms(origin, safetyMargin);
+    const zoneGeoms = zoneGeomsOverride ?? buildZoneGeoms(zones, origin, safetyMargin);
     if (zoneGeoms.length === 0) return { plan, bypassCount: 0 };
 
     interface WorkingGoal {
@@ -753,12 +757,16 @@ type ZoneBufferCache = Map<number, { origin: GeographicCoordinate; expanded: XYP
  * pass (e.g. once per waypoint) should build this once and reuse it, instead
  * of letting each `getBlockingZoneIDs` call rebuild every zone from scratch.
  *
+ * @param {ReadonlyMap<number, ExclusionZone>} zones Exclusion zones to buffer, keyed by zone ID
  * @param {number} safetyMargin Safety buffer distance in metres around each zone
  * @returns {ZoneBufferCache} Buffer geometry for every valid zone, keyed by zone ID
  */
-export function buildZoneBufferCache(safetyMargin = DEFAULT_SAFETY_MARGIN_METERS): ZoneBufferCache {
+export function buildZoneBufferCache(
+    zones: ReadonlyMap<number, ExclusionZone>,
+    safetyMargin = DEFAULT_SAFETY_MARGIN_METERS,
+): ZoneBufferCache {
     const cache: ZoneBufferCache = new Map();
-    for (const [zoneID, zone] of exclusionZoneSet.getZones()) {
+    for (const [zoneID, zone] of zones) {
         if (!zone.vertices || zone.vertices.length < 3) continue;
         const origin = zone.vertices[0];
         const raw = zone.vertices.map((v) => toXY(origin, v));
@@ -772,6 +780,7 @@ export function buildZoneBufferCache(safetyMargin = DEFAULT_SAFETY_MARGIN_METERS
  * location.
  *
  * @param {GeographicCoordinate} location Geographic point to test against all zone buffers
+ * @param {ReadonlyMap<number, ExclusionZone>} zones Exclusion zones to test against, keyed by zone ID
  * @param {number} [safetyMargin] Safety buffer distance in metres around each zone
  * @param {ZoneBufferCache} [zoneBufferCache] Optional precomputed buffer geometry
  *   (see `buildZoneBufferCache`), for callers checking many locations against the same zone set.
@@ -779,6 +788,7 @@ export function buildZoneBufferCache(safetyMargin = DEFAULT_SAFETY_MARGIN_METERS
  */
 export function getBlockingZoneIDs(
     location: GeographicCoordinate,
+    zones: ReadonlyMap<number, ExclusionZone>,
     safetyMargin = DEFAULT_SAFETY_MARGIN_METERS,
     zoneBufferCache?: ZoneBufferCache,
 ): number[] {
@@ -789,7 +799,7 @@ export function getBlockingZoneIDs(
         }
         return ids;
     }
-    for (const [zoneID, zone] of exclusionZoneSet.getZones()) {
+    for (const [zoneID, zone] of zones) {
         if (!zone.vertices || zone.vertices.length < 3) continue;
         const origin = zone.vertices[0];
         const raw = zone.vertices.map((v) => toXY(origin, v));
@@ -820,12 +830,14 @@ let projectionOrigin: GeographicCoordinate | undefined;
  * It is re-anchored only when no zone has usable geometry, or when the zones have moved
  * far enough away that the projection would lose accuracy.
  *
+ * @param {ReadonlyMap<number, ExclusionZone>} zones Exclusion zones being projected, keyed by zone ID
  * @returns {GeographicCoordinate | undefined} Shared projection origin, or undefined when no zone has usable geometry
  */
-function getProjectionOrigin(): GeographicCoordinate | undefined {
-    const candidate = Array.from(exclusionZoneSet.getZones().values()).find(
-        (z) => z.vertices && z.vertices.length >= 3,
-    )?.vertices?.[0];
+function getProjectionOrigin(
+    zones: ReadonlyMap<number, ExclusionZone>,
+): GeographicCoordinate | undefined {
+    const candidate = Array.from(zones.values()).find((z) => z.vertices && z.vertices.length >= 3)
+        ?.vertices?.[0];
 
     if (!candidate) {
         projectionOrigin = undefined;
@@ -849,37 +861,41 @@ function getProjectionOrigin(): GeographicCoordinate | undefined {
  * Returns undefined when no zone has usable geometry, in which case nothing can be
  * blocked.
  *
+ * @param {ReadonlyMap<number, ExclusionZone>} zones Exclusion zones to project, keyed by zone ID
  * @param {number} [safetyMargin] Safety buffer distance in metres around each zone
  * @returns {SharedZoneGeoms | undefined} Shared projection origin and projected zones, or undefined if there are none
  */
 export function buildSharedZoneGeoms(
+    zones: ReadonlyMap<number, ExclusionZone>,
     safetyMargin = DEFAULT_SAFETY_MARGIN_METERS,
 ): SharedZoneGeoms | undefined {
-    const origin = getProjectionOrigin();
+    const origin = getProjectionOrigin(zones);
     if (!origin) return undefined;
-    return { origin, zoneGeoms: buildZoneGeoms(origin, safetyMargin) };
+    return { origin, zoneGeoms: buildZoneGeoms(zones, origin, safetyMargin) };
 }
 
 /**
- * Reports whether a route still requires a detour around the current zone set,
+ * Reports whether a route still requires a detour around the given zones,
  * without computing the detour itself. Uses the same blocking test as
  * `routeAroundExclusionZones`, so the two can never disagree, but skips the A*
  * search — callers that only need the yes/no answer should prefer this.
  *
  * @param {GeographicCoordinate[]} route Ordered locations of the route's waypoints
+ * @param {ReadonlyMap<number, ExclusionZone>} zones Exclusion zones to test against, keyed by zone ID
  * @param {number} [safetyMargin] Safety buffer distance in metres around each zone
  * @param {SharedZoneGeoms} [sharedGeoms] Precomputed geometry (see `buildSharedZoneGeoms`), for callers testing many routes against the same zone set
  * @returns {boolean} Whether any leg of the route is blocked by a zone
  */
 export function routeNeedsBypass(
     route: GeographicCoordinate[],
+    zones: ReadonlyMap<number, ExclusionZone>,
     safetyMargin = DEFAULT_SAFETY_MARGIN_METERS,
     sharedGeoms?: SharedZoneGeoms,
 ): boolean {
     if (route.length < 2) return false;
 
     const origin = sharedGeoms?.origin ?? route[0];
-    const zoneGeoms = sharedGeoms?.zoneGeoms ?? buildZoneGeoms(origin, safetyMargin);
+    const zoneGeoms = sharedGeoms?.zoneGeoms ?? buildZoneGeoms(zones, origin, safetyMargin);
     if (zoneGeoms.length === 0) return false;
 
     const xy = route.map((location) => toXY(origin, location));
@@ -894,12 +910,14 @@ export function routeNeedsBypass(
  * of any exclusion zone.
  *
  * @param {GeographicCoordinate} location Geographic point to test
+ * @param {ReadonlyMap<number, ExclusionZone>} zones Exclusion zones to test against, keyed by zone ID
  * @param {number} [safetyMargin] Safety buffer distance in metres around each zone
  * @returns {boolean} Whether the location is blocked by any zone's safety buffer
  */
 export function isLocationBlockedByZone(
     location: GeographicCoordinate,
+    zones: ReadonlyMap<number, ExclusionZone>,
     safetyMargin = DEFAULT_SAFETY_MARGIN_METERS,
 ): boolean {
-    return getBlockingZoneIDs(location, safetyMargin).length > 0;
+    return getBlockingZoneIDs(location, zones, safetyMargin).length > 0;
 }

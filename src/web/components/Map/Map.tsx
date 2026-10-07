@@ -25,7 +25,8 @@ import { locationToConstantHeadingParams } from "../../utils/conversions";
 
 import { missionSet } from "../../data/mission_set/mission-set";
 import { gridPlan, GridPlanningStates } from "../../data/survey_planner/grid-plan";
-import { isLocationBlockedByZone } from "../../data/obstacle_avoidance_data/exclusion_zones/exclusion-zone-router";
+import { exclusionZoneSet } from "../../data/exclusion_zones/exclusion-zone-set";
+import { isLocationBlockedByZone } from "../../utils/routing/router";
 
 import PlacementErrorDialog from "../ObstacleAvoidanceDialogs/PlacementErrorDialog/PlacementErrorDialog";
 
@@ -167,7 +168,7 @@ export default function Map() {
     const handleAddRallyPoint = (coordinate: Coordinate) => {
         const lonLat = toLonLat(coordinate, view.getProjection());
         const location = { lon: lonLat[0], lat: lonLat[1] };
-        if (isLocationBlockedByZone(location)) {
+        if (isLocationBlockedByZone(location, exclusionZoneSet.getZones())) {
             setPlacementError(PLACEMENT_ERROR_MESSAGE);
             return;
         }
@@ -187,7 +188,7 @@ export default function Map() {
 
         switch (gridPlan.getState()) {
             case GridPlanningStates.ACCEPTING_MISSION_START_LOCATION:
-                if (isLocationBlockedByZone(location)) {
+                if (isLocationBlockedByZone(location, exclusionZoneSet.getZones())) {
                     setPlacementError(PLACEMENT_ERROR_MESSAGE);
                     return;
                 }
@@ -199,7 +200,7 @@ export default function Map() {
                 nextState = GridPlanningStates.ACCEPTING_MISSION_END_LOCATION;
                 break;
             case GridPlanningStates.ACCEPTING_MISSION_END_LOCATION:
-                if (isLocationBlockedByZone(location)) {
+                if (isLocationBlockedByZone(location, exclusionZoneSet.getZones())) {
                     setPlacementError(PLACEMENT_ERROR_MESSAGE);
                     return;
                 }

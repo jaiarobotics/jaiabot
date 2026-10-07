@@ -568,10 +568,9 @@ The data formats and code layout that support the Phase 1 workflow.
 - **Where the code lives: one-way dependencies.** `data/` holds only the data model.
   Derived logic takes its data as parameters instead of reading global objects, and only the
   handlers connect the layers.
-    - `src/web/utils/routing/router.ts`: today's `exclusion-zone-router.ts`. Callers pass the zones
-      in; its four reads of the global zone set (`exclusion-zone-router.ts:310,765,796,831`) and its
-      `missionSet` import go, so it imports only the `ExclusionZone` type and protobuf geometry
-      types.
+    - `src/web/utils/routing/router.ts`: formerly `exclusion-zone-router.ts`. Callers pass the
+      zones in, so it reads no global zone set and imports only the `ExclusionZone` type and
+      protobuf geometry types.
     - `src/web/utils/routing/routing-status.ts`: `RoutingStatus` and `getRoutingStatus`, replacing
       `exclusion-zone-detection.ts`.
     - `Mission` defines `RerouteStep` and `RerouteResult` and imports nothing from routing.
@@ -662,6 +661,11 @@ Not started. Known items:
   defects carried over from PR #1674's review. (a) Export renames the zone or mission set without
   a tracked action, unlike Save, so undoing the next edit reverts the name. (b) A placement
   refused inside a zone still records an empty undo entry; this fits the handler rework.
+- **Phase 3, with the router's interface:** the router still keeps a module-level
+  `projectionOrigin`, so `buildSharedZoneGeoms` depends on earlier calls as well as the zones
+  passed in. It was kept stable so a stored route and a freshly computed one would agree; decide
+  whether routing status still needs that. Also, `getBlockingZoneIDs` and `routeNeedsBypass`
+  ignore their `zones` argument when given a prebuilt cache or shared geometry.
 - **Separate task:** router performance (Finding 12). A fixed 5 m A\* grid makes cost grow with
   the area searched. Candidate fix: scale the cell size with the search area, paired with an exact
   check of the final path against every zone, so a thin zone cannot slip between cell centres.

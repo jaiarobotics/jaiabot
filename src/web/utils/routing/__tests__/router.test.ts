@@ -1,13 +1,13 @@
 import { GeographicCoordinate, MissionPlan } from "../../../types/protobuf-types";
-import { ExclusionZone, exclusionZoneSet } from "../../exclusion_zones/exclusion-zone-set";
+import { ExclusionZone, exclusionZoneSet } from "../../../data/exclusion_zones/exclusion-zone-set";
 import {
     routeAroundExclusionZones,
     getZoneBufferVertices,
     getBlockingZoneIDs,
     isLocationBlockedByZone,
     routeNeedsBypass,
-} from "../exclusion_zones/exclusion-zone-router";
-import { METERS_PER_DEG } from "../../../utils/constants";
+} from "../router";
+import { METERS_PER_DEG } from "../../constants";
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -211,34 +211,38 @@ describe("isLocationBlockedByZone", () => {
 
     test("point at zone center is blocked", () => {
         exclusionZoneSet.addZone(squareZone(41.0, -72.0));
-        expect(isLocationBlockedByZone(coord(41.0, -72.0))).toBe(true);
+        expect(isLocationBlockedByZone(coord(41.0, -72.0), exclusionZoneSet.getZones())).toBe(true);
     });
 
     test("point far from zone is not blocked", () => {
         exclusionZoneSet.addZone(squareZone(41.0, -72.0));
-        expect(isLocationBlockedByZone(coord(42.0, -73.0))).toBe(false);
+        expect(isLocationBlockedByZone(coord(42.0, -73.0), exclusionZoneSet.getZones())).toBe(
+            false,
+        );
     });
 
     test("point just outside zone but inside buffer is blocked", () => {
         const halfSide = 0.0003;
         exclusionZoneSet.addZone(squareZone(41.0, -72.0, halfSide));
         const justOutside = coord(41.0 + halfSide + 0.00005, -72.0);
-        expect(isLocationBlockedByZone(justOutside, 15)).toBe(true);
+        expect(isLocationBlockedByZone(justOutside, exclusionZoneSet.getZones(), 15)).toBe(true);
     });
 
     test("point outside buffer is not blocked", () => {
         const halfSide = 0.0003;
         exclusionZoneSet.addZone(squareZone(41.0, -72.0, halfSide));
         const farOut = coord(41.0 + halfSide + 0.005, -72.0);
-        expect(isLocationBlockedByZone(farOut, 15)).toBe(false);
+        expect(isLocationBlockedByZone(farOut, exclusionZoneSet.getZones(), 15)).toBe(false);
     });
 
     test("works with a very small safety margin", () => {
         exclusionZoneSet.addZone(squareZone(41.0, -72.0, 0.0003));
         // margin=1m: center is still blocked, far point is not
-        expect(isLocationBlockedByZone(coord(41.0, -72.0), 1)).toBe(true);
+        expect(isLocationBlockedByZone(coord(41.0, -72.0), exclusionZoneSet.getZones(), 1)).toBe(
+            true,
+        );
         const outside = coord(41.0 + 0.001, -72.0);
-        expect(isLocationBlockedByZone(outside, 1)).toBe(false);
+        expect(isLocationBlockedByZone(outside, exclusionZoneSet.getZones(), 1)).toBe(false);
     });
 });
 
@@ -252,7 +256,7 @@ describe("getBlockingZoneIDs", () => {
         const id2 = exclusionZoneSet.addZone(squareZone(41.0, -72.0, 0.002));
         exclusionZoneSet.addZone(squareZone(42.0, -73.0));
 
-        const ids = getBlockingZoneIDs(coord(41.0, -72.0));
+        const ids = getBlockingZoneIDs(coord(41.0, -72.0), exclusionZoneSet.getZones());
         expect(ids).toContain(id1);
         expect(ids).toContain(id2);
         expect(ids.length).toBe(2);
@@ -260,11 +264,11 @@ describe("getBlockingZoneIDs", () => {
 
     test("returns empty array when no zones block the point", () => {
         exclusionZoneSet.addZone(squareZone(41.0, -72.0));
-        expect(getBlockingZoneIDs(coord(42.0, -73.0))).toEqual([]);
+        expect(getBlockingZoneIDs(coord(42.0, -73.0), exclusionZoneSet.getZones())).toEqual([]);
     });
 
     test("returns empty array when no zones exist", () => {
-        expect(getBlockingZoneIDs(coord(41.0, -72.0))).toEqual([]);
+        expect(getBlockingZoneIDs(coord(41.0, -72.0), exclusionZoneSet.getZones())).toEqual([]);
     });
 });
 
@@ -279,7 +283,7 @@ describe("routeAroundExclusionZones", () => {
 
     test("returns plan unchanged when no zones exist", () => {
         const p = plan(goal(41.0, -72.0), goal(41.01, -72.0));
-        const result = routeAroundExclusionZones(p);
+        const result = routeAroundExclusionZones(p, exclusionZoneSet.getZones());
         expect(result.bypassCount).toBe(0);
         expect(result.plan).toBe(p);
     });
@@ -287,14 +291,14 @@ describe("routeAroundExclusionZones", () => {
     test("returns plan unchanged for fewer than 2 goals", () => {
         exclusionZoneSet.addZone(squareZone(41.0, -72.0));
         const p = plan(goal(41.0, -72.0));
-        const result = routeAroundExclusionZones(p);
+        const result = routeAroundExclusionZones(p, exclusionZoneSet.getZones());
         expect(result.bypassCount).toBe(0);
     });
 
     test("returns plan unchanged when path does not cross any zone", () => {
         exclusionZoneSet.addZone(squareZone(41.0, -72.0));
         const p = plan(goal(42.0, -73.0), goal(42.01, -73.0));
-        const result = routeAroundExclusionZones(p);
+        const result = routeAroundExclusionZones(p, exclusionZoneSet.getZones());
         expect(result.bypassCount).toBe(0);
         expect(result.plan).toBe(p);
     });
@@ -304,7 +308,7 @@ describe("routeAroundExclusionZones", () => {
     test("inserts bypass waypoints when path crosses a zone", () => {
         exclusionZoneSet.addZone(squareZone(41.0, -72.0, 0.0005));
         const p = plan(goal(41.0, -72.005), goal(41.0, -71.995));
-        const result = routeAroundExclusionZones(p, 15);
+        const result = routeAroundExclusionZones(p, exclusionZoneSet.getZones(), 15);
 
         expect(result.bypassCount).toBeGreaterThan(0);
         expect(result.plan.goal!.length).toBeGreaterThan(2);
@@ -318,7 +322,7 @@ describe("routeAroundExclusionZones", () => {
         const g1 = goal(41.0, -72.005);
         const g2 = goal(41.0, -71.995);
         const p = plan(g1, g2);
-        const result = routeAroundExclusionZones(p, 15);
+        const result = routeAroundExclusionZones(p, exclusionZoneSet.getZones(), 15);
 
         const goals = result.plan.goal!;
         expect(goals[0].location).toEqual(g1.location);
@@ -328,14 +332,14 @@ describe("routeAroundExclusionZones", () => {
     test("does not route when start endpoint is inside the zone hull", () => {
         exclusionZoneSet.addZone(squareZone(41.0, -72.0, 0.001));
         const p = plan(goal(41.0, -72.0), goal(41.01, -72.0));
-        const result = routeAroundExclusionZones(p, 15);
+        const result = routeAroundExclusionZones(p, exclusionZoneSet.getZones(), 15);
         expect(result.bypassCount).toBe(0);
     });
 
     test("does not route when end endpoint is inside the zone hull", () => {
         exclusionZoneSet.addZone(squareZone(41.0, -72.0, 0.001));
         const p = plan(goal(41.01, -72.0), goal(41.0, -72.0));
-        const result = routeAroundExclusionZones(p, 15);
+        const result = routeAroundExclusionZones(p, exclusionZoneSet.getZones(), 15);
         expect(result.bypassCount).toBe(0);
     });
 
@@ -344,7 +348,7 @@ describe("routeAroundExclusionZones", () => {
     test("routed path does not cross the zone hull", () => {
         exclusionZoneSet.addZone(squareZone(41.0, -72.0, 0.0005));
         const p = plan(goal(41.0, -72.005), goal(41.0, -71.995));
-        const result = routeAroundExclusionZones(p, 15);
+        const result = routeAroundExclusionZones(p, exclusionZoneSet.getZones(), 15);
 
         const hull = squareZone(41.0, -72.0, 0.0005).vertices!;
         const goals = result.plan.goal!;
@@ -358,7 +362,7 @@ describe("routeAroundExclusionZones", () => {
     test("routed path around a triangle does not cross the zone hull", () => {
         exclusionZoneSet.addZone(triangleZone(41.0, -72.0, 0.0005));
         const p = plan(goal(41.0, -72.005), goal(41.0, -71.995));
-        const result = routeAroundExclusionZones(p, 15);
+        const result = routeAroundExclusionZones(p, exclusionZoneSet.getZones(), 15);
 
         const hull = triangleZone(41.0, -72.0, 0.0005).vertices!;
         const goals = result.plan.goal!;
@@ -377,7 +381,7 @@ describe("routeAroundExclusionZones", () => {
         exclusionZoneSet.addZone(west);
         exclusionZoneSet.addZone(east);
         const p = plan(goal(41.0, -72.006), goal(41.0, -71.994));
-        const result = routeAroundExclusionZones(p, 15);
+        const result = routeAroundExclusionZones(p, exclusionZoneSet.getZones(), 15);
 
         expect(result.bypassCount).toBeGreaterThan(0);
 
@@ -394,7 +398,7 @@ describe("routeAroundExclusionZones", () => {
         exclusionZoneSet.addZone(squareZone(41.0, -72.0002, 0.0005));
         exclusionZoneSet.addZone(squareZone(41.0, -71.9998, 0.0005));
         const p = plan(goal(41.0, -72.005), goal(41.0, -71.995));
-        const result = routeAroundExclusionZones(p, 15);
+        const result = routeAroundExclusionZones(p, exclusionZoneSet.getZones(), 15);
 
         expect(result.bypassCount).toBeGreaterThan(0);
     });
@@ -404,7 +408,7 @@ describe("routeAroundExclusionZones", () => {
     test("handles path with multiple segments, only some crossing zones", () => {
         exclusionZoneSet.addZone(squareZone(41.0, -72.0, 0.0005));
         const p = plan(goal(41.005, -72.005), goal(41.0, -72.005), goal(41.0, -71.995));
-        const result = routeAroundExclusionZones(p, 15);
+        const result = routeAroundExclusionZones(p, exclusionZoneSet.getZones(), 15);
         expect(result.bypassCount).toBeGreaterThan(0);
         const nonBypass = result.plan.goal!.filter((g) => g.name !== "route_bypass");
         expect(nonBypass.length).toBe(3);
@@ -414,7 +418,7 @@ describe("routeAroundExclusionZones", () => {
         exclusionZoneSet.addZone(squareZone(41.001, -72.0, 0.0004));
         exclusionZoneSet.addZone(squareZone(40.999, -72.0, 0.0004));
         const p = plan(goal(41.003, -72.0), goal(41.0, -72.0), goal(40.997, -72.0));
-        const result = routeAroundExclusionZones(p, 15);
+        const result = routeAroundExclusionZones(p, exclusionZoneSet.getZones(), 15);
         expect(result.bypassCount).toBeGreaterThan(0);
     });
 
@@ -424,7 +428,7 @@ describe("routeAroundExclusionZones", () => {
         exclusionZoneSet.addZone(squareZone(41.0, -72.0, 0.0003));
         // Path runs north of zone, well outside the 15m buffer (~0.0003 deg ≈ 33m from zone edge)
         const p = plan(goal(41.001, -72.005), goal(41.001, -71.995));
-        const result = routeAroundExclusionZones(p, 15);
+        const result = routeAroundExclusionZones(p, exclusionZoneSet.getZones(), 15);
         expect(result.bypassCount).toBe(0);
     });
 
@@ -433,7 +437,7 @@ describe("routeAroundExclusionZones", () => {
     test("safety margin of 0 still routes when path crosses hull", () => {
         exclusionZoneSet.addZone(squareZone(41.0, -72.0, 0.0005));
         const p = plan(goal(41.0, -72.005), goal(41.0, -71.995));
-        const result = routeAroundExclusionZones(p, 0);
+        const result = routeAroundExclusionZones(p, exclusionZoneSet.getZones(), 0);
         expect(result.bypassCount).toBeGreaterThan(0);
     });
 
@@ -441,7 +445,7 @@ describe("routeAroundExclusionZones", () => {
         exclusionZoneSet.addZone(squareZone(41.0, -72.0, 0.0003));
         // Path passes ~30m north of zone edge — within a 50m buffer
         const p = plan(goal(41.0006, -72.005), goal(41.0006, -71.995));
-        const result = routeAroundExclusionZones(p, 50);
+        const result = routeAroundExclusionZones(p, exclusionZoneSet.getZones(), 50);
         expect(result.bypassCount).toBeGreaterThan(0);
     });
 
@@ -451,7 +455,7 @@ describe("routeAroundExclusionZones", () => {
         exclusionZoneSet.addZone(squareZone(41.0, -72.0, 0.0005));
         // Diagonal from SW to NE, clipping the zone
         const p = plan(goal(40.999, -72.002), goal(41.001, -71.998));
-        const result = routeAroundExclusionZones(p, 15);
+        const result = routeAroundExclusionZones(p, exclusionZoneSet.getZones(), 15);
         expect(result.bypassCount).toBeGreaterThan(0);
     });
 });
@@ -462,33 +466,51 @@ describe("routeNeedsBypass", () => {
     });
 
     test("returns false when no zones exist", () => {
-        expect(routeNeedsBypass([coord(41.0, -72.005), coord(41.0, -71.995)])).toBe(false);
+        expect(
+            routeNeedsBypass(
+                [coord(41.0, -72.005), coord(41.0, -71.995)],
+                exclusionZoneSet.getZones(),
+            ),
+        ).toBe(false);
     });
 
     test("returns false for a route of fewer than two points", () => {
         exclusionZoneSet.addZone(squareZone(41.0, -72.0, 0.0005));
 
-        expect(routeNeedsBypass([])).toBe(false);
-        expect(routeNeedsBypass([coord(41.0, -72.0)])).toBe(false);
+        expect(routeNeedsBypass([], exclusionZoneSet.getZones())).toBe(false);
+        expect(routeNeedsBypass([coord(41.0, -72.0)], exclusionZoneSet.getZones())).toBe(false);
     });
 
     test("returns false for a route clear of every zone", () => {
         exclusionZoneSet.addZone(squareZone(41.01, -72.0, 0.0005));
 
-        expect(routeNeedsBypass([coord(41.0, -72.005), coord(41.0, -71.995)])).toBe(false);
+        expect(
+            routeNeedsBypass(
+                [coord(41.0, -72.005), coord(41.0, -71.995)],
+                exclusionZoneSet.getZones(),
+            ),
+        ).toBe(false);
     });
 
     test("returns true when a leg crosses a zone", () => {
         exclusionZoneSet.addZone(squareZone(41.0, -72.0, 0.0005));
 
-        expect(routeNeedsBypass([coord(41.0, -72.005), coord(41.0, -71.995)])).toBe(true);
+        expect(
+            routeNeedsBypass(
+                [coord(41.0, -72.005), coord(41.0, -71.995)],
+                exclusionZoneSet.getZones(),
+            ),
+        ).toBe(true);
     });
 
     test("returns true when only a later leg crosses a zone", () => {
         exclusionZoneSet.addZone(squareZone(41.0, -71.99, 0.0005));
 
         expect(
-            routeNeedsBypass([coord(41.0, -72.005), coord(41.0, -71.995), coord(41.0, -71.985)]),
+            routeNeedsBypass(
+                [coord(41.0, -72.005), coord(41.0, -71.995), coord(41.0, -71.985)],
+                exclusionZoneSet.getZones(),
+            ),
         ).toBe(true);
     });
 
@@ -499,9 +521,12 @@ describe("routeNeedsBypass", () => {
         // A leg passing ~2 m north of the hull edge clears the zone itself but not its
         // safety buffer, so a detour is still required.
         const justOutside = 41.0 + halfSide + 2 / METERS_PER_DEG;
-        expect(routeNeedsBypass([coord(justOutside, -72.005), coord(justOutside, -71.995)])).toBe(
-            true,
-        );
+        expect(
+            routeNeedsBypass(
+                [coord(justOutside, -72.005), coord(justOutside, -71.995)],
+                exclusionZoneSet.getZones(),
+            ),
+        ).toBe(true);
     });
 
     test("ignores a zone that already contains an endpoint, matching the router", () => {
@@ -509,7 +534,12 @@ describe("routeNeedsBypass", () => {
 
         // Starting inside the zone is unroutable rather than blocked; the router skips
         // such zones when deciding whether a detour exists, so this must agree.
-        expect(routeNeedsBypass([coord(41.0, -72.0), coord(41.0, -71.99)])).toBe(false);
+        expect(
+            routeNeedsBypass(
+                [coord(41.0, -72.0), coord(41.0, -71.99)],
+                exclusionZoneSet.getZones(),
+            ),
+        ).toBe(false);
     });
 
     test("agrees with routeAroundExclusionZones about whether a detour is needed", () => {
@@ -519,9 +549,12 @@ describe("routeNeedsBypass", () => {
             [coord(41.0, -72.005), coord(41.0, -71.995)],
             [coord(41.01, -72.005), coord(41.01, -71.995)],
         ]) {
-            const routed = routeAroundExclusionZones(plan(...route.map((c) => ({ location: c }))));
+            const routed = routeAroundExclusionZones(
+                plan(...route.map((c) => ({ location: c }))),
+                exclusionZoneSet.getZones(),
+            );
             const needsDetour = routed.bypassCount > 0 || !!routed.isRoutingImpossible;
-            expect(routeNeedsBypass(route)).toBe(needsDetour);
+            expect(routeNeedsBypass(route, exclusionZoneSet.getZones())).toBe(needsDetour);
         }
     });
 });
@@ -554,12 +587,18 @@ describe("bypass grid bounding", () => {
 
     test("a distant zone does not change the detour computed around a nearby one", () => {
         exclusionZoneSet.addZone(squareZone(41.0, -72.0, 0.0005));
-        const withoutDistantZone = routeAroundExclusionZones(BLOCKED_ROUTE);
+        const withoutDistantZone = routeAroundExclusionZones(
+            BLOCKED_ROUTE,
+            exclusionZoneSet.getZones(),
+        );
 
         // Roughly 30 km east — far enough that sizing the grid from every zone rather
         // than the blocking one would need tens of millions of cells.
         exclusionZoneSet.addZone(squareZone(41.0, -71.65, 0.0005));
-        const withDistantZone = routeAroundExclusionZones(BLOCKED_ROUTE);
+        const withDistantZone = routeAroundExclusionZones(
+            BLOCKED_ROUTE,
+            exclusionZoneSet.getZones(),
+        );
 
         expect(withDistantZone.bypassCount).toBe(withoutDistantZone.bypassCount);
         expect(withDistantZone.plan.goal!.map((g) => g.location)).toEqual(
@@ -575,7 +614,7 @@ describe("bypass grid bounding", () => {
         const northZone = rectZone(41.0006, 41.0018, -72.004, -71.996);
         exclusionZoneSet.addZone(northZone);
 
-        const result = routeAroundExclusionZones(BLOCKED_ROUTE);
+        const result = routeAroundExclusionZones(BLOCKED_ROUTE, exclusionZoneSet.getZones());
 
         expect(result.bypassCount).toBeGreaterThan(0);
         const locations = result.plan.goal!.map((g) => g.location!);
@@ -591,9 +630,24 @@ describe("bypass grid bounding", () => {
         // the cell ceiling, so it is reported unroutable instead of allocating the grid.
         exclusionZoneSet.addZone(rectZone(40.8, 41.2, -72.2, -71.8));
 
-        const result = routeAroundExclusionZones(plan(goal(41.0, -72.5), goal(41.0, -71.5)));
+        const result = routeAroundExclusionZones(
+            plan(goal(41.0, -72.5), goal(41.0, -71.5)),
+            exclusionZoneSet.getZones(),
+        );
 
         expect(result.bypassCount).toBe(0);
         expect(result.isRoutingImpossible).toBe(true);
+    });
+});
+
+describe("zones passed in", () => {
+    beforeEach(() => exclusionZoneSet.clearZones());
+
+    test("tests against the zones it is given, not the zone set", () => {
+        const zones = new Map([[1, squareZone(41.0, -72.0)]]);
+
+        expect(isLocationBlockedByZone(coord(41.0, -72.0), zones)).toBe(true);
+        expect(routeNeedsBypass([coord(41.0, -72.005), coord(41.0, -71.995)], zones)).toBe(true);
+        expect(isLocationBlockedByZone(coord(41.0, -72.0), new Map())).toBe(false);
     });
 });

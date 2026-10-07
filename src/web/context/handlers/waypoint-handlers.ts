@@ -2,6 +2,7 @@ import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 import { missionSet } from "../../data/mission_set/mission-set";
 import { taskPackets } from "../../data/task_packets/task-packets";
 import { GridPlanningStates } from "../../data/survey_planner/grid-plan";
+import { exclusionZoneSet } from "../../data/exclusion_zones/exclusion-zone-set";
 import { gridLayer } from "../../openlayers/layers/vector/grid-layer";
 import { missionLayer } from "../../openlayers/layers/vector/mission-layer";
 import { handleMapModeChange } from "../../openlayers/maps/map";
@@ -15,7 +16,7 @@ import {
 import { MapModes } from "../../types/openlayers-types";
 import { jaiaAPI } from "../../utils/jaia-api";
 import { MAX_WAYPOINTS, UNASSIGNED_ID } from "../../utils/constants";
-import { isLocationBlockedByZone } from "../../data/obstacle_avoidance_data/exclusion_zones/exclusion-zone-router";
+import { isLocationBlockedByZone } from "../../utils/routing/router";
 import { syncTaskLayers } from "./handler-utils";
 
 /**
@@ -29,7 +30,10 @@ export function handleAddWaypoint(mutableState: JaiaContextType, action: JaiaAct
     const missionIDInEditMode = missionSet.getMissionIDInEditMode();
 
     if (missionIDInEditMode !== UNASSIGNED_ID) {
-        if (action.location && isLocationBlockedByZone(action.location)) {
+        if (
+            action.location &&
+            isLocationBlockedByZone(action.location, exclusionZoneSet.getZones())
+        ) {
             mutableState.placementError =
                 "Cannot place a point inside an exclusion zone or its safety buffer.";
             return mutableState;
@@ -79,7 +83,7 @@ export function handleDeleteWaypoint(mutableState: JaiaContextType) {
  * @returns {JaiaContextType} Updated mutable state object
  */
 export function handleMoveWaypoint(mutableState: JaiaContextType, action: JaiaAction) {
-    if (action.location && isLocationBlockedByZone(action.location)) {
+    if (action.location && isLocationBlockedByZone(action.location, exclusionZoneSet.getZones())) {
         mutableState.placementError =
             "Cannot place a point inside an exclusion zone or its safety buffer.";
         return mutableState;
