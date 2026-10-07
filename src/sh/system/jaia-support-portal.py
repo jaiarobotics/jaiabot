@@ -218,13 +218,33 @@ def rows(pairs, css=""):
         for name, value in pairs))
 
 
+def pairing_banner(current):
+    """Said whenever it is true, grant or no grant: while fleet pairing holds the port
+    open to every address, "Jaia has no access" would be the comfortable answer rather
+    than the true one."""
+    window = current.get("pairing") or {}
+    if not window.get("open"):
+        return ""
+    return ("<p class=\"banner refused\">Fleet pairing is open until {}, so the CloudHub's "
+            "SSH port is open to every address for new bots and hubs to join. Until it "
+            "closes Jaia's engineers can reach this CloudHub with their own keys whether or "
+            "not you have granted access. Close Fleet Pairing in the Upgrade GUI ends it "
+            "sooner.</p>".format(html.escape(stamp(window.get("until") or 0))))
+
+
 def banner(now, current):
+    return access_banner(now, current) + pairing_banner(current)
+
+
+def access_banner(now, current):
     if current["trouble"]:
         return "<p class=\"banner refused\">This CloudHub could not say what it is granting, so " \
                "this may be out of date: {}</p>".format(html.escape(current["trouble"]))
 
     grant, held = current["grant"], current.get("open")
     if not grant and not held and not current.get("web"):
+        if (current.get("pairing") or {}).get("open"):
+            return "<p class=\"banner none\">You have not granted Jaia support access.</p>"
         return "<p class=\"banner none\">Jaia has no access to this fleet.</p>"
     if not grant:
         leftover = ("still admitting {}".format(held.get("cidr", "")) if held else

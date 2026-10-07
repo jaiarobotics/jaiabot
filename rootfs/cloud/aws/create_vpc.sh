@@ -71,7 +71,6 @@ set -a; source $1; set +a
 OUTPUT_JSON=${OUTPUT_JSON:-}
 CLOUDHUB_PERMISSIONS_BOUNDARY=${CLOUDHUB_PERMISSIONS_BOUNDARY:-}
 WAIT_TIMEOUT_SECONDS=${WAIT_TIMEOUT_SECONDS:-1800}
-VPN_ENROLLMENT_VALID_DAYS=${VPN_ENROLLMENT_VALID_DAYS:-30}
 
 # An unattended run has to fail rather than hang, so every wait below is bounded
 function abort_if_timed_out() {
@@ -287,7 +286,7 @@ run "" aws ec2 modify-subnet-attribute --assign-ipv6-address-on-creation --subne
 # SSH is open only while this script needs it; the hand-over below shuts it, and
 # from then on the support page is what opens it.
 run "" aws ec2 authorize-security-group-ingress --group-id $CLOUDHUB_SECURITY_GROUP_ID --ip-permissions IpProtocol=tcp,FromPort=22,ToPort=22,IpRanges='[{CidrIp=0.0.0.0/0}]',Ipv6Ranges='[{CidrIpv6=::/0}]'
-echo ">>>>>> Allowed SSH (port 22) on Security Group for the rest of this run"
+echo ">>>>>> Allowed SSH (port 22) on Security Group while this run provisions"
 
 run "" aws ec2 authorize-security-group-ingress --group-id $CLOUDHUB_SECURITY_GROUP_ID --ip-permissions IpProtocol=udp,FromPort=51820,ToPort=51821,IpRanges='[{CidrIp=0.0.0.0/0}]',Ipv6Ranges='[{CidrIpv6=::/0}]'
 echo ">>>>>> Allowed UDP ports 51820-51821 (Wireguard) on Security Group"
@@ -332,7 +331,6 @@ declare -A replacements=(
     ["{{CLIENT_VPN_WIREGUARD_PUBKEY}}"]="$CLIENT_VPN_WIREGUARD_PUBKEY"
     ["{{FLEET_ID}}"]="$FLEET_ID"
     ["{{VPN_TMP_PUBKEY}}"]="$(cat ${USER_DATA_FIRST_BOOT_DIR}/jaiabot/init/id_vpn_tmp.pub)"
-    ["{{VPN_ENROLLMENT_VALID_DAYS}}"]="$VPN_ENROLLMENT_VALID_DAYS"
 )
 
 for placeholder in "${!replacements[@]}"; do
@@ -500,10 +498,14 @@ echo ">>>>>> Recorded the CloudHub's SSH public key in ${FLEET_CONFIG}"
 ssh "${SSH_OPTS[@]}" jaia@${PUBLIC_IPV4_ADDRESS} "sudo ufw allow in on eth0 to any port 22 proto tcp; sudo ufw allow in on eth0 proto udp to any port 51820; sudo ufw allow in on eth0 proto udp to any port 51821; sudo ufw allow in on wg_cloudhub; sudo ufw --force enable"
 echo ">>>>>> Updated CloudHub ufw firewall rules to exclude connecting on VirtualFleet VPN"
 
-# Hand-over: from here the CloudHub is the customer's, and Jaia reaches it only
-# through a grant they make. Last, because everything above needs the shell.
-run "" aws ec2 revoke-security-group-ingress --group-id $CLOUDHUB_SECURITY_GROUP_ID --ip-permissions IpProtocol=tcp,FromPort=22,ToPort=22,IpRanges='[{CidrIp=0.0.0.0/0}]',Ipv6Ranges='[{CidrIpv6=::/0}]'
-echo ">>>>>> Closed SSH (port 22) on the Security Group - the support page opens it"
+# Hand-over: from here the CloudHub's own reconcile timer is the only writer of the
+# open-to-everyone port 22 rule this run made, and with fleet pairing closed - as a
+# new CloudHub starts - its first act is to remove it. Revoking it here instead would
+# race that timer, which has been running since boot, and leave two writers of one
+# rule. Last, because the reconcile closes the door this run came in by.
+ssh "${SSH_OPTS[@]}" jaia@${PUBLIC_IPV4_ADDRESS} "sudo mkdir -p -m 0700 /var/log/jaiabot/auth/support && sudo touch /var/log/jaiabot/auth/support/handed-over && sudo jaia-support-access.py reconcile" \
+    || echo ">>>>>> WARNING: could not reconcile port 22 at hand-over; the CloudHub's timer will within five minutes"
+echo ">>>>>> Handed port 22 to the CloudHub: closed until fleet pairing is opened from the JCU"
 
 exit_if_interrupted
 # CloudHub is fully set up in AWS; failures after this point only affect local client configuration

@@ -16,6 +16,7 @@ import pathlib
 import shutil
 import socket
 import subprocess
+import sys
 import tempfile
 import time
 import unittest
@@ -312,6 +313,24 @@ class PortalTest(unittest.TestCase):
         self.assertIn("Jaia has access to this fleet until", page)
         self.assertIn("198.51.100.7/32", page)
         self.assertIn("could not be confirmed", page)
+
+    def test_while_fleet_pairing_is_open_the_page_does_not_claim_no_access(self):
+        """Pairing holds the port open to every address, and the root keys reach the
+        CloudHub through it; "Jaia has no access" would then be false."""
+        access = [sys.executable, str(ACCESS)]
+        env = self.hub.environment()
+        subprocess.run(access + ["set-bootstrap-key", "--key", self.hub.bootstrap_key],
+                       env=env, check=True, stdout=subprocess.DEVNULL)
+        subprocess.run(access + ["open-pairing", "--duration", "1_day"],
+                       env=env, check=True, stdout=subprocess.DEVNULL)
+        page = self.get()
+        self.assertNotIn("Jaia has no access", page)
+        self.assertIn("Fleet pairing is open until", page)
+        self.assertIn("whether or not you have granted access", page)
+
+    def test_with_pairing_closed_the_page_says_no_access(self):
+        self.assertIn("Jaia has no access to this fleet", self.get())
+        self.assertNotIn("Fleet pairing is open", self.get())
 
     def test_a_request_from_the_real_script_is_accepted(self):
         """The tests above build the payload themselves, so nothing else would

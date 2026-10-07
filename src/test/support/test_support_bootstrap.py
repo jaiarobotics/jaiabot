@@ -159,18 +159,26 @@ class ProvisioningTest(unittest.TestCase):
         self.assertLess(self.vpc.index("CLOUDHUB_SECURITY_GROUP_ID=$("),
                         self.vpc.index("{{CLOUDHUB_SECURITY_GROUP_ID}}"))
 
-    def test_ssh_is_shut_at_hand_over(self):
-        """Open while the script needs a shell, shut before it hands the CloudHub
-        over - and shut last, because everything above it needs that shell."""
-        closing = self.vpc.index("revoke-security-group-ingress")
-        self.assertLess(self.vpc.index("ufw --force enable"), closing)
-        self.assertLess(closing, self.vpc.index("Authelia login at"))
+    def test_hand_over_passes_port_22_to_the_cloudhub(self):
+        """The CloudHub's reconcile timer has been running since boot, so a revoke here
+        as well would be a second writer of the same rule. Hand-over instead marks the
+        CloudHub handed over and reconciles once, which closes the port because a new
+        CloudHub starts with fleet pairing closed - and does it last, since that closes
+        the door this run came in by."""
+        handing = self.vpc.index("/var/log/jaiabot/auth/support/handed-over")
+        self.assertLess(self.vpc.index("ufw --force enable"), handing)
+        self.assertLess(handing, self.vpc.index("jaia-support-access.py reconcile"))
+        self.assertLess(self.vpc.index("jaia-support-access.py reconcile"),
+                        self.vpc.index("Authelia login at"))
 
-    def test_ufw_does_not_hold_the_door_open_either(self):
-        """The access script writes a ufw rule per grant, so a standing one would
-        leave the gate open on every CloudHub that is not in EC2."""
-        self.assertNotIn("ufw allow in on eth0 proto tcp to any port 22", self.vpc)
+    def test_hand_over_does_not_revoke_the_rule_itself(self):
+        self.assertNotIn("revoke-security-group-ingress", self.vpc)
 
+    def test_ufw_is_not_a_second_lock_on_port_22(self):
+        """The security group is the gate on EC2, and the one the customer can open from
+        their own console when this CloudHub's Authelia is down. A ufw rule in front of
+        it could only be lifted from the box it was locking."""
+        self.assertRegex(self.vpc, r"ufw allow in on eth0 to any port 22 proto tcp")
 
 if __name__ == "__main__":
     unittest.main()

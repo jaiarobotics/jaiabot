@@ -42,6 +42,8 @@ STUBS = {
     "mount": 'echo "mount $*" >> "$JAIA_TEST_CALLS"\n',
     "chown": 'echo "chown $*" >> "$JAIA_TEST_CALLS"\n',
     "ping": 'exit 0\n',
+    "systemctl": 'echo "systemctl $*" >> "$JAIA_TEST_CALLS"\n'
+                 'case "$1" in is-enabled) exit ${JAIA_TEST_ENABLED:-0} ;; esac\n',
     "wg": """
 case "$1" in
     genkey) echo "%(priv)s" ;;
@@ -97,6 +99,7 @@ class NodeEnrollTest(unittest.TestCase):
             JAIA_SSH_DIR=self.ssh_dir,
             JAIA_WG_DIR=self.wg_dir,
             JAIA_DEBCONF_SH=debconf,
+            JAIA_CLOUDHUB_HOST_FILE=os.path.join(self.dir, "cloudhub_host"),
             JAIA_TEST_CALLS=self.calls,
             JAIA_TEST_ANSWER=self.answer,
         )
@@ -105,9 +108,15 @@ class NodeEnrollTest(unittest.TestCase):
         with open(self.answer, "w") as f:
             f.write(text)
 
-    def run_script(self, host="fleet7.jaia.tech"):
-        return subprocess.run(["bash", str(SCRIPT), host],
+    def run_script(self, *host):
+        """With no host at all, as "Pair Fleet to CloudHub" runs it; first boot always
+        passes one, empty when the node is not to enroll."""
+        return subprocess.run(["bash", str(SCRIPT)] + list(host or ("fleet7.jaia.tech",)),
                               capture_output=True, text=True, env=self.env)
+
+    def run_again(self):
+        return subprocess.run(["bash", str(SCRIPT)], capture_output=True, text=True,
+                              env=self.env)
 
     def recorded(self):
         if not os.path.exists(self.calls):
@@ -185,6 +194,94 @@ class NodeEnrollTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(self.recorded(), "")
         self.assertIsNone(self.installed_config())
+
+
+    ## Running again, which "Pair Fleet to CloudHub" does on every node
+
+    def test_the_cloudhub_is_remembered_for_next_time(self):
+        os.remove(self.bootstrap_key)
+        self.run_script()
+        with open(self.env["JAIA_CLOUDHUB_HOST_FILE"]) as f:
+            self.assertEqual("fleet7.jaia.tech", f.read().strip())
+
+    def test_a_node_that_missed_pairing_pairs_when_run_again_with_no_host(self):
+        """First boot ran while the CloudHub was closed; the fleet-wide pairing later
+        has no host to pass and must find the one first boot was given."""
+        self.write_answer("Permission denied (publickey).\n")
+        self.assertNotEqual(self.run_script().returncode, 0)
+
+        self.write_answer(CLOUDHUB_ANSWER)
+        result = self.run_again()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("jaia@fleet7.jaia.tech", self.recorded())
+        self.assertIsNotNone(self.installed_config())
+
+    def test_a_node_already_paired_is_left_exactly_as_it_is(self):
+        """Safe to run across a whole fleet: nothing is asked of the CloudHub again, and
+        a tunnel someone stopped on purpose stays stopped."""
+        self.run_script()
+        installed = self.installed_config()
+        open(self.calls, "w").close()
+
+        result = self.run_again()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("Already paired", result.stdout)
+        self.assertEqual("", self.recorded())
+        self.assertEqual(installed, self.installed_config())
+
+    def test_a_fresh_pairing_brings_the_tunnel_up_when_it_starts_at_boot(self):
+        """First boot reboots afterwards; a pairing done later from a hub does not."""
+        result = self.run_script()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("systemctl restart wg-quick@wg_jaia_ch7", self.recorded())
+
+    def test_a_fresh_pairing_leaves_a_tunnel_not_set_to_start_at_boot_stopped(self):
+        """Whether it comes up by itself is the fleet config's choice, not pairing's."""
+        self.env["JAIA_TEST_ENABLED"] = "1"
+        result = self.run_script()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotIn("restart", self.recorded())
+        self.assertIn("left stopped", result.stdout)
+        self.assertIsNotNone(self.installed_config())
+
+    def test_pairing_never_changes_whether_the_tunnel_starts_at_boot(self):
+        self.run_script()
+        self.run_again()
+        self.assertNotRegex(self.recorded(), r"systemctl (enable|disable)")
+
+    def test_the_key_is_spent_before_the_tunnel_is_started(self):
+        """So a tunnel that will not start is retried on its own, not by enrolling
+        a second time with a key that has already done its job."""
+        stub = os.path.join(self.dir, "bin", "systemctl")
+        with open(stub, "w") as f:
+            f.write('#!/bin/sh\necho "systemctl $*" >> "$JAIA_TEST_CALLS"\n'
+                    'case "$1" in restart) exit 1 ;; esac\n')
+        with open(stub, "a") as f:
+            f.write('case "$1" in is-enabled) exit 0 ;; esac\n')
+        self.assertNotEqual(self.run_script().returncode, 0)
+        self.assertFalse(os.path.exists(self.moved_key))
+        self.assertFalse(os.path.exists(self.bootstrap_key))
+        self.assertIn("Already paired", self.run_again().stdout)
+
+    def test_an_explicitly_empty_host_still_means_do_not_enroll(self):
+        """What first boot passes for the CloudHub itself, and for a fleet that should
+        not enroll - a remembered host from earlier must not override it."""
+        with open(self.env["JAIA_CLOUDHUB_HOST_FILE"], "w") as f:
+            f.write("fleet7.jaia.tech\n")
+        result = self.run_script("")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.recorded(), "")
+
+    def test_with_no_host_and_none_remembered_nothing_happens(self):
+        result = self.run_again()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.recorded(), "")
+
+    def test_the_attempt_is_bounded(self):
+        """A CloudHub not open for pairing drops the connection, which would otherwise
+        hold up first boot for as long as TCP is willing to wait."""
+        self.run_script()
+        self.assertIn("ConnectTimeout=", self.recorded())
 
 
 if __name__ == "__main__":

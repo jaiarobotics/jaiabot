@@ -14,8 +14,13 @@ that is what a CloudHub bootstrapped before the support account looks like.
 import http.server
 import json
 import os
+import pathlib
 import socket
+import subprocess
 import threading
+
+SOURCE_DIR = pathlib.Path(__file__).resolve().parents[3]
+AUTHORIZE = SOURCE_DIR / "src" / "sh" / "utils" / "jaia-vpn-authorize.sh"
 
 FLEET = 7
 SECURITY_GROUP = "sg-0fa1afe1"
@@ -178,7 +183,14 @@ class CloudHub:
         self.ufw_log = os.path.join(directory, "ufw.log")
         self.ss_log = os.path.join(directory, "ss.log")
         self.secrets = os.path.join(directory, "secrets")
+        self.tmp_authorized_keys = os.path.join(directory, "tmp_authorized_keys")
         os.makedirs(self.bin)
+
+        key = os.path.join(directory, "id_vpn_tmp")
+        subprocess.run(["ssh-keygen", "-q", "-t", "ed25519", "-N", "", "-C", "id_vpn_tmp",
+                        "-f", key], check=True)
+        with open(key + ".pub") as f:
+            self.bootstrap_key = f.read().strip()
 
         stub(os.path.join(self.bin, "aws"), AWS_STUB)
         stub(os.path.join(self.bin, "ufw"), UFW_STUB)
@@ -209,6 +221,8 @@ class CloudHub:
                     STUB_UFW_LOG=self.ufw_log,
                     STUB_SS_LOG=self.ss_log,
                     JAIA_AUTH_SECRETS=self.secrets,
+                    JAIA_VPN_AUTHORIZE=str(AUTHORIZE),
+                    JAIA_TMP_AUTHORIZED_KEYS=self.tmp_authorized_keys,
                     JAIA_LLDAP_URL="http://127.0.0.1:{}".format(self.lldap.port))
         held.update(extra)
         return held
@@ -235,6 +249,25 @@ class CloudHub:
                 return [line.strip() for line in f if line.strip()]
         except OSError:
             return []
+
+    def hand_over(self):
+        """What create_vpc.sh does last, after which port 22 is the reconcile timer's."""
+        os.makedirs(self.state, exist_ok=True)
+        open(os.path.join(self.state, "handed-over"), "w").close()
+
+    def enrollment_line(self):
+        """The line authorizing the bootstrap key, as sshd would read it, or None."""
+        blob = self.bootstrap_key.split()[1]
+        try:
+            with open(self.tmp_authorized_keys) as f:
+                lines = [line.strip() for line in f if blob in line]
+        except OSError:
+            return None
+        return lines[0] if lines else None
+
+    def open_to_everyone(self):
+        held = self.open_to()
+        return "0.0.0.0/0" in held and "::/0" in held
 
     def web_groups(self):
         """The groups the support account is in, as the directory holds them."""

@@ -1,0 +1,38 @@
+---
+# Lets new bots and hubs join this fleet's CloudHub VPN, for a while. Follow it with
+# "Pair Fleet to CloudHub" from a hub on site, or switch new nodes on while it is
+# open: a node enrolls at first boot, and again whenever that playbook runs.
+#
+# While it is open, port 22 on the CloudHub is open to every address - a node
+# enrolls over SSH from wherever it is - and Jaia's root keys reach the CloudHub with
+# it. It closes itself when the time runs out, at most two weeks.
+- name: Open fleet pairing
+  hosts: all
+  connection: local
+  gather_facts: no
+  tasks:
+    - name: Check the duration
+      assert:
+        that:
+          - duration is defined
+          - duration in ["1_hour", "8_hours", "1_day", "3_days", "1_week", "2_weeks"]
+        fail_msg: "Choose how long fleet pairing should stay open"
+
+    - name: Ask the CloudHub to open fleet pairing
+      shell: |
+        set -e
+        source /usr/bin/jaia-debconf.sh
+        cloudhub=$(jaia_ip chf$(jaia_debconf_get fleet_id))
+        ssh -o BatchMode=yes -o ConnectTimeout=10 "jaia@${cloudhub}" \
+            sudo -n jaia-support-access.py open-pairing --duration {{ duration }} --by "jcu@$(hostname)"
+      args:
+        executable: /bin/bash
+      register: pairing
+
+    - name: Set facts for fleet pairing
+      set_fact:
+        fleet_pairing: "{{ pairing.stdout }}"
+
+    - name: Display fleet pairing
+      debug:
+        var: fleet_pairing

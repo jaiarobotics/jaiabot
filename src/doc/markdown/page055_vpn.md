@@ -187,12 +187,21 @@ key buys a peer entry on `wg_cloudhub` and nothing else - no shell, no other
 interface, and no way to read what another node was given. A re-imaged node
 comes back with a new key, so enrolling one that is already a peer replaces it.
 
-`create_vpc.sh` writes that entry when the CloudHub is built, and
-`jaia admin fleet vpn_authorize fleetN.cfg` renews it afterwards, which is what a
-node added to the fleet months later needs. Both go through
-`jaia-vpn-authorize.sh` on the CloudHub, so the entry has one author; it replaces
-its own line and leaves the temporary keys of whoever `jaia admin ssh add` has let
-into the same file alone. `--rm` takes the authorization back.
+That entry exists only while **fleet pairing** is open. A CloudHub is built with
+pairing closed, keeping the fleet's bootstrap public key for later; pairing is opened
+for a set time - at most two weeks - from **Open Fleet Pairing** in the JCU's Fleet
+Changes, and closes itself. While it is open, `jaia-support-access.py` on the
+CloudHub writes the entry through `jaia-vpn-authorize.sh`, so it has one author, and
+opens port 22 at the security group to every address, since a node enrolls over SSH
+from wherever it is. The entry is rewritten on every run of the CloudHub's reconcile
+timer from a record in its persistent support directory, so it survives a reboot and
+ends when pairing does; the expiry it carries is a full UTC timestamp, since sshd reads
+a bare date as midnight at the start of that day. It leaves the temporary keys of
+whoever `jaia admin ssh add` has let into the same file alone.
+
+**Pair Fleet to CloudHub**, run from a hub on site, re-runs enrollment on every bot
+and hub over the fleet WLAN. A node remembers the CloudHub it was given at first boot,
+so the re-run needs no argument; one already paired only makes sure its tunnel is up.
 
 A node whose enrollment is refused keeps `id_vpn_tmp` in `/home/jaia/.ssh`, so
 once the authorization is renewed the node can be made to run

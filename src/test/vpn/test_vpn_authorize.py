@@ -9,7 +9,10 @@ expired one behind, and sshd takes the first match it finds.
 """
 
 import datetime
+import calendar
 import os
+import time
+import re
 import pathlib
 import shutil
 import stat
@@ -62,62 +65,76 @@ class AuthorizeTest(unittest.TestCase):
         with open(self.path, "w") as f:
             f.write(OPERATOR_ENTRY + "\n")
 
-    def expiry(self, days):
-        return (datetime.datetime.now(datetime.timezone.utc) +
-                datetime.timedelta(days=days)).strftime("%Y%m%d")
+    def until(self, seconds):
+        return int(time.time()) + seconds
+
+    def expiry(self, until):
+        return time.strftime("%Y%m%d%H%M%SZ", time.gmtime(until))
 
     def test_the_key_is_pinned_to_the_enrollment_command(self):
-        result = self.run_script(BOOTSTRAP_KEY)
+        until = self.until(3600)
+        result = self.run_script("--until", str(until), BOOTSTRAP_KEY)
         self.assertEqual(result.returncode, 0, result.stderr)
         line = self.contents().strip()
         self.assertTrue(line.startswith("restrict,"), line)
         self.assertIn('command="/usr/bin/jaia-vpn-enroll.sh"', line)
-        self.assertIn('expiry-time="{}"'.format(self.expiry(30)), line)
+        self.assertIn('expiry-time="{}"'.format(self.expiry(until)), line)
         self.assertTrue(line.endswith(BOOTSTRAP_KEY), line)
 
-    def test_the_validity_is_settable(self):
-        self.run_script(BOOTSTRAP_KEY, "90")
-        self.assertIn('expiry-time="{}"'.format(self.expiry(90)), self.contents())
+    def test_the_expiry_is_a_full_utc_time_not_a_date(self):
+        """sshd reads a bare date as midnight at the start of that day, so a day's
+        authorization written late in the evening would last minutes."""
+        until = self.until(3600)
+        self.run_script("--until", str(until), BOOTSTRAP_KEY)
+        found = re.search(r'expiry-time="([^"]+)"', self.contents()).group(1)
+        self.assertRegex(found, r"^\d{14}Z$")
+        self.assertEqual(until, calendar.timegm(time.strptime(found, "%Y%m%d%H%M%SZ")))
 
     def test_other_peoples_temporary_keys_are_left_alone(self):
         self.seed_operator_key()
-        self.assertEqual(self.run_script(BOOTSTRAP_KEY).returncode, 0)
+        self.assertEqual(self.run_script("--until", str(self.until(60)), BOOTSTRAP_KEY).returncode, 0)
         self.assertIn(OPERATOR_ENTRY, self.contents())
         self.assertIn(BOOTSTRAP_BLOB, self.contents())
 
     def test_renewing_replaces_the_entry(self):
-        self.run_script(BOOTSTRAP_KEY, "1")
-        self.run_script(BOOTSTRAP_KEY, "60")
+        first, second = self.until(60), self.until(7 * 86400)
+        self.run_script("--until", str(first), BOOTSTRAP_KEY)
+        self.run_script("--until", str(second), BOOTSTRAP_KEY)
         self.assertEqual(self.contents().count(BOOTSTRAP_BLOB), 1)
-        self.assertIn('expiry-time="{}"'.format(self.expiry(60)), self.contents())
-        self.assertNotIn('expiry-time="{}"'.format(self.expiry(1)), self.contents())
+        self.assertIn('expiry-time="{}"'.format(self.expiry(second)), self.contents())
+        self.assertNotIn('expiry-time="{}"'.format(self.expiry(first)), self.contents())
 
     def test_rm_takes_back_the_authorization_and_nothing_else(self):
         self.seed_operator_key()
-        self.run_script(BOOTSTRAP_KEY)
+        self.run_script("--until", str(self.until(60)), BOOTSTRAP_KEY)
         result = self.run_script("--rm", BOOTSTRAP_KEY)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertNotIn(BOOTSTRAP_BLOB, self.contents())
         self.assertIn(OPERATOR_ENTRY, self.contents())
 
     def test_the_file_is_not_world_readable(self):
-        self.run_script(BOOTSTRAP_KEY)
+        self.run_script("--until", str(self.until(60)), BOOTSTRAP_KEY)
         mode = stat.S_IMODE(os.stat(self.path).st_mode)
         self.assertEqual(mode, 0o600, oct(mode))
 
     def test_something_that_is_not_a_key_is_refused(self):
         for bad in ("", "ssh-ed25519", "ssh-ed25519 not a key!", "/etc/passwd",
                     'command="/bin/sh" ' + BOOTSTRAP_KEY):
-            result = self.run_script(bad)
+            result = self.run_script("--until", str(self.until(60)), bad)
             self.assertNotEqual(result.returncode, 0, "'{}' was accepted".format(bad))
             self.assertIsNone(self.contents())
 
-    def test_something_that_is_not_a_number_of_days_is_refused(self):
-        for bad in ("thirty", "30d", "-1", "$(date)"):
-            result = self.run_script(BOOTSTRAP_KEY, bad)
+    def test_something_that_is_not_a_time_is_refused(self):
+        for bad in ("tomorrow", "30d", "-1", "$(date)", ""):
+            result = self.run_script("--until", bad, BOOTSTRAP_KEY)
             self.assertNotEqual(result.returncode, 0, "'{}' was accepted".format(bad))
             self.assertNotIn("restrict", self.contents() or "")
 
+    def test_an_authorization_with_no_end_cannot_be_asked_for(self):
+        """Every caller has to say when it ends; there is no default to fall into."""
+        result = self.run_script(BOOTSTRAP_KEY)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIsNone(self.contents())
 
 if __name__ == "__main__":
     unittest.main()

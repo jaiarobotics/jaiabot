@@ -9,9 +9,11 @@ rule left behind by a run that died halfway - because every one of them fails
 open if reconciling is not doing its job.
 """
 
+import calendar
 import json
 import os
 import pathlib
+import re
 import shutil
 import subprocess
 import sys
@@ -326,6 +328,156 @@ class FirewallTest(unittest.TestCase):
         self.assertEqual([], self.hub.open_to())
         self.assertEqual(self.WEB_GROUPS, self.hub.web_groups())
 
+
+    ## Fleet pairing: port 22 open to everyone, and the bootstrap key authorized,
+    ## for as long as someone chose and no longer
+
+    def keep_key(self):
+        self.access("set-bootstrap-key", "--key", self.hub.bootstrap_key)
+
+    def open_pairing(self, duration="8_hours", expect=0):
+        return self.access("open-pairing", "--duration", duration, "--by", "operator",
+                           expect=expect)
+
+    def pairing_file(self):
+        return os.path.join(self.hub.state, "pairing.json")
+
+    def rewrite_pairing(self, **changes):
+        with open(self.pairing_file()) as f:
+            held = json.load(f)
+        held.update(changes)
+        with open(self.pairing_file(), "w") as f:
+            json.dump(held, f)
+
+    def test_a_new_cloudhub_starts_with_pairing_closed(self):
+        """Keeping the key is all creation does: nobody enrolls until someone opens it."""
+        self.keep_key()
+        self.hub.hand_over()
+        self.access("reconcile")
+        self.assertIsNone(self.hub.enrollment_line())
+        self.assertFalse(self.hub.open_to_everyone())
+
+    def test_opening_pairing_authorizes_the_bootstrap_key_until_it_ends(self):
+        self.keep_key()
+        before = int(time.time())
+        self.open_pairing("8_hours")
+        line = self.hub.enrollment_line()
+        self.assertIn('command="/usr/bin/jaia-vpn-enroll.sh"', line)
+        until = calendar.timegm(time.strptime(
+            re.search(r'expiry-time="([^"]+)"', line).group(1), "%Y%m%d%H%M%SZ"))
+        self.assertAlmostEqual(before + 8 * 3600, until, delta=5)
+
+    def test_after_hand_over_pairing_opens_the_port_to_everyone(self):
+        """A new node enrolls from wherever it happens to be."""
+        self.keep_key()
+        self.hub.hand_over()
+        self.open_pairing()
+        self.assertTrue(self.hub.open_to_everyone())
+
+    def test_before_hand_over_the_port_is_left_to_provisioning(self):
+        """create_vpc.sh owns that rule until it hands over; two writers could leave it
+        shut for a whole window."""
+        self.keep_key()
+        self.open_pairing()
+        self.assertFalse(any("0.0.0.0/0" in call for call in self.hub.aws_calls()))
+
+    def test_hand_over_closes_the_rule_provisioning_opened(self):
+        with open(self.hub.security_group, "w") as f:
+            json.dump(["0.0.0.0/0", "::/0"], f)
+        self.keep_key()
+        self.hub.hand_over()
+        self.access("reconcile")
+        self.assertFalse(self.hub.open_to_everyone())
+
+    def test_pairing_closes_itself(self):
+        """Nobody is present for this, as with a grant."""
+        self.keep_key()
+        self.hub.hand_over()
+        self.open_pairing("1_hour")
+        self.rewrite_pairing(expires_at=int(time.time()) - 1)
+        self.access("reconcile")
+        self.assertIsNone(self.hub.enrollment_line())
+        self.assertFalse(self.hub.open_to_everyone())
+        self.assertFalse(os.path.exists(self.pairing_file()))
+
+    def test_close_pairing_ends_it_sooner(self):
+        self.keep_key()
+        self.hub.hand_over()
+        self.open_pairing("2_weeks")
+        self.access("close-pairing", "--by", "operator")
+        self.assertIsNone(self.hub.enrollment_line())
+        self.assertFalse(self.hub.open_to_everyone())
+
+    def test_every_duration_the_jcu_offers_is_accepted(self):
+        self.keep_key()
+        for duration in ("1_hour", "8_hours", "1_day", "3_days", "1_week", "2_weeks"):
+            self.open_pairing(duration)
+
+    def test_pairing_for_longer_than_a_grant_is_refused(self):
+        self.keep_key()
+        for duration in ("3_weeks", "15d", "337h"):
+            self.open_pairing(duration, expect=1)
+        self.assertIsNone(self.hub.enrollment_line())
+
+    def test_a_hand_edited_expiry_beyond_the_cap_is_not_honoured(self):
+        """The record is on a machine Jaia can have a shell on while pairing is open."""
+        self.keep_key()
+        self.hub.hand_over()
+        self.open_pairing("1_day")
+        self.rewrite_pairing(expires_at=int(time.time()) + 365 * 86400,
+                             opened_at=int(time.time()) - 15 * 86400)
+        self.access("reconcile")
+        self.assertIsNone(self.hub.enrollment_line())
+        self.assertFalse(self.hub.open_to_everyone())
+
+    def test_the_key_line_comes_back_after_the_file_is_lost(self):
+        """Rewritten from the record on every run, so a reboot that loses
+        tmp_authorized_keys does not quietly end pairing early."""
+        self.keep_key()
+        self.open_pairing()
+        os.unlink(self.hub.tmp_authorized_keys)
+        self.access("reconcile")
+        self.assertIsNotNone(self.hub.enrollment_line())
+
+    def test_a_key_line_removed_on_its_own_is_put_back(self):
+        """The file also holds the temporary keys of whoever jaia admin ssh add let in,
+        so it can outlive the enrollment line; the line is reasserted, not the file."""
+        self.keep_key()
+        self.open_pairing()
+        with open(self.hub.tmp_authorized_keys) as f:
+            kept = [line for line in f if self.hub.bootstrap_key.split()[1] not in line]
+        with open(self.hub.tmp_authorized_keys, "w") as f:
+            f.writelines(kept + ['expiry-time="20991231" ssh-ed25519 AAAAoperator\n'])
+        self.access("reconcile")
+        self.assertIsNotNone(self.hub.enrollment_line())
+
+    def test_pairing_without_a_kept_key_is_refused(self):
+        self.open_pairing(expect=1)
+
+    def test_closing_pairing_leaves_a_grant_alone(self):
+        self.keep_key()
+        self.hub.hand_over()
+        self.approve()
+        self.open_pairing()
+        self.access("close-pairing", "--by", "operator")
+        self.assertEqual([CIDR], self.hub.open_to())
+
+    def test_a_port_closed_in_the_console_stays_closed(self):
+        """The customer's hard kill: the next run does not reassert what they shut."""
+        self.keep_key()
+        self.hub.hand_over()
+        self.open_pairing()
+        with open(self.hub.security_group, "w") as f:
+            json.dump([], f)
+        self.access("reconcile")
+        self.assertFalse(self.hub.open_to_everyone())
+
+    def test_status_says_pairing_is_open(self):
+        self.keep_key()
+        self.open_pairing()
+        state = json.loads(self.access("status"))
+        self.assertTrue(state["pairing"]["open"])
+        self.assertEqual("operator", state["pairing"]["by"])
 
 if __name__ == "__main__":
     unittest.main()

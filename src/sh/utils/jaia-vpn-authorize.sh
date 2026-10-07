@@ -3,8 +3,9 @@
 # Authorizes the fleet's bootstrap SSH key for VPN enrollment and nothing else.
 #
 # This line is the whole of what that key can do, so it is written in one place
-# rather than by each caller: the CloudHub's cloud-init at first boot, and
-# 'jaia admin fleet vpn_authorize' when the authorization has to be renewed.
+# rather than by each caller. Its one caller is jaia-support-access.py, which
+# rewrites it on every run from the fleet pairing record so that it outlives a
+# reboot and ends when pairing does.
 
 set -u -e
 
@@ -14,24 +15,25 @@ ENROLL_COMMAND="/usr/bin/jaia-vpn-enroll.sh"
 usage()
 {
     cat >&2 <<EOF
-Usage: ${0##*/} <ssh public key> [days valid]
+Usage: ${0##*/} --until <unix time> <ssh public key>
        ${0##*/} --rm <ssh public key>
 
 Authorizes <ssh public key> on this CloudHub to run ${ENROLL_COMMAND} and
-nothing else, for the given number of days (30 by default).
+nothing else, until the given time.
 EOF
     exit 1
 }
 
 remove=false
-if [ "${1:-}" = "--rm" ]; then
-    remove=true
-    shift
-fi
+until=""
+case "${1:-}" in
+    --rm) remove=true; shift ;;
+    --until) until="${2:-}"; shift 2 || usage ;;
+    *) usage ;;
+esac
 
-[ $# -ge 1 ] && [ $# -le 2 ] || usage
+[ $# -eq 1 ] || usage
 pubkey=$1
-days=${2:-30}
 
 # ssh-keygen also accepts a line carrying options, which would put whatever they
 # say into the file ahead of the ones below, so the type has to lead.
@@ -64,14 +66,16 @@ if [ "${remove}" = true ]; then
     exit 0
 fi
 
-case "$days" in
+case "$until" in
     "" | *[!0-9]*)
-        echo "ERROR: '${days}' is not a number of days" >&2
+        echo "ERROR: '${until}' is not a unix time" >&2
         exit 1
         ;;
 esac
 
-expiry=$(date -u -d "+${days} days" +%Y%m%d)
+# To the second and in UTC: a bare date is read by sshd as midnight at the start of
+# that day, so one written late in the day would lapse within minutes
+expiry=$(date -u -d "@${until}" +%Y%m%d%H%M%SZ)
 echo "restrict,expiry-time=\"${expiry}\",command=\"${ENROLL_COMMAND}\" ${pubkey}" \
     >> "${AUTHORIZED_KEYS}"
 echo "Authorized VPN enrollment until ${expiry}"

@@ -19,6 +19,15 @@ support account in the directory's read-oriented groups, so Jaia can sign in to
 JCC, JDV, the JCU and the read-only API and see what is happening without being
 able to touch anything.
 
+Port 22 has a third reason to be open, and it is not support at all. A new bot or hub
+joins the CloudHub VPN over SSH, from whatever address it happens to have, so while
+fleet pairing is open the port is open to every address and the fleet's bootstrap key
+is authorized to enroll. A CloudHub starts with pairing closed; it is opened deliberately
+from the JCU's Fleet Changes, and never for longer than a grant. That
+is a real cost: while it is open the root keys reach this CloudHub without a grant,
+and the support page says so rather than claiming no access. Closing it shuts new
+connections only; a session opened during it is not dropped.
+
 They converge differently, and the difference is worth knowing. Closing the port
 also drops the sessions it admitted. Taking the groups away does not end a web
 session already signed in - Authelia holds those, and they run to their own
@@ -34,6 +43,7 @@ import argparse
 import ipaddress
 import json
 import os
+import re
 import subprocess
 import sys
 import time
@@ -56,6 +66,10 @@ WEB_GROUPS = ("run", "jdv", "jcu_developer", "rest_api_read")
 STATE_DIR = os.environ.get("JAIA_SUPPORT_STATE_DIR", "/var/log/jaiabot/auth/support")
 GRANT_FILE = os.path.join(STATE_DIR, "grant.json")
 OPEN_FILE = os.path.join(STATE_DIR, "open.json")
+PAIRING_FILE = os.path.join(STATE_DIR, "pairing.json")
+PAIRING_PORT_FILE = os.path.join(STATE_DIR, "pairing-port.json")
+BOOTSTRAP_KEY_FILE = os.path.join(STATE_DIR, "bootstrap.pub")
+HANDED_OVER_FILE = os.path.join(STATE_DIR, "handed-over")
 WEB_FILE = os.path.join(STATE_DIR, "web.json")
 AUDIT_FILE = os.path.join(STATE_DIR, "audit.log")
 LAST_RUN_FILE = os.path.join(STATE_DIR, "last-reconcile")
@@ -66,6 +80,8 @@ SS = os.environ.get("JAIA_SS", "ss")
 IMDS = os.environ.get("JAIA_IMDS", "http://169.254.169.254")
 
 SECRETS = os.environ.get("JAIA_AUTH_SECRETS", "/var/log/jaiabot/auth/authelia/secrets")
+AUTHORIZE = os.environ.get("JAIA_VPN_AUTHORIZE", "/usr/bin/jaia-vpn-authorize.sh")
+EVERYWHERE = ("0.0.0.0/0", "::/0")
 LLDAP_URL = os.environ.get("JAIA_LLDAP_URL", "http://127.0.0.1:17170")
 
 
@@ -203,14 +219,18 @@ def ufw_rule(action, cidr):
     subprocess.run(command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
+def firewall_rule(using, action, cidr):
+    if using == SECURITY_GROUP_GATE:
+        security_group_rule("authorize" if action == "open" else "revoke", cidr)
+    else:
+        ufw_rule("allow" if action == "open" else "delete", cidr)
+
+
 def open_to(cidr):
     """Returns the gate it used, so closing can go back through the same one rather
     than re-deciding later and leaving a rule behind in the other."""
     using = gate()
-    if using == SECURITY_GROUP_GATE:
-        security_group_rule("authorize", cidr)
-    else:
-        ufw_rule("allow", cidr)
+    firewall_rule(using, "open", cidr)
     return using
 
 
@@ -222,11 +242,87 @@ def disconnect(cidr):
 
 
 def close_to(cidr, using=None):
-    if (using or gate()) == SECURITY_GROUP_GATE:
-        security_group_rule("revoke", cidr)
-    else:
-        ufw_rule("delete", cidr)
+    firewall_rule(using or gate(), "close", cidr)
     disconnect(cidr)
+
+
+#############
+## Pairing ##
+#############
+
+def pairing_window(now):
+    """When fleet pairing ends, as this machine is entitled to read the record: the
+    cap is applied here and not taken from the file, as it is for a grant. 0 when
+    pairing is closed."""
+    held = read_json(PAIRING_FILE)
+    if not held:
+        return 0
+    ends = min(int(held.get("expires_at", 0)),
+               int(held.get("opened_at", 0)) + MAX_DAYS * 86400)
+    return ends if ends > now else 0
+
+
+def parse_duration(text):
+    """'8_hours', '3_days', '2_weeks' as the JCU offers them - underscores, since it
+    passes every value through one whitespace-split -e - or 8h / 3d / 2w."""
+    found = re.fullmatch(r"\s*(\d+)[\s_]*(h|hours?|d|days?|w|weeks?)\s*", text.lower())
+    if not found:
+        sys.exit("--duration must be a number of hours, days or weeks, not {!r}".format(text))
+    seconds = int(found.group(1)) * {"h": 3600, "d": 86400, "w": 7 * 86400}[found.group(2)[0]]
+    if not 0 < seconds <= MAX_DAYS * 86400:
+        sys.exit("fleet pairing can be opened for at most {} days".format(MAX_DAYS))
+    return seconds
+
+
+def bootstrap_key():
+    try:
+        with open(BOOTSTRAP_KEY_FILE) as f:
+            return f.read().strip() or None
+    except OSError:
+        return None
+
+
+def store_bootstrap_key(key):
+    key = key.strip()
+    checked = subprocess.run(["ssh-keygen", "-l", "-f", "-"], input=key, text=True,
+                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    # The type has to lead: a line carrying options would put them in ahead of ours
+    if checked.returncode != 0 or not re.match(r"(ssh-|ecdsa-|sk-ssh-|sk-ecdsa-)", key):
+        sys.exit("--key must be an SSH public key")
+    os.makedirs(STATE_DIR, mode=0o700, exist_ok=True)
+    with open(os.open(BOOTSTRAP_KEY_FILE, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600),
+              "w") as f:
+        f.write(key + "\n")
+
+
+def converge_enrollment_key(until):
+    """Rewritten on every run rather than once, so the key line follows the record
+    through anything that loses the file, a reboot included."""
+    key = bootstrap_key()
+    if not key:
+        return
+    run([AUTHORIZE, "--until", str(until), key] if until else [AUTHORIZE, "--rm", key])
+
+
+def converge_pairing_port(now, pairing):
+    """A new node enrolls over SSH from wherever it happens to be, so while pairing is
+    open port 22 is open to every address. That rule is the provisioning run's until it
+    hands the CloudHub over and this one's alone afterwards - two writers would have a
+    revoke by one and a record of "open" by the other leaving it shut for the whole
+    window. So it is not touched before hand-over, and a rule closed by hand in the
+    customer's console stays closed rather than being reasserted on the next run."""
+    if not os.path.exists(HANDED_OVER_FILE):
+        return
+    wanted = bool(pairing)
+    held = read_json(PAIRING_PORT_FILE)
+    if held is not None and bool(held.get("open")) == wanted:
+        return
+    using = gate() if wanted else ((held or {}).get("gate") or gate())
+    for cidr in EVERYWHERE:
+        firewall_rule(using, "open" if wanted else "close", cidr)
+    os.makedirs(STATE_DIR, mode=0o700, exist_ok=True)
+    write_json(PAIRING_PORT_FILE, {"open": wanted, "gate": using, "at": now})
+    audit("pairing-port", {"open": wanted})
 
 
 ###########
@@ -378,7 +474,21 @@ def reconcile():
     # Tracked here rather than asked of LLDAP every run, as the firewall rule is:
     # a timer that talks to the directory when it has nothing to change is a timer
     # that fails whenever the directory is down, having had nothing to do
-    trouble = ""
+    pairing = pairing_window(now)
+    if not pairing and os.path.exists(PAIRING_FILE):
+        os.unlink(PAIRING_FILE)
+        audit("pairing", {"open": False, "why": "expired"})
+
+    troubles = []
+    try:
+        converge_enrollment_key(pairing)
+    except Exception as problem:
+        troubles.append("could not set the enrollment key: {}".format(problem))
+    try:
+        converge_pairing_port(now, pairing)
+    except Exception as problem:
+        troubles.append("could not set the pairing port: {}".format(problem))
+
     want_web = "web" in scopes
     if bool(read_json(WEB_FILE)) != want_web:
         try:
@@ -390,12 +500,12 @@ def reconcile():
                 os.unlink(WEB_FILE)
             audit("web", {"granted": want_web})
         except Exception as problem:
-            trouble = "could not reach the directory: {}".format(problem)
+            troubles.append("could not reach the directory: {}".format(problem))
 
     os.makedirs(STATE_DIR, exist_ok=True)
     with open(LAST_RUN_FILE, "w") as f:
         f.write("{}\n".format(now))
-    return approved, wanted, trouble
+    return approved, wanted, "; ".join(troubles)
 
 
 ##############
@@ -444,6 +554,44 @@ def cmd_revoke(args):
     reconcile()
 
 
+def cmd_open_pairing(args):
+    now = int(time.time())
+    seconds = parse_duration(args.duration)
+    if not bootstrap_key():
+        sys.exit("this CloudHub holds no bootstrap key to authorize; it is given one "
+                 "when it is created")
+
+    held = {"opened_at": now, "expires_at": now + seconds, "by": args.by}
+    os.makedirs(STATE_DIR, mode=0o700, exist_ok=True)
+    write_json(PAIRING_FILE, held)
+    audit("pairing", dict(held, open=True))
+
+    approved, wanted, trouble = reconcile()
+    if trouble:
+        sys.exit(trouble)
+    print("fleet pairing open until {}".format(
+        time.strftime("%Y-%m-%d %H:%M UTC", time.gmtime(held["expires_at"]))))
+
+
+def cmd_set_bootstrap_key(args):
+    """Once, at creation: the CloudHub keeps the fleet's bootstrap key so pairing can
+    be opened later without anybody having to hand it over again. Pairing stays
+    closed - a CloudHub admits nobody until someone opens it."""
+    store_bootstrap_key(args.key)
+    audit("bootstrap-key", {"stored": True})
+    print("bootstrap key stored; fleet pairing is closed until opened")
+
+
+def cmd_close_pairing(args):
+    if os.path.exists(PAIRING_FILE):
+        os.unlink(PAIRING_FILE)
+    audit("pairing", {"open": False, "why": "closed", "by": args.by})
+    approved, wanted, trouble = reconcile()
+    if trouble:
+        sys.exit(trouble)
+    print("fleet pairing closed")
+
+
 def cmd_reconcile(args):
     try:
         approved, wanted, trouble = reconcile()
@@ -461,8 +609,11 @@ def cmd_status(args):
     machine's own record of the firewall, so a rule opened by hand shows up as the
     absence of one rather than as a grant - but web access is asked of the directory,
     which holds it, so a membership added by hand shows up as what it is."""
+    pairing = pairing_window(int(time.time()))
     state = {"fleet": fleet_id(), "grant": read_json(GRANT_FILE),
              "open": read_json(OPEN_FILE), "web": None,
+             "pairing": {"open": bool(pairing), "until": pairing or None,
+                         "by": (read_json(PAIRING_FILE) or {}).get("by") if pairing else None},
              "last_reconcile": None, "trouble": "", "web_trouble": ""}
     try:
         with open(LAST_RUN_FILE) as f:
@@ -485,6 +636,10 @@ def cmd_list(args):
     print("granted until {}".format(
         time.strftime("%Y-%m-%d %H:%M UTC", time.gmtime(approved)) if approved else "- (none)"))
     print("port {} open to {}".format(SSH_PORT, held["cidr"] if held else "- (nobody)"))
+    pairing = pairing_window(int(time.time()))
+    print("fleet pairing open until {}: port {} open to every address".format(
+        time.strftime("%Y-%m-%d %H:%M UTC", time.gmtime(pairing)), SSH_PORT)
+          if pairing else "fleet pairing closed")
     try:
         print("web sign-in {}".format("granted" if web_access_held() else "- (not granted)"))
     except Exception as problem:
@@ -510,6 +665,23 @@ def main():
     revoke = actions.add_parser("revoke", help="end the customer's approval")
     revoke.add_argument("--by", default="")
     revoke.set_defaults(run=cmd_revoke)
+
+    open_pairing = actions.add_parser("open-pairing",
+                                      help="let new bots and hubs enroll on the VPN for a while")
+    open_pairing.add_argument("--duration", required=True,
+                              help="how long, at most {} days: 1 hour, 3 days, 2 weeks, "
+                                   "or 1h / 3d / 2w".format(MAX_DAYS))
+    open_pairing.add_argument("--by", default="")
+    open_pairing.set_defaults(run=cmd_open_pairing)
+
+    bootstrap = actions.add_parser("set-bootstrap-key",
+                                   help="keep the fleet's bootstrap public key for later pairing")
+    bootstrap.add_argument("--key", required=True)
+    bootstrap.set_defaults(run=cmd_set_bootstrap_key)
+
+    close_pairing = actions.add_parser("close-pairing", help="end fleet pairing now")
+    close_pairing.add_argument("--by", default="")
+    close_pairing.set_defaults(run=cmd_close_pairing)
 
     actions.add_parser("reconcile", help="bring the firewall back in line with the grant") \
            .set_defaults(run=cmd_reconcile)

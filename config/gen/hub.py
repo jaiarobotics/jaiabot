@@ -231,6 +231,11 @@ elif common.app == 'goby_liaison_prelaunch':
         vfleet_playbooks=''
         hub_vpn_playbooks=config.template_substitute(templates_dir+'/hub/_liaison_prelaunch_hub_vpn_playbooks.pb.cfg.in', this_hub=this_hub)
 
+    if common.comms.has_cloudhub_vpn(fleet_id):
+        pairing_playbooks=config.template_substitute(templates_dir+'/hub/_liaison_prelaunch_pairing_playbooks.pb.cfg.in', this_hub=this_hub)
+    else:
+        pairing_playbooks=''
+
     limit=''
     if is_cloudhub:
         limit='limit: "all"'
@@ -243,6 +248,7 @@ elif common.app == 'goby_liaison_prelaunch':
                                      inventory=inventory,
                                      vfleet_playbooks=vfleet_playbooks,
                                      hub_vpn_playbooks=hub_vpn_playbooks,
+                                     pairing_playbooks=pairing_playbooks,
                                      this_hub_id=hub_id,
                                      limit=limit,
                                      ansible_log_dir=common.jaia_log_dir + '/ansible'))
