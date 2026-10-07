@@ -172,7 +172,7 @@ The config it writes carries no private key, so it can be copied to the node by 
 ### Enrolling a node at first boot
 
 A bot or hub enrolls with its own fleet's CloudHub rather than `vpn.jaia.tech`:
-`/etc/jaiabot/init/configure-wireguard-service-vpn.sh` generates the node's key
+`/etc/jaiabot/init/pair-with-cloudhub.sh` generates the node's key
 pair, hands the public half to the CloudHub over SSH, and writes the config that
 comes back to `/etc/wireguard/wg_jaia_ch<fleet>.conf` with its own private key in
 it. `jaia admin fleet generate` puts the CloudHub's base URI in the preseed, and
@@ -205,5 +205,5 @@ so the re-run needs no argument; one already paired only makes sure its tunnel i
 
 A node whose enrollment is refused keeps `id_vpn_tmp` in `/home/jaia/.ssh`, so
 once the authorization is renewed the node can be made to run
-`configure-wireguard-service-vpn.sh` again rather than be re-imaged. The key is
+`pair-with-cloudhub.sh` again rather than be re-imaged. The key is
 deleted only once a config has been installed.

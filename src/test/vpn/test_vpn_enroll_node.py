@@ -18,7 +18,7 @@ import unittest
 
 SOURCE_DIR = pathlib.Path(__file__).resolve().parents[3]
 SCRIPT = (SOURCE_DIR / "rootfs" / "customization" / "includes.chroot" / "etc" / "jaiabot" /
-          "init" / "configure-wireguard-service-vpn.sh")
+          "init" / "pair-with-cloudhub.sh")
 
 PLACEHOLDER = "REPLACE_WITH_THE_CONTENTS_OF_/etc/wireguard/privatekey"
 

@@ -12,7 +12,7 @@
   ignore_unreachable: yes
   tasks:
     - name: Pair this node with the CloudHub
-      shell: /etc/jaiabot/init/configure-wireguard-service-vpn.sh
+      shell: /etc/jaiabot/init/pair-with-cloudhub.sh
       register: pairing
 
     - name: Display the result

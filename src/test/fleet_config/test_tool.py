@@ -487,7 +487,7 @@ class CommandTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         with open(os.path.join(bootdir, "jaiabot", "init", "first-boot.preseed.yml")) as f:
             preseed = f.read()
-        self.assertIn("configure-wireguard-service-vpn.sh fleet7.jaia.tech", preseed)
+        self.assertIn("pair-with-cloudhub.sh fleet7.jaia.tech", preseed)
         self.assertIn("enable wg-quick@wg_jaia_ch7", preseed)
 
     def test_generate_writes_the_cloudhub_seed(self):

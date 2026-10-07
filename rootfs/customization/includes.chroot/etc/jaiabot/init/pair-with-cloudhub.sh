@@ -28,7 +28,7 @@ PRIVATE_KEY=${SSH_DIR}/id_vpn_tmp
 PLACEHOLDER="REPLACE_WITH_THE_CONTENTS_OF_/etc/wireguard/privatekey"
 
 if [ -z "${CLOUDHUB_HOST}" ]; then
-    echo "No CloudHub given, not configuring Wireguard service VPN"
+    echo "No CloudHub given, not pairing"
     exit 0
 fi
 
@@ -48,12 +48,12 @@ if [ ! -e "${BOOT_KEY}" ] && [ ! -e "${PRIVATE_KEY}" ]; then
         echo "Already paired with ${CLOUDHUB_HOST}"
         exit 0
     fi
-    echo "No id_vpn_tmp private key provided, not configuring Wireguard service VPN"
+    echo "Not paired, and no bootstrap key (id_vpn_tmp) to pair with"
     exit 0
 fi
 
 if ! timeout 10 bash -c "until ping -c1 1.1.1.1 >/dev/null 2>&1; do :; done"; then
-    echo "No network after 10 seconds, not configuring Wireguard server VPN"
+    echo "No network after 10 seconds, not pairing"
     exit 1
 fi
 
