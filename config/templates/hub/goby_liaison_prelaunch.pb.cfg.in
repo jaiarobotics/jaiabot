@@ -170,6 +170,10 @@ upper_right_logo_link: "https://www.jaia.tech/"
             name: "cloudhub_vpn_enable_state"
             display_name: "CloudHub VPN Starts On Boot?"
         }
+        output_var {
+            name: "cloudhub_vpn_peers"
+            display_name: "Paired Nodes (last handshake)"
+        }
         limit: "$this_hub"
     }
     

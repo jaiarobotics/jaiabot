@@ -1,7 +1,7 @@
 ---
 # Whether this hub is linked to its CloudHub. A view, not a change - and of this
 # hub alone, matching change-cloudhub-vpn.yml. Also offered on the CloudHub, where
-# it reports the server end.
+# it reports the server end and the nodes paired with it.
 - name: Check this hub's CloudHub VPN state
   hosts: all
   connection: local
@@ -31,10 +31,17 @@
       failed_when: false
       changed_when: false
 
+    - name: List the nodes paired with the CloudHub and their last handshake
+      command: jaia-vpn-peers.sh status wg_cloudhub
+      register: vpn_peers
+      changed_when: false
+      when: cloudhub_server.stat.exists
+
     - name: Set facts for CloudHub VPN status
       set_fact:
         cloudhub_vpn_active_state: "{{ vpn_active_state.stdout }}"
         cloudhub_vpn_enable_state: "{{ vpn_enable_state.stdout }}"
+        cloudhub_vpn_peers: "{{ (vpn_peers.stdout_lines | join(', ')) or 'none' if cloudhub_server.stat.exists else 'shown on the CloudHub' }}"
 
     - name: Display current CloudHub VPN active state
       debug:
@@ -43,3 +50,7 @@
     - name: Display current CloudHub VPN enable state
       debug:
         var: cloudhub_vpn_enable_state
+
+    - name: Display the paired nodes
+      debug:
+        var: cloudhub_vpn_peers
