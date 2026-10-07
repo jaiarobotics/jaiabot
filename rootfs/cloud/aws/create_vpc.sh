@@ -299,8 +299,9 @@ run "" aws ec2 modify-subnet-attribute --assign-ipv6-address-on-creation --subne
 
 # Set Up Security Group Rules
 # SSH is open only while this script needs it; the hand-over below shuts it, and
-# from then on the support page is what opens it.
-run "" aws ec2 authorize-security-group-ingress --group-id $CLOUDHUB_SECURITY_GROUP_ID --ip-permissions IpProtocol=tcp,FromPort=22,ToPort=22,IpRanges='[{CidrIp=0.0.0.0/0}]',Ipv6Ranges='[{CidrIpv6=::/0}]'
+# from then on the support page is what opens it. The description is the one
+# jaia-support-access.py revokes by: EC2 matches it, so without it the rule outlives the hand-over.
+run "" aws ec2 authorize-security-group-ingress --group-id $CLOUDHUB_SECURITY_GROUP_ID --ip-permissions '[{"IpProtocol":"tcp","FromPort":22,"ToPort":22,"IpRanges":[{"CidrIp":"0.0.0.0/0","Description":"jaia support access"}],"Ipv6Ranges":[{"CidrIpv6":"::/0","Description":"jaia support access"}]}]'
 echo ">>>>>> Allowed SSH (port 22) on Security Group while this run provisions"
 
 run "" aws ec2 authorize-security-group-ingress --group-id $CLOUDHUB_SECURITY_GROUP_ID --ip-permissions IpProtocol=udp,FromPort=51820,ToPort=51821,IpRanges='[{CidrIp=0.0.0.0/0}]',Ipv6Ranges='[{CidrIpv6=::/0}]'
