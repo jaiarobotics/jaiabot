@@ -16,8 +16,8 @@ def wifi_udp_port(node_id, hub_id = -1):
         return 31000
 
 
-def hub2hub_udp_port(hub_id):
-    if is_simulation():
+def hub2hub_udp_port(hub_id, single_machine_sim):
+    if single_machine_sim:
         return 32000 + hub_id
     else:
         return 32000
