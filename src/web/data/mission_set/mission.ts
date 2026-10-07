@@ -11,7 +11,30 @@ import cloneDeep from "lodash/cloneDeep";
 import Waypoint, { MissionWaypoint, SegmentParams } from "../waypoints/waypoint";
 import Task from "../tasks/task";
 import { GhostParameters } from "../../types/jaia-system-types";
-import { DEFAULT_SPEED, UNASSIGNED_ID } from "../../utils/constants";
+import { DEFAULT_SPEED, MAX_WAYPOINTS, UNASSIGNED_ID } from "../../utils/constants";
+
+/** What a reroute does to one original waypoint, in the order of the original waypoints. */
+export interface RerouteStep {
+    /** The waypoint is blocked, so it is taken out of the path. */
+    suppress: boolean;
+    /** Detour points on the leg from this waypoint to the next one that is kept. */
+    detoursAfter: GeographicCoordinate[];
+}
+
+/**
+ * Outcome of Mission.reroute. Waypoints are identified by original waypoint number: their
+ * position among the original waypoints, which reroute and restore never change.
+ */
+export type RerouteResult =
+    | {
+          kind: "changed";
+          /** Every original waypoint suppressed after the reroute. */
+          suppressed: number[];
+          /** Original waypoints that were suppressed and are now back in the path. */
+          restored: number[];
+          detoursAdded: number;
+      }
+    | { kind: "overWaypointLimit"; needed: number };
 
 export default class Mission {
     private missionID: number;
@@ -44,6 +67,73 @@ export default class Mission {
     /** The waypoints that are shown and sent: every stored waypoint that is not suppressed. */
     getWaypoints(): readonly Waypoint[] {
         return this.visibleWaypoints();
+    }
+
+    /** The operator's waypoints, suppressed ones included and detours left out: a reroute's input. */
+    getOriginalWaypoints(): readonly Waypoint[] {
+        return this.originalWaypoints();
+    }
+
+    getSuppressedWaypoints(): readonly Waypoint[] {
+        return this.waypoints.filter((waypoint) => waypoint.getIsSuppressed());
+    }
+
+    /**
+     * Applies a reroute computed from the original waypoints: drops the old detours, sets
+     * which original waypoints are suppressed, and inserts the new detours after their
+     * waypoint. Markers stay on the original waypoints. Leaves the mission unchanged if the
+     * result would exceed MAX_WAYPOINTS.
+     *
+     * @param {RerouteStep[]} steps One step per original waypoint, in order
+     * @returns {RerouteResult} What changed, or why nothing did
+     */
+    reroute(steps: RerouteStep[]): RerouteResult {
+        const originals = this.originalWaypoints();
+        if (steps.length !== originals.length) {
+            throw new Error(
+                `reroute: ${steps.length} steps for ${originals.length} original waypoints`,
+            );
+        }
+        // Detours lead to a kept waypoint; a mission with none kept is reported, not rerouted
+        const lastKept = steps.map((step) => !step.suppress).lastIndexOf(true);
+        if (
+            lastKept < 0 ||
+            steps.some((step, i) => i >= lastKept && step.detoursAfter.length > 0)
+        ) {
+            throw new Error("reroute: no kept waypoint, or detours after the last kept waypoint");
+        }
+
+        const needed = steps.reduce(
+            (count, step) => count + (step.suppress ? 0 : 1) + step.detoursAfter.length,
+            0,
+        );
+        if (needed > MAX_WAYPOINTS) return { kind: "overWaypointLimit", needed };
+
+        const suppressed: number[] = [];
+        const restored: number[] = [];
+        let detoursAdded = 0;
+        const rerouted: MissionWaypoint[] = [];
+        originals.forEach((waypoint, i) => {
+            const step = steps[i];
+            if (step.suppress) suppressed.push(i + 1);
+            else if (waypoint.getIsSuppressed()) restored.push(i + 1);
+            waypoint.setIsSuppressed(step.suppress);
+            rerouted.push(waypoint);
+            for (const location of step.detoursAfter) {
+                const detour = new MissionWaypoint(cloneDeep(location));
+                detour.setIsDetour(true);
+                rerouted.push(detour);
+                detoursAdded++;
+            }
+        });
+        this.waypoints = rerouted;
+        return { kind: "changed", suppressed, restored, detoursAdded };
+    }
+
+    /** Removes every detour and brings back every suppressed waypoint. */
+    restoreOriginalWaypoints() {
+        this.waypoints = this.originalWaypoints();
+        for (const waypoint of this.waypoints) waypoint.setIsSuppressed(false);
     }
 
     getTransitSpeed(): number {
@@ -160,16 +250,20 @@ export default class Mission {
     appendWaypointsFrom(source: Mission) {
         if (source.waypoints.length === 0) return;
         const appended = cloneDeep(source.waypoints);
-        if (!appended[0].getSegmentStart()) {
-            appended[0].setSegmentStart(cloneDeep(source.firstSegment));
+        const firstOriginal = appended.find((waypoint) => !waypoint.getIsDetour());
+        if (firstOriginal && !firstOriginal.getSegmentStart()) {
+            firstOriginal.setSegmentStart(cloneDeep(source.firstSegment));
         }
         this.waypoints.push(...appended);
         this.promoteFirstMarker();
     }
 
     /**
-     * Deletes a waypoint. A segment or lane start it carried moves to the next waypoint, unless
-     * that waypoint already starts a segment, in which case the deleted one is dropped.
+     * Deletes a waypoint. A segment or lane start it carried moves to the next original
+     * waypoint, unless that one already starts a segment, in which case the deleted one is
+     * dropped. Markers never go on detours, which reroute and restore discard. Detours left
+     * with no kept waypoint after them lead nowhere, so they are removed too; otherwise the
+     * mission would end at a detour point.
      *
      * @param {number} waypointNum 1-based visible waypoint number
      * @returns {void}
@@ -178,7 +272,7 @@ export default class Mission {
         const index = this.storedIndex(waypointNum);
         if (index === undefined) return;
         const [deleted] = this.waypoints.splice(index, 1);
-        const next = this.waypoints[index];
+        const next = this.waypoints.slice(index).find((waypoint) => !waypoint.getIsDetour());
         if (next && !next.getSegmentStart()) {
             if (deleted.getSegmentStart()) {
                 next.setSegmentStart(deleted.getSegmentStart());
@@ -187,17 +281,23 @@ export default class Mission {
                 next.setIsLaneStart(true);
             }
         }
+        const lastKept = this.waypoints.findLastIndex(
+            (waypoint) => !waypoint.getIsDetour() && !waypoint.getIsSuppressed(),
+        );
+        this.waypoints = this.waypoints.filter(
+            (waypoint, i) => i < lastKept || !waypoint.getIsDetour(),
+        );
         this.promoteFirstMarker();
     }
 
     /**
-     * Keeps the first segment's settings on Mission: a marker that ends up on the first stored
-     * waypoint replaces them, since the segment they described has no waypoints left.
+     * Keeps the first segment's settings on Mission: a marker that ends up on the first
+     * original waypoint replaces them, since the segment they described has no waypoints left.
      *
      * @returns {void}
      */
     private promoteFirstMarker() {
-        const first = this.waypoints[0];
+        const first = this.waypoints.find((waypoint) => !waypoint.getIsDetour());
         if (!first?.getSegmentStart()) return;
         this.firstSegment = first.getSegmentStart()!;
         first.setSegmentStart(undefined);
@@ -229,6 +329,10 @@ export default class Mission {
         if (index === undefined || !saved) return;
         this.waypoints[index].setLocation(cloneDeep(saved.getLocation()));
         this.waypoints[index].setTask(cloneDeep(saved.getTask()));
+    }
+
+    private originalWaypoints(): MissionWaypoint[] {
+        return this.waypoints.filter((waypoint) => !waypoint.getIsDetour());
     }
 
     private visibleWaypoints(): MissionWaypoint[] {
@@ -317,7 +421,7 @@ export default class Mission {
      * @param {string} serializedMission Serialized Mission data to transform to Mission object
      * @returns {Mission} mission Resulting Mission object
      */
-    static fromJSON(serializedMission: string) {
+    static fromJSON(serializedMission: string): Mission {
         // Older files carry segments as goal indices, and the oldest mission-level speeds
         const { segments, speeds: legacySpeeds, ...fields } = serializedMission as any;
         const mission = Object.assign(new Mission(), fields);
