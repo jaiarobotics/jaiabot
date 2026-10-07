@@ -109,9 +109,9 @@ if(NOT CMAKE_CROSSCOMPILING)
   # and update the hash here (dccl -f src/lib/messages/jaia_dccl.proto -I build/amd64/include -I /usr/include -a -m jaiabot.protobuf.BotStatus -H)
 
   # When adding a new DCCL message (for intervehicle comms), make sure to add it to this list
-  check_dccl_md5_hash("jaiabot.protobuf.BotStatus" "0x86b0d75c52b774e3")
-  check_dccl_md5_hash("jaiabot.protobuf.TaskPacket" "0xee65191784844918")
+  check_dccl_md5_hash("jaiabot.protobuf.BotStatus" "0x4580775fce56090a")
+  check_dccl_md5_hash("jaiabot.protobuf.TaskPacket" "0x24dafa6ee68ebcaa")
   check_dccl_md5_hash("jaiabot.protobuf.Command" "0x48499e0618dde171")
   check_dccl_md5_hash("jaiabot.protobuf.Engineering" "0x353435896a1ea1a0")
-  check_dccl_md5_hash("jaiabot.protobuf.Hub2HubData" "0x4b75153900d6952e")
+  check_dccl_md5_hash("jaiabot.protobuf.Hub2HubData" "0x64432ee037382c1e")
 endif()
