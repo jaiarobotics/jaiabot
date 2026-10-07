@@ -113,6 +113,8 @@ cd /path/to/boot/jaiabot/init
 ssh-keygen -f id_vpn_tmp -t ed25519 -N "" -C "id_vpn_tmp"
 ```
 
+  *This section written by Claude*
+
   A CloudHub starts with **fleet pairing closed**, and admits no node until it is opened. To join bots and hubs to it, from the Upgrade GUI (JCU) under **Fleet Changes**:
 
   1. **Open Fleet Pairing**, choosing how long (1 hour to 2 weeks). For a fleet's first pairing do this from the CloudHub's own JCU, at `https://run.<base uri>/jcu`, since no hub on site can reach the CloudHub yet; once a hub is paired, its own JCU offers it too. While pairing is open the CloudHub's SSH port is open to every address, which also lets Jaia's root keys reach it, and the support page says so.

@@ -187,6 +187,8 @@ key buys a peer entry on `wg_cloudhub` and nothing else - no shell, no other
 interface, and no way to read what another node was given. A re-imaged node
 comes back with a new key, so enrolling one that is already a peer replaces it.
 
+*This section written by Claude*
+
 That entry exists only while **fleet pairing** is open. A CloudHub is built with
 pairing closed, keeping the fleet's bootstrap public key for later; pairing is opened
 for a set time - at most two weeks - from **Open Fleet Pairing** in the JCU's Fleet

@@ -234,6 +234,8 @@ config holds (see below).
 
 ## Accounts and commissioning
 
+*This section written by Claude*
+
 A new CloudHub's directory has two accounts, neither with a password: set one with
 **Reset password?** on the login page, which emails the address shown.
 
