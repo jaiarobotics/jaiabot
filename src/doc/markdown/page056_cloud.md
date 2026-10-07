@@ -201,6 +201,7 @@ settings are split by where they can be obtained again:
 
 | Field | Default |
 |---|---|
+| `includes_cloudhub` (top level) | `true` — answer no to the CloudHub question in `jaia admin fleet create`/`edit` for a fleet sold without one |
 | `customer` (top level) | `jaia` — the value of the `jaia_customer` tag on every AWS resource the fleet owns |
 | `cloudhub.base_uri` | required — the name the authentication front end is served under |
 | `cloudhub.admin_email` | required — address of the `jaia_admin` user created on first boot |
@@ -211,7 +212,14 @@ settings are split by where they can be obtained again:
 
 `customer` is a property of the fleet rather than of its CloudHub, so it sits at the top
 level; the rest are meaningless without hub 30 and `validate` requires the `cloudhub`
-message exactly when hub 30 is in the fleet. `jaia admin fleet create_cloudhub` renders
+message exactly when hub 30 is in the fleet.
+
+Most fleets have a CloudHub and that is what the questions propose, but a fleet can be
+built without one. It has to say so — `includes_cloudhub: false` — rather than simply
+omitting hub 30, because a fleet that never had one and a fleet that lost it by mistake
+would otherwise look identical, and only the first should validate. `jaia admin fleet
+has_cloudhub fleetN.cfg` prints `yes` or `no`, which is what the major upgrade compares
+against the `has_cloudhub` answer the operator gives it. `jaia admin fleet create_cloudhub` renders
 them into `vpc.conf` for `create_vpc.sh`, and its `customer` argument overrides the
 config, which is how CI gives each run its own customer name.
 
