@@ -24,8 +24,6 @@ const CONGESTION_WARNING = "congestion-warning";
 const HUB_CONNECTION_ERROR = "Connection Dropped To HUB";
 
 const TASK_PACKET_URL = "/jaia/v0/task-packets";
-const TASK_PACKET_VERSION_URL = "/jaia/v0/task-packets-version";
-const METADATA_URL = "/jaia/v0/metadata";
 const GITHUB_URL = "https://api.github.com/repos/jaiarobotics/jaiabot/releases/latest";
 
 let statusRequestInFlight = false;
@@ -142,18 +140,28 @@ export async function pollMetadata() {
     }
     try {
         metadataRequestInFlight = true;
-        const res = await fetch(METADATA_URL);
-        if (!res.ok) {
-            console.error(`Metadata response status: ${res.status}`);
-        } else {
-            const metadata: DeviceMetadata = await res.json();
-            const isUpgradeAvailable = compareVersions(
-                metadata.jaiabot_version,
-                jaiaGlobal.getGitHubVersion(),
-            );
-            jaiaGlobal.setMetadata(metadata);
-            jaiaGlobal.setIsUpgradeAvailable(isUpgradeAvailable);
+
+        const metadata_response = await jaia_rest_api.request({
+            target: {
+                all: true,
+            },
+            metadata: true,
+        });
+
+        // Get metadata for the first hub
+        const metadata = metadata_response.metadata?.hubs?.[0];
+
+        if (metadata == null) {
+            console.error("Metadata is null");
+            throw new Error("Metadata is null");
         }
+
+        const isUpgradeAvailable = compareVersions(
+            metadata.jaiabot_version,
+            jaiaGlobal.getGitHubVersion(),
+        );
+        jaiaGlobal.setMetadata(metadata);
+        jaiaGlobal.setIsUpgradeAvailable(isUpgradeAvailable);
     } catch (error) {
         console.error(error);
     }
@@ -342,7 +350,7 @@ function deconstructTagName(tagName: string) {
  * @returns {boolean} True if there is a new version, False otherwise
  */
 function compareVersions(
-    currentVersion: DeviceMetadata_Version,
+    currentVersion: DeviceMetadata_Version | undefined,
     gitHubVersion: DeviceMetadata_Version,
 ) {
     if (!currentVersion) {
