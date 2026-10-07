@@ -71,6 +71,11 @@ message CommandResult
         [(jaia.field).rest_api.presence = GUARANTEED];
 }
 
+message TaskPacketsVersionResult {
+    required uint32 version = 1
+        [(jaia.field).rest_api.presence = GUARANTEED];
+}
+
 enum APIErrorCode
 {
     // REST API URL errors
@@ -168,13 +173,14 @@ message APIRequest
                 response: '{"command_result": {"command_sent": true}, "request": {"api_key": "4vS6s2jnulxVjrKSB-__tQ", "command_for_hub": {"hub_id": 1, "hub_location": {"lat": 41.7, "lon": -70.3}, "time": "1722895686821358", "type": "SET_HUB_LOCATION"}, "target": {"all": true}}, "target": {"hubs": [1]}}'
             }
         }];
+        // Endpoints for JCC
         bool pod_status = 17 [(jaia.field).rest_api = {
             presence: GUARANTEED,
             doc: "This endpoint is used by JCC to check the overall status of the pod."
-            example {
-                request: '{"target": {"all": true}, "pod_status": true,"api_key": "4vS6s2jnulxVjrKSB-__tQ"}'
-                response: '{"pod_status": true, "request": {"api_key": "4vS6s2jnulxVjrKSB-__tQ", "target": {"all": true}}, "target": {"hubs": [1], "bots": [1]}}'
-            }
+        }];
+        bool task_packets_version = 18 [(jaia.field).rest_api = {
+            presence: GUARANTEED,
+            doc: "Check the version of the task packets."
         }];
     }
 }
@@ -269,6 +275,10 @@ message APIResponse
             presence: GUARANTEED,
             doc: "Overall pod status. This is sent in response to a successful Request 'pod_status' action."
         }];
+        TaskPacketsVersionResult task_packets_version = 17 [(jaia.field).rest_api = {
+            presence: GUARANTEED,
+            doc: "Task packet version response. This is sent in response to a successful Request 'task_packets_version' action."
+        }];
     }
 
     // copy of original request
@@ -310,7 +320,7 @@ message APIConfig
                 ]
             }];
             READ = 1 [(jaia.ev).rest_api = {
-                permitted_action: [ 'status', 'metadata', 'task_packets', 'missions', 'pod_status' ]
+                permitted_action: [ 'status', 'metadata', 'task_packets', 'missions', 'pod_status', 'task_packets_version' ]
             }];
             WRITE = 2 [(jaia.ev).rest_api = {
                 permitted_action: [ 'command', 'command_for_hub' ]
@@ -330,6 +340,9 @@ message APIConfig
             ];
             POD_STATUS = 9 [
                 (jaia.ev).rest_api = { permitted_action: [ 'pod_status' ] }
+            ];
+            TASK_PACKETS_VERSION = 10 [
+                (jaia.ev).rest_api = { permitted_action: [ 'task_packets_version' ] }
             ];
         }
 

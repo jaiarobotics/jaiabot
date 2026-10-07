@@ -255,3 +255,9 @@ def pod_status(jaia_request: APIRequest) -> APIResponse:
     # TODO: pod_status.controllingClientId = common.shared_data.data.controlling_client_id
 
     return jaia_response
+
+
+def task_packets_version(jaia_request: APIRequest) -> APIResponse:
+    jaia_response = APIResponse()
+    jaia_response.task_packets_version.version = common.shared_data.data.task_packet_database.task_packets_version
+    return jaia_response

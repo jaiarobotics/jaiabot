@@ -13,7 +13,6 @@ import { contourLayer } from "../openlayers/layers/vector/contour-layer";
 import { hubCommsLayer } from "../openlayers/layers/vector/hub-comms-layer";
 import { excludedTaskPacketsLayer } from "../openlayers/layers/vector/excluded-task-packets-layer";
 import { DeviceMetadata, DeviceMetadata_Version } from "@proto/jaiabot/messages/metadata";
-import { PodStatus } from "@proto/jaiabot/messages/rest_api";
 import SoundEffects from "../style/audio/sound-effects";
 import { jaia_rest_api } from "../utils/jaia-rest-api";
 
@@ -24,7 +23,6 @@ const CONNECTION_WARNING = "connection-warning";
 const CONGESTION_WARNING = "congestion-warning";
 const HUB_CONNECTION_ERROR = "Connection Dropped To HUB";
 
-const STATUS_URL = "/jaia/v0/status";
 const TASK_PACKET_URL = "/jaia/v0/task-packets";
 const TASK_PACKET_VERSION_URL = "/jaia/v0/task-packets-version";
 const METADATA_URL = "/jaia/v0/metadata";
@@ -62,18 +60,18 @@ export async function pollStatus() {
             pod_status: true,
         });
 
-        const json = rest_response.pod_status;
+        const pod_status = rest_response.pod_status;
 
-        if (json == null) {
+        if (pod_status == null) {
             console.error("Pod status response is null");
             return;
         }
 
-        updateBots(json.bots ?? []);
-        updateHubs(json.hubs ?? []);
-        updateJaiaGlobal(json.controllingClientId ?? "");
+        updateBots(pod_status.bots ?? []);
+        updateHubs(pod_status.hubs ?? []);
+        updateJaiaGlobal(pod_status.controllingClientId ?? "");
         updateOpenLayers();
-        if (json.messages?.error && json.messages?.error === HUB_CONNECTION_ERROR) {
+        if (pod_status.messages?.error && pod_status.messages?.error === HUB_CONNECTION_ERROR) {
             updateWarning(CONNECTION_WARNING, true);
         } else {
             updateWarning(CONNECTION_WARNING, false);
@@ -104,19 +102,27 @@ export async function pollTaskPackets() {
     }
     try {
         taskPacketRequestInFlight = true;
-        const versionRes = await fetch(TASK_PACKET_VERSION_URL);
-        if (!versionRes.ok) {
-            console.error(`Task packet response status: ${versionRes.status}`);
-        } else {
-            const version = await versionRes.json();
-            if (version !== taskPackets.getVersion()) {
-                const taskPacketRes = await fetch(TASK_PACKET_URL);
-                const json = await taskPacketRes.json();
-                taskPackets.setIncludedTaskPackets(json.result.included);
-                taskPackets.setExcludedTaskPackets(json.result.excluded);
-                updateTaskLayers();
-                taskPackets.setVersion(version);
-            }
+
+        const task_packets_version_response = await jaia_rest_api.request({
+            target: {
+                all: true,
+            },
+            task_packets_version: true,
+        });
+
+        const version = task_packets_version_response.task_packets_version?.version;
+        if (version == null) {
+            console.error("Task packets version is null");
+            throw new Error("Task packets version is null");
+        }
+
+        if (version !== taskPackets.getVersion()) {
+            const taskPacketRes = await fetch(TASK_PACKET_URL);
+            const json = await taskPacketRes.json();
+            taskPackets.setIncludedTaskPackets(json.result.included);
+            taskPackets.setExcludedTaskPackets(json.result.excluded);
+            updateTaskLayers();
+            taskPackets.setVersion(version);
         }
     } catch (error) {
         console.error(error);
