@@ -103,7 +103,8 @@ def upload_fleet_config(env, bucket, fleet_id, path, dry_run, logger):
     uri = major_upgrade_uri(bucket, fleet_id)
     logger.info("Fleet config {} {} {}".format(path, "would be uploaded to" if dry_run else "is uploaded to", uri))
     if not dry_run:
-        aws(env, "s3", "cp", path, uri)
+        # s3 cp writes progress, not JSON, to stdout unless told not to
+        aws(env, "s3", "cp", "--only-show-errors", path, uri)
     return uri
 
 
