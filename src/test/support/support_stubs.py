@@ -16,6 +16,7 @@ import json
 import os
 import pathlib
 import socket
+import sqlite3
 import subprocess
 import threading
 
@@ -52,6 +53,32 @@ held = os.environ["STUB_SG_FILE"]
 argv = sys.argv[1:]
 with open(os.environ["STUB_AWS_LOG"], "a") as f:
     f.write(" ".join(argv) + "\\n")
+
+if argv[:2] == ["s3", "cp"]:
+    # Flags all take a value, so what is left is the source and the destination
+    paths, rest = [], argv[2:]
+    while rest:
+        word = rest.pop(0)
+        if word.startswith("--"):
+            rest = rest[1:]
+        else:
+            paths.append(word)
+    source, destination = paths
+    def local(url):
+        return os.path.join(os.environ["STUB_S3_DIR"], url[len("s3://"):])
+    if source == "-":
+        os.makedirs(os.path.dirname(local(destination)), exist_ok=True)
+        with open(local(destination), "w") as f:
+            f.write(sys.stdin.read())
+    else:
+        try:
+            with open(local(source)) as f:
+                sys.stdout.write(f.read())
+        except OSError:
+            sys.stderr.write("fatal error: An error occurred (404) when calling the HeadObject "
+                             "operation: Key does not exist\\n")
+            sys.exit(1)
+    sys.exit(0)
 
 action = argv[1] if len(argv) > 1 else ""
 permissions = json.loads(argv[argv.index("--ip-permissions") + 1])
@@ -102,8 +129,10 @@ LLDAP_GROUPS = ("run", "sim", "jdv", "jcu_developer", "rest_api_read", "lldap_ad
 class StubLldap:
     """Enough of LLDAP 0.6.3's HTTP surface for the real client to drive it."""
 
-    def __init__(self, membership):
+    def __init__(self, membership, emails=None):
         self.membership = membership        # {user: [group, ...]}, the whole directory
+        self.emails = emails or {}
+        self.signed_in_as = "authelia"
         self.calls = []
         stub = self
 
@@ -128,6 +157,7 @@ class StubLldap:
                         self.send_error(401)
                         return
                     stub.calls.append("login as {}".format(asked.get("username")))
+                    stub.signed_in_as = asked.get("username")
                     self.reply({"token": "stub-token"})
                     return
 
@@ -145,6 +175,23 @@ class StubLldap:
                         if name in held:
                             held.remove(name)
                     self.reply({"data": {"ok": True}})
+                elif "deleteUser" in query:
+                    user = variables["user"]
+                    if user == stub.signed_in_as:
+                        self.reply({"errors": [{"message": "Cannot delete current user"}]})
+                    elif user not in stub.membership:
+                        self.reply({"errors": [{"message": "Could not find user"}]})
+                    else:
+                        stub.calls.append("delete {}".format(user))
+                        del stub.membership[user]
+                        self.reply({"data": {"deleteUser": {"ok": True}}})
+                elif "user(userId:" in query and "email" in query:
+                    user = variables["user"]
+                    if user not in stub.membership:
+                        self.reply({"errors": [{"message": "Could not find user"}]})
+                        return
+                    self.reply({"data": {"user": {
+                        "email": stub.emails.get(user, user + "@example.com")}}})
                 elif "user(userId:" in query:
                     user = variables["user"]
                     if user not in stub.membership:
@@ -183,6 +230,10 @@ class CloudHub:
         self.ufw_log = os.path.join(directory, "ufw.log")
         self.ss_log = os.path.join(directory, "ss.log")
         self.secrets = os.path.join(directory, "secrets")
+        self.s3 = os.path.join(directory, "s3")
+        self.cloud_env = os.path.join(directory, "cloud.env")
+        self.fstab = os.path.join(directory, "fstab")
+        self.authelia_db = os.path.join(directory, "db.sqlite3")
         self.tmp_authorized_keys = os.path.join(directory, "tmp_authorized_keys")
         os.makedirs(self.bin)
 
@@ -223,7 +274,11 @@ class CloudHub:
                     JAIA_AUTH_SECRETS=self.secrets,
                     JAIA_VPN_AUTHORIZE=str(AUTHORIZE),
                     JAIA_TMP_AUTHORIZED_KEYS=self.tmp_authorized_keys,
-                    JAIA_LLDAP_URL="http://127.0.0.1:{}".format(self.lldap.port))
+                    JAIA_LLDAP_URL="http://127.0.0.1:{}".format(self.lldap.port),
+                    JAIA_CLOUD_ENV=self.cloud_env,
+                    JAIA_FSTAB=self.fstab,
+                    JAIA_AUTHELIA_DB=self.authelia_db,
+                    STUB_S3_DIR=self.s3)
         held.update(extra)
         return held
 
@@ -268,6 +323,43 @@ class CloudHub:
     def open_to_everyone(self):
         held = self.open_to()
         return "0.0.0.0/0" in held and "::/0" in held
+
+    def commissioned(self, bucket, admin_signed_in=True):
+        """A CloudHub with both directory accounts and the bucket in cloud.env, as
+        create_vpc.sh leaves it once fleet_admin has a password."""
+        with open(self.cloud_env, "w") as f:
+            f.write("jaia_aws_region=ca-central-1\njaia_aws_cloudhub_data_bucket={}\n".format(bucket))
+        self.lldap.membership["fleet_admin"] = ["super_admin", "lldap_admin"]
+        self.lldap.membership["jaia_bootstrap"] = ["super_admin", "lldap_admin"]
+        self.lldap.emails["fleet_admin"] = "Admin@Customer.example"
+        self.authelia_log(("fleet_admin", 0))
+        if admin_signed_in:
+            self.authelia_log(("admin@customer.example", 1))
+
+    def authelia_log(self, *attempts):
+        """Rows in Authelia's own table, as (username, successful)."""
+        with sqlite3.connect(self.authelia_db) as db:
+            db.execute("CREATE TABLE IF NOT EXISTS authentication_logs (id INTEGER PRIMARY KEY, "
+                       "time TIMESTAMP, successful BOOLEAN, banned BOOLEAN, username TEXT, "
+                       "auth_type TEXT)")
+            db.executemany("INSERT INTO authentication_logs (successful, banned, username, auth_type) "
+                           "VALUES (?, 0, ?, '1FA')", [(ok, name) for name, ok in attempts])
+
+    def s3_object(self, bucket, key):
+        try:
+            with open(os.path.join(self.s3, bucket, key)) as f:
+                return json.load(f)
+        except OSError:
+            return None
+
+    def put_s3_object(self, bucket, key, payload):
+        path = os.path.join(self.s3, bucket, key)
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "w") as f:
+            json.dump(payload, f)
+
+    def accounts(self):
+        return sorted(self.lldap.membership)
 
     def web_groups(self):
         """The groups the support account is in, as the directory holds them."""

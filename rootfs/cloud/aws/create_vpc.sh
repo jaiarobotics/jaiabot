@@ -637,5 +637,5 @@ EOF
 
 echo -e "Authelia login at https://$AUTH_BASE_URI"
 echo -e "\tjaia_bootstrap: Jaia's, to commission this CloudHub and pair its fleet. Set a password with \"Reset password?\" on the login page, which emails ${BOOTSTRAP_EMAIL}."
-echo -e "\t\tDelete it at https://users.$AUTH_BASE_URI before the CloudHub is shipped."
+echo -e "\t\tOnce fleet_admin has signed in, delete it with \"jaia admin fleet cloudhub handoff\" before the CloudHub is shipped."
 echo -e "\tfleet_admin: the customer's. Set a password the same way, which emails cloudhub.admin_email."

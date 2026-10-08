@@ -37,6 +37,12 @@ immediate stop. The page says so rather than implying otherwise.
 Every bound is applied on each run rather than once when the record was written:
 the grant's own expiry, and two weeks from when it was made. So a record edited
 on this machine can only ever shorten access, never extend it.
+
+The same timer answers the request "jaia admin fleet cloudhub handoff" leaves in the
+CloudHub's data bucket, deleting jaia_bootstrap, Jaia's commissioning account, once
+the customer's fleet_admin has signed in. The bucket is the channel because it is
+the one thing both Jaia's AWS account and this CloudHub can reach without Jaia
+holding a login here.
 """
 
 import argparse
@@ -44,6 +50,7 @@ import ipaddress
 import json
 import os
 import re
+import sqlite3
 import subprocess
 import sys
 import time
@@ -83,6 +90,15 @@ SECRETS = os.environ.get("JAIA_AUTH_SECRETS", "/var/log/jaiabot/auth/authelia/se
 AUTHORIZE = os.environ.get("JAIA_VPN_AUTHORIZE", "/usr/bin/jaia-vpn-authorize.sh")
 EVERYWHERE = ("0.0.0.0/0", "::/0")
 LLDAP_URL = os.environ.get("JAIA_LLDAP_URL", "http://127.0.0.1:17170")
+CLOUD_ENV = os.environ.get("JAIA_CLOUD_ENV", "/etc/jaiabot/cloud.env")
+FSTAB = os.environ.get("JAIA_FSTAB", "/etc/fstab")
+AUTHELIA_DB = os.environ.get("JAIA_AUTHELIA_DB", "/var/log/jaiabot/auth/authelia/db.sqlite3")
+OFFLOAD_MOUNT = "/var/log/jaiabot/bot_offload"
+
+BOOTSTRAP_ACCOUNT = "jaia_bootstrap"
+ADMIN_ACCOUNT = "fleet_admin"
+HANDOFF_REQUEST = "jaia/requests/handoff.json"
+HANDOFF_RESULT = "jaia/results/handoff.json"
 
 
 def run(command, **kwargs):
@@ -410,10 +426,139 @@ def set_web_access(wanted):
     return True
 
 
+def account(token, user):
+    """The account's email, or None when the directory has no such account."""
+    try:
+        return graphql(token, "query($user: String!) { user(userId: $user) { email } }",
+                       {"user": user})["user"]["email"]
+    except RuntimeError:
+        return None
+
+
 def web_access_held():
     """Any of the groups, not all: a half-applied grant is access, and reporting it as
     none would be the comfortable answer rather than the true one."""
     return bool((held_groups(lldap_login()) or set()) & set(WEB_GROUPS))
+
+
+##############
+## Hand-off ##
+##############
+
+def cloud_env():
+    held = {}
+    try:
+        with open(CLOUD_ENV) as f:
+            for line in f:
+                if "=" in line:
+                    key, value = line.strip().split("=", 1)
+                    held[key] = value.strip('"')
+    except OSError:
+        pass
+    return held
+
+
+def data_bucket():
+    """From cloud.env, or else from the offload mount, which is all a CloudHub
+    configured before cloud.env carried the bucket has to say which it is."""
+    bucket = cloud_env().get("jaia_aws_cloudhub_data_bucket")
+    if bucket:
+        return bucket
+    try:
+        with open(FSTAB) as f:
+            for line in f:
+                fields = line.split()
+                if len(fields) >= 3 and fields[1].rstrip("/") == OFFLOAD_MOUNT \
+                   and fields[2] == "fuse.s3fs":
+                    return fields[0]
+    except OSError:
+        pass
+    return None
+
+
+def s3(*args, **kwargs):
+    region = cloud_env().get("jaia_aws_region")
+    return subprocess.run([AWS, "s3", *args] + (["--region", region] if region else []),
+                          stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, **kwargs)
+
+
+def s3_read(bucket, key):
+    done = s3("cp", "s3://{}/{}".format(bucket, key), "-")
+    if done.returncode != 0:
+        if any(missing in done.stderr for missing in ("(404)", "NoSuchKey", "does not exist")):
+            return None
+        raise RuntimeError(done.stderr.strip() or "could not read s3://{}/{}".format(bucket, key))
+    try:
+        return json.loads(done.stdout)
+    except ValueError:
+        raise RuntimeError("s3://{}/{} is not JSON".format(bucket, key))
+
+
+def s3_write(bucket, key, payload):
+    done = s3("cp", "-", "s3://{}/{}".format(bucket, key), "--content-type", "application/json",
+              input=json.dumps(payload, sort_keys=True) + "\n")
+    if done.returncode != 0:
+        raise RuntimeError(done.stderr.strip() or "could not write s3://{}/{}".format(bucket, key))
+
+
+def has_signed_in(names):
+    """Whether Authelia has ever let any of these names in, which LLDAP cannot say:
+    it does not report whether an account has a password at all. None when the log
+    cannot be read."""
+    try:
+        with sqlite3.connect("file:{}?mode=ro".format(AUTHELIA_DB), uri=True) as db:
+            wanted = [name.lower() for name in names if name]
+            found = db.execute(
+                "SELECT 1 FROM authentication_logs WHERE successful = 1 AND lower(username) IN "
+                "({}) LIMIT 1".format(",".join("?" * len(wanted))), wanted).fetchone()
+        return found is not None
+    except sqlite3.Error:
+        return None
+
+
+def hand_off(request):
+    """Deleted by the directory's service account because LLDAP will not let an
+    account delete itself, so jaia_bootstrap cannot do this on its own way out."""
+    token = lldap_login()
+    admin_email = account(token, ADMIN_ACCOUNT)
+    if admin_email is None:
+        return "refused", "the directory has no {}, so nobody would be left to run it".format(
+            ADMIN_ACCOUNT)
+    if not request.get("force"):
+        signed_in = has_signed_in([ADMIN_ACCOUNT, admin_email])
+        if signed_in is None:
+            return "refused", "could not tell from {} whether {} has ever signed in".format(
+                AUTHELIA_DB, ADMIN_ACCOUNT)
+        if not signed_in:
+            return "refused", "{} has never signed in, so may have no password yet".format(
+                ADMIN_ACCOUNT)
+    if account(token, BOOTSTRAP_ACCOUNT) is None:
+        return "absent", "{} was already gone".format(BOOTSTRAP_ACCOUNT)
+    graphql(token, "mutation($user: String!) { deleteUser(userId: $user) { ok } }",
+            {"user": BOOTSTRAP_ACCOUNT})
+    return "deleted", "{} deleted".format(BOOTSTRAP_ACCOUNT)
+
+
+def converge_handoff(now):
+    """Answers each request once, matched by its id, so the result left in the
+    bucket is both the reply and the record that there is nothing left to do."""
+    bucket = data_bucket()
+    if not bucket:
+        return
+    request = s3_read(bucket, HANDOFF_REQUEST)
+    if not request or not request.get("id"):
+        return
+    answered = s3_read(bucket, HANDOFF_RESULT)
+    if answered and answered.get("request_id") == request["id"]:
+        return
+    try:
+        outcome, detail = hand_off(request)
+    except Exception as problem:
+        outcome, detail = "failed", "could not reach the directory: {}".format(problem)
+    audit("handoff", {"outcome": outcome, "why": detail, "by": request.get("by", "")})
+    s3_write(bucket, HANDOFF_RESULT, {"request_id": request["id"],
+                                      "requested_at": request.get("requested_at"),
+                                      "outcome": outcome, "detail": detail, "at": now})
 
 
 ###############
@@ -501,6 +646,11 @@ def reconcile():
             audit("web", {"granted": want_web})
         except Exception as problem:
             troubles.append("could not reach the directory: {}".format(problem))
+
+    try:
+        converge_handoff(now)
+    except Exception as problem:
+        troubles.append("could not answer a hand-off request: {}".format(problem))
 
     os.makedirs(STATE_DIR, exist_ok=True)
     with open(LAST_RUN_FILE, "w") as f:

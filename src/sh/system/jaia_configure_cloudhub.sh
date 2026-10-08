@@ -149,6 +149,7 @@ jaia_aws_account_id=${account_id}
 jaia_aws_virtualfleet_security_group=${vfleet_security_group}
 jaia_aws_virtualfleet_repository=${virtualfleet_repository}
 jaia_aws_virtualfleet_repository_version=${virtualfleet_repository_version}
+jaia_aws_cloudhub_data_bucket=${CLOUDHUB_DATA_BUCKET}
 jaia_auth_base_uri=${AUTH_BASE_URI}
 jaia_auth_admin_email=${AUTH_ADMIN_EMAIL}
 jaia_auth_smtp_address=${AUTH_SMTP_ADDRESS}

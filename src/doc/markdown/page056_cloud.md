@@ -251,7 +251,35 @@ Commissioning, signed in as `jaia_bootstrap`:
 3. From a hub on site, **Pair Fleet to CloudHub**, and check every bot and hub reports it
    is paired.
 4. **Close Fleet Pairing**.
-5. Before the CloudHub is shipped, delete `jaia_bootstrap` at `https://users.<base uri>`.
+5. Once the customer has set a password and signed in as `fleet_admin`, hand the CloudHub
+   over:
+
+   ```
+   jaia admin fleet cloudhub handoff fleetN.cfg --region <region>
+   ```
+
+### Hand-off
+
+`jaia admin fleet cloudhub handoff` deletes `jaia_bootstrap` without anyone at Jaia
+signing in as `fleet_admin`. It writes a request to the CloudHub's data bucket
+(`s3://<data bucket>/jaia/requests/handoff.json`). The CloudHub's support timer checks
+for it every five minutes, deletes the account with the directory's own service
+account (LLDAP will not let `jaia_bootstrap` delete itself), and writes the outcome to
+`jaia/results/handoff.json`. The command waits for that, up to `--timeout` seconds
+(default 600), and prints one of:
+
+- **deleted**: `jaia_bootstrap` is gone.
+- **already gone**: there was nothing to delete.
+- **refused**, with the reason: the directory has no `fleet_admin`, or `fleet_admin`
+  has never signed in, which is how the CloudHub tells that it has a password. Pass
+  `--force` to hand over anyway.
+- **failed**, with the reason, such as the directory being unreachable. Run it again.
+
+If the CloudHub does not answer in time, the request stays in the bucket and is still
+acted on. Each request is answered once, and recorded as `handoff` in the support
+page's log. A `jaia_bootstrap` session already signed in runs to its own expiry.
+`--dry-run` prints the request without writing it.
+
 
 `jaia_bootstrap` is created the first time the CloudHub's directory is set up and never
 again. `--bootstrap-email` is required, and cannot be `support@jaia.tech`, which `jaia_support`

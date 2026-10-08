@@ -63,6 +63,11 @@ message CloudHubTool
             external_command: "jaia-refresh-cloudhub-permissions.py",
             external_help_param: "--help"
         }];
+        handoff = 5 [(goby.ev).cfg = {
+            short_help_msg: "Hand a CloudHub to the customer by deleting the jaia_bootstrap account",
+            external_command: "jaia-cloudhub-handoff.py",
+            external_help_param: "--help"
+        }];
     }
 
     optional Action action = 2 [
