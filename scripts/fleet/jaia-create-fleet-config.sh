@@ -155,6 +155,7 @@ echo "######################################################"
 echo "## Generating Hub SSH keys                          ##"
 echo "######################################################"
 
+HAS_CLOUDHUB=false
 for HUB_ID_QUOTED in ${HUB_IDS}
 do
     CLOUDHUB_ID=30
@@ -166,6 +167,7 @@ do
 
 
     if [[ "${HUB_ID}" = "${CLOUDHUB_ID}" ]]; then
+        HAS_CLOUDHUB=true
         # Only generate a file based key pair for cloudhub
         ssh-keygen -f $PRIVKEY -t ed25519 -N "" -C "$KEYNAME"
         PRIVKEY_CONTENTS=$(awk '{print "\"" $0 "\\n\""}' ${PRIVKEY})
@@ -416,6 +418,42 @@ if grep -q iridium $out; then
 fi
 
 echo "}" >> $out
+
+if $HAS_CLOUDHUB; then
+    echo "######################################################"
+    echo "## CloudHub Authentication configuration            ##"
+    echo "######################################################"
+    
+    echo "cloudhub {" >> $out
+    BASE_URI="fleet${FLEET_ID}.jaia.tech"
+    run_wt_inputbox "Fleet Configuration" "Enter CloudHub base URI (or leave blank for default of $BASE_URI)"
+    if [ ! "${WT_TEXT}" = "" ]; then
+        BASE_URI="$WT_TEXT"
+    fi
+    echo "  base_uri: \"$BASE_URI\"" >> $out
+    run_wt_inputbox "Fleet Configuration" "Enter initial 'admin' user email"
+    ADMIN_EMAIL=$WT_TEXT
+    echo "  admin_email: \"$ADMIN_EMAIL\"" >> $out    
+
+    SMTP_ADDRESS="submission://smtp.postmarkapp.com:587"
+    run_wt_inputbox "Fleet Configuration" "Enter SMTP server address (or leave blank for default of $SMTP_ADDRESS)"
+    if [ ! "${WT_TEXT}" = "" ]; then
+        SMTP_ADDRESS="$WT_TEXT"
+    fi
+    echo "  smtp_address: \"$SMTP_ADDRESS\"" >> $out
+
+    run_wt_inputbox "Fleet Configuration" "Enter email sender address, verified with the SMTP provider (or leave blank for default of noreply@auth.jaia.tech)"
+    if [ ! "${WT_TEXT}" = "" ]; then
+        echo "  smtp_sender: \"$WT_TEXT\"" >> $out
+    fi
+
+    run_wt_inputbox "Fleet Configuration" "Enter AWS SSM parameter (name or ARN) holding the SMTP credentials (or leave blank for default of /jaia/cloudhub/smtp_credentials)"
+    if [ ! "${WT_TEXT}" = "" ]; then
+        echo "  smtp_credentials_ssm_parameter: \"$WT_TEXT\"" >> $out
+    fi
+
+    echo "}" >> $out
+fi
 
 echo "######################################################"
 echo "## Validate fleet configuration                     ##"

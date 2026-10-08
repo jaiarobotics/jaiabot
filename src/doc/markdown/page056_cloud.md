@@ -280,12 +280,14 @@ To upgrade an existing server, the following set of steps is recommended:
 6. Power down (stop) the old server.
 7. After some period (e.g., 1-2 weeks or so) of the new server functioning correctly,  disable termination protection for the old server and enable termination protection for the new server (if not already set) under (in the AWS console) `Actions->Instance Settings->Change termination protection`. Terminate (delete) the old instance.
 
-## Cloud Login server (*.cloud.jaia.tech)
+## Cloud Login server (auth.fleetN.jaia.tech / auth.custom_domain)
 
+Each CloudHub runs its own authentication server, allowing people to access the CloudHub and VirtualFleet securely using 2-factor [2FA] verification for all resources except the REST_API (which allows machines to use one-factor passwords to be used as API tokens).
+
+This provides a more convenient way to access the JCC and other CloudHub applications without requiring that the client machine have the Wireguard VPN installed, and provide more granular permissions.
 
 ![cloud server](../figures/cloudhub-login-reverse-proxy.png)
 
-The Cloud Login Server (*.cloud.jaia.tech) manages user authentication (with 2-factor [2FA] verification) for access to CloudHub resources. This provides a more convenient way to access the JCC and other CloudHub applications without requiring that the client machine have the Wireguard VPN installed.
 
 ### Implementation
 
@@ -297,15 +299,92 @@ This server is implemented using three open source projects:
 
 In short, Authelia manages authentication, Caddy manages the reverse proxy (between the insecure HTTP applications and the authenticated HTTPS connection), and LLDAP manages the user information (user names, group, passwords, etc.).
 
-These all run on a single machine, cloud.jaia.tech.
+An instance of all three of these runs on each CloudHub.
+
+### Required DNS entries
+
+Each Cloudhub can be supported from either `jaia.tech` or a custom domain.
+
+For fleet6, assuming the IPv4 address for CloudHub is 203.0.113.42 and the IvP6 address is 2001:db8::42, enter the following in the DNS configuration for `jaia.tech`:
+```
+fleet6      A       203.0.113.42
+fleet6      AAAA    2001:db8::42
+*.fleet6    CNAME   fleet6.jaia.tech.
+```
+
+If using a custom domain, you would change `jaia.tech` to your domain, and optionally `fleet6` to your desired subdomain. For example, to use `jaiaf6.gobysoft.org`, you would add the DNS entries for `gobysoft.org`:
+
+```
+jaiaf6      A       203.0.113.42
+jaiaf6      AAAA    2001:db8::42
+*.jaiaf6    CNAME   jaiaf6.gobysoft.org.
+```
+
+### Required SMTP
+
+Sending email from the Authelia instance is required for registering new 2FA tokens and password resets. By default these emails are sent from `noreply@auth.jaia.tech` through [Postmark](https://postmarkapp.com/), for every fleet.
+
+The relevant `cloudhub` fields of the fleet configuration are:
+
+| Field | Default | Meaning |
+|---|---|---|
+| `smtp_address` | (required) | SMTP server Authelia sends through: `submission://smtp.postmarkapp.com:587` for Postmark |
+| `smtp_sender` | `noreply@auth.jaia.tech` | From address. It must be verified with the SMTP provider |
+| `smtp_credentials_ssm_parameter` | `/jaia/cloudhub/smtp_credentials` | AWS SSM Parameter Store SecureString holding the SMTP login as `{"username": "...", "password": "..."}`. A plain name is looked up in the CloudHub's own account and region; a full ARN can point anywhere the CloudHub's role is allowed to read |
+
+For example, a client that hosts their CloudHub in their own AWS account and sends from their own domain:
+
+```
+cloudhub {
+  base_uri: "jaia.clientdomain.com"
+  admin_email: "admin@clientdomain.com"
+  smtp_address: "submission://smtp.postmarkapp.com:587"
+  smtp_sender: "noreply@auth.clientdomain.com"
+  smtp_credentials_ssm_parameter: "/client/jaia/smtp_credentials"
+}
+```
+
+`create_vpc.sh` grants the CloudHub's IAM role `ssm:GetParameter` on this parameter (and `kms:Decrypt` through SSM, for parameters encrypted with a customer managed key), and `jaia_configure_authelia.sh` reads it at configuration time. If the parameter cannot be read, Authelia is configured to send without authenticating, which only works with a relay that allowlists the CloudHub's IP addresses (e.g. Google Workspace SMTP Relay). Postmark will refuse it, and Authelia will not start.
+
+You can use `https://www.mail-tester.com/` to check the likelihood that your emails will be caught in spam.
 
 ### Available services
 
-CloudHub access:
-- https://fN.cloud.jaia.tech: JCC for Fleet N (e.g., https://f1.cloud.jaia.tech for fleet 1).
-- https://fN.cloud.jaia.tech/jcu: JCU for Fleet N.
-- https://fN.cloud.jaia.tech/jdv: JDV for Fleet N.
+#### jaia.tech Domains
+
+CloudHub access (https://fleetN.jaia.tech):
+
+- https://fleetN.jaia.tech: Landing page listing the sites below that the signed-in user can open, with a link to log out.
+	+ Groups: any signed-in user
+- https://run.fleetN.jaia.tech: JCC for Fleet N (e.g., https://run.fleet1.jaia.tech for fleet 1).
+	+ Groups: 'run'
+- https://run.fleetN.jaia.tech/jcu: JCU for Fleet N.
+ 	+ Groups: 'jcu_user', 'jcu_advanced', 'jcu_developer' (correspond to JCU roles: USER, ADVANCED, DEVELOPER)
+- https://run.fleetN.jaia.tech/jdv: JDV for Fleet N.
+ 	+ Groups: 'jdv'
+- https://run.fleetN.jaia.tech/jaia: REST API for Fleet N.
+	+ Groups: 'rest_api_read' (read-only), 'rest_api_all' (all access).
+	+ `curl -u "user:password" 'https://run.fleetN.jaia.tech/jaia/v1/status/all'`
+
+VirtualFleet access (https://sim.fleetN.jaia.tech):
+
+- https://sim.fleetN.jaia.tech: All resources for VirtualFleet Hub
+	+ Groups: 'sim'
+
+The group `super_admin` gives the same access as `run`, `sim`, `jdv`, and `jcu_developer`. Note that this group does not automatically have `lldap_admin` privileges (as this is a special group within LLDAP).
 
 Supporting web pages:
-- https://auth.cloud.jaia.tech: Authelia authentication website. Typically the user doesn't need to access this directly unless they want to change their user settings.
-- https://lldap.cloud.jaia.tech: User management by Jaia administrators. Add new users, add users to fleet access, and remove old users.
+
+- https://users.fleetN.jaia.tech: User management by fleet administrators. Add new users, add users to fleet access, and remove old users.
+ 	+ Groups: 'lldap_admin'
+- https://auth.fleetN.jaia.tech: Authelia authentication website. Typically the user doesn't need to access this directly unless they want to change their user settings.
+
+#### Custom Domains
+
+Replace `.fleetN.jaia.tech` with your custom domain in the examples above, where your custom domain might be `jaiafleet6.mybusiness.com` or `jaiaf3.university.edu`, as you prefer.
+
+#### Navigation menu
+
+Every page on these sites shows a floating Jaia button in the bottom left corner with the login name of the signed-in user. It opens a menu linking to the landing page, Run (JCC, JCU, JDV), Sim (JCC, JCU, JDV), Users and Account, showing only the sites the user's groups allow, plus a Log out button.
+
+Caddy injects the menu into every HTML page, including the third-party Authelia and LLDAP pages, using the [replace-response](https://github.com/caddyserver/replace-response) plugin. Ubuntu's `caddy` package doesn't include it, so `jaia_configure_authelia.sh` downloads a build with the plugin from the Caddy download service, installs it as `/usr/bin/caddy.custom` and selects it with `dpkg-divert` and `update-alternatives` (the apt binary becomes `/usr/bin/caddy.default`), so package upgrades don't undo it. The plugin version is pinned in `common-versions.env` (`jaia_version_caddy_replace_response`). The menu (`/_jaia/nav.js`, `/_jaia/nav.css`) and the landing page are static files from `src/web/cloud`, installed by `jaiabot-web` to `/usr/share/jaiabot/web/cloud`; the menu learns who is signed in from `/_jaia/whoami`, which Caddy answers from the headers Authelia returns.
