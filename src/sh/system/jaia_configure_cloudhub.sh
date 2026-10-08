@@ -202,10 +202,12 @@ if ! hostname | grep -qE '^(hub|bot)[0-9]+-fleet[0-9]+$'; then
     hostnamectl set-hostname "jaia-unnamed"
 fi
 
-# A major upgrade carries /etc/wireguard across so the private key every peer was issued
-# against survives, which also carries the addressing of the release being left behind.
-# Add the address this release computes alongside it rather than replacing it: peers route
-# to the whole /64 and host entries still name the old one, so both keep working.
+# A major upgrade carries /etc/wireguard across for the server's key, which also carries
+# the addressing of the release being left behind. Add the address this release computes
+# alongside it rather than replacing it, since host entries still name the old one. Its
+# peers go: every node pairs again after the upgrade, and an old peer's address can be
+# another kind of node's under this release.
+stale_peers=""
 if cloudhub_id=$(jaia_bounds --cloudhub_id); then
     for vpn in cloudhub:c virtualfleet:v; do
         conf=/etc/wireguard/wg_${vpn%%:*}.conf
@@ -214,9 +216,7 @@ if cloudhub_id=$(jaia_bounds --cloudhub_id); then
         if addr=$(jaia_ip "h${cloudhub_id}${vpn##*:}f${jaia_fleet_id}"); then
             if ! grep -q "^Address *=.*\b${addr}/" "$conf"; then
                 sed -i "0,/^Address *=/s|^Address *=.*|&\nAddress = ${addr}/64|" "$conf"
-                # 2.y gave desktop N ::2:N, which this release gives bot N; its desktop
-                # peers would take the bots' addresses once they pair
-                if [ "${vpn%%:*}" = cloudhub ]; then drop_cloudhub_peers="${addr%%::*}::2:"; fi
+                stale_peers="${stale_peers} wg_${vpn%%:*}"
             fi
         else
             echo "WARNING: could not work out this release's address for ${conf}"
@@ -232,10 +232,13 @@ for conf in /etc/wireguard/wg_cloudhub.conf /etc/wireguard/wg_virtualfleet.conf;
     [ -f "$conf" ] || continue
     iface=$(basename "$conf" .conf)
     unit="wg-quick@${iface}"
-    # Moved before the restart, so the interface comes up on the directory.
-    drop=""
-    if [ "$iface" = wg_cloudhub ]; then drop="${drop_cloudhub_peers:-}"; fi
-    jaia-vpn-peers.sh migrate "$iface" $drop || echo "WARNING: could not move ${iface} peers into a peers directory"
+    # Before the restart, so the interface comes up on the directory.
+    case " ${stale_peers} " in
+        *" ${iface} "*)
+            jaia-vpn-peers.sh clear "$iface" || echo "WARNING: could not drop ${iface}'s peers from the previous release" ;;
+        *)
+            jaia-vpn-peers.sh migrate "$iface" || echo "WARNING: could not move ${iface} peers into a peers directory" ;;
+    esac
     systemctl enable "$unit" || echo "WARNING: could not enable ${unit}"
     systemctl restart "$unit" || echo "WARNING: could not start ${unit}"
 done

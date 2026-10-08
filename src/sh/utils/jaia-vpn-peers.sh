@@ -28,15 +28,17 @@ Usage: ${0##*/} add <interface> <name> <public key> <allowed ips>
        ${0##*/} status <interface>
        ${0##*/} apply <interface>
        ${0##*/} enable <interface>
-       ${0##*/} migrate <interface> [<address prefix to drop>...]
+       ${0##*/} migrate <interface>
+       ${0##*/} clear <interface>
 
 Names a peer file, so <name> may hold only letters, digits, '-' and '_'.
 "status" lists each peer with its last handshake. "apply" reloads the
 directory onto a running interface; it does nothing if the interface is
 down. "enable" has the interface's wg-quick unit run it
 once the interface is up and on reload. "migrate" moves the peers of an
-interface still kept in one flat config into the directory, and enables it;
-a peer whose AllowedIPs begin with a given prefix is dropped instead.
+interface still kept in one flat config into the directory, and enables it.
+"clear" removes every peer, from the flat config and the directory alike,
+keeps the interface, and enables it.
 EOF
     exit 1
 }
@@ -160,9 +162,6 @@ cmd_status()
 cmd_migrate()
 {
     local iface=$1 conf dir
-    shift
-    # Peers whose AllowedIPs begin with one of these are dropped rather than moved
-    local drop="$*"
     conf="${WG_DIR}/${iface}.conf"
     [ -f "$conf" ] || { echo "ERROR: no ${conf} to migrate" >&2; exit 1; }
 
@@ -172,31 +171,10 @@ cmd_migrate()
 
     TMPFILE=$(mktemp "${WG_DIR}/.${iface}.migrate.XXXXXX")
 
-    awk -v dir="$dir" -v drop="$drop" '
+    awk -v dir="$dir" '
         function valid(candidate) { return candidate ~ /^[A-Za-z0-9_-]+$/ }
-        function dropped(   i, j, n, prefixes, line, ips, m, k) {
-            n = split(drop, prefixes, " ")
-            for (i = 1; i <= held; i++) {
-                line = lines[i]
-                if (line !~ /^[ \t]*AllowedIPs[ \t]*=/) continue
-                sub(/^[^=]*=[ \t]*/, "", line)
-                m = split(line, ips, /[ \t]*,[ \t]*/)
-                for (k = 1; k <= m; k++)
-                    for (j = 1; j <= n; j++)
-                        if (index(ips[k], prefixes[j]) == 1) return ips[k]
-            }
-            return ""
-        }
-        function flush(   i, out, ip) {
+        function flush(   i, out) {
             if (!collecting) return
-            ip = dropped()
-            if (ip != "") {
-                print "dropped the peer at " ip > "/dev/stderr"
-                collecting = 0
-                held = 0
-                name = ""
-                return
-            }
             if (!valid(name)) name = sprintf("peer-%d", count)
             out = dir "/" name ".conf"
             printf "" > out
@@ -257,6 +235,32 @@ EOF
     systemctl daemon-reload 2>/dev/null || true
 }
 
+# Every peer goes, wherever it is kept; the interface and its key stay
+cmd_clear()
+{
+    local iface=$1 conf peer
+    conf="${WG_DIR}/${iface}.conf"
+    [ -f "$conf" ] || { echo "ERROR: no ${conf} to clear" >&2; exit 1; }
+
+    TMPFILE=$(mktemp "${WG_DIR}/.${iface}.clear.XXXXXX")
+    awk '
+        /^[ \t]*#[ \t]*(BEGIN|END) PEER[ \t]/ { next }
+        /^[ \t]*\[[Pp]eer\][ \t]*$/ { peer = 1; next }
+        /^[ \t]*\[/ { peer = 0 }
+        !peer
+    ' "$conf" > "$TMPFILE"
+    chmod --reference="$conf" "$TMPFILE"
+    mv "$TMPFILE" "$conf"
+    TMPFILE=""
+
+    for peer in "$(peers_dir "$iface")"/*.conf; do
+        [ -e "$peer" ] || continue
+        rm -f "$peer"
+    done
+
+    cmd_enable "$iface"
+}
+
 [ $# -ge 1 ] || usage
 action=$1
 shift
@@ -268,6 +272,7 @@ case "$action" in
     status)  [ $# -eq 1 ] || usage; cmd_status "$@" ;;
     enable)  [ $# -eq 1 ] || usage; cmd_enable "$@" ;;
     apply)   [ $# -eq 1 ] || usage; cmd_apply "$@" ;;
-    migrate) [ $# -ge 1 ] || usage; cmd_migrate "$@" ;;
+    migrate) [ $# -eq 1 ] || usage; cmd_migrate "$@" ;;
+    clear)   [ $# -eq 1 ] || usage; cmd_clear "$@" ;;
     *)       usage ;;
 esac
