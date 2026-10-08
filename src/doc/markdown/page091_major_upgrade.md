@@ -72,6 +72,12 @@ Only the hub named by `hub_id` stages the upgrade (mounts the updates disk and c
 
 A CloudHub has no USB port: it downloads the update image itself and upgrades only itself, before the rest of the fleet. Its JCU's "Major Upgrade" is limited to the CloudHub and proposes no backup, which a CloudHub's disk is usually too small for.
 
+Nor can a CloudHub be handed the fleet configuration on a USB key or CD, so it takes it from its data bucket. From a workstation with AWS credentials, in this order:
+
+1. `jaia admin fleet migrate fleetN.cfg`, with the release being installed.
+2. `jaia admin fleet cloudhub prep_major_upgrade fleetN.cfg --region <region>`. It refuses a configuration that does not validate, uploads it to `s3://<data bucket>/jaia/major_upgrade/fleetN.cfg`, gives the CloudHub's IAM role this release's policy, and closes any port 22 rule its creation left open. `--dry-run` reports what would change without changing it. IAM changes can take a minute or two to apply, so pairing or support access opened straight afterwards may be refused briefly.
+3. The CloudHub's JCU "Major Upgrade". The upgrade prefers the configuration in the data bucket to the one on the CloudHub, and stops before touching anything if it finds neither.
+
 ### Use the playbook from the release you are installing
 
 Run the playbook from a git checkout of the release being installed, not from the copy installed on the hub. A hub still running the old release has the old playbook under `/usr/share/jaiabot/config/ansible`, and that playbook builds the new boot filesystem with the old release's fleet config tool, which cannot write a preseed the new image can read. Nothing reports an error until after the root filesystem has already been swapped, so the node reboots into the new release unconfigured: no hostname, no network, no `jaiabot`, reachable only over a serial console.
@@ -136,7 +142,7 @@ A backup of the old rootfs and overlayfs is copied and compressed to `/var/log/j
 
 Nothing of a node's previous installation is carried over except on the CloudHub, whose `/etc/wireguard` (the VPN server's keys and peer list, which only its creation makes) is copied into the staging directory and restored on the new image. Every other node comes out of the upgrade as a new node would: with the bootstrap key (`id_vpn_tmp`) written from the fleet configuration and no CloudHub VPN enrollment. After every major upgrade, re-pair the fleet as for a new fleet: run "Open Fleet Pairing" and then "Pair Fleet to CloudHub" from the JCU on the hub (see [CloudHub VPN](page055_vpn.md)). Until then nothing reaches the CloudHub over the VPN, including the hub-to-hub link through it.
 
-The CloudHub's upgrade also records the fleet's bootstrap key from the fleet configuration and marks the CloudHub as handed over, on its data partition, so that "Open Fleet Pairing" can admit nodes and open port 22. A CloudHub created by an earlier release needs one more step, from a workstation with AWS credentials, before pairing can open its security group: `jaia admin fleet cloudhub refresh_permissions fleetN.cfg --region <region>` gives its IAM role this release's policy and closes any port 22 rule its creation left open (`--dry-run` reports what would change).
+The CloudHub's upgrade also records the fleet's bootstrap key from the fleet configuration and marks the CloudHub as handed over, on its data partition, so that "Open Fleet Pairing" can admit nodes and open port 22. A CloudHub created by an earlier release can open its security group for pairing only once `jaia admin fleet cloudhub prep_major_upgrade` has given its IAM role this release's policy (see [Running the major upgrade](#running-the-major-upgrade)).
 
 The new boot filesystem is prepared from the fleet configuration file by the fleet config tool found inside the new boot tarball (`jaiabot/init/fleet_config/jaia-fleet-config.py generate`), never by the installed `jaia` tool: this way the template, schema and migrations always come from the release being installed, whatever release the node runs today (so a hub already on the new release can upgrade bots that are still on the previous one).
 
@@ -197,7 +203,7 @@ The build writes `share/jaiabot/fleet_config/fleet_config.desc` (a protobuf `Fil
 | `jaia admin fleet edit fleetN.cfg [-o out.cfg]` | re-ask every question with the file's answers filled in; whatever a failed migration could not carry over is reported and starts at its default |
 | `jaia admin fleet update_iso` | migrate and validate with the tool of the release *on the ISO*, then embed |
 | `jaia admin fleet cloudhub set_key fleetN.cfg hub30_fleetN.pub` | record the public key a CloudHub made for itself (`cloudhub create` runs it) |
-| `jaia admin fleet cloudhub refresh_permissions fleetN.cfg --region <region>` | after a CloudHub's major upgrade, give its AWS role this release's policy and close any port 22 rule its creation left open |
+| `jaia admin fleet cloudhub prep_major_upgrade fleetN.cfg --region <region>` | before a CloudHub's major upgrade, upload the fleet configuration to its data bucket, give its AWS role this release's policy and close any port 22 rule its creation left open |
 
 It is copied into the boot partition of every image (`jaiabot/init/fleet_config/`, next to `first-boot.preseed.yml.j2`) together with `fleet_config.desc`, so the major upgrade runs the new release's tool from the new boot tarball, on the hub and on every node. It renders the first-boot template with Jinja2's `StrictUndefined`, so a missing value is an error rather than a blank line, and the template's first line dereferences a variable only this tool defines, so an older generator fails on it instead of writing a broken preseed.
 

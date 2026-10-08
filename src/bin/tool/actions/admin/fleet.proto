@@ -87,7 +87,7 @@ message FleetTool
             external_help_param: "--help"
         }];
         cloudhub = 14 [(goby.ev).cfg = {
-            short_help_msg: "CloudHub administration: create, delete, set_key, refresh_permissions",
+            short_help_msg: "CloudHub administration: create, delete, set_key, prep_major_upgrade",
         }];
     }
 
