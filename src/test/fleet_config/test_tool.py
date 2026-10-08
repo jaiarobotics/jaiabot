@@ -251,7 +251,7 @@ class MigrationFailureTest(unittest.TestCase):
         cfg = fc.parse_fleet_config(SCHEMA, fixture("v1_bad_values.cfg"))
         notes, problems = fc.migrate(SCHEMA, cfg)
         self.assertEqual(sorted(problems), sorted([
-            "jaiabot-embedded/bot_type: 'sonar' is not one of hydro, pam, bio, none",
+            "jaiabot-embedded/bot_type: 'sonar' is not one of hydro, pam, bio, storm, none",
             "jaiabot-embedded/no_such_question: not a jaiabot-embedded question",
             "jaiabot-embedded/warp: '3' is not one of 1, 2, 5, 10, 20, 30, 40, 50",
         ]))

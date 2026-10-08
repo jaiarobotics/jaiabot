@@ -1,0 +1,138 @@
+@import "../../../style/stylesheets/vars.less";
+
+.task-packet-filter {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 300px;
+    height: 460px;
+}
+
+.task-packet-filter-intro {
+    margin: 0;
+    font-size: 0.85rem;
+}
+
+.task-packet-filter-step {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.task-packet-filter-step-label {
+    font-weight: 600;
+}
+
+.task-packet-filter-step-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+}
+
+.task-packet-filter-dates {
+    display: flex;
+    gap: 12px;
+}
+
+.task-packet-filter-dates label {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+    gap: 3px;
+    font-size: 0.85rem;
+}
+
+.task-packet-filter-dates input {
+    min-width: 0;
+    padding: 3px;
+}
+
+.task-packet-filter-results-step {
+    flex: 1;
+    min-height: 0;
+}
+
+.task-packet-filter-results {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    border: 3px solid @panel-accent-color;
+}
+
+.task-packet-filter-result-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 3px;
+    cursor: pointer;
+}
+
+.task-packet-filter-result-row .MuiCheckbox-root,
+.task-packet-filter-result-row .MuiCheckbox-root.Mui-checked {
+    color: @cc-text-color;
+}
+
+.task-packet-filter-result-row .MuiCheckbox-root:hover {
+    background-color: fade(@cc-text-color, 4%);
+}
+
+.task-packet-filter-result-info {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.task-packet-filter-result-name {
+    font-weight: 600;
+}
+
+.task-packet-filter-result-meta {
+    font-size: 0.75rem;
+}
+
+.task-packet-filter-hint {
+    padding: 3px 3px;
+    font-size: 0.8rem;
+    font-style: italic;
+}
+
+.task-packet-filter-error {
+    color: @error-color;
+}
+
+.task-packet-filter-reset {
+    margin-top: auto;
+}
+
+.task-packet-filter-slider {
+    padding: 0 9px;
+}
+
+.task-packet-filter-slider .MuiSlider-root {
+    color: @cc-text-color;
+}
+
+.task-packet-filter-slider .MuiSlider-root.Mui-disabled {
+    color: @panel-accent-color;
+}
+
+// MUI draws the thumb halo from the theme palette rather than currentColor
+.task-packet-filter-slider .MuiSlider-thumb:hover,
+.task-packet-filter-slider .MuiSlider-thumb.Mui-focusVisible {
+    box-shadow: 0 0 0 8px fade(@cc-text-color, 16%);
+}
+
+.task-packet-filter-slider .MuiSlider-thumb.Mui-active {
+    box-shadow: 0 0 0 14px fade(@cc-text-color, 16%);
+}
+
+.task-packet-filter-slider-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.75rem;
+}
