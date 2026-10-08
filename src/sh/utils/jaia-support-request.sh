@@ -29,7 +29,8 @@ Usage: ${BINARY} --fleet <id> --key <signing key> --reason <text> [--days <n>]
                     to this machine's public address. The grant opens port 22 to
                     this and nothing else, so it is what you will connect from.
   --scopes <list>   What to ask for, comma separated (default ${SCOPES}):
-                      web    sign-in to JCC, JDV, the JCU and the read-only API
+                      web    sign-in to JCC (which can command the bots), JDV,
+                             the JCU and the API
                       shell  a shell on the CloudHub, and the fleet through it
                     Defaults to the smaller one, so asking for a shell is a thing
                     you do on purpose. The customer can approve either on its own

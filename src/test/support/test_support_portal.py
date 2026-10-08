@@ -296,7 +296,7 @@ class PortalTest(unittest.TestCase):
         before they decide rather than after."""
         status, page = self.post("review", self.sign(scopes=["shell", "web"]))
         self.assertIn("disconnects anyone still logged in", page)
-        self.assertIn("runs to its own expiry", page)
+        self.assertIn("keeps working for up to five minutes", page)
 
     def test_a_granted_page_names_both_halves(self):
         self.post("approve", self.sign(scopes=["shell", "web"]))
