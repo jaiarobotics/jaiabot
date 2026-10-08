@@ -34,3 +34,8 @@
     - name: Change current CloudHub VPN state
       shell: "systemctl {{ state }} wg-quick@wg_jaia_ch{{ jaiabot_embedded_fleet_id }}"
       register: vpn_status
+
+    # HUB2HUB only comes up if the tunnel exists when the portal starts
+    - name: Restart the intervehicle portal so HUB2HUB uses the tunnel
+      shell: "systemctl restart jaiabot_goby_intervehicle_portal"
+      when: state == 'start' and jaiabot_embedded_type == 'hub'

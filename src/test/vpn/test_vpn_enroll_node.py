@@ -239,6 +239,24 @@ class NodeEnrollTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("systemctl restart wg-quick@wg_jaia_ch7", self.recorded())
 
+    def test_a_hub_restarts_its_portal_once_the_tunnel_is_up(self):
+        """HUB2HUB binds only if the tunnel exists when the portal starts, and a hub
+        paired after boot (as every node is after a major upgrade) started it without."""
+        with open(self.env["JAIA_DEBCONF_SH"], "w") as f:
+            f.write("jaia_debconf_get() { case $1 in type) echo hub ;; fleet_id) echo 7 ;; esac; }\n"
+                    "jaia_debconf_node_id() { echo 3; }\n")
+        result = self.run_script()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        calls = self.recorded()
+        self.assertIn("systemctl restart jaiabot_goby_intervehicle_portal", calls)
+        self.assertLess(calls.index("restart wg-quick@wg_jaia_ch7"),
+                        calls.index("restart jaiabot_goby_intervehicle_portal"))
+
+    def test_a_bot_leaves_its_portal_running(self):
+        result = self.run_script()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotIn("jaiabot_goby_intervehicle_portal", self.recorded())
+
     def test_a_fresh_pairing_leaves_a_tunnel_not_set_to_start_at_boot_stopped(self):
         """Whether it comes up by itself is the fleet config's choice, not pairing's."""
         self.env["JAIA_TEST_ENABLED"] = "1"
