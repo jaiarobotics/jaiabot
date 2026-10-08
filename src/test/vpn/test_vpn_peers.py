@@ -314,6 +314,29 @@ class RemoveTest(PeersTest):
         self.assertEqual(sorted(result.stdout.split()), ["bot3", "desktop1"])
 
 
+class MigrateDropTest(PeersTest):
+    """A CloudHub upgraded from 2.y passes the 2.y desktop prefix, which its new release
+    gives to bots: those peers go rather than take a bot's address."""
+
+    def setUp(self):
+        super().setUp()
+        self.env.write_config(FLAT_CONFIG)
+
+    def test_a_peer_under_a_dropped_prefix_is_not_migrated(self):
+        result = self.env.run("migrate", INTERFACE, "fd0f:77ac:4fdf:7::d")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.env.peer_files(), ["bot3.conf", "hub1.conf"])
+        self.assertNotIn(KEY_CLIENT, self.env.config())
+        self.assertIn("dropped the peer at fd0f:77ac:4fdf:7::d01/128", result.stderr)
+
+    def test_a_prefix_that_matches_nothing_keeps_every_peer(self):
+        result = self.env.run("migrate", INTERFACE, "fd0f:77ac:4fdf:7::2:")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.env.peer_files(),
+                         ["bot3.conf", "hub1.conf", "peer-1.conf"])
+        self.assertNotIn("dropped", result.stderr)
+
+
 class MigrateTest(PeersTest):
     def setUp(self):
         super().setUp()

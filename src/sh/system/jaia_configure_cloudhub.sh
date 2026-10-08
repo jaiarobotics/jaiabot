@@ -212,7 +212,12 @@ if cloudhub_id=$(jaia_bounds --cloudhub_id); then
         [ -f "$conf" ] || continue
 
         if addr=$(jaia_ip "h${cloudhub_id}${vpn##*:}f${jaia_fleet_id}"); then
-            grep -q "^Address *=.*\b${addr}/" "$conf" || sed -i "0,/^Address *=/s|^Address *=.*|&\nAddress = ${addr}/64|" "$conf"
+            if ! grep -q "^Address *=.*\b${addr}/" "$conf"; then
+                sed -i "0,/^Address *=/s|^Address *=.*|&\nAddress = ${addr}/64|" "$conf"
+                # 2.y gave desktop N ::2:N, which this release gives bot N; its desktop
+                # peers would take the bots' addresses once they pair
+                if [ "${vpn%%:*}" = cloudhub ]; then drop_cloudhub_peers="${addr%%::*}::2:"; fi
+            fi
         else
             echo "WARNING: could not work out this release's address for ${conf}"
         fi
@@ -228,7 +233,9 @@ for conf in /etc/wireguard/wg_cloudhub.conf /etc/wireguard/wg_virtualfleet.conf;
     iface=$(basename "$conf" .conf)
     unit="wg-quick@${iface}"
     # Moved before the restart, so the interface comes up on the directory.
-    jaia-vpn-peers.sh migrate "$iface" || echo "WARNING: could not move ${iface} peers into a peers directory"
+    drop=""
+    if [ "$iface" = wg_cloudhub ]; then drop="${drop_cloudhub_peers:-}"; fi
+    jaia-vpn-peers.sh migrate "$iface" $drop || echo "WARNING: could not move ${iface} peers into a peers directory"
     systemctl enable "$unit" || echo "WARNING: could not enable ${unit}"
     systemctl restart "$unit" || echo "WARNING: could not start ${unit}"
 done

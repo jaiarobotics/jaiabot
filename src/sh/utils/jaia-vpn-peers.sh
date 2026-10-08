@@ -28,14 +28,15 @@ Usage: ${0##*/} add <interface> <name> <public key> <allowed ips>
        ${0##*/} status <interface>
        ${0##*/} apply <interface>
        ${0##*/} enable <interface>
-       ${0##*/} migrate <interface>
+       ${0##*/} migrate <interface> [<address prefix to drop>...]
 
 Names a peer file, so <name> may hold only letters, digits, '-' and '_'.
 "status" lists each peer with its last handshake. "apply" reloads the
 directory onto a running interface; it does nothing if the interface is
 down. "enable" has the interface's wg-quick unit run it
 once the interface is up and on reload. "migrate" moves the peers of an
-interface still kept in one flat config into the directory, and enables it.
+interface still kept in one flat config into the directory, and enables it;
+a peer whose AllowedIPs begin with a given prefix is dropped instead.
 EOF
     exit 1
 }
@@ -159,6 +160,9 @@ cmd_status()
 cmd_migrate()
 {
     local iface=$1 conf dir
+    shift
+    # Peers whose AllowedIPs begin with one of these are dropped rather than moved
+    local drop="$*"
     conf="${WG_DIR}/${iface}.conf"
     [ -f "$conf" ] || { echo "ERROR: no ${conf} to migrate" >&2; exit 1; }
 
@@ -168,10 +172,31 @@ cmd_migrate()
 
     TMPFILE=$(mktemp "${WG_DIR}/.${iface}.migrate.XXXXXX")
 
-    awk -v dir="$dir" '
+    awk -v dir="$dir" -v drop="$drop" '
         function valid(candidate) { return candidate ~ /^[A-Za-z0-9_-]+$/ }
-        function flush(   i, out) {
+        function dropped(   i, j, n, prefixes, line, ips, m, k) {
+            n = split(drop, prefixes, " ")
+            for (i = 1; i <= held; i++) {
+                line = lines[i]
+                if (line !~ /^[ \t]*AllowedIPs[ \t]*=/) continue
+                sub(/^[^=]*=[ \t]*/, "", line)
+                m = split(line, ips, /[ \t]*,[ \t]*/)
+                for (k = 1; k <= m; k++)
+                    for (j = 1; j <= n; j++)
+                        if (index(ips[k], prefixes[j]) == 1) return ips[k]
+            }
+            return ""
+        }
+        function flush(   i, out, ip) {
             if (!collecting) return
+            ip = dropped()
+            if (ip != "") {
+                print "dropped the peer at " ip > "/dev/stderr"
+                collecting = 0
+                held = 0
+                name = ""
+                return
+            }
             if (!valid(name)) name = sprintf("peer-%d", count)
             out = dir "/" name ".conf"
             printf "" > out
@@ -243,6 +268,6 @@ case "$action" in
     status)  [ $# -eq 1 ] || usage; cmd_status "$@" ;;
     enable)  [ $# -eq 1 ] || usage; cmd_enable "$@" ;;
     apply)   [ $# -eq 1 ] || usage; cmd_apply "$@" ;;
-    migrate) [ $# -eq 1 ] || usage; cmd_migrate "$@" ;;
+    migrate) [ $# -ge 1 ] || usage; cmd_migrate "$@" ;;
     *)       usage ;;
 esac
