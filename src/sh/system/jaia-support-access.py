@@ -15,9 +15,9 @@ so it is what can still let somebody in when this CloudHub's Authelia will not s
 and the support page is down with it; a second lock on the box could only be lifted
 from the box. Bots and hubs are reached onward from that shell with the tooling that
 already does it. 'web' is sight: the
-support account in the directory's read-oriented groups, so Jaia can sign in to
-JCC, JDV, the JCU and the read-only API and see what is happening without being
-able to touch anything.
+support account in the directory's operator groups, so Jaia can sign in to
+JCC, JDV, the JCU and the API. That is not read-only: the run group lets JCC
+command the bots.
 
 Port 22 has a third reason to be open, and it is not support at all. A new bot or hub
 joins the CloudHub VPN over SSH, from whatever address it happens to have, so while
@@ -58,9 +58,9 @@ UFW_GATE = "ufw"
 DEFAULT_SCOPES = ("web",)
 
 ACCOUNT = "jaia_support"
-# Read-oriented: what tier 1 is for is seeing the fleet, not driving it. jcu_developer
-# is the exception and is here on purpose - the JCU's status playbooks are the useful
-# half of a support call, and the role gates reading them as much as running them.
+# run opens JCC, which can command the bots, so this is not read-only. jcu_developer is
+# here on purpose - the JCU's status playbooks are the useful half of a support call,
+# and the role gates reading them as much as running them.
 WEB_GROUPS = ("run", "jdv", "jcu_developer", "rest_api_read")
 
 STATE_DIR = os.environ.get("JAIA_SUPPORT_STATE_DIR", "/var/log/jaiabot/auth/support")

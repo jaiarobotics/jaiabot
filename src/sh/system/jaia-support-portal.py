@@ -36,10 +36,11 @@ SCOPE_LABELS = {
               "Opens SSH from the address below, and reaches the bots and hubs "
               "through it. Ending this disconnects anyone still logged in."),
     "web": ("Sign in to the web tools",
-            "Lets Jaia open JCC, JDV, the Upgrade GUI and the read-only API as "
-            "the jaia_support account, to see what the fleet is doing. Ending "
-            "this stops new sign-ins; a session already open runs to its own "
-            "expiry, up to two hours."),
+            "Lets Jaia open JCC, JDV, the Upgrade GUI and the fleet's API as "
+            "the jaia_support account. That includes sending commands to the "
+            "bots from JCC and running the Upgrade GUI's status checks. Ending "
+            "this stops new sign-ins; a session already open keeps working "
+            "for up to five minutes."),
 }
 NAMESPACE = "jaia-support"
 PRINCIPAL = "jaia-support"
@@ -267,9 +268,9 @@ def access_banner(now, current):
                      "Ending it also disconnects anyone still logged in from there. "
                      "Any hub whose CloudHub VPN is switched off stays out of reach.")
     if "web" in scopes:
-        notes.append("Web sign-in is read-oriented and reaches no bot or hub directly. "
-                     "Ending it stops new sign-ins, but a session already open runs to "
-                     "its own expiry, up to two hours.")
+        notes.append("Web sign-in can command the bots from JCC, but opens no shell on any "
+                     "bot or hub. Ending it stops new sign-ins, but a session already open "
+                     "keeps working for up to five minutes.")
     if current.get("web") and "web" not in scopes:
         notes.append("The jaia_support account is still in the web groups with nothing "
                      "granting it. The next check will take it out.")

@@ -644,6 +644,7 @@ else
 {
   "id": "jaia_bootstrap",
   "email": "$jaia_bootstrap_email",
+  "displayName": "Jaia commissioning",
   "groups": ["super_admin", "lldap_admin"
   ]
 }
@@ -654,7 +655,8 @@ fi
 cat > /etc/lldap/bootstrap/user-configs/jaia_support.json <<EOF
 {
   "id": "jaia_support",
-  "email": "support@jaia.tech"
+  "email": "support@jaia.tech",
+  "displayName": "Jaia support"
 }
 EOF
 
