@@ -11,6 +11,7 @@ fleet config to where the CloudHub's major upgrade looks for it.
 
 import importlib.util
 import logging
+import os
 import pathlib
 import tempfile
 import textwrap
@@ -92,7 +93,19 @@ class UploadFleetConfigTest(unittest.TestCase):
     def test_it_lands_where_the_major_upgrade_looks(self):
         uri = tool.upload_fleet_config({}, "jaia--cloudhub-data--fleet8", 8, "fleet8.cfg", False, self.logger)
         self.assertEqual(uri, "s3://jaia--cloudhub-data--fleet8/jaia/major_upgrade/fleet8.cfg")
-        self.assertEqual(self.calls, [("s3", "cp", "fleet8.cfg", uri)])
+        self.assertEqual(self.calls, [("s3", "cp", "--only-show-errors", "fleet8.cfg", uri)])
+
+    def test_the_cli_output_is_not_mistaken_for_json(self):
+        tool.aws = self.real_aws
+        with tempfile.TemporaryDirectory() as bindir:
+            fake = pathlib.Path(bindir) / "aws"
+            fake.write_text("#!/bin/sh\n"
+                            "case \" $* \" in *\" --only-show-errors \"*) ;; "
+                            "*) echo 'Completed 2 Bytes/2 Bytes (3 Bytes/s) with 1 file(s) remaining' ;; esac\n")
+            fake.chmod(0o755)
+            env = dict(os.environ, PATH=bindir + os.pathsep + os.environ["PATH"])
+            uri = tool.upload_fleet_config(env, "bucket", 8, "fleet8.cfg", False, self.logger)
+        self.assertEqual(uri, "s3://bucket/jaia/major_upgrade/fleet8.cfg")
 
     def test_the_playbook_reads_the_same_key(self):
         playbook = (SOURCE_DIR / "config" / "ansible" / "major_upgrade" / "tasks"
