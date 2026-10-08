@@ -48,8 +48,8 @@ initial_mission {
       check { 
         condition: GREATER_THAN 
         stat: MEAN
-        pressure: 10 # dBar
-        hold_time: 0 # sec
+        pressure: 2 # dBar
+        hold_time: 1 # sec
       }
      }
      # cleared if we're near the surface
@@ -57,7 +57,7 @@ initial_mission {
       check { 
         condition: LESS_THAN 
         stat: MEAN
-        pressure: 3 # dBar
+        pressure: 1.5 # dBar
         hold_time: 10 # sec
       }
     }

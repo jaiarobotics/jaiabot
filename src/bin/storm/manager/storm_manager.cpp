@@ -484,6 +484,11 @@ void jaiabot::apps::StormManager::handle_command(const protobuf::Command& comman
     switch (command.type())
     {
         default: break; // handled elsewhere, usually jaiabot_mission_manager
+        // TEMPORARY (tube escape test): stop recovery thrust so a surfaced rudderless bot can't drive away
+        case protobuf::Command::STOP:
+            glog.is_warn() && glog << "Received STOP: disabling recovery motor thrust" << std::endl;
+            machine_->set_motor_stopped();
+            break;
         case protobuf::Command::SET_SLEEP_DURATION:
         {
             if (!command.has_sleep_duration_seconds())

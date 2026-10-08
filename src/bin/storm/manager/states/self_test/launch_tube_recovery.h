@@ -31,6 +31,19 @@ struct LaunchTubeRecovery : boost::statechart::state<LaunchTubeRecovery, SelfTes
     LaunchTubeRecovery(typename StateBase::my_context c) : StateBase(c)
     {
         this->machine().mark_launch_tube_recovery_attempted();
+
+        // TEMPORARY (tube escape test): surface depth is the launch tube cleared pressure
+        for (const auto& check :
+             this->machine().mission().launch_tube().cleared_threshold().check())
+        {
+            if (check.has_pressure())
+            {
+                surface_pressure_ =
+                    boost::units::quantity<boost::units::si::pressure>(check.pressure_with_units());
+                has_surface_pressure_ = true;
+            }
+        }
+
         start_next_action();
     }
 
@@ -60,9 +73,26 @@ struct LaunchTubeRecovery : boost::statechart::state<LaunchTubeRecovery, SelfTes
             start_next_action();
     }
 
+    // TEMPORARY (tube escape test): like PoweredAscent, stop thrusting once we reach the surface
+    // so a rudderless bot that escapes mid-recovery doesn't drive away
+    void pressure(const EvPressure& ev)
+    {
+        if (!has_surface_pressure_ || surfaced_ || ev.mean >= surface_pressure_)
+            return;
+
+        surfaced_ = true;
+        goby::glog.is_warn() && goby::glog << "Surfaced during launch tube recovery (pressure "
+                                           << ev.mean.value() << " Pa < "
+                                           << surface_pressure_.value() << " Pa): ending recovery"
+                                           << std::endl;
+        post_event(EvLaunchTubeRecoveryComplete());
+    }
+
     using reactions = boost::mpl::list<
         boost::statechart::transition<EvLaunchTubeRecoveryComplete, LaunchTubeDetection>,
-        boost::statechart::in_state_reaction<EvLoop, LaunchTubeRecovery, &LaunchTubeRecovery::loop>>;
+        boost::statechart::in_state_reaction<EvLoop, LaunchTubeRecovery, &LaunchTubeRecovery::loop>,
+        boost::statechart::in_state_reaction<EvPressure, LaunchTubeRecovery,
+                                             &LaunchTubeRecovery::pressure>>;
 
   private:
     void start_next_action()
@@ -113,6 +143,10 @@ struct LaunchTubeRecovery : boost::statechart::state<LaunchTubeRecovery, SelfTes
 
     void send_setpoint(int thrust_percentage)
     {
+        // TEMPORARY (tube escape test): operator STOP overrides recovery thrust
+        if (this->machine().motor_stopped())
+            thrust_percentage = 0;
+
         protobuf::DesiredSetpoints setpoint_msg;
         setpoint_msg.set_type(thrust_percentage == 0 ? protobuf::SETPOINT_STOP
                                                      : protobuf::SETPOINT_POWERED_ASCENT);
@@ -125,6 +159,10 @@ struct LaunchTubeRecovery : boost::statechart::state<LaunchTubeRecovery, SelfTes
     bool pausing_{false};
     int action_repeat_{0};
     uint32_t command_id_{0};
+    boost::units::quantity<boost::units::si::pressure> surface_pressure_{0 *
+                                                                         boost::units::si::pascals};
+    bool has_surface_pressure_{false};
+    bool surfaced_{false};
     goby::time::SteadyClock::time_point action_end_time_{goby::time::SteadyClock::now()};
 };
 #endif

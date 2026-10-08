@@ -22,6 +22,7 @@ import { DETAILS_DECIMALS, UNASSIGNED_ID } from "../../utils/constants";
 import BotSensors from "../../data/bots/bot-sensors";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
 import SleepDuration from "./SleepDuration/SleepDuration";
+import StormStopMotor from "./StormStopMotor/StormStopMotor";
 import {
     getDistanceToHub,
     getStatusAgeClassName,
@@ -171,6 +172,12 @@ export default function BotDetails() {
                                             </td>
                                             <td style={{ verticalAlign: "middle" }}>
                                                 <SleepDuration bot={bot} />
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td style={{ verticalAlign: "middle" }}>Motor</td>
+                                            <td style={{ verticalAlign: "middle" }}>
+                                                <StormStopMotor bot={bot} />
                                             </td>
                                         </tr>
                                     </tbody>

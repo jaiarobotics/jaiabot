@@ -115,6 +115,10 @@ struct ParachuteAttachmentRecovery
 
     void send_setpoint(int thrust_percentage)
     {
+        // TEMPORARY (tube escape test): operator STOP overrides recovery thrust
+        if (this->machine().motor_stopped())
+            thrust_percentage = 0;
+
         protobuf::DesiredSetpoints setpoint_msg;
         setpoint_msg.set_type(thrust_percentage == 0 ? protobuf::SETPOINT_STOP
                                                      : protobuf::SETPOINT_POWERED_ASCENT);

@@ -115,6 +115,10 @@ struct StormManagerStateMachine
         return parachute_attachment_recovery_attempted_;
     }
 
+    // TEMPORARY (tube escape test): latched by Command::STOP, forces recovery thrust to 0
+    void set_motor_stopped() { motor_stopped_ = true; }
+    bool motor_stopped() const { return motor_stopped_; }
+
     void add_id(protobuf::TaskPacket& task_packet) { task_packet.set_storm_id(task_packet_id_++); }
     void observe_id(const protobuf::TaskPacket& task_packet)
     {
@@ -156,6 +160,7 @@ struct StormManagerStateMachine
 
     bool launch_tube_recovery_attempted_{false};
     bool parachute_attachment_recovery_attempted_{false};
+    bool motor_stopped_{false};
     int task_packet_id_{0};
     std::deque<protobuf::TaskPacket> task_packet_queue_;
     std::map<int, bool> task_packet_subscribed_links_;
