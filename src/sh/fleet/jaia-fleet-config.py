@@ -416,6 +416,7 @@ def migrate_1_to_2(schema, cfg, notes, problems):
         for d in old.debconf:
             apply_selection(schema, new.settings, d.key, d.value, problems, notes)
         notes.append("debconf_override {} {}: converted".format(node_type_name(schema, old.type), old.id))
+    move_per_node_answers(schema, cfg, notes)
     cfg.ClearField("debconf")
     cfg.ClearField("debconf_override")
     if CLOUDHUB_ID not in cfg.hubs:
@@ -424,6 +425,41 @@ def migrate_1_to_2(schema, cfg, notes, problems):
     if not cfg.HasField("settings"):
         cfg.settings.SetInParent()
     fill_defaults(schema, cfg.settings)
+
+
+def move_per_node_answers(schema, cfg, notes):
+    """Version 1 asked per-node questions once for every node, so their answers sit in the
+    common settings: a blank one is dropped, and any other becomes each node's own answer
+    unless that node already has one."""
+    for q in schema.questions:
+        if not q.per_node or q.identity:
+            continue
+        if q.repeated:
+            value = list(getattr(cfg.settings, q.name))
+        elif cfg.settings.HasField(q.name):
+            value = getattr(cfg.settings, q.name)
+        else:
+            continue
+        cfg.settings.ClearField(q.name)
+        if value in ("", []):
+            notes.append("{}: blank common answer dropped; answer it per node with 'jaia admin fleet edit'".format(q.name))
+            continue
+        for node_type, ids in (("hub", cfg.hubs), ("bot", cfg.bots)):
+            if q not in per_node_questions(schema, node_type):
+                continue
+            for node_id in ids:
+                override = next((o for o in cfg.override
+                                 if node_type_name(schema, o.type) == node_type and o.id == node_id), None)
+                if override is None:
+                    override = cfg.override.add()
+                    override.type = node_type_number(schema, node_type)
+                    override.id = node_id
+                if q.repeated:
+                    if not getattr(override.settings, q.name):
+                        set_answer(override.settings, q, value)
+                elif not override.settings.HasField(q.name):
+                    set_answer(override.settings, q, value)
+        notes.append("{}: common answer given to each node that had none of its own".format(q.name))
 
 
 def fill_defaults(schema, settings):
