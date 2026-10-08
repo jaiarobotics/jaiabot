@@ -110,7 +110,7 @@ Description: What is the serial number of this bot's tail unit?
 
 Template: jaiabot-embedded/bot_type
 Type: select
-Choices: hydro, pam, bio, none
+Choices: hydro, pam, bio, storm, none
 Default: hydro
 Description: What type of bot is your system?
 

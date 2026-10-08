@@ -229,7 +229,9 @@ class TaskPacketDatabase:
 
             conditionals = []
             parameters = []
-            from_clause = ' from task_packets'
+            # Offloaded task packets have no mission_name and replace the live copy's json_string, so
+            #   the name is taken from the mission_name table.
+            from_clause = ' from task_packets left join mission_name using (id)'
 
             bot_ids = list(bot_ids) if bot_ids is not None else []
             if len(bot_ids) > 0:
@@ -247,7 +249,7 @@ class TaskPacketDatabase:
             if included is not None:
                 conditionals.append(f'included = ?')
                 parameters.append(1 if included else 0)
-                from_clause += ' natural join included'
+                from_clause += ' join included using (id)'
 
             if mission_names is not None:
                 mission_names = list(mission_names)
@@ -256,9 +258,8 @@ class TaskPacketDatabase:
 
                 conditionals.append(f'mission_name in {sql_set_placeholders(mission_names)}')
                 parameters.extend(mission_names)
-                from_clause += ' natural join mission_name'
 
-            query_string = f'select json_string {from_clause}'
+            query_string = f'select json_string, mission_name {from_clause}'
             if len(conditionals) > 0:
                 query_string = query_string + " where " + " and ".join(conditionals)
 
@@ -266,8 +267,12 @@ class TaskPacketDatabase:
 
             l.debug(f"Executing query: {query_string} with parameters {parameters}")
 
-            results_json = self.db.execute(query_string, parameters)
-            results: List[Dict] = [json.loads(row[0]) for row in results_json]
+            results: List[Dict] = []
+            for json_string, mission_name in self.db.execute(query_string, parameters):
+                task_packet = json.loads(json_string)
+                if mission_name is not None and 'mission_name' not in task_packet:
+                    task_packet['mission_name'] = mission_name
+                results.append(task_packet)
             return results
 
 

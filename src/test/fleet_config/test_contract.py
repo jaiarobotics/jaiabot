@@ -84,7 +84,7 @@ class SnapshotTest(unittest.TestCase):
         self.assertNotIn("identity", debconf["jaiabot-embedded/bot_type"])
         self.assertEqual(debconf["jaiabot-embedded/bot_type"]["replaced"], {"echo": "pam"})
         self.assertEqual(debconf["jaiabot-embedded/arduino_type"]["replaced"], {"usb_old": "usb", "usb_new": "usb"})
-        self.assertEqual(debconf["jaiabot-embedded/bot_type"]["choices"], ["hydro", "pam", "bio", "none"])
+        self.assertEqual(debconf["jaiabot-embedded/bot_type"]["choices"], ["hydro", "pam", "bio", "storm", "none"])
 
 
 class ClassificationTest(unittest.TestCase):

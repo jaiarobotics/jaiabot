@@ -66,4 +66,6 @@ message SimEnvironment
         [(dccl.field) = { units { prefix: "deci" unit: "metric::bar" } }];
     optional double pitch = 5 [(dccl.field) = { units { derived_dimensions: "plane_angle" } }];
     optional double roll = 6 [(dccl.field) = { units { derived_dimensions: "plane_angle" } }];
+    // microsiemens/cm; zero out of the water
+    optional double conductivity = 7;
 }
