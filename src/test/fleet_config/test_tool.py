@@ -225,6 +225,46 @@ class NoCloudHubMigrationTest(unittest.TestCase):
         self.assertTrue(cfg.includes_cloudhub)
 
 
+class PerNodeCommonAnswerMigrationTest(unittest.TestCase):
+    """2.y's create asks bot_vin and tail_serial_number once, for every bot."""
+
+    def migrated(self, vin, serial, bot1_vin=None):
+        with open(fixture("v1_no_cloudhub.cfg")) as f:
+            text = f.read()
+        for key, value in (("bot_vin", vin), ("tail_serial_number", serial)):
+            text += 'debconf {{\n  key: "jaiabot-embedded/{}"\n  type: STRING\n  value: "{}"\n}}\n'.format(key, value)
+        if bot1_vin is not None:
+            text += ('debconf_override {{\n  type: BOT\n  id: 1\n  debconf {{\n'
+                     '    key: "jaiabot-embedded/bot_vin"\n    type: STRING\n    value: "{}"\n  }}\n}}\n'.format(bot1_vin))
+        with tempfile.NamedTemporaryFile("w", suffix=".cfg") as f:
+            f.write(text)
+            f.flush()
+            cfg = fc.parse_fleet_config(SCHEMA, f.name)
+        notes, problems = fc.migrate(SCHEMA, cfg)
+        self.assertEqual(problems, [])
+        self.assertEqual(fc.validate(SCHEMA, cfg), [])
+        self.assertFalse(cfg.settings.HasField("bot_vin"))
+        self.assertFalse(cfg.settings.HasField("tail_serial_number"))
+        return cfg, notes
+
+    def test_blank_answers_are_dropped(self):
+        cfg, notes = self.migrated("", "")
+        self.assertEqual(fc.per_node_answers(SCHEMA, cfg), {})
+        self.assertTrue(any("bot_vin: blank" in n for n in notes))
+
+    def test_an_answer_goes_to_every_bot(self):
+        cfg, _ = self.migrated("1234", "TS-0042")
+        answers = fc.per_node_answers(SCHEMA, cfg)
+        for bot in (1, 2):
+            self.assertEqual(answers[("bot", bot)], {"bot_vin": "1234", "tail_serial_number": "TS-0042"})
+
+    def test_a_bot_keeps_its_own_answer(self):
+        cfg, _ = self.migrated("1234", "TS-0042", bot1_vin="OWN-1")
+        answers = fc.per_node_answers(SCHEMA, cfg)
+        self.assertEqual(answers[("bot", 1)]["bot_vin"], "OWN-1")
+        self.assertEqual(answers[("bot", 2)]["bot_vin"], "1234")
+
+
 class FluorometerMigrationTest(unittest.TestCase):
     """2.y renamed turner_c_flour, so a v1 file may carry either spelling."""
 
