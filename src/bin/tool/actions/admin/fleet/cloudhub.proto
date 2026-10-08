@@ -58,9 +58,9 @@ message CloudHubTool
             external_command: "jaia-fleet-config.py",
             external_help_param: "--help"
         }];
-        refresh_permissions = 4 [(goby.ev).cfg = {
-            short_help_msg: "Bring an existing CloudHub's AWS permissions up to this release",
-            external_command: "jaia-refresh-cloudhub-permissions.py",
+        prep_major_upgrade = 4 [(goby.ev).cfg = {
+            short_help_msg: "Before a CloudHub's major upgrade: stage its fleet config and refresh its AWS permissions",
+            external_command: "jaia-cloudhub-prep-major-upgrade.py",
             external_help_param: "--help"
         }];
     }

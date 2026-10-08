@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 
-"""Bring an existing CloudHub's AWS permissions up to this release.
+"""Prepare an existing CloudHub for its major upgrade to this release.
+
+A CloudHub has no USB key or CD to carry the fleet config into its upgrade, so
+this uploads it to the CloudHub's data bucket, where the major upgrade looks for it.
 
 A CloudHub's IAM role is written once, when it is created, so one built by an
 earlier release keeps that release's policy through a major upgrade: a 2.y
@@ -35,6 +38,8 @@ SUPPORT_RULE_DESCRIPTION = "jaia support access"
 EVERYWHERE = ("0.0.0.0/0", "::/0")
 # Keep in sync with create_vpc.sh and jaia_configure_authelia.sh
 DEFAULT_SMTP_CREDENTIALS_PARAMETER = "/jaia/cloudhub/smtp_credentials"
+# Keep in sync with the major upgrade's hub-stage-fleet-config.yml
+MAJOR_UPGRADE_PREFIX = "jaia/major_upgrade"
 
 
 def aws(env, *args):
@@ -77,6 +82,29 @@ def render_policy(template_path, values):
     for key, value in values.items():
         text = text.replace("{{" + key + "}}", value)
     return json.loads(text)
+
+
+def fleet_config_problem(fleet_config_tool, path):
+    """Why the major upgrade would refuse the config, or None. An earlier version
+    passes if it migrates, as the upgrade migrates what it stages."""
+    result = subprocess.run([sys.executable, fleet_config_tool, "validate", path],
+                            capture_output=True, text=True)
+    if result.returncode != 0:
+        return (result.stderr.strip() or result.stdout.strip()
+                or "{} validate failed".format(fleet_config_tool))
+    return None
+
+
+def major_upgrade_uri(bucket, fleet_id):
+    return "s3://{}/{}/fleet{}.cfg".format(bucket, MAJOR_UPGRADE_PREFIX, fleet_id)
+
+
+def upload_fleet_config(env, bucket, fleet_id, path, dry_run, logger):
+    uri = major_upgrade_uri(bucket, fleet_id)
+    logger.info("Fleet config {} {} {}".format(path, "would be uploaded to" if dry_run else "is uploaded to", uri))
+    if not dry_run:
+        aws(env, "s3", "cp", path, uri)
+    return uri
 
 
 def stray_ssh_rules(group):
@@ -123,6 +151,12 @@ def main():
     if cloudhub_id not in fleet_cfg.hubs:
         sys.exit("Fleet {} has no CloudHub (hub {}) in {}".format(fleet_id, cloudhub_id, args.fleetcfg))
 
+    problem = fleet_config_problem(
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), "jaia-fleet-config.py"),
+        args.fleetcfg)
+    if problem:
+        sys.exit("ERROR: {} cannot be used for the major upgrade:\n{}".format(args.fleetcfg, problem))
+
     region = create.resolve_region(args, logger)
     env = create.aws_env(region, create.resolve_aws_profile(args, region))
     customer = args.customer
@@ -135,6 +169,7 @@ def main():
     except RuntimeError as e:
         sys.exit("ERROR: {}".format(e))
 
+    data_bucket = fleet_cfg.cloudhub.data_bucket or create.default_data_bucket(fleet_id)
     smtp_parameter = fleet_cfg.cloudhub.smtp_credentials_ssm_parameter or DEFAULT_SMTP_CREDENTIALS_PARAMETER
     if not smtp_parameter.startswith("arn:"):
         smtp_parameter = "{}:ssm:{}:{}:parameter/{}".format(arn_prefix, region, account_id,
@@ -143,7 +178,7 @@ def main():
         pathlib.Path(jaiabot_dir) / "rootfs/cloud/aws/cloudhub-iam-policy.json.in",
         {"REGION": region, "ACCOUNT_ID": account_id, "VPC_ID": vpc_id,
          "CLOUDHUB_SECURITY_GROUP_ID": group["GroupId"],
-         "CLOUDHUB_DATA_BUCKET": fleet_cfg.cloudhub.data_bucket or create.default_data_bucket(fleet_id),
+         "CLOUDHUB_DATA_BUCKET": data_bucket,
          "ARN_PREFIX": arn_prefix, "SMTP_CREDENTIALS_PARAMETER_ARN": smtp_parameter})
 
     role = "JaiaCloudHubFleet{}__Role".format(fleet_id)
@@ -156,7 +191,8 @@ def main():
 
     logger.info("CloudHub of fleet {} in {}: VPC {}, security group {}, role {}".format(
         fleet_id, region, vpc_id, group["GroupId"], role))
-    if current == policy:
+    policy_changed = current != policy
+    if not policy_changed:
         logger.info("Its policy is already current")
     else:
         have = {s.get("Sid") for s in current.get("Statement", [])}
@@ -182,6 +218,15 @@ def main():
             "--ip-permissions", json.dumps(stray))
     if not stray:
         logger.info("No stray port 22 rule")
+
+    try:
+        upload_fleet_config(env, data_bucket, fleet_id, args.fleetcfg, args.dry_run, logger)
+    except RuntimeError as e:
+        sys.exit("ERROR: could not upload the fleet config: {}".format(e))
+
+    if policy_changed and not args.dry_run:
+        logger.info("IAM changes can take a minute or two to apply: until then the CloudHub may "
+                    "be refused when it opens fleet pairing or support access, so wait before retrying")
     return 0
 
 
