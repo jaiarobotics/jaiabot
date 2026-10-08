@@ -1,6 +1,5 @@
 import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 import { missionSet } from "../../data/mission_set/mission-set";
-import { taskPackets } from "../../data/task_packets/task-packets";
 import { GridPlanningStates } from "../../data/survey_planner/grid-plan";
 import { exclusionZoneSet } from "../../data/exclusion_zones/exclusion-zone-set";
 import { gridLayer } from "../../openlayers/layers/vector/grid-layer";
@@ -15,6 +14,7 @@ import {
 } from "../../types/context-types";
 import { MapModes } from "../../types/openlayers-types";
 import { jaiaAPI } from "../../utils/jaia-api";
+import { refreshTaskPacketsForWindow } from "../../jcc/polling";
 import { MAX_WAYPOINTS, UNASSIGNED_ID } from "../../utils/constants";
 import { isLocationBlockedByZone } from "../../utils/routing/router";
 import { syncTaskLayers } from "./handler-utils";
@@ -219,12 +219,8 @@ export function handleChangeTaskPacketVisibility(
     action: JaiaAction,
 ) {
     const include = action.taskPacketVisibility === TaskPacketVisibility.INCLUDE;
-    jaiaAPI.postTaskPacketInclude(action.taskPacketID, include).then((response) => {
-        jaiaAPI.getTaskPackets().then((response) => {
-            taskPackets.setIncludedTaskPackets(response.result.included);
-            taskPackets.setExcludedTaskPackets(response.result.excluded);
-            syncTaskLayers();
-        });
+    jaiaAPI.postTaskPacketInclude(action.taskPacketID, include).then(() => {
+        refreshTaskPacketsForWindow().catch((error) => console.error(error));
     });
     return mutableState;
 }

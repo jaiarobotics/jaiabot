@@ -15,6 +15,7 @@ import {
 import { Bots } from "../data/bots/bots";
 import { Hubs } from "../data/hubs/hubs";
 import { TaskPackets } from "../data/task_packets/task-packets";
+import { TaskPacketFilter } from "../data/task_packets/task-packet-filter";
 import Task from "../data/tasks/task";
 import Waypoint from "../data/waypoints/waypoint";
 import {
@@ -32,6 +33,7 @@ export interface JaiaContextType {
     bots: Bots;
     hubs: Hubs;
     taskPackets: TaskPackets;
+    taskPacketFilter: TaskPacketFilter;
     missionSet: MissionSet;
     gridPlan: GridPlan;
     rallyPoints: RallyPoints;
@@ -49,6 +51,7 @@ export interface JaiaContextType {
     mapLayerAccordionStates: MapLayerAccordionStates;
     missionAccordionStates: { [missionID: number]: boolean };
     previousTick: number;
+    previousTaskPacketRevision: number;
 }
 
 // snapshot of context data not held in data model
@@ -92,6 +95,12 @@ export interface JaiaAction {
     taskParameterPairs?: TaskParameterPair[];
     taskPacketID?: string;
     taskPacketVisibility?: TaskPacketVisibility;
+    filterStartDate?: Date;
+    filterEndDate?: Date;
+    deselectedMissionSetKeys?: Set<string>;
+    sliderLowerUtime?: number;
+    sliderUpperUtime?: number;
+    autoFollowUpper?: boolean;
     coordinateSystem?: CoordinateSystem;
 
     hubAccordionName?: HubAccordionNames;
