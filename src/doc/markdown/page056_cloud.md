@@ -176,11 +176,11 @@ CircleCI builds the AMI in `us-east-1` (and separately in `us-gov-east-1` for Go
 ### VPC components (including Instances)
 - Name: jaia__COMPONENT__CUSTOMER_NAME: COMPONENT is VPC, Subnet, SecurityGroup, etc.
 - jaia_customer: CUSTOMER_NAME
-
-CUSTOMER_NAME is the fleet config's `customer` (default `jaia`), which `jaia admin fleet create` and `edit` ask for when the fleet has a CloudHub.
 - jaiabot-rootfs-gen_repository: same as AMI
 - jaiabot-rootfs-gen_repository_version: same as AMI.
 - jaia_fleet: Fleet ID
+
+CUSTOMER_NAME is the fleet config's `customer` (default `jaia`), which `jaia admin fleet create` and `edit` ask for when the fleet has a CloudHub.
 
 
 ### VM Instances
@@ -222,8 +222,8 @@ omitting hub 30, because a fleet that never had one and a fleet that lost it by 
 would otherwise look identical, and only the first should validate. `jaia admin fleet
 has_cloudhub fleetN.cfg` prints `yes` or `no`, which is what the major upgrade compares
 against the `has_cloudhub` answer the operator gives it. `jaia admin fleet cloudhub create` renders
-them into `vpc.conf` for `create_vpc.sh`, and its `customer` argument overrides the
-config, which is how CI gives each run its own customer name.
+them into `vpc.conf` for `create_vpc.sh`. CI gives each run its own customer name by
+writing it into the fleet config it generates.
 
 **Discoverable from AWS**, so deliberately not stored: the region, VPC, subnets,
 security groups, account ID and Elastic IP. Each is available from instance metadata
