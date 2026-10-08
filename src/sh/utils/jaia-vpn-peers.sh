@@ -29,6 +29,7 @@ Usage: ${0##*/} add <interface> <name> <public key> <allowed ips>
        ${0##*/} apply <interface>
        ${0##*/} enable <interface>
        ${0##*/} migrate <interface>
+       ${0##*/} clear <interface>
 
 Names a peer file, so <name> may hold only letters, digits, '-' and '_'.
 "status" lists each peer with its last handshake. "apply" reloads the
@@ -36,6 +37,8 @@ directory onto a running interface; it does nothing if the interface is
 down. "enable" has the interface's wg-quick unit run it
 once the interface is up and on reload. "migrate" moves the peers of an
 interface still kept in one flat config into the directory, and enables it.
+"clear" removes every peer, from the flat config and the directory alike,
+keeps the interface, and enables it.
 EOF
     exit 1
 }
@@ -232,6 +235,32 @@ EOF
     systemctl daemon-reload 2>/dev/null || true
 }
 
+# Every peer goes, wherever it is kept; the interface and its key stay
+cmd_clear()
+{
+    local iface=$1 conf peer
+    conf="${WG_DIR}/${iface}.conf"
+    [ -f "$conf" ] || { echo "ERROR: no ${conf} to clear" >&2; exit 1; }
+
+    TMPFILE=$(mktemp "${WG_DIR}/.${iface}.clear.XXXXXX")
+    awk '
+        /^[ \t]*#[ \t]*(BEGIN|END) PEER[ \t]/ { next }
+        /^[ \t]*\[[Pp]eer\][ \t]*$/ { peer = 1; next }
+        /^[ \t]*\[/ { peer = 0 }
+        !peer
+    ' "$conf" > "$TMPFILE"
+    chmod --reference="$conf" "$TMPFILE"
+    mv "$TMPFILE" "$conf"
+    TMPFILE=""
+
+    for peer in "$(peers_dir "$iface")"/*.conf; do
+        [ -e "$peer" ] || continue
+        rm -f "$peer"
+    done
+
+    cmd_enable "$iface"
+}
+
 [ $# -ge 1 ] || usage
 action=$1
 shift
@@ -244,5 +273,6 @@ case "$action" in
     enable)  [ $# -eq 1 ] || usage; cmd_enable "$@" ;;
     apply)   [ $# -eq 1 ] || usage; cmd_apply "$@" ;;
     migrate) [ $# -eq 1 ] || usage; cmd_migrate "$@" ;;
+    clear)   [ $# -eq 1 ] || usage; cmd_clear "$@" ;;
     *)       usage ;;
 esac
