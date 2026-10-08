@@ -1,7 +1,7 @@
 import {
-    exclusionZoneSet,
     ExclusionZoneSetSnapshot,
     EXCLUSION_ZONE_SET_VERSION,
+    exclusionZoneSet,
 } from "../../../data/exclusion_zones/exclusion-zone-set";
 import { jaiaAPI } from "../../../utils/jaia-api";
 
@@ -10,15 +10,17 @@ interface ExclusionZoneFile {
     snapshot: ExclusionZoneSetSnapshot;
 }
 
-export enum ImportZoneResultType {
+export enum ZoneLoadResultType {
     SUCCESS = "SUCCESS",
     CANCELLED = "CANCELLED",
     INVALID_FORMAT = "INVALID_FORMAT",
+    /** Saved with a version this JCC does not know, e.g. by a newer one; not loaded. */
+    UNKNOWN_FORMAT = "UNKNOWN_FORMAT",
 }
 
-export interface ImportZoneResult {
+export interface ZoneLoadResult {
     snapshot: ExclusionZoneSetSnapshot | null;
-    resultType: ImportZoneResultType;
+    resultType: ZoneLoadResultType;
 }
 
 // ── Hub storage (server-side persistence) ──────────────────────────────────
@@ -39,17 +41,33 @@ export async function listSavedZoneSetsFromHub(): Promise<string[]> {
  * @returns {Promise<void>}
  */
 export async function saveToHub(name: string): Promise<void> {
-    await jaiaAPI.saveExclusionZone(name, exclusionZoneSet.captureSnapshot());
+    exclusionZoneSet.setName(name);
+    await jaiaAPI.saveExclusionZone(name, {
+        ...exclusionZoneSet.captureSnapshot(),
+        version: EXCLUSION_ZONE_SET_VERSION,
+    });
 }
 
 /**
  * Loads a named zone set snapshot from the hub
  *
  * @param {string} name Name of the saved zone set to load
- * @returns {Promise<ExclusionZoneSetSnapshot | null>} The loaded snapshot, or null if not found
+ * @returns {Promise<ZoneLoadResult>} The loaded snapshot, or why it was not loaded
  */
-export async function loadSnapshotFromHub(name: string): Promise<ExclusionZoneSetSnapshot | null> {
-    return jaiaAPI.loadExclusionZone(name) as Promise<ExclusionZoneSetSnapshot | null>;
+export async function loadSnapshotFromHub(name: string): Promise<ZoneLoadResult> {
+    const saved = await jaiaAPI.loadExclusionZone(name);
+    if (!saved) return { snapshot: null, resultType: ZoneLoadResultType.INVALID_FORMAT };
+    // Entries saved before the hub stored a version are 1.0
+    const { version = "1.0", ...snapshot } = saved;
+    if (version !== EXCLUSION_ZONE_SET_VERSION) {
+        return { snapshot: null, resultType: ZoneLoadResultType.UNKNOWN_FORMAT };
+    }
+    // The name a set is stored under is the one it carries, even for an entry saved
+    // before the name was part of the snapshot.
+    return {
+        snapshot: { ...snapshot, name: snapshot.name ?? name },
+        resultType: ZoneLoadResultType.SUCCESS,
+    };
 }
 
 /**
@@ -71,6 +89,7 @@ export async function deleteFromHub(name: string): Promise<void> {
  * @returns {void}
  */
 export function exportZonesToFile(name: string) {
+    exclusionZoneSet.setName(name);
     const data = JSON.stringify({
         version: EXCLUSION_ZONE_SET_VERSION,
         snapshot: exclusionZoneSet.captureSnapshot(),
@@ -90,9 +109,9 @@ export function exportZonesToFile(name: string) {
  * Prompts the user to pick a JSON file and returns the parsed snapshot with a result type.
  * Mirrors the LoadSnapshotResult pattern used by mission-set-storage.
  *
- * @returns {Promise<ImportZoneResult>} Result indicating success, cancellation, or invalid file format
+ * @returns {Promise<ZoneLoadResult>} Result indicating success, cancellation, or an invalid or unknown file format
  */
-export function importZonesFromFile(): Promise<ImportZoneResult> {
+export function importZonesFromFile(): Promise<ZoneLoadResult> {
     return new Promise((resolve) => {
         const input = document.createElement("input");
         input.type = "file";
@@ -101,26 +120,25 @@ export function importZonesFromFile(): Promise<ImportZoneResult> {
         input.onchange = async (event: Event) => {
             const file = (event.target as HTMLInputElement)?.files?.[0];
             if (!file) {
-                resolve({ snapshot: null, resultType: ImportZoneResultType.CANCELLED });
+                resolve({ snapshot: null, resultType: ZoneLoadResultType.CANCELLED });
                 return;
             }
             try {
                 const parsed: ExclusionZoneFile = JSON.parse(await file.text());
-                if (
-                    parsed?.version === EXCLUSION_ZONE_SET_VERSION &&
-                    parsed.snapshot !== undefined
-                ) {
+                if (parsed?.version === undefined || parsed.snapshot === undefined) {
+                    console.error("Obstacle zone file format invalid:", parsed);
+                    resolve({ snapshot: null, resultType: ZoneLoadResultType.INVALID_FORMAT });
+                } else if (parsed.version !== EXCLUSION_ZONE_SET_VERSION) {
+                    resolve({ snapshot: null, resultType: ZoneLoadResultType.UNKNOWN_FORMAT });
+                } else {
                     resolve({
                         snapshot: parsed.snapshot,
-                        resultType: ImportZoneResultType.SUCCESS,
+                        resultType: ZoneLoadResultType.SUCCESS,
                     });
-                } else {
-                    console.error("Obstacle zone file format invalid:", parsed);
-                    resolve({ snapshot: null, resultType: ImportZoneResultType.INVALID_FORMAT });
                 }
             } catch (error) {
                 console.error("Error reading obstacle zone file:", error);
-                resolve({ snapshot: null, resultType: ImportZoneResultType.INVALID_FORMAT });
+                resolve({ snapshot: null, resultType: ZoneLoadResultType.INVALID_FORMAT });
             }
         };
 

@@ -7,14 +7,12 @@ import { UNASSIGNED_ID } from "../../../utils/constants";
 import { locationA } from "../../tests/__mocks__/waypoint-mock";
 import { expectSegmentsAscending } from "../../tests/segment-assertions";
 import { combineMissionSets } from "../../../components/MissionsPanel/MissionSetEditor/mission-set-editor";
+import { migrateMission_2_1 } from "../../../components/MissionsPanel/MissionSetStorage/mission-set-storage";
 
+/** Builds a mission the way a 2.1 saved file loads: segments given as goal indices. */
 function makeMission(waypointCount: number, segments?: Segment[]): Mission {
-    const mission = new Mission();
-    for (let i = 0; i < waypointCount; i++) {
-        mission.addWaypoint(locationA);
-    }
-    if (segments) mission.setSegments(segments);
-    return mission;
+    const waypoints = Array.from({ length: waypointCount }, () => ({ location: locationA }));
+    return Mission.fromJSON(migrateMission_2_1({ waypoints, segments }));
 }
 
 function makeCache(entries: [string, Mission[]][]): Map<string, MissionSetSnapshot> {
@@ -166,5 +164,156 @@ describe("deleteWaypoint keeps segments aligned with their waypoints", () => {
 
         expect(mission.getWaypoints().length).toBe(4);
         expect(mission.getSegments()).toEqual(segments);
+    });
+});
+
+interface StoredWaypoint {
+    isDetour?: boolean;
+    isSuppressed?: boolean;
+    isLaneStart?: boolean;
+    segmentStart?: { speed: number };
+}
+
+/** Builds a mission from stored waypoints with flags and markers, the way a saved file loads. */
+function loadMission(waypoints: StoredWaypoint[], firstSegment = { speed: 1 }): Mission {
+    return Mission.fromJSON({
+        firstSegment,
+        waypoints: waypoints.map((waypoint) => ({ location: locationA, ...waypoint })),
+    } as any);
+}
+
+describe("segments built at send", () => {
+    test("a new mission keeps its speed before it has any waypoints", () => {
+        const mission = new Mission();
+        mission.setTransitSpeed(3);
+        mission.addWaypoint(locationA);
+
+        expect(mission.getSegments()).toEqual([{ start_goal_index: 0, speed: 3 }]);
+    });
+
+    test("setTransitSpeed sets every segment", () => {
+        const mission = loadMission([{}, { segmentStart: { speed: 2 } }]);
+
+        mission.setTransitSpeed(4);
+
+        expect(mission.getSegments().map((segment) => segment.speed)).toEqual([4, 4]);
+    });
+
+    test("a segment whose first waypoint is suppressed starts at the next waypoint sent", () => {
+        const mission = loadMission([{}, { segmentStart: { speed: 2 }, isSuppressed: true }, {}]);
+
+        expect(mission.getSegments()).toEqual([
+            { start_goal_index: 0, speed: 1 },
+            { start_goal_index: 1, speed: 2 },
+        ]);
+    });
+
+    test("a segment with no waypoints sent is left out", () => {
+        const mission = loadMission([
+            {},
+            { segmentStart: { speed: 2 }, isSuppressed: true },
+            { segmentStart: { speed: 3 } },
+        ]);
+
+        expect(mission.getSegments()).toEqual([
+            { start_goal_index: 0, speed: 1 },
+            { start_goal_index: 1, speed: 3 },
+        ]);
+    });
+
+    test("detours before a segment's first waypoint belong to that segment", () => {
+        const mission = loadMission([
+            {},
+            { isDetour: true },
+            { isDetour: true },
+            { segmentStart: { speed: 2 } },
+        ]);
+
+        expect(mission.getSegments()).toEqual([
+            { start_goal_index: 0, speed: 1 },
+            { start_goal_index: 1, speed: 2 },
+        ]);
+    });
+
+    test("detours before a lane's first waypoint belong to that lane", () => {
+        const mission = loadMission([
+            {},
+            { isLaneStart: true },
+            {},
+            { isDetour: true },
+            { isLaneStart: true },
+        ]);
+
+        expect(mission.getSegments()[0].lane_start_goal_indices).toEqual([1, 3]);
+    });
+
+    test("a lane start at its segment's start is dropped", () => {
+        const mission = loadMission([
+            { isLaneStart: true },
+            { segmentStart: { speed: 2 }, isLaneStart: true },
+        ]);
+
+        mission
+            .getSegments()
+            .forEach((segment) => expect(segment.lane_start_goal_indices).toBeUndefined());
+    });
+
+    test("setLaneStart marks the lane on the visible waypoint", () => {
+        const mission = loadMission([{}, { isSuppressed: true }, {}, {}]);
+
+        mission.setLaneStart(2);
+
+        expect(mission.getSegments()[0].lane_start_goal_indices).toEqual([1]);
+    });
+
+    test("markers survive a save and load", () => {
+        const mission = loadMission([{}, { isLaneStart: true }, { segmentStart: { speed: 2 } }]);
+
+        const reloaded = Mission.fromJSON(JSON.parse(JSON.stringify(mission)));
+
+        expect(reloaded.getSegments()).toEqual(mission.getSegments());
+    });
+});
+
+describe("appendWaypointsFrom", () => {
+    test("an empty mission takes the source's first segment", () => {
+        const combined = new Mission();
+        combined.setTransitSpeed(9);
+
+        combined.appendWaypointsFrom(loadMission([{}], { speed: 2 }));
+
+        expect(combined.getSegments()).toEqual([{ start_goal_index: 0, speed: 2 }]);
+    });
+
+    test("a later source's first segment becomes a marker on its first waypoint", () => {
+        const combined = loadMission([{}, {}], { speed: 1 });
+
+        combined.appendWaypointsFrom(
+            loadMission([{}, { segmentStart: { speed: 3 } }], { speed: 2 }),
+        );
+
+        expect(combined.getSegments()).toEqual([
+            { start_goal_index: 0, speed: 1 },
+            { start_goal_index: 2, speed: 2 },
+            { start_goal_index: 3, speed: 3 },
+        ]);
+    });
+});
+
+describe("the first segment's settings stay on the mission", () => {
+    test("deleting the first segment's waypoints makes the next segment's settings the first", () => {
+        const mission = loadMission([{}, { segmentStart: { speed: 2 } }, {}], { speed: 1 });
+
+        mission.deleteWaypoint(1);
+
+        expect(mission.getTransitSpeed()).toBe(2);
+        expect(mission.getSegments()).toEqual([{ start_goal_index: 0, speed: 2 }]);
+    });
+
+    test("a loaded mission whose first waypoint starts a segment uses that segment's settings", () => {
+        const mission = loadMission([{ segmentStart: { speed: 3 } }, {}], { speed: 2 });
+
+        expect(mission.getTransitSpeed()).toBe(3);
+        expect(mission.getSegments()).toEqual([{ start_goal_index: 0, speed: 3 }]);
     });
 });

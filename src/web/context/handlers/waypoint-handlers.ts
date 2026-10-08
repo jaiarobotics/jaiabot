@@ -1,6 +1,7 @@
 import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 import { missionSet } from "../../data/mission_set/mission-set";
 import { GridPlanningStates } from "../../data/survey_planner/grid-plan";
+import { exclusionZoneSet } from "../../data/exclusion_zones/exclusion-zone-set";
 import { gridLayer } from "../../openlayers/layers/vector/grid-layer";
 import { missionLayer } from "../../openlayers/layers/vector/mission-layer";
 import { handleMapModeChange } from "../../openlayers/maps/map";
@@ -15,9 +16,8 @@ import { MapModes } from "../../types/openlayers-types";
 import { jaiaAPI } from "../../utils/jaia-api";
 import { refreshTaskPacketsForWindow } from "../../jcc/polling";
 import { MAX_WAYPOINTS, UNASSIGNED_ID } from "../../utils/constants";
-import { isLocationBlockedByZone } from "../../data/exclusion_zones/exclusion-zone-router";
-import { detectMissionReroutes } from "../../data/exclusion_zones/exclusion-zone-detection";
-import cloneDeep from "lodash/cloneDeep";
+import { isLocationBlockedByZone } from "../../utils/routing/router";
+import { syncTaskLayers } from "./handler-utils";
 
 /**
  * Makes call to add waypoint if mission is in edit mode
@@ -28,85 +28,23 @@ import cloneDeep from "lodash/cloneDeep";
  */
 export function handleAddWaypoint(mutableState: JaiaContextType, action: JaiaAction) {
     const missionIDInEditMode = missionSet.getMissionIDInEditMode();
-    let priorMissionWaypoints;
 
     if (missionIDInEditMode !== UNASSIGNED_ID) {
-        if (action.location && isLocationBlockedByZone(action.location)) {
+        if (
+            action.location &&
+            isLocationBlockedByZone(action.location, exclusionZoneSet.getZones())
+        ) {
             mutableState.placementError =
                 "Cannot place a point inside an exclusion zone or its safety buffer.";
             return mutableState;
         }
 
         const mission = missionSet.getMission(missionIDInEditMode);
-        priorMissionWaypoints = cloneDeep(mission.getWaypoints());
         if (mission.getWaypoints().length < MAX_WAYPOINTS) {
             mission.addWaypoint(action.location);
         } else {
             mutableState.placementError = `Mission has reached the maximum of ${MAX_WAYPOINTS} waypoints.`;
             return mutableState;
-        }
-    }
-
-    missionLayer.updateFeatures();
-
-    // Post-add safety check: Map.tsx filters before the click, but float-precision
-    // edge cases can still let a crossing through. Catch it here and roll back.
-    const pending = detectMissionReroutes();
-    const currentProposal = pending?.proposals.find((p) => p.missionID === missionIDInEditMode);
-    if (currentProposal?.isOverLimit) {
-        const mission = missionSet.getMission(missionIDInEditMode);
-        if (mission) mission.deleteWaypoint(mission.getWaypoints().length);
-        missionLayer.updateFeatures();
-        mutableState.placementError = `Adding this waypoint would require bypass waypoints that exceed the ${MAX_WAYPOINTS}-waypoint limit. Reduce the mission waypoints first.`;
-        return mutableState;
-    }
-    if (currentProposal?.isImpossible) {
-        const mission = missionSet.getMission(missionIDInEditMode);
-        if (mission) mission.deleteWaypoint(mission.getWaypoints().length);
-        missionLayer.updateFeatures();
-        mutableState.placementError =
-            "No clear path exists around the exclusion zone from this position. Move the waypoint further from the zone or reshape the zone.";
-        return mutableState;
-    }
-    if (pending) {
-        mutableState.pendingReroute = {
-            ...pending,
-            priorMissionWaypoints:
-                missionIDInEditMode !== UNASSIGNED_ID && priorMissionWaypoints
-                    ? [{ missionID: missionIDInEditMode, waypoints: priorMissionWaypoints }]
-                    : undefined,
-        };
-    }
-
-    return mutableState;
-}
-
-/**
- * Adds multiple waypoints to the mission in edit mode in a single tracked operation.
- * Used to insert bypass waypoints + the destination together as one undo step.
- *
- * @param {JaiaContextType} mutableState State object ref for making modifications
- * @param {JaiaAction} action Provides the list of waypoints or locations to add
- * @returns {JaiaContextType} Updated mutable state object
- */
-export function handleAddWaypointsBulk(mutableState: JaiaContextType, action: JaiaAction) {
-    const missionIDInEditMode = missionSet.getMissionIDInEditMode();
-    if (missionIDInEditMode === UNASSIGNED_ID) return mutableState;
-
-    const mission = missionSet.getMission(missionIDInEditMode);
-
-    if (action.waypoints) {
-        // Waypoint objects already built (e.g. with route_bypass names set).
-        for (const wp of action.waypoints) {
-            if (mission.getWaypoints().length < MAX_WAYPOINTS) {
-                mission.addWaypoints([wp]);
-            }
-        }
-    } else {
-        for (const location of action.locations ?? []) {
-            if (mission.getWaypoints().length < MAX_WAYPOINTS) {
-                mission.addWaypoint(location);
-            }
         }
     }
 
@@ -121,8 +59,10 @@ export function handleAddWaypointsBulk(mutableState: JaiaContextType, action: Ja
  * @returns {JaiaContextType} Updated mutable state object
  */
 export function handleDeleteWaypoint(mutableState: JaiaContextType) {
-    const mission = missionSet.getMission(jaiaGlobal.getSelectedWaypoint().missionID);
-    mission.deleteWaypoint(jaiaGlobal.getSelectedWaypoint().waypointNum);
+    const selectedWaypoint = jaiaGlobal.getSelectedWaypoint();
+    const mission = missionSet.getMission(selectedWaypoint.missionID);
+
+    mission.deleteWaypoint(selectedWaypoint.waypointNum);
     jaiaGlobal.setSelectedWaypoint({
         waypointNum: UNASSIGNED_ID,
         missionID: UNASSIGNED_ID,
@@ -132,7 +72,6 @@ export function handleDeleteWaypoint(mutableState: JaiaContextType) {
     mutableState.visiblePanel = ButtonNames.NONE;
 
     missionLayer.updateFeatures();
-
     return mutableState;
 }
 
@@ -144,7 +83,7 @@ export function handleDeleteWaypoint(mutableState: JaiaContextType) {
  * @returns {JaiaContextType} Updated mutable state object
  */
 export function handleMoveWaypoint(mutableState: JaiaContextType, action: JaiaAction) {
-    if (action.location && isLocationBlockedByZone(action.location)) {
+    if (action.location && isLocationBlockedByZone(action.location, exclusionZoneSet.getZones())) {
         mutableState.placementError =
             "Cannot place a point inside an exclusion zone or its safety buffer.";
         return mutableState;
@@ -152,54 +91,19 @@ export function handleMoveWaypoint(mutableState: JaiaContextType, action: JaiaAc
 
     const selectedWaypoint = jaiaGlobal.getSelectedWaypoint();
     const mission = missionSet.getMission(selectedWaypoint.missionID);
-    const priorMissionWaypoints = cloneDeep(mission.getWaypoints());
-
-    // Strip all bypass waypoints before moving so we recompute the full mission
-    // from a clean state. Recalculate waypointNum to match the shorter array.
-    const allWaypoints = mission.getWaypoints();
-    const cleanWaypoints = allWaypoints.filter((wp) => !wp.getIsBypass());
-    if (cleanWaypoints.length !== allWaypoints.length) {
-        mission.setWaypoints(cleanWaypoints);
-        const cleanNum = allWaypoints
-            .slice(0, selectedWaypoint.waypointNum)
-            .filter((wp) => !wp.getIsBypass()).length;
-        jaiaGlobal.setSelectedWaypoint({ ...selectedWaypoint, waypointNum: cleanNum });
-    }
-    const waypointNum = jaiaGlobal.getSelectedWaypoint().waypointNum;
-
-    // Snapshot prior location so we can revert if the reroute is over-limit.
-    const priorLocation = mission.getWaypoint(waypointNum)?.getLocation();
-
-    mission.moveWaypoint(waypointNum, action.location);
+    mission.moveWaypoint(selectedWaypoint.waypointNum, action.location);
     missionLayer.updateFeatures();
+    return mutableState;
+}
 
-    const pending = detectMissionReroutes();
-    const currentProposal = pending?.proposals.find(
-        (p) => p.missionID === selectedWaypoint.missionID,
-    );
-    if (currentProposal?.isOverLimit && priorLocation) {
-        mission.moveWaypoint(waypointNum, priorLocation);
-        missionLayer.updateFeatures();
-        mutableState.placementError = `Moving this waypoint would require bypass waypoints that exceed the ${MAX_WAYPOINTS}-waypoint limit. Reduce mission waypoints first.`;
-        return mutableState;
-    }
-    if (currentProposal?.isImpossible && priorLocation) {
-        mission.moveWaypoint(waypointNum, priorLocation);
-        missionLayer.updateFeatures();
-        mutableState.placementError =
-            "No clear path exists around the exclusion zone from this position. Move the waypoint further from the zone or reshape the zone.";
-        return mutableState;
-    }
-
-    if (pending) {
-        mutableState.pendingReroute = {
-            ...pending,
-            priorMissionWaypoints: [
-                { missionID: selectedWaypoint.missionID, waypoints: priorMissionWaypoints },
-            ],
-        };
-    }
-
+/**
+ * Clears the placement error dialog, e.g. after the operator dismisses it.
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @returns {JaiaContextType} Updated mutable state object
+ */
+export function handleClearPlacementError(mutableState: JaiaContextType) {
+    mutableState.placementError = null;
     return mutableState;
 }
 

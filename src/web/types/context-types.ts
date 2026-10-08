@@ -11,8 +11,6 @@ import {
     ExclusionZone,
     ExclusionZoneSet,
     ExclusionZoneSetSnapshot,
-    PendingReroute,
-    PendingWaypointRemoval,
 } from "../data/exclusion_zones/exclusion-zone-set";
 import { Bots } from "../data/bots/bots";
 import { Hubs } from "../data/hubs/hubs";
@@ -42,12 +40,11 @@ export interface JaiaContextType {
     jaiaGlobal: JaiaGlobal;
     missionsManager: MissionsManager;
     exclusionZoneSet: ExclusionZoneSet;
-    pendingReroute: PendingReroute | null;
-    pendingWaypointRemoval: PendingWaypointRemoval | null;
-    placementError: string;
 
     visibleDetails: NodeTypes;
     visiblePanel: ButtonNames;
+    // Why the last waypoint placement was refused; shown until dismissed or undone
+    placementError: string | null;
     visibleWaypointSection: WaypointSections;
     hubAccordionStates: HubAccordionStates;
     botAccordionStates: BotAccordionStates;
@@ -91,7 +88,6 @@ export interface JaiaAction {
     clickedTaskPacket?: SelectedTaskPacket;
 
     waypoint?: Waypoint;
-    waypoints?: Waypoint[];
     location?: GeographicCoordinate;
     locations?: GeographicCoordinate[];
     task?: Task;
@@ -120,8 +116,7 @@ export interface JaiaAction {
 
     command?: Command;
     exclusionZone?: ExclusionZone;
-    exclusionZones?: ExclusionZone[];
-    exclusionZoneSnapshot?: ExclusionZoneSetSnapshot;
+    exclusionZoneSetSnapshot?: ExclusionZoneSetSnapshot;
     missionSpeeds?: Speeds;
     missionRepeats?: number;
     missionSetName?: string;

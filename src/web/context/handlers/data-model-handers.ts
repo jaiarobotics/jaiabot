@@ -56,10 +56,6 @@ const defaultMapLayerAccordionStates = {
  * @returns {JaiaContextType} Updated mutable state object
  */
 export function handleInit(mutableState: JaiaContextType) {
-    // Note: exclusionZoneSet is intentionally not cleared here, matching the
-    // pattern used by missionSet. INIT fires only on page load, not on hub
-    // reconnect, so clearing here would have the same practical effect — but
-    // we omit it to keep the two data models consistent.
     syncOpenLayers();
 
     const completeInit: JaiaContextType = {
@@ -73,11 +69,9 @@ export function handleInit(mutableState: JaiaContextType) {
         taskPackets: taskPackets,
         taskPacketFilter: taskPacketFilter,
         exclusionZoneSet: exclusionZoneSet,
-        pendingReroute: null,
-        pendingWaypointRemoval: null,
-        placementError: "",
         visibleDetails: NodeTypes.NONE,
         visiblePanel: ButtonNames.NONE,
+        placementError: null,
         visibleWaypointSection: WaypointSections.NONE,
         hubAccordionStates: defaultHubAccordionStates,
         botAccordionStates: defaultBotAccordionStates,
