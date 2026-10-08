@@ -8,6 +8,7 @@ SSH_DIR="${JAIA_SSH_DIR:-/home/jaia/.ssh}"
 WG_DIR="${JAIA_WG_DIR:-/etc/wireguard}"
 DEBCONF_SH="${JAIA_DEBCONF_SH:-/usr/bin/jaia-debconf.sh}"
 HOST_FILE="${JAIA_CLOUDHUB_HOST_FILE:-/etc/jaiabot/cloudhub_host}"
+PORTAL_UNIT="${JAIA_PORTAL_UNIT:-jaiabot_goby_intervehicle_portal}"
 
 # First boot names the CloudHub, or passes an empty name for a node that should not
 # enroll. The name is kept so that running this again with no argument - as "Pair
@@ -107,6 +108,11 @@ rm -f ${PRIVATE_KEY}
 # itself is the fleet config's choice, made at first boot, and pairing leaves it be
 if sudo systemctl is-enabled --quiet wg-quick@${WG_PROFILE}; then
     sudo systemctl restart wg-quick@${WG_PROFILE}
+    # A hub's HUB2HUB link only comes up if the tunnel exists when the portal starts,
+    # which it does not when pairing happens after boot (e.g. after a major upgrade)
+    if [ "$type" = "hub" ] && systemctl is-active --quiet ${PORTAL_UNIT}; then
+        sudo systemctl restart ${PORTAL_UNIT}
+    fi
     echo "Paired with ${CLOUDHUB_HOST}"
 else
     echo "Paired with ${CLOUDHUB_HOST}; the CloudHub VPN is not set to start at boot, so it is left stopped"
