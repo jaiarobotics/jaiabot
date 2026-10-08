@@ -173,7 +173,6 @@ def bootstrap_email(value):
 def main():
     parser = argparse.ArgumentParser(description="Jaia Fleet CloudHub creation (including VPC)")
     parser.add_argument('fleetcfg',  help="Path to fleet configuration file (protobuf TextFormat version of FleetConfig)")
-    parser.add_argument('customer', nargs='?', help="Customer name for AWS tagging (default: customer from the fleet config)")
     parser.add_argument('--quiet', '-q',  help="Do not output debugging information", action="store_true")
     parser.add_argument("--loglevel", help="Set logging level", choices=LOG_LEVELS.keys(), default='info')
     parser.add_argument('--binary', type=str, help="Name of binary")
@@ -222,7 +221,7 @@ def main():
     
     logger.info(f"Creating CloudHub (Hub {cloudhub_id}) for Fleet {fleet_id}")
 
-    customer = args.customer or fleet_cfg.customer
+    customer = fleet_cfg.customer
     data_bucket = fleet_cfg.cloudhub.data_bucket or default_data_bucket(fleet_id)
     logger.info(f"Customer {customer}, data bucket {data_bucket}")
 

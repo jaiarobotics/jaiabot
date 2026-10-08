@@ -857,6 +857,7 @@ class CreateTest(unittest.TestCase):
             "nobody", "admin@example.com",   # admin_email: re-asked until it is one
             "<default>",                     # smtp_address
             "", "",                          # smtp_sender, smtp_credentials_ssm_parameter: defaults
+            "acme corp", "acme",             # customer: re-asked until it can name AWS resources
         ]
         answers += settings_answers(ALL_GROUPS, {"comms_links": "xbee, iridium", "bot_type": "pam",
                                                  "pam_connection_type": "uart", "user_role": "advanced"})
@@ -885,6 +886,7 @@ class CreateTest(unittest.TestCase):
                          ["fleet7.jaia.tech", "admin@example.com", "submission://smtp.postmarkapp.com:587"])
         self.assertFalse(cfg.cloudhub.HasField("smtp_sender"), "a blank answer leaves the default")
         self.assertFalse(cfg.cloudhub.HasField("smtp_credentials_ssm_parameter"))
+        self.assertEqual(cfg.customer, "acme")
 
         s = cfg.settings
         q = SCHEMA.questions_by_name
@@ -945,7 +947,7 @@ class CreateTest(unittest.TestCase):
             back,                    # from the permanent keys, back past key generation to bots
             "1, 2",                  # bots again
             "", "wifipass", "yes",   # permanent keys, wlan password, service vpn
-            "<default>", "admin@example.com", "<default>", "<default>", "<default>",
+            "<default>", "admin@example.com", "<default>", "<default>", "<default>", "<default>",
         ]
         # back from the second settings question returns to the first, re-answered here
         first = [q for q in SCHEMA.questions if not q.identity][0]
@@ -999,6 +1001,7 @@ class CreateTest(unittest.TestCase):
         answers += ["<default>", ""]                # keep the permanent key, then no more
         answers += ["<default>"] * 2                # wlan password, service vpn
         answers += ["<default>"] * 5                # cloudhub auth
+        answers += ["<default>"]                    # customer
         answers += accept(before.settings)
         answers += ["<default>", "<default>"] + accept(override, {"ALL", "BOT"})  # the existing override set
         answers += ["no"] + node_answers([1, 30], [1, 2])
@@ -1040,7 +1043,7 @@ class CreateTest(unittest.TestCase):
         before = fc.load_migrated(SCHEMA, fixture("v1_fleet7.cfg"), echo=lambda _: None)
         override = fc.node_settings_for(SCHEMA, before, "bot", 2)
         answers = ["<default>"] * 4 + ["1, 2, 3"]
-        answers += ["<default>", ""] + ["<default>"] * 2 + ["<default>"] * 5
+        answers += ["<default>", ""] + ["<default>"] * 2 + ["<default>"] * 6
         answers += accept(before.settings)
         answers += ["<default>", "<default>"] + accept(override, {"ALL", "BOT"}) + ["no"]
         answers += node_answers([1, 30], [1, 2, 3])
@@ -1057,7 +1060,7 @@ class CreateTest(unittest.TestCase):
         shutil.copyfile(fixture("v1_fleet7.cfg"), out)
         before = fc.load_migrated(SCHEMA, fixture("v1_fleet7.cfg"), echo=lambda _: None)
         override = fc.node_settings_for(SCHEMA, before, "bot", 2)
-        common = ["<default>"] * 4 + ["<default>", ""] + ["<default>"] * 2 + ["<default>"] * 5
+        common = ["<default>"] * 4 + ["<default>", ""] + ["<default>"] * 2 + ["<default>"] * 6
         tail = ["<default>", "<default>"] + accept(override, {"ALL", "BOT"}) + ["no"]
 
         # hub 1 and hub 30 are not asked: neither question applies to a hub
@@ -1092,7 +1095,7 @@ class CreateTest(unittest.TestCase):
         shutil.copyfile(fixture("v2_no_permanent_keys.cfg"), src)
         loaded = fc.parse_fleet_config(SCHEMA, fixture("v2_no_permanent_keys.cfg"))
         answers = ["<default>"] * 5 + [""]
-        answers += ["<default>"] * 2 + ["<default>"] * 5
+        answers += ["<default>"] * 2 + ["<default>"] * 6
         answers += accept(loaded.settings) + ["no"] + node_answers([30], [1])
         path = os.path.join(self.env.dir, "answers.txt")
         with open(path, "w") as f:
@@ -1105,7 +1108,7 @@ class CreateTest(unittest.TestCase):
     def test_per_node_questions_name_the_node(self):
         """Answering a VIN is meaningless without knowing which bot it is for."""
         answers = ["7", "no", "yes", "1", "1, 2", "", "wifipass", "no",
-                   "<default>", "admin@example.com", "<default>", "<default>", "<default>"]
+                   "<default>", "admin@example.com", "<default>", "<default>", "<default>", "<default>"]
         answers += settings_answers(ALL_GROUPS, {}) + ["no"]
         answers += node_answers([1, 30], [])          # hubs, then bot 1 runs out of answers
         result, _ = self.run_create(answers)

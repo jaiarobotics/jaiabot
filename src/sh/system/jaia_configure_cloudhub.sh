@@ -95,8 +95,8 @@ cloudhub_subnet_id=$(imds "meta-data/network/interfaces/macs/${mac}/subnet-id")
 public_ipv4=$(imds meta-data/public-ipv4)
 
 # The name every resource was tagged with, taken from the VPC rather than the fleet
-# config: 'jaia admin fleet cloudhub create' accepts a customer argument that overrides
-# the config, and the tags are what it actually used
+# config: an older 'jaia admin fleet cloudhub create' took a customer argument that
+# overrode the config, and the tags are what it actually used
 customer=$(aws ec2 describe-tags --region "$region" \
     --filters "Name=resource-id,Values=${vpc_id}" "Name=key,Values=jaia_customer" \
     --query 'Tags[0].Value' --output text)

@@ -955,6 +955,8 @@ def redacted(obj):
 
 DIALOG_TITLE = "Fleet Configuration"
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+# It ends up in AWS resource names as well as tags, and on shell command lines
+CUSTOMER_RE = re.compile(r"^[A-Za-z0-9_.-]+$")
 SCRIPTED_BACK = "<back>"
 SCRIPTED_DEFAULT = "<default>"
 
@@ -1437,6 +1439,15 @@ def create(schema, ui, banner=None, existing=None, test_keys=False):
                 auth.smtp_credentials_ssm_parameter))),
         ])
 
+    def customer():
+        answer = ask_matching(ui, "Enter the customer name (the jaia_customer tag on the CloudHub's AWS resources)",
+                              CUSTOMER_RE, "letters, digits, '.', '_' or '-'", cfg.customer)
+        # Written only when it differs from the default, so configs that have none read as they did
+        if answer == cfg.DESCRIPTOR.fields_by_name["customer"].default_value:
+            cfg.ClearField("customer")
+        else:
+            cfg.customer = answer
+
     def common_settings():
         base = schema.NodeSettings()
         base.CopyFrom(cfg.settings)
@@ -1573,6 +1584,7 @@ def create(schema, ui, banner=None, existing=None, test_keys=False):
         Step("Service Wireguard VPN", service_vpn),
         Step("CloudHub authentication", cloudhub_auth, enabled=lambda: state["cloudhub"],
              clear=lambda: cfg.ClearField("cloudhub")),
+        Step("CloudHub AWS customer", customer, enabled=lambda: state["cloudhub"]),
         Step("Common jaiabot-embedded settings", common_settings),
         Step("Overrides (settings that differ from the common ones)", overrides),
         Step("Settings that are different on every node", node_settings,

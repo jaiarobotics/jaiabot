@@ -176,6 +176,8 @@ CircleCI builds the AMI in `us-east-1` (and separately in `us-gov-east-1` for Go
 ### VPC components (including Instances)
 - Name: jaia__COMPONENT__CUSTOMER_NAME: COMPONENT is VPC, Subnet, SecurityGroup, etc.
 - jaia_customer: CUSTOMER_NAME
+
+CUSTOMER_NAME is the fleet config's `customer` (default `jaia`), which `jaia admin fleet create` and `edit` ask for when the fleet has a CloudHub.
 - jaiabot-rootfs-gen_repository: same as AMI
 - jaiabot-rootfs-gen_repository_version: same as AMI.
 - jaia_fleet: Fleet ID

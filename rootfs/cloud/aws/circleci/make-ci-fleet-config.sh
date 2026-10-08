@@ -13,6 +13,7 @@ Usage: $0 [options] <output path>
   --fleet <n>           Fleet ID (default: 9)
   --bots <n>            Number of bots (default: 2)
   --warp <n>            Simulator warp (default: 5)
+  --customer <s>        jaia_customer tag for the fleet's AWS resources (default: the fleet config's)
   --authorized-key <s>  Public key to install on every node; repeatable. Defaults to
                         ~/.ssh/id_ed25519.pub, generating it if it does not exist.
   --base-uri <s>        CloudHub auth base URI (default: fleet<n>.ci.invalid)
@@ -27,6 +28,7 @@ set -u -e
 FLEET=9
 BOTS=2
 WARP=5
+CUSTOMER=""
 AUTHORIZED_KEYS=()
 OUTPUT=""
 BASE_URI=""
@@ -38,6 +40,7 @@ while (( $# > 0 )); do
         --fleet) FLEET="${2:-}"; shift 2 ;;
         --bots) BOTS="${2:-}"; shift 2 ;;
         --warp) WARP="${2:-}"; shift 2 ;;
+        --customer) CUSTOMER="${2:-}"; shift 2 ;;
         --authorized-key) AUTHORIZED_KEYS+=("${2:-}"); shift 2 ;;
         --base-uri) BASE_URI="${2:-}"; shift 2 ;;
         --admin-email) ADMIN_EMAIL="${2:-}"; shift 2 ;;
@@ -84,6 +87,9 @@ generate_key "vpn_tmp"
 {
     echo "version: 2"
     echo "fleet: ${FLEET}"
+    if [[ -n "$CUSTOMER" ]]; then
+        echo "customer: \"${CUSTOMER}\""
+    fi
     echo "hubs: [${VIRTUALHUB_ID}, ${CLOUDHUB_ID}]"
     echo "bots: [$(seq -s', ' 1 "${BOTS}")]"
     echo "ssh {"
