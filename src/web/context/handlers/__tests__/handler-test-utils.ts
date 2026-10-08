@@ -1,6 +1,7 @@
 import { bots } from "../../../data/bots/bots";
 import { hubs } from "../../../data/hubs/hubs";
 import { taskPackets } from "../../../data/task_packets/task-packets";
+import { taskPacketFilter } from "../../../data/task_packets/task-packet-filter";
 import { missionSet } from "../../../data/mission_set/mission-set";
 import { gridPlan } from "../../../data/survey_planner/grid-plan";
 import { rallyPoints } from "../../../data/rally_points/rally-points";
@@ -58,6 +59,7 @@ export function makeMutableState(): JaiaContextType {
         bots,
         hubs,
         taskPackets,
+        taskPacketFilter,
         missionSet,
         gridPlan,
         rallyPoints,
@@ -73,6 +75,7 @@ export function makeMutableState(): JaiaContextType {
         mapLayerAccordionStates: defaultMapLayerAccordionStates,
         missionAccordionStates: {},
         previousTick: 0,
+        previousTaskPacketRevision: 0,
     };
 }
 
