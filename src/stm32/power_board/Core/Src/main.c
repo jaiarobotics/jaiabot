@@ -339,6 +339,7 @@ static void power_board_disable_external_power(void)
     HAL_GPIO_WritePin(LED_R_GPIO_Port, LED_R_Pin, GPIO_PIN_RESET);
     HAL_GPIO_WritePin(LED_G_GPIO_Port, LED_G_Pin, GPIO_PIN_RESET);
     HAL_GPIO_WritePin(LED_B_GPIO_Port, LED_B_Pin, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(EXT_5V_CTRL_GPIO_Port, EXT_5V_CTRL_Pin, GPIO_PIN_RESET);
     HAL_GPIO_WritePin(VS_VBATT_EN_GPIO_Port, VS_VBATT_EN_Pin, GPIO_PIN_RESET);
     HAL_GPIO_WritePin(EN_12V_REG_GPIO_Port, EN_12V_REG_Pin, GPIO_PIN_RESET);
     HAL_GPIO_WritePin(EN_5V_REG_GPIO_Port, EN_5V_REG_Pin, GPIO_PIN_RESET);
@@ -355,6 +356,8 @@ static void power_board_enable_external_power(void)
     HAL_GPIO_WritePin(EN_5V_REG_GPIO_Port, EN_5V_REG_Pin, GPIO_PIN_SET);
     HAL_GPIO_WritePin(EN_3V3_REG_GPIO_Port, EN_3V3_REG_Pin, GPIO_PIN_SET);
     HAL_GPIO_WritePin(VS_VBATT_EN_GPIO_Port, VS_VBATT_EN_Pin, GPIO_PIN_SET);
+    // TEST: external 5V, to check whether it powers the motor thermistor divider
+    HAL_GPIO_WritePin(EXT_5V_CTRL_GPIO_Port, EXT_5V_CTRL_Pin, GPIO_PIN_SET);
 
     HAL_GPIO_WritePin(VS_OP_EN_GPIO_Port, VS_OP_EN_Pin,
                       GPIO_PIN_RESET); // Needs to be RESET to enable the op-amp

@@ -82,6 +82,10 @@ message MotorStatusConfig
     optional int32 motor_thermistor_report_timeout_seconds = 11 [default = 40];
     optional jaiabot.protobuf.MotorHarnessType motor_harness_type = 12 [default = NONE];
 
+    // motor thermistor divider on the power board (the thermistor is on the low side)
+    optional double power_board_thermistor_supply_voltage = 13 [default = 3.3];
+    optional double power_board_thermistor_fixed_ohms = 14 [default = 10000];
+
     optional string vehicle_db_path = 50 [default = "/var/log/jaiabot/db/vehicle.db"];
     optional string tail_serial_number = 51 [default = "unknown_serial_number"];
     optional string bot_vin = 52 [default = "unknown_vin"];

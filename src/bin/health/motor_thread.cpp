@@ -35,8 +35,8 @@ using goby::glog;
 
 #define now_microseconds() (goby::time::SystemClock::now<goby::time::MicroTime>().value())
 
-constexpr int thermistor_ohms_neutral = 10000;
-constexpr int thermistor_voltage = 5;
+constexpr double arduino_thermistor_supply_voltage = 5;
+constexpr double arduino_thermistor_fixed_ohms = 10000;
 
 constexpr int32_t MOTOR_MICROS_BIN = 50;   // Bin size for motor microseconds
 constexpr int32_t MOTOR_OFF_MICROS = 1500; // Value at which the motor is off (neutral)
@@ -80,21 +80,30 @@ jaiabot::apps::MotorStatusThread::MotorStatusThread(const jaiabot::config::Motor
                 rpm_value_ = power_board_response.motor_rpm();
                 last_motor_rpm_report_time_ = goby::time::SteadyClock::now();
             }
-            handle_motor_response(power_board_response);
+            handle_motor_response(power_board_response,
+                                  this->cfg().power_board_thermistor_supply_voltage(),
+                                  this->cfg().power_board_thermistor_fixed_ohms());
         });
 
     interprocess().subscribe<jaiabot::groups::arduino_to_pi>(
         [this](const jaiabot::protobuf::ArduinoResponse& arduino_response)
-        { handle_motor_response(arduino_response); });
+        {
+            handle_motor_response(arduino_response, arduino_thermistor_supply_voltage,
+                                  arduino_thermistor_fixed_ohms);
+        });
 }
 
 template <typename Response>
-void jaiabot::apps::MotorStatusThread::handle_motor_response(const Response& response)
+void jaiabot::apps::MotorStatusThread::handle_motor_response(const Response& response,
+                                                             double thermistor_supply_voltage,
+                                                             double thermistor_fixed_ohms)
 {
-    if (response.has_thermistor_voltage())
+    // a reading at the supply voltage means an open thermistor, so skip it
+    if (response.has_thermistor_voltage() &&
+        response.thermistor_voltage() < thermistor_supply_voltage)
     {
         float voltage = response.thermistor_voltage();
-        float resistance = thermistor_ohms_neutral * voltage / (thermistor_voltage - voltage);
+        float resistance = thermistor_fixed_ohms * voltage / (thermistor_supply_voltage - voltage);
         float temperature = goby::util::linear_interpolate(resistance, resistance_to_temperature_);
         float temperature_celsius = (temperature - 32) / 1.8;
 

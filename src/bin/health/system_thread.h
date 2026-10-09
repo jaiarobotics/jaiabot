@@ -143,7 +143,9 @@ class MotorStatusThread : public HealthMonitorThread<jaiabot::config::MotorStatu
     void open_vehicle_database();
     void load_motor_usage_from_db();
     void log_motor(int32_t motor_micros, double usage_duration_seconds, float rpm);
-    template <typename Response> void handle_motor_response(const Response& response);
+    template <typename Response>
+    void handle_motor_response(const Response& response, double thermistor_supply_voltage,
+                               double thermistor_fixed_ohms);
     template <typename Response> void log_usage(const Response& response);
     void update_total_motor_usage();
     sqlite3* vehicle_db_;
