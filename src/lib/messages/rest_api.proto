@@ -81,6 +81,18 @@ message TaskPacketsVersionResult {
         [(jaia.field).rest_api.presence = GUARANTEED];
 }
 
+message TaskPacketInclude {
+    required string task_packet_id = 1
+        [(jaia.field).rest_api.presence = GUARANTEED];
+    required bool include = 2
+        [(jaia.field).rest_api.presence = GUARANTEED];
+}
+
+message TaskPacketIncludeResponse {
+    required bool success = 1
+        [(jaia.field).rest_api.presence = GUARANTEED];
+}
+
 enum APIErrorCode
 {
     // REST API URL errors
@@ -195,6 +207,10 @@ message APIRequest
             presence: GUARANTEED,
             doc: "Send an engineering command to bot(s). Expect a response of type 'engineering_command_result'."
         }];
+        TaskPacketInclude task_packet_include = 21 [(jaia.field).rest_api = {
+            presence: GUARANTEED,
+            doc: "Include or exclude a task packet. Expect a response of type 'task_packet_include_response'."
+        }];
     }
 }
 
@@ -300,6 +316,10 @@ message APIResponse
             presence: GUARANTEED,
             doc: "Response to an engineering command. Indicates whether the command was successfully sent."
         }];
+        TaskPacketIncludeResponse task_packet_include_response = 21 [(jaia.field).rest_api = {
+            presence: GUARANTEED,
+            doc: "Response to a task packet include/exclude request."
+        }];
     }
 
     // copy of original request
@@ -344,7 +364,7 @@ message APIConfig
                 permitted_action: [ 'status', 'metadata', 'task_packets', 'missions', 'pod_status', 'task_packets_version' ]
             }];
             WRITE = 2 [(jaia.ev).rest_api = {
-                permitted_action: [ 'command', 'command_for_hub', 'engineering_command' ]
+                permitted_action: [ 'command', 'command_for_hub', 'engineering_command', 'take_control', 'task_packet_include' ]
             }];
             STATUS = 3
                 [(jaia.ev).rest_api = { permitted_action: [ 'status' ] }];
@@ -370,6 +390,9 @@ message APIConfig
             ];
             ENGINEERING_COMMAND = 12 [
                 (jaia.ev).rest_api = { permitted_action: [ 'engineering_command' ] }
+            ];
+            TASK_PACKET_INCLUDE = 13 [
+                (jaia.ev).rest_api = { permitted_action: [ 'task_packet_include' ] }
             ];
         }
 

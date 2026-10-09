@@ -269,13 +269,6 @@ def jedStaticFile(path):
 def jedRoot():
     return jedStaticFile('index.html')
 
-######## TaskPackets
-
-@app.route('/jaia/v0/task-packet-include', methods=['POST'])
-def postTaskPacketInclude():
-    jaia_interface.task_packet_database.set_task_packet_included(request.json["task_packet_id"], request.json["include"])
-    return JSONResponse({"status": "ok"})
-
 
 ###### Offline maps
 

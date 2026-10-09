@@ -317,35 +317,51 @@ export function handleChangeTaskPacketVisibility(
     action: JaiaAction,
 ) {
     const include = action.taskPacketVisibility === TaskPacketVisibility.INCLUDE;
-    jaiaAPI.postTaskPacketInclude(action.taskPacketID, include).then((res) => {
-        jaia_rest_api
-            .request({
+
+    async function changeVisibilityAndUpdateInterface() {
+        try {
+            const include_response = await jaia_rest_api.request({
                 target: {
                     all: true,
                 },
-                task_packets: {
-                    included_only: true,
+                task_packet_include: {
+                    task_packet_id: action.taskPacketID,
+                    include: include,
                 },
-            })
-            .then((response) => {
-                taskPackets.setIncludedTaskPackets(response.task_packets?.packets ?? []);
-                syncTaskLayers();
             });
 
-        jaia_rest_api
-            .request({
+            const get_included_task_packets_response = await jaia_rest_api.request({
                 target: {
                     all: true,
                 },
                 task_packets: {
                     included_only: true,
                 },
-            })
-            .then((response) => {
-                taskPackets.setIncludedTaskPackets(response.task_packets?.packets ?? []);
-                syncTaskLayers();
             });
-    });
+
+            const get_excluded_task_packets_response = await jaia_rest_api.request({
+                target: {
+                    all: true,
+                },
+                task_packets: {
+                    included_only: false,
+                },
+            });
+
+            taskPackets.setIncludedTaskPackets(
+                get_included_task_packets_response.task_packets?.packets ?? [],
+            );
+            taskPackets.setExcludedTaskPackets(
+                get_excluded_task_packets_response.task_packets?.packets ?? [],
+            );
+            syncTaskLayers();
+        } catch (error) {
+            console.error("Error changing task packet visibility:", error);
+        }
+    }
+
+    changeVisibilityAndUpdateInterface();
+
     return mutableState;
 }
 

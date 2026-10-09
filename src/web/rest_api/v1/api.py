@@ -308,7 +308,18 @@ def engineering_command(jaia_request: APIRequest) -> APIResponse:
     return jaia_response
 
 
-def task_packets_version(jaia_request: APIRequest) -> APIResponse:
+def task_packet_include(jaia_request: APIRequest) -> APIResponse:
+    jaia_response = APIResponse()
+    with common.shared_data.data_lock:
+        common.shared_data.data.task_packet_database.set_task_packet_included(
+            jaia_request.task_packet_include.task_packet_id,
+            jaia_request.task_packet_include.include
+        )
+        jaia_response.task_packet_include_response.success = True
+    return jaia_response
+
+
+def task_packets_version(_: APIRequest) -> APIResponse:
     jaia_response = APIResponse()
     with common.shared_data.data_lock:
         jaia_response.task_packets_version.version = common.shared_data.data.task_packet_database.task_packets_version

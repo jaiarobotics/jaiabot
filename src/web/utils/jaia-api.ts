@@ -115,16 +115,6 @@ export class JaiaAPI {
         return this.clientId;
     }
 
-    async postTaskPacketInclude(
-        task_packet_id: string,
-        include: boolean,
-    ): Promise<JaiaResponse<any>> {
-        return this.post("jaia/v0/task-packet-include", {
-            task_packet_id: task_packet_id,
-            include: include,
-        });
-    }
-
     async getOfflineMaps() {
         return this.get("maps/").then((response) => {
             return response as Promise<MapsDirectory>;
