@@ -58,6 +58,7 @@
 extern PCD_HandleTypeDef hpcd_USB_FS;
 /* USER CODE BEGIN EV */
 extern LPTIM_HandleTypeDef hlptim1;
+extern TIM_HandleTypeDef htim15;
 /* USER CODE END EV */
 
 /******************************************************************************/
@@ -221,5 +222,11 @@ void LPTIM1_IRQHandler(void)
 void EXTI15_10_IRQHandler(void)
 {
   HAL_GPIO_EXTI_IRQHandler(REED_WAKE_Pin);
+}
+
+// Motor tach input capture (PHASE_A, TIM15_CH1)
+void TIM1_BRK_TIM15_IRQHandler(void)
+{
+  HAL_TIM_IRQHandler(&htim15);
 }
 /* USER CODE END 1 */

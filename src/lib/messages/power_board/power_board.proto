@@ -77,4 +77,6 @@ message PowerBoardResponse
     optional uint32 vcc_mid_sense_raw = 28;
     optional uint32 vcc_direct_sense_raw = 29;
     optional PowerBoardStatusCode status_code = 30;
+    // from the motor tach; always >= 0, see motor for direction
+    optional float motor_rpm = 31;
 }

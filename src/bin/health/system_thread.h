@@ -136,6 +136,8 @@ class MotorStatusThread : public HealthMonitorThread<jaiabot::config::MotorStatu
     goby::time::SteadyClock::time_point last_motor_thermistor_report_time_{std::chrono::seconds(0)};
     goby::time::SteadyClock::time_point next_motor_usage_report_time_{goby::time::SteadyClock::now()};
     double rpm_value_{0};
+    // set once the power board reports RPM, after which the Pi GPIO tach is ignored
+    bool power_board_rpm_{false};
 
     // Motor usage database
     void open_vehicle_database();

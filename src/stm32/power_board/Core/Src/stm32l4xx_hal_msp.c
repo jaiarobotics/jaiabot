@@ -834,6 +834,12 @@ void HAL_TIM_IC_MspInit(TIM_HandleTypeDef* htim_ic)
     HAL_GPIO_Init(PHASE_A_GPIO_Port, &GPIO_InitStruct);
 
     /* USER CODE BEGIN TIM15_MspInit 1 */
+    // Tach output is open-collector, so it needs a pull-up
+    GPIO_InitStruct.Pull = GPIO_PULLUP;
+    HAL_GPIO_Init(PHASE_A_GPIO_Port, &GPIO_InitStruct);
+
+    HAL_NVIC_SetPriority(TIM1_BRK_TIM15_IRQn, 5, 0);
+    HAL_NVIC_EnableIRQ(TIM1_BRK_TIM15_IRQn);
 
     /* USER CODE END TIM15_MspInit 1 */
 
@@ -952,6 +958,7 @@ void HAL_TIM_IC_MspDeInit(TIM_HandleTypeDef* htim_ic)
     HAL_GPIO_DeInit(PHASE_A_GPIO_Port, PHASE_A_Pin);
 
     /* USER CODE BEGIN TIM15_MspDeInit 1 */
+    HAL_NVIC_DisableIRQ(TIM1_BRK_TIM15_IRQn);
 
     /* USER CODE END TIM15_MspDeInit 1 */
   }
