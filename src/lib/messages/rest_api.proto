@@ -71,6 +71,11 @@ message CommandResult
         [(jaia.field).rest_api.presence = GUARANTEED];
 }
 
+message EngineeringCommandResult {
+    required bool command_sent = 1
+        [(jaia.field).rest_api.presence = GUARANTEED];
+}
+
 message TaskPacketsVersionResult {
     required uint32 version = 1
         [(jaia.field).rest_api.presence = GUARANTEED];
@@ -173,7 +178,7 @@ message APIRequest
                 response: '{"command_result": {"command_sent": true}, "request": {"api_key": "4vS6s2jnulxVjrKSB-__tQ", "command_for_hub": {"hub_id": 1, "hub_location": {"lat": 41.7, "lon": -70.3}, "time": "1722895686821358", "type": "SET_HUB_LOCATION"}, "target": {"all": true}}, "target": {"hubs": [1]}}'
             }
         }];
-        // Endpoints for JCC
+        // Endpoints for JCC & JED
         bool pod_status = 17 [(jaia.field).rest_api = {
             presence: GUARANTEED,
             doc: "This endpoint is used by JCC to check the overall status of the pod."
@@ -182,9 +187,13 @@ message APIRequest
             presence: GUARANTEED,
             doc: "Check the version of the task packets."
         }];
-        string take_control_client_id = 19 [(jaia.field).rest_api = {
+        string take_control = 19 [(jaia.field).rest_api = {
             presence: GUARANTEED,
-            doc: "The client ID of the operator who has taken control. Expect a response of type 'controlling_client_id'."
+            doc: "The client ID of the operator who wants to take control. Expect a response of type 'controlling_client_id'."
+        }];
+        Engineering engineering_command = 20 [(jaia.field).rest_api = {
+            presence: GUARANTEED,
+            doc: "Send an engineering command to bot(s). Expect a response of type 'engineering_command_result'."
         }];
     }
 }
@@ -287,6 +296,10 @@ message APIResponse
             presence: GUARANTEED,
             doc: "The client ID of the operator who has taken control."
         }];
+        EngineeringCommandResult engineering_command_result = 19 [(jaia.field).rest_api = {
+            presence: GUARANTEED,
+            doc: "Response to an engineering command. Indicates whether the command was successfully sent."
+        }];
     }
 
     // copy of original request
@@ -331,7 +344,7 @@ message APIConfig
                 permitted_action: [ 'status', 'metadata', 'task_packets', 'missions', 'pod_status', 'task_packets_version' ]
             }];
             WRITE = 2 [(jaia.ev).rest_api = {
-                permitted_action: [ 'command', 'command_for_hub' ]
+                permitted_action: [ 'command', 'command_for_hub', 'engineering_command' ]
             }];
             STATUS = 3
                 [(jaia.ev).rest_api = { permitted_action: [ 'status' ] }];
@@ -351,6 +364,12 @@ message APIConfig
             ];
             TASK_PACKETS_VERSION = 10 [
                 (jaia.ev).rest_api = { permitted_action: [ 'task_packets_version' ] }
+            ];
+            TAKE_CONTROL = 11 [
+                (jaia.ev).rest_api = { permitted_action: [ 'take_control' ] }
+            ];
+            ENGINEERING_COMMAND = 12 [
+                (jaia.ev).rest_api = { permitted_action: [ 'engineering_command' ] }
             ];
         }
 

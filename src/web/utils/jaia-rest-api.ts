@@ -67,7 +67,7 @@ export class JaiaRESTAPI {
             target: {
                 all: true,
             },
-            take_control_client_id: this.client_id,
+            take_control: this.client_id,
         });
     }
 }

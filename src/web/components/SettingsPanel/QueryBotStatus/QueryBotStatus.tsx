@@ -38,9 +38,11 @@ export default function QueryBotStatus() {
             query_bot_status: true,
         };
 
-        const res = await sendEngineeringCommand(command);
-        if (!res.error) {
+        try {
+            await sendEngineeringCommand(command);
             success(`Querying status for Bot ${selectedBotID}`);
+        } catch (error) {
+            console.error("Error querying status for Bot:", error);
         }
     };
 

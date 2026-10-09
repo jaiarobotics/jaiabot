@@ -98,7 +98,12 @@ export function sendHubCommand(command: CommandForHub) {
  * @returns {Promise} Response from sending command
  */
 export function sendEngineeringCommand(command: Engineering) {
-    return jaiaAPI.postEngineering(command);
+    return jaia_rest_api.request({
+        target: {
+            bots: [command.bot_id ?? 0],
+        },
+        engineering_command: command,
+    });
 }
 
 /*

@@ -406,38 +406,6 @@ class Interface:
             pass
 
         return google.protobuf.json_format.MessageToDict(status, preserving_proto_field_name=True)
-    
-    def post_engineering_command(self, command: dict[str, any], clientId: str):
-        cmd = google.protobuf.json_format.ParseDict(command, Engineering())
-        cmd.time = now_utime()
-        msg = ClientToPortalMessage()
-        msg.engineering_command.CopyFrom(cmd)
-
-        # Don''t automatically take control
-        if self.controllingClientId is not None and clientId != self.controllingClientId:
-            logging.warning(f'Refused to send engineering command from client {clientId}, controllingClientId: {self.controllingClientId}')
-            return {'status': 'fail', 'message': 'Another client currently has control of the pod'}
-
-        self.controllingClientId = clientId
-        self.send_message_to_portal(msg)
-
-        return {'status': 'ok'}
-
-    def post_ep_command(self, command: dict[str, any], clientId: str):
-        cmd = google.protobuf.json_format.ParseDict(command, Engineering())
-        cmd.time = now_utime()
-        msg = ClientToPortalMessage()
-        msg.engineering_command.CopyFrom(cmd)
-
-        # Don't automatically take control
-        if self.controllingClientId is not None and clientId != self.controllingClientId:
-            logging.warning(f'Refused to send engineering command from client {clientId}, controllingClientId: {self.controllingClientId}')
-            return {'status': 'fail', 'message': 'Another client currently has control of the pod'}
-
-        self.controllingClientId = clientId
-        self.send_message_to_portal(msg)
-
-        return {'status': 'ok'}
 
     def process_task_packet(self, task_packet_message: TaskPacket):
         task_packet = protobufMessageToDict(task_packet_message)

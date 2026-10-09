@@ -65,15 +65,16 @@ export default function Engineering() {
     const handleQuerySelectedStatusClick = async (botID: number) => {
         try {
             await jaia_rest_api.takeControl(); // Will throw if request fails
-            const engineeringCommand: Engineering = {
-                bot_id: botID,
-                query_engineering_status: true,
-            };
-
-            const res = await jaiaAPI.postEngineering(engineeringCommand);
-            if (!res.error) {
-                success(`Querying status for Bot ${botID}`);
-            }
+            await jaia_rest_api.request({
+                target: {
+                    bots: [botID],
+                },
+                engineering_command: {
+                    bot_id: botID,
+                    query_engineering_status: true,
+                },
+            });
+            success(`Querying status for Bot ${botID}`);
         } catch (error) {
             console.error("Error querying status for Bot:", error);
         }
@@ -128,10 +129,13 @@ export default function Engineering() {
 
         try {
             await jaia_rest_api.takeControl(); // Will throw if request fails
-            const commandRes = await jaiaAPI.postEngineeringPanel(engineeringUpdate);
-            if (commandRes && commandRes.status === "ok") {
-                success(`Submitted update for Bot ${botID}`);
-            }
+            const commandRes = await jaia_rest_api.request({
+                target: {
+                    bots: [botID],
+                },
+                engineering_command: engineeringUpdate,
+            });
+            success(`Submitted update for Bot ${botID}`);
         } catch (error) {
             console.error("Error updating Bot:", error);
         }

@@ -19,6 +19,27 @@ import logging
 l = logging.getLogger(__name__)
 
 
+def get_bots_and_hubs(target: APIRequest.Nodes):
+    """Gets lists of the bots and hubs corresponding to a REST Nodes object.
+
+    WARNING:
+        This function is not thread safe and should only be called within a `with common.shared_data.data_lock:` block.
+
+    Args:
+        target (APIRequest.Nodes): The Nodes object containing the target information.
+
+    Returns:
+        tuple: A tuple containing two lists: the first list contains the bots, and the second list contains the hubs.
+    """
+    if target.all:
+        bots = list(common.shared_data.data.bots.values())
+        hubs = list(common.shared_data.data.hubs.values())
+    else:
+        bots = [common.shared_data.data.bots[value] for value in target.bots if value in common.shared_data.data.bots]
+        hubs = [common.shared_data.data.hubs[value] for value in target.hubs if value in common.shared_data.data.hubs]
+    return bots, hubs
+
+
 def process_request(jaia_request: APIRequest) -> APIResponse:
     action = jaia_request.WhichOneof("action")
     # call function in this module with the same name as action
@@ -28,6 +49,12 @@ def process_request(jaia_request: APIRequest) -> APIResponse:
         raise APIException(rest_api.API_ERROR__NOT_IMPLEMENTED, "Action '" + action + "' has not yet been implemented in the REST API")
 
 def send_client_to_portal_message(hub_id, msg):
+    """Send a client-to-portal message.  If no hub_id is specified, it will default to the first one.
+
+    Args:
+        hub_id (int, optional): The ID of the hub to send the message to. Defaults to None, which will use the first available hub.
+        msg (ClientToPortalMessage): The client-to-portal message to be sent.
+    """
     # queue.Queue is threadsafe
     common.shared_data.get_queue(hub_id).put(msg)
 
@@ -217,12 +244,7 @@ def pod_status(jaia_request: APIRequest) -> APIResponse:
     hubs: list[HubStatus] = []
 
     with common.shared_data.data_lock:
-        if jaia_request.target.all:
-            bots = list(common.shared_data.data.bots.values())
-            hubs = list(common.shared_data.data.hubs.values())
-        else:
-            bots = [common.shared_data.data.bots[value] for value in jaia_request.target.bots if value in common.shared_data.data.bots]
-            hubs = [common.shared_data.data.hubs[value] for value in jaia_request.target.hubs if value in common.shared_data.data.hubs]
+        bots, hubs = get_bots_and_hubs(jaia_request.target)
 
         jaia_response.pod_status.controlling_client_id = common.shared_data.data.controlling_client_id
 
@@ -257,11 +279,32 @@ def pod_status(jaia_request: APIRequest) -> APIResponse:
     return jaia_response
 
 
-def take_control_client_id(jaia_request: APIRequest) -> APIResponse:
+def take_control(jaia_request: APIRequest) -> APIResponse:
     jaia_response = APIResponse()
     with common.shared_data.data_lock:
-        common.shared_data.data.controlling_client_id = jaia_request.take_control_client_id
+        common.shared_data.data.controlling_client_id = jaia_request.take_control
         jaia_response.controlling_client_id = common.shared_data.data.controlling_client_id
+    return jaia_response
+
+
+def engineering_command(jaia_request: APIRequest) -> APIResponse:
+    jaia_response = APIResponse()
+    with common.shared_data.data_lock:
+        bots, _ = get_bots_and_hubs(jaia_request.target)
+
+        engineering_command = jaia_request.engineering_command
+
+        for bot in bots:
+            engineering_command.bot_id = bot.bot_id
+            engineering_command.time = utc_now_microseconds()
+
+            client_to_portal_msg = jaiabot.messages.portal_pb2.ClientToPortalMessage()
+            client_to_portal_msg.engineering_command.CopyFrom(engineering_command)
+
+            send_client_to_portal_message(hub_id=None, msg=client_to_portal_msg)
+
+    jaia_response.engineering_command_result.command_sent = True
+
     return jaia_response
 
 

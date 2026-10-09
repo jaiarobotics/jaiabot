@@ -96,5 +96,9 @@ def create_queues(streaming_endpoints):
         # thread safe queue for outbound messages
         to_portal_queue[ep.hub_id] = Queue()
 
-def get_queue(hub_id):
-    return to_portal_queue[hub_id]
+def get_queue(hub_id=None):
+    if hub_id:
+        return to_portal_queue[hub_id]
+    else:
+        # return the first available queue if no hub_id is specified
+        return to_portal_queue[list(to_portal_queue.keys())[0]]

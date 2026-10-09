@@ -190,14 +190,6 @@ export class JaiaAPI {
         });
     }
 
-    postEngineeringPanel(engineeringPanelCommand: Engineering) {
-        return this.post("jaia/v0/ep-command", engineeringPanelCommand);
-    }
-
-    postEngineering(engineeringCommand: Engineering) {
-        return this.post("jaia/v0/engineering-command", engineeringCommand);
-    }
-
     postMissionFilesCreate(descriptor: any) {
         return this.post("missionfiles/create", descriptor);
     }
