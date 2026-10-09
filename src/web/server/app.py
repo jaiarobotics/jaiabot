@@ -118,16 +118,6 @@ def JaiaResponse(result: any):
     return Response(json.dumps(responseObject), mimetype='application/json')
 
 
-######## Map tiles
-
-@app.route('/tiles/index', methods=['GET'])
-def getTilesIndex():
-    return JSONResponse({
-        'ok': True,
-        'maps': []
-    })
-
-
 ######## Mission files
 
 @app.route('/missionfiles/initdb', methods=['GET'])
@@ -314,40 +304,6 @@ def getTaskPacketsVersion():
 def postTaskPacketInclude():
     jaia_interface.task_packet_database.set_task_packet_included(request.json["task_packet_id"], request.json["include"])
     return JSONResponse({"status": "ok"})
-
-######## Contour map
-
-@app.route('/jaia/v0/depth-contours', methods=['GET'])
-def get_deth_contours():
-    start_date = parseDate(request.args.get('startDate', (datetime.now() - timedelta(hours=14))))
-    end_date = parseDate(request.args.get('endDate', ''))
-    return JSONResponse(jaia_interface.get_depth_contours(start_date, end_date))
-
-######## Drift map
-
-@app.route('/jaia/v0/drift-map', methods=['GET'])
-def get_drift_map():
-    start_date = parseDate(request.args.get('startDate', (datetime.now() - timedelta(hours=14))))
-    end_date = parseDate(request.args.get('endDate', ''))
-    return JSONResponse(string=jaia_interface.get_drift_map(start_date, end_date))
-
-
-######## Bot paths
-
-@app.route('/jaia/v0/bot-paths', methods=['GET'])
-def get_bot_paths():
-    since_utime: int
-
-    try:
-        since_utime = int(request.args.get('since-utime'))
-    except ValueError:
-        message = f"{request.url}: since-utime is not a valid integer"
-        logging.warning(message)
-        return ErrorResponse(HTTPStatus.BAD_REQUEST, message, 1)
-    except TypeError:
-        since_utime = None
-    
-    return JaiaResponse(jaia_interface.get_bot_paths(since_utime))
 
 
 ###### Offline maps
