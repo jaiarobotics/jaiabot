@@ -2,6 +2,8 @@
 
 Guidance for AI coding agents (Claude, Codex, Copilot, ...) working in this repository. Where a rule below says `<agent>`, use your own name, e.g. `Claude` or `Codex`.
 
+Subdirectories can have their own `AGENTS.md`. Before changing files, also read any `AGENTS.md` in the directories between them and the repository root; the nearest one takes precedence.
+
 ## Code comments
 
 - Default to no comments. Well-named identifiers and clear code should speak for themselves.
