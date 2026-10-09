@@ -148,10 +148,6 @@ export class JaiaAPI {
         });
     }
 
-    postMissionFilesCreate(descriptor: any) {
-        return this.post("missionfiles/create", descriptor);
-    }
-
     // ── Exclusion zone hub storage ──────────────────────────────────────────
 
     async listExclusionZones(): Promise<string[]> {

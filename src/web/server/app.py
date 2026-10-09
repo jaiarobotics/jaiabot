@@ -118,23 +118,6 @@ def JaiaResponse(result: any):
     return Response(json.dumps(responseObject), mimetype='application/json')
 
 
-######## Mission files
-
-@app.route('/missionfiles/create', methods=['POST'])
-def get_mission_list():
-    mission_gdf, mission_dict = missions.create_mission_plan(
-        deploy_lat=request.json['home_lat'],
-        deploy_lon=request.json['home_lon'],
-        boundary_points=request.json['survey_polygon'][0],
-        mission_type=request.json['mission_type'],
-        spacing_meters=int(request.json['sample_spacing']),
-        orientation=int(request.json["orientation"]),
-        bot_list=request.json['bot_list'],
-        # inside_points_all=request.json['inside_points_all']
-    )
-    return JSONResponse(mission_dict)
-
-
 ######## Exclusion zone sets
 
 # Respect jaia_log_dir so simulation and runtime each store in their own directory.

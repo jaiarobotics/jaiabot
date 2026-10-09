@@ -1,7 +1,9 @@
+import google.protobuf.json_format
 import jaiabot.messages.rest_api_pb2 as rest_api
 from jaiabot.messages.rest_api_pb2 import TaskPacketQuery, APIRequest, APIResponse
 import jaiabot.messages.portal_pb2
 from jaiabot.messages.jaia_dccl_pb2 import BotStatus
+from jaiabot.messages.mission_pb2 import MissionPlan
 from jaiabot.messages.hub_pb2 import HubStatus
 from jaiabot.messages.rest_api_pb2 import PodStatus, PortalBotStatus, PortalHubStatus
 
@@ -12,7 +14,7 @@ from pyjaia.contours import task_packets_to_geojson
 import common.shared_data
 from common.time import utc_now_microseconds
 from common.api_exception import APIException
-
+import common.missions
 
 import logging
 from pathlib import Path
@@ -361,3 +363,4 @@ def download_ctd_profiles(_: APIRequest) -> Response:
         download_name=zip_name,
         mimetype="application/zip",
     )
+
