@@ -1,0 +1,26 @@
+# Only on a hub on site, not the CloudHub. The VPN toggle there would act on the
+# server end of the tunnel and cut off every hub, and fleet pairing reaches bots
+# and hubs over the fleet WLAN, which a CloudHub is not on.
+ansible_playbook {
+    file: "change-cloudhub-vpn.yml"
+    name: "Change CloudHub VPN State (this hub only; also carries HUB2HUB)"
+    section: "Security"
+    role: USER
+    input_var {
+        name: "state"
+        display_name: "State"
+        value: "start"
+        value: "stop"
+        value: "enable"
+        value: "disable"
+    }
+    limit: "$this_hub"
+}
+
+ansible_playbook {
+    file: "pair-fleet-to-cloudhub.yml"
+    name: "Pair Fleet to CloudHub (every Bot and Hub; open Fleet Pairing first)"
+    section: "Fleet Changes"
+    role: USER
+    limit: "all"
+}

@@ -207,6 +207,64 @@ class MigrationTest(unittest.TestCase):
         self.assertEqual(fc.migrate(SCHEMA, again), ([], []))
 
 
+class NoCloudHubMigrationTest(unittest.TestCase):
+    """A 2.y fleet without hub 30 never had a CloudHub."""
+
+    def setUp(self):
+        self.cfg = fc.parse_fleet_config(SCHEMA, fixture("v1_no_cloudhub.cfg"))
+        self.notes, self.problems = fc.migrate(SCHEMA, self.cfg)
+
+    def test_migrates_without_a_cloudhub(self):
+        self.assertEqual(self.problems, [])
+        self.assertFalse(self.cfg.includes_cloudhub)
+        self.assertEqual(fc.validate(SCHEMA, self.cfg), [])
+
+    def test_a_fleet_with_hub_30_keeps_its_cloudhub(self):
+        cfg = fc.parse_fleet_config(SCHEMA, fixture("v1_fleet7.cfg"))
+        fc.migrate(SCHEMA, cfg)
+        self.assertTrue(cfg.includes_cloudhub)
+
+
+class PerNodeCommonAnswerMigrationTest(unittest.TestCase):
+    """2.y's create asks bot_vin and tail_serial_number once, for every bot."""
+
+    def migrated(self, vin, serial, bot1_vin=None):
+        with open(fixture("v1_no_cloudhub.cfg")) as f:
+            text = f.read()
+        for key, value in (("bot_vin", vin), ("tail_serial_number", serial)):
+            text += 'debconf {{\n  key: "jaiabot-embedded/{}"\n  type: STRING\n  value: "{}"\n}}\n'.format(key, value)
+        if bot1_vin is not None:
+            text += ('debconf_override {{\n  type: BOT\n  id: 1\n  debconf {{\n'
+                     '    key: "jaiabot-embedded/bot_vin"\n    type: STRING\n    value: "{}"\n  }}\n}}\n'.format(bot1_vin))
+        with tempfile.NamedTemporaryFile("w", suffix=".cfg") as f:
+            f.write(text)
+            f.flush()
+            cfg = fc.parse_fleet_config(SCHEMA, f.name)
+        notes, problems = fc.migrate(SCHEMA, cfg)
+        self.assertEqual(problems, [])
+        self.assertEqual(fc.validate(SCHEMA, cfg), [])
+        self.assertFalse(cfg.settings.HasField("bot_vin"))
+        self.assertFalse(cfg.settings.HasField("tail_serial_number"))
+        return cfg, notes
+
+    def test_blank_answers_are_dropped(self):
+        cfg, notes = self.migrated("", "")
+        self.assertEqual(fc.per_node_answers(SCHEMA, cfg), {})
+        self.assertTrue(any("bot_vin: blank" in n for n in notes))
+
+    def test_an_answer_goes_to_every_bot(self):
+        cfg, _ = self.migrated("1234", "TS-0042")
+        answers = fc.per_node_answers(SCHEMA, cfg)
+        for bot in (1, 2):
+            self.assertEqual(answers[("bot", bot)], {"bot_vin": "1234", "tail_serial_number": "TS-0042"})
+
+    def test_a_bot_keeps_its_own_answer(self):
+        cfg, _ = self.migrated("1234", "TS-0042", bot1_vin="OWN-1")
+        answers = fc.per_node_answers(SCHEMA, cfg)
+        self.assertEqual(answers[("bot", 1)]["bot_vin"], "OWN-1")
+        self.assertEqual(answers[("bot", 2)]["bot_vin"], "1234")
+
+
 class FluorometerMigrationTest(unittest.TestCase):
     """2.y renamed turner_c_flour, so a v1 file may carry either spelling."""
 
@@ -427,6 +485,21 @@ class CommandTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual("no", result.stdout.strip())
 
+    def test_nodes_lists_the_hubs_and_bots(self):
+        """What the major upgrade compares with the hub's inventory."""
+        result = self.env.run("nodes", fixture("v2_no_permanent_keys.cfg"))
+        self.assertEqual(result.returncode, 0, result.stderr)
+        cfg = fc.parse_fleet_config(SCHEMA, fixture("v2_no_permanent_keys.cfg"))
+        self.assertEqual(result.stdout.splitlines(),
+                         ["hubs " + " ".join(str(h) for h in sorted(cfg.hubs)),
+                          "bots " + " ".join(str(b) for b in sorted(cfg.bots))])
+
+    def test_nodes_reads_a_2y_config(self):
+        """A hub that has not been upgraded yet holds a version 1 file."""
+        result = self.env.run("nodes", fixture("v1_fleet7.cfg"))
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout.splitlines(), ["hubs 1 30", "bots 1 2"])
+
     def test_validate_reports_migration(self):
         result = self.env.run("validate", fixture("v1_fleet7.cfg"))
         self.assertEqual(result.returncode, 0, result.stderr)
@@ -487,7 +560,7 @@ class CommandTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         with open(os.path.join(bootdir, "jaiabot", "init", "first-boot.preseed.yml")) as f:
             preseed = f.read()
-        self.assertIn("configure-wireguard-service-vpn.sh fleet7.jaia.tech", preseed)
+        self.assertIn("pair-with-cloudhub.sh fleet7.jaia.tech", preseed)
         self.assertIn("enable wg-quick@wg_jaia_ch7", preseed)
 
     def test_generate_writes_the_cloudhub_seed(self):
@@ -606,6 +679,15 @@ class CommandTest(unittest.TestCase):
         cfg = fc.parse_fleet_config(SCHEMA, path)
         self.assertEqual([k.public_key for k in cfg.ssh.hub if k.id == 30], ["ssh-ed25519 AAAAnewer hub30_fleet6"])
 
+    def test_set_key_under_the_cloudhub_subtool_is_set_cloudhub_key(self):
+        """How "jaia admin fleet cloudhub set_key" runs this script"""
+        path = self.env.without_cloudhub_key()
+        result = self.env.run("--binary=jaia admin fleet cloudhub set_key", path,
+                              self.env.pubkey_file("ssh-ed25519 AAAAnew hub30_fleet6\n"))
+        self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+        cfg = fc.parse_fleet_config(SCHEMA, path)
+        self.assertEqual([k.public_key for k in cfg.ssh.hub if k.id == 30], ["ssh-ed25519 AAAAnew hub30_fleet6"])
+
     def test_set_cloudhub_key_refuses_a_fleet_without_a_cloudhub(self):
         pubkey = self.env.pubkey_file("ssh-ed25519 AAAAnew hub30_fleet6\n")
         no_cloudhub = os.path.join(self.env.dir, "no_cloudhub.cfg")
@@ -718,13 +800,50 @@ class CreateTest(unittest.TestCase):
             f.write("\n".join(answers) + "\n")
         return self.env.run("edit", path, "--answers", answers_file), path
 
-    def run_create(self, answers):
+    def run_create(self, answers, *extra):
         path = os.path.join(self.env.dir, "answers.txt")
         with open(path, "w") as f:
             f.write("\n".join(answers) + "\n")
         out = os.path.join(self.env.dir, "fleet7.cfg")
-        result = self.env.run("create", out, "--answers", path)
+        result = self.env.run("create", out, "--answers", path, *extra)
         return result, out
+
+    def test_test_keys_need_no_yubikey(self):
+        with open(os.path.join(self.env.dir, "bin", "ykman"), "w") as f:
+            f.write("#!/bin/sh\necho 'no Yubikey here' >&2\nexit 1\n")
+        answers = ["7", "no", "no", "1, 2", "1", "", "wifipass", "no"]
+        answers += settings_answers(ALL_GROUPS, {}) + ["no"] + node_answers([1, 2], [1])
+        result, out = self.run_create(answers, "--test-keys")
+        self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+        self.assertIn("never use it for a real deployment", result.stderr)
+        keys = {k.id: k for k in fc.parse_fleet_config(SCHEMA, out).ssh.hub}
+        self.assertEqual(keys[1].public_key, "ssh-ed25519 AAAAhub1_fleet7_test_key hub1_fleet7_test_key")
+        self.assertEqual(keys[2].private_key, "PRIVATE hub2_fleet7_test_key\n")
+
+    def test_without_test_keys_a_hub_key_needs_a_yubikey(self):
+        with open(os.path.join(self.env.dir, "bin", "ykman"), "w") as f:
+            f.write("#!/bin/sh\nexit 1\n")
+        answers = ["7", "no", "no", "1", "1", "", "wifipass", "no"]
+        result, _ = self.run_create(answers)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("ykman failed", result.stderr)
+
+    def test_edit_with_test_keys_keeps_existing_hub_keys(self):
+        answers = ["7", "no", "no", "1", "1", "", "wifipass", "no"]
+        answers += settings_answers(ALL_GROUPS, {}) + ["no"] + node_answers([1], [1])
+        result, out = self.run_create(answers)
+        self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+        before = {k.id: k.public_key for k in fc.parse_fleet_config(SCHEMA, out).ssh.hub}
+        edit = ["<default>"] * 3 + ["1, 2"] + ["<default>"] * 3 + ["<default>"]
+        edit += accept(fc.parse_fleet_config(SCHEMA, out).settings) + ["no"] + node_answers([1, 2], [1])
+        answers_file = os.path.join(self.env.dir, "edit-answers.txt")
+        with open(answers_file, "w") as f:
+            f.write("\n".join(edit) + "\n")
+        result = self.env.run("edit", out, "--answers", answers_file, "--test-keys")
+        self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+        after = {k.id: k.public_key for k in fc.parse_fleet_config(SCHEMA, out).ssh.hub}
+        self.assertEqual(after[1], before[1])
+        self.assertEqual(after[2], "ssh-ed25519 AAAAhub2_fleet7_test_key hub2_fleet7_test_key")
 
     def test_creates_a_valid_current_version_file(self):
         answers = [
@@ -738,6 +857,7 @@ class CreateTest(unittest.TestCase):
             "nobody", "admin@example.com",   # admin_email: re-asked until it is one
             "<default>",                     # smtp_address
             "", "",                          # smtp_sender, smtp_credentials_ssm_parameter: defaults
+            "acme corp", "acme",             # customer: re-asked until it can name AWS resources
         ]
         answers += settings_answers(ALL_GROUPS, {"comms_links": "xbee, iridium", "bot_type": "pam",
                                                  "pam_connection_type": "uart", "user_role": "advanced"})
@@ -766,6 +886,7 @@ class CreateTest(unittest.TestCase):
                          ["fleet7.jaia.tech", "admin@example.com", "submission://smtp.postmarkapp.com:587"])
         self.assertFalse(cfg.cloudhub.HasField("smtp_sender"), "a blank answer leaves the default")
         self.assertFalse(cfg.cloudhub.HasField("smtp_credentials_ssm_parameter"))
+        self.assertEqual(cfg.customer, "acme")
 
         s = cfg.settings
         q = SCHEMA.questions_by_name
@@ -826,7 +947,7 @@ class CreateTest(unittest.TestCase):
             back,                    # from the permanent keys, back past key generation to bots
             "1, 2",                  # bots again
             "", "wifipass", "yes",   # permanent keys, wlan password, service vpn
-            "<default>", "admin@example.com", "<default>", "<default>", "<default>",
+            "<default>", "admin@example.com", "<default>", "<default>", "<default>", "<default>",
         ]
         # back from the second settings question returns to the first, re-answered here
         first = [q for q in SCHEMA.questions if not q.identity][0]
@@ -880,6 +1001,7 @@ class CreateTest(unittest.TestCase):
         answers += ["<default>", ""]                # keep the permanent key, then no more
         answers += ["<default>"] * 2                # wlan password, service vpn
         answers += ["<default>"] * 5                # cloudhub auth
+        answers += ["<default>"]                    # customer
         answers += accept(before.settings)
         answers += ["<default>", "<default>"] + accept(override, {"ALL", "BOT"})  # the existing override set
         answers += ["no"] + node_answers([1, 30], [1, 2])
@@ -902,9 +1024,8 @@ class CreateTest(unittest.TestCase):
         shutil.copyfile(fixture("v1_bad_values.cfg"), out)
         loaded = SCHEMA.NodeSettings()
         fc.fill_defaults(SCHEMA, loaded)
+        # a 2.y fleet without hub 30 stays without a CloudHub, so no CloudHub questions follow
         answers = ["<default>"] * 5 + ["", "<default>", "<default>"]
-        # a real fleet gains its CloudHub in the edit, so the auth block is asked too
-        answers += ["<default>", "admin@example.com", "<default>", "<default>", "<default>"]
         answers += settings_answers(ALL_GROUPS, {"bot_type": "bio"})
         answers += ["no"] + node_answers([1], [1])
         result, _ = self.run_edit(out, answers)
@@ -922,7 +1043,7 @@ class CreateTest(unittest.TestCase):
         before = fc.load_migrated(SCHEMA, fixture("v1_fleet7.cfg"), echo=lambda _: None)
         override = fc.node_settings_for(SCHEMA, before, "bot", 2)
         answers = ["<default>"] * 4 + ["1, 2, 3"]
-        answers += ["<default>", ""] + ["<default>"] * 2 + ["<default>"] * 5
+        answers += ["<default>", ""] + ["<default>"] * 2 + ["<default>"] * 6
         answers += accept(before.settings)
         answers += ["<default>", "<default>"] + accept(override, {"ALL", "BOT"}) + ["no"]
         answers += node_answers([1, 30], [1, 2, 3])
@@ -939,7 +1060,7 @@ class CreateTest(unittest.TestCase):
         shutil.copyfile(fixture("v1_fleet7.cfg"), out)
         before = fc.load_migrated(SCHEMA, fixture("v1_fleet7.cfg"), echo=lambda _: None)
         override = fc.node_settings_for(SCHEMA, before, "bot", 2)
-        common = ["<default>"] * 4 + ["<default>", ""] + ["<default>"] * 2 + ["<default>"] * 5
+        common = ["<default>"] * 4 + ["<default>", ""] + ["<default>"] * 2 + ["<default>"] * 6
         tail = ["<default>", "<default>"] + accept(override, {"ALL", "BOT"}) + ["no"]
 
         # hub 1 and hub 30 are not asked: neither question applies to a hub
@@ -974,7 +1095,7 @@ class CreateTest(unittest.TestCase):
         shutil.copyfile(fixture("v2_no_permanent_keys.cfg"), src)
         loaded = fc.parse_fleet_config(SCHEMA, fixture("v2_no_permanent_keys.cfg"))
         answers = ["<default>"] * 5 + [""]
-        answers += ["<default>"] * 2 + ["<default>"] * 5
+        answers += ["<default>"] * 2 + ["<default>"] * 6
         answers += accept(loaded.settings) + ["no"] + node_answers([30], [1])
         path = os.path.join(self.env.dir, "answers.txt")
         with open(path, "w") as f:
@@ -987,7 +1108,7 @@ class CreateTest(unittest.TestCase):
     def test_per_node_questions_name_the_node(self):
         """Answering a VIN is meaningless without knowing which bot it is for."""
         answers = ["7", "no", "yes", "1", "1, 2", "", "wifipass", "no",
-                   "<default>", "admin@example.com", "<default>", "<default>", "<default>"]
+                   "<default>", "admin@example.com", "<default>", "<default>", "<default>", "<default>"]
         answers += settings_answers(ALL_GROUPS, {}) + ["no"]
         answers += node_answers([1, 30], [])          # hubs, then bot 1 runs out of answers
         result, _ = self.run_create(answers)

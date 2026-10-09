@@ -107,17 +107,20 @@ cd /path/to/boot/jaiabot/init
 HUB=1; FLEET=5; ssh-keygen -f hub${HUB}_fleet${FLEET} -t ed25519 -N "" -C "hub${HUB}_fleet${FLEET}"
 ```
 
-- For Wireguard setup: A key called `id_vpn_tmp` (private) / `id_vpn_tmp.pub` (public) can be provided. `jaia admin fleet create` generates it, and `jaia admin fleet create_cloudhub` authorizes it on the fleet's CloudHub, where it may do nothing but enroll one node on the service VPN (see [VPN](page055_vpn.md)). The first-boot setup uses it once and deletes it. To make one by hand:
+- For Wireguard setup: A key called `id_vpn_tmp` (private) / `id_vpn_tmp.pub` (public) can be provided. `jaia admin fleet create` generates it, and `jaia admin fleet cloudhub create` gives the public half to the fleet's CloudHub, where during fleet pairing it may do nothing but enroll one node on the CloudHub VPN (see [VPN](page055_vpn.md)). A node spends it once it has enrolled. To make one by hand:
 ```
 cd /path/to/boot/jaiabot/init
 ssh-keygen -f id_vpn_tmp -t ed25519 -N "" -C "id_vpn_tmp"
 ```
 
-  The authorization expires (30 days by default, settable as `VPN_ENROLLMENT_VALID_DAYS` in `vpc.conf`). To add a bot or hub to the fleet after that, renew it first — over the VPN, so the CloudHub must already be reachable:
-```
-jaia admin fleet vpn_authorize private_jaia/fleet_config/fleet5.cfg
-jaia admin fleet vpn_authorize private_jaia/fleet_config/fleet5.cfg --rm   # when done
-```
+  *This section written by Claude*
+
+  A CloudHub starts with **fleet pairing closed**, and admits no node until it is opened. To join bots and hubs to it, from the Upgrade GUI (JCU) under **Fleet Changes**:
+
+  1. **Open Fleet Pairing**, choosing how long (1 hour to 2 weeks). For a fleet's first pairing do this from the CloudHub's own JCU, at `https://run.<base uri>/jcu`, since no hub on site can reach the CloudHub yet; once a hub is paired, its own JCU offers it too. While pairing is open the CloudHub's SSH port is open to every address, which also lets Jaia's root keys reach it, and the support page says so.
+  2. **Pair Fleet to CloudHub**, from a hub on site. It runs enrollment on every bot and hub over the fleet WLAN. A node already paired is left as it is, so this is safe to run on a fleet that is partly paired, or to pick up a node that missed an earlier attempt.
+
+  Pairing closes by itself when its time runs out, and **Close Fleet Pairing** ends it sooner. A node switched on while pairing is open enrolls at its first boot without needing step 2.
 
 
 The template of the text file `first-boot.preseed.yml` is provided on the image as `/boot/firmware/jaiabot/init/first-boot.preseed.yml.j2` (This is a jinja2 template file used by `jaia fleet admin generate`).

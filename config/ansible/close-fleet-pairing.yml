@@ -1,0 +1,26 @@
+---
+# Ends fleet pairing before its time is up, shutting port 22 on the CloudHub again.
+# Nodes already paired stay paired.
+- name: Close fleet pairing
+  hosts: all
+  connection: local
+  gather_facts: no
+  tasks:
+    - name: Ask the CloudHub to close fleet pairing
+      shell: |
+        set -e
+        source /usr/bin/jaia-debconf.sh
+        cloudhub=$(jaia_ip chf$(jaia_debconf_get fleet_id))
+        ssh -o BatchMode=yes -o ConnectTimeout=10 "jaia@${cloudhub}" \
+            sudo -n jaia-support-access.py close-pairing --by "jcu@$(hostname)"
+      args:
+        executable: /bin/bash
+      register: pairing
+
+    - name: Set facts for fleet pairing
+      set_fact:
+        fleet_pairing: "{{ pairing.stdout }}"
+
+    - name: Display fleet pairing
+      debug:
+        var: fleet_pairing

@@ -1,4 +1,4 @@
-// Copyright 2024:
+// Copyright 2026:
 //   JaiaRobotics LLC
 // File authors:
 //   Toby Schneider <toby@gobysoft.org>
@@ -20,12 +20,12 @@
 // You should have received a copy of the GNU General Public License
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef JAIABOT_SRC_BIN_TOOL_ACTIONS_ADMIN_FLEET_VPN_AUTHORIZE_H
-#define JAIABOT_SRC_BIN_TOOL_ACTIONS_ADMIN_FLEET_VPN_AUTHORIZE_H
+#ifndef JAIABOT_SRC_BIN_TOOL_ACTIONS_ADMIN_FLEET_CLOUDHUB_H
+#define JAIABOT_SRC_BIN_TOOL_ACTIONS_ADMIN_FLEET_CLOUDHUB_H
 
 #include "goby/middleware/application/interface.h"
 
-#include "actions/admin/fleet/vpn_authorize.pb.h"
+#include "actions/admin/fleet/cloudhub.pb.h"
 
 namespace jaiabot
 {
@@ -35,33 +35,31 @@ namespace admin
 {
 namespace fleet
 {
-class VPNAuthorizeToolConfigurator
-    : public goby::middleware::ProtobufConfigurator<jaiabot::config::admin::fleet::VPNAuthorizeTool>
+class CloudHubToolConfigurator
+    : public goby::middleware::ProtobufConfigurator<jaiabot::config::admin::fleet::CloudHubTool>
 {
   public:
-    VPNAuthorizeToolConfigurator(int argc, char* argv[])
-        : goby::middleware::ProtobufConfigurator<jaiabot::config::admin::fleet::VPNAuthorizeTool>(
-              argc, argv)
+    CloudHubToolConfigurator(int argc, char* argv[])
+        : goby::middleware::ProtobufConfigurator<jaiabot::config::admin::fleet::CloudHubTool>(argc,
+                                                                                              argv)
     {
-        auto& cfg = mutable_cfg();
     }
 };
 
-class VPNAuthorizeTool
-    : public goby::middleware::Application<jaiabot::config::admin::fleet::VPNAuthorizeTool>
+class CloudHubTool
+    : public goby::middleware::Application<jaiabot::config::admin::fleet::CloudHubTool>
 {
   public:
-    VPNAuthorizeTool();
-    ~VPNAuthorizeTool() override {}
+    CloudHubTool();
+    ~CloudHubTool() override {}
 
   private:
     void run() override { assert(false); }
-
-  private:
 };
 
 } // namespace fleet
 } // namespace admin
 } // namespace apps
 } // namespace jaiabot
+
 #endif

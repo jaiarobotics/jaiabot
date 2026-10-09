@@ -38,5 +38,9 @@ sudo jaia-vpn-peers.sh remove "${SERVER_IFACE}" "${node_type}${node_id}" >/dev/n
 # Nothing but the config may reach stdout: that is the channel the node reads.
 jaia-vpn-gen.sh cloudhub_vpn "${node_type}" "${node_id}" "${pubkey}" >&2
 
+# The CloudHub's JCU acts on the nodes in its inventory, and enrolment is the only
+# time it learns of one. A stale inventory must not cost the node its pairing.
+sudo jaia-vpn-inventory.sh >&2 || echo "WARNING: could not update the CloudHub's inventory" >&2
+
 set -a; source "${CLOUD_ENV}"; set +a
 cat "${OUT_DIR}/${node_type}${node_id}/wg_jaia_ch${jaia_fleet_id}.conf"

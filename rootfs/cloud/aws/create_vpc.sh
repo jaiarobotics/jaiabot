@@ -71,7 +71,18 @@ set -a; source $1; set +a
 OUTPUT_JSON=${OUTPUT_JSON:-}
 CLOUDHUB_PERMISSIONS_BOUNDARY=${CLOUDHUB_PERMISSIONS_BOUNDARY:-}
 WAIT_TIMEOUT_SECONDS=${WAIT_TIMEOUT_SECONDS:-1800}
-VPN_ENROLLMENT_VALID_DAYS=${VPN_ENROLLMENT_VALID_DAYS:-30}
+# Off unless asked: the tunnel is a standing peer on the CloudHub for whoever built it
+ENABLE_CLIENT_VPN=${ENABLE_CLIENT_VPN:-false}
+UPDATE_CLIENT_ETC_HOSTS=${UPDATE_CLIENT_ETC_HOSTS:-false}
+if [[ "$UPDATE_CLIENT_ETC_HOSTS" == "true" && "$ENABLE_CLIENT_VPN" != "true" ]]; then
+    echo "UPDATE_CLIENT_ETC_HOSTS=true names the CloudHub by its VPN address, so it needs ENABLE_CLIENT_VPN=true"
+    exit 1
+fi
+
+if [ -z "${BOOTSTRAP_EMAIL:-}" ]; then
+    echo "BOOTSTRAP_EMAIL is required: the email of the jaia_bootstrap account (create_cloudhub --bootstrap-email)"
+    exit 1
+fi
 
 # An unattended run has to fail rather than hang, so every wait below is bounded
 function abort_if_timed_out() {
@@ -100,9 +111,12 @@ CLOUDHUB_VPN_NETWORK_IPV6=$(jaia_ip --query_type net --ip_net cloudhub_vpn --fle
 CLOUDHUB_VPN_CLIENT_IPV6=$(jaia_ip --query_type addr --ip_net cloudhub_vpn --fleet_id ${FLEET_ID} --node_type desktop --node_id 1 --ip_version ipv6)
 CLOUDHUB_VPN_SERVER_IPV6=$(jaia_ip --query_type addr --ip_net cloudhub_vpn --fleet_id ${FLEET_ID} --node_type hub --node_id ${CLOUDHUB_ID} --ip_version ipv6)
 
-# generate Wireguard keys
-CLIENT_VPN_WIREGUARD_PRIVATEKEY=$(wg genkey)
-CLIENT_VPN_WIREGUARD_PUBKEY=$(echo $CLIENT_VPN_WIREGUARD_PRIVATEKEY | wg pubkey)
+CLIENT_VPN_WIREGUARD_PRIVATEKEY=""
+CLIENT_VPN_WIREGUARD_PUBKEY=""
+if [[ "$ENABLE_CLIENT_VPN" == "true" ]]; then
+    CLIENT_VPN_WIREGUARD_PRIVATEKEY=$(wg genkey)
+    CLIENT_VPN_WIREGUARD_PUBKEY=$(echo $CLIENT_VPN_WIREGUARD_PRIVATEKEY | wg pubkey)
+fi
 
 export AWS_DEFAULT_REGION=$REGION
 
@@ -203,6 +217,11 @@ else
     SMTP_CREDENTIALS_PARAMETER_ARN="${ARN_PREFIX}:ssm:${REGION}:${ACCOUNT_ID}:parameter/${SMTP_CREDENTIALS_PARAMETER#/}"
 fi
 
+# Created before the policy below, which names this group
+CLOUDHUB_SECURITY_GROUP_ID=$(run '.GroupId' aws ec2 create-security-group --group-name "jaia__SecurityGroup_CloudHub__${JAIA_CUSTOMER_NAME}" --description "jaia__${JAIA_CUSTOMER_NAME} CloudHub Security Group" --vpc-id $VPC_ID)
+on_rollback aws ec2 delete-security-group --group-id $CLOUDHUB_SECURITY_GROUP_ID
+echo ">>>>>> Created CloudHub Security Group with ID: $CLOUDHUB_SECURITY_GROUP_ID"
+
 # Create Policy for CloudHub to manage VirtualFleet instances
 POLICY_FILE_IN="${SCRIPT_PATH}/cloudhub-iam-policy.json.in"
 POLICY_FILE="${TMPDIR}/cloudhub-iam-policy.json"
@@ -211,6 +230,7 @@ cp ${POLICY_FILE_IN} ${POLICY_FILE}
 sed -i "s/{{REGION}}/${REGION}/g" ${POLICY_FILE}
 sed -i "s/{{ACCOUNT_ID}}/${ACCOUNT_ID}/g" ${POLICY_FILE}
 sed -i "s/{{VPC_ID}}/${VPC_ID}/g" ${POLICY_FILE}
+sed -i "s/{{CLOUDHUB_SECURITY_GROUP_ID}}/${CLOUDHUB_SECURITY_GROUP_ID}/g" ${POLICY_FILE}
 sed -i "s/{{CLOUDHUB_DATA_BUCKET}}/${CLOUDHUB_DATA_BUCKET}/g" ${POLICY_FILE}
 sed -i "s/{{ARN_PREFIX}}/${ARN_PREFIX}/g" ${POLICY_FILE}
 sed -i "s|{{SMTP_CREDENTIALS_PARAMETER_ARN}}|${SMTP_CREDENTIALS_PARAMETER_ARN}|g" ${POLICY_FILE}
@@ -277,14 +297,12 @@ on_rollback aws ec2 delete-subnet --subnet-id $SUBNET_VIRTUALFLEET_WLAN_ID
 echo ">>>>>> Created VirtualFleet Subnet with ID: $SUBNET_VIRTUALFLEET_WLAN_ID and IPv6: ${SUBNET_VIRTUALFLEET_WLAN_IPV6}"
 run "" aws ec2 modify-subnet-attribute --assign-ipv6-address-on-creation --subnet-id ${SUBNET_VIRTUALFLEET_WLAN_ID}
 
-# Create a Security Group for CloudHub
-CLOUDHUB_SECURITY_GROUP_ID=$(run '.GroupId' aws ec2 create-security-group --group-name "jaia__SecurityGroup_CloudHub__${JAIA_CUSTOMER_NAME}" --description "jaia__${JAIA_CUSTOMER_NAME} CloudHub Security Group" --vpc-id $VPC_ID)
-on_rollback aws ec2 delete-security-group --group-id $CLOUDHUB_SECURITY_GROUP_ID
-echo ">>>>>> Created CloudHub Security Group with ID: $CLOUDHUB_SECURITY_GROUP_ID"
-
 # Set Up Security Group Rules
-run "" aws ec2 authorize-security-group-ingress --group-id $CLOUDHUB_SECURITY_GROUP_ID --ip-permissions IpProtocol=tcp,FromPort=22,ToPort=22,IpRanges='[{CidrIp=0.0.0.0/0}]',Ipv6Ranges='[{CidrIpv6=::/0}]'
-echo ">>>>>> Allowed SSH (port 22) on Security Group"
+# SSH is open only while this script needs it; the hand-over below shuts it, and
+# from then on the support page is what opens it. The description is the one
+# jaia-support-access.py revokes by: EC2 matches it, so without it the rule outlives the hand-over.
+run "" aws ec2 authorize-security-group-ingress --group-id $CLOUDHUB_SECURITY_GROUP_ID --ip-permissions '[{"IpProtocol":"tcp","FromPort":22,"ToPort":22,"IpRanges":[{"CidrIp":"0.0.0.0/0","Description":"jaia support access"}],"Ipv6Ranges":[{"CidrIpv6":"::/0","Description":"jaia support access"}]}]'
+echo ">>>>>> Allowed SSH (port 22) on Security Group while this run provisions"
 
 run "" aws ec2 authorize-security-group-ingress --group-id $CLOUDHUB_SECURITY_GROUP_ID --ip-permissions IpProtocol=udp,FromPort=51820,ToPort=51821,IpRanges='[{CidrIp=0.0.0.0/0}]',Ipv6Ranges='[{CidrIpv6=::/0}]'
 echo ">>>>>> Allowed UDP ports 51820-51821 (Wireguard) on Security Group"
@@ -328,8 +346,8 @@ cp ${USER_DATA_SCRIPT_IN} ${USER_DATA_SCRIPT}
 declare -A replacements=(
     ["{{CLIENT_VPN_WIREGUARD_PUBKEY}}"]="$CLIENT_VPN_WIREGUARD_PUBKEY"
     ["{{FLEET_ID}}"]="$FLEET_ID"
+    ["{{BOOTSTRAP_EMAIL}}"]="$BOOTSTRAP_EMAIL"
     ["{{VPN_TMP_PUBKEY}}"]="$(cat ${USER_DATA_FIRST_BOOT_DIR}/jaiabot/init/id_vpn_tmp.pub)"
-    ["{{VPN_ENROLLMENT_VALID_DAYS}}"]="$VPN_ENROLLMENT_VALID_DAYS"
 )
 
 for placeholder in "${!replacements[@]}"; do
@@ -486,11 +504,25 @@ done
 
 CLOUDHUB_SSH_PUBKEY=${TMPDIR}/hub${CLOUDHUB_ID}_fleet${FLEET_ID}.pub
 ssh "${SSH_OPTS[@]}" jaia@${PUBLIC_IPV4_ADDRESS} "cat /home/jaia/.ssh/hub${CLOUDHUB_ID}_fleet${FLEET_ID}.pub" > ${CLOUDHUB_SSH_PUBKEY}
-jaia admin fleet set_cloudhub_key ${FLEET_CONFIG} ${CLOUDHUB_SSH_PUBKEY}
+jaia admin fleet cloudhub set_key ${FLEET_CONFIG} ${CLOUDHUB_SSH_PUBKEY}
 echo ">>>>>> Recorded the CloudHub's SSH public key in ${FLEET_CONFIG}"
 
-ssh "${SSH_OPTS[@]}" jaia@${PUBLIC_IPV4_ADDRESS} "sudo ufw allow in on eth0 proto tcp to any port 22; sudo ufw allow in on eth0 proto udp to any port 51820; sudo ufw allow in on eth0 proto udp to any port 51821; sudo ufw allow in on wg_cloudhub; sudo ufw --force enable"
+# SSH is allowed through ufw and gated at the security group alone. Two locks would
+# be one too many here: the security group is the one the customer can reach from
+# their own AWS console, so it is the one that can still let somebody in when this
+# CloudHub's Authelia will not start and the support page is therefore down. A ufw
+# rule in front of it could only be lifted from the box it is locking.
+ssh "${SSH_OPTS[@]}" jaia@${PUBLIC_IPV4_ADDRESS} "sudo ufw allow in on eth0 to any port 22 proto tcp; sudo ufw allow in on eth0 proto udp to any port 51820; sudo ufw allow in on eth0 proto udp to any port 51821; sudo ufw allow in on wg_cloudhub; sudo ufw --force enable"
 echo ">>>>>> Updated CloudHub ufw firewall rules to exclude connecting on VirtualFleet VPN"
+
+# Hand-over: from here the CloudHub's own reconcile timer is the only writer of the
+# open-to-everyone port 22 rule this run made, and with fleet pairing closed - as a
+# new CloudHub starts - its first act is to remove it. Revoking it here instead would
+# race that timer, which has been running since boot, and leave two writers of one
+# rule. Last, because the reconcile closes the door this run came in by.
+ssh "${SSH_OPTS[@]}" jaia@${PUBLIC_IPV4_ADDRESS} "sudo mkdir -p -m 0700 /var/log/jaiabot/auth/support && sudo touch /var/log/jaiabot/auth/support/handed-over && sudo jaia-support-access.py reconcile" \
+    || echo ">>>>>> WARNING: could not reconcile port 22 at hand-over; the CloudHub's timer will within five minutes"
+echo ">>>>>> Handed port 22 to the CloudHub: closed until fleet pairing is opened from the JCU"
 
 exit_if_interrupted
 # CloudHub is fully set up in AWS; failures after this point only affect local client configuration
@@ -525,8 +557,12 @@ if [[ -n "$OUTPUT_JSON" ]]; then
     echo ">>>>>> Wrote the created resource IDs to ${OUTPUT_JSON}"
 fi
 
-CLOUD_VPN=wg_jaia_ch${FLEET_ID}
-cat <<EOF > /tmp/${CLOUD_VPN}.conf
+echo ">>>>>> Started CloudHub in Fleet $FLEET_ID:"
+echo ">>>>>> Public IPv4 address: ${PUBLIC_IPV4_ADDRESS}"
+
+if [[ "$ENABLE_CLIENT_VPN" == "true" ]]; then
+    CLOUD_VPN=wg_jaia_ch${FLEET_ID}
+    cat <<EOF > /tmp/${CLOUD_VPN}.conf
 [Interface]
 # from /etc/wireguard/privatekey on client
 PrivateKey = ...
@@ -548,13 +584,8 @@ Endpoint = ${PUBLIC_IPV4_ADDRESS}:51821
 PersistentKeepalive = 52
 EOF
 
-sed -i "s|.*PrivateKey.*|PrivateKey = ${CLIENT_VPN_WIREGUARD_PRIVATEKEY}|" /tmp/${CLOUD_VPN}.conf
+    sed -i "s|.*PrivateKey.*|PrivateKey = ${CLIENT_VPN_WIREGUARD_PRIVATEKEY}|" /tmp/${CLOUD_VPN}.conf
 
-echo ">>>>>> Started CloudHub in Fleet $FLEET_ID:"
-echo ">>>>>> Public IPv4 address: ${PUBLIC_IPV4_ADDRESS}"
-
-
-if [[ "$ENABLE_CLIENT_VPN" == "true" ]]; then
     echo ">>>>>> Begin installing local VPN to /etc/wireguard/${CLOUD_VPN}.conf"
 
     sudo mv /tmp/${CLOUD_VPN}.conf /etc/wireguard
@@ -573,7 +604,7 @@ if [[ "$ENABLE_CLIENT_VPN" == "true" ]]; then
     echo ">>>>>> Ping successful!"   
     echo -e ">>>>>> Now you can log in with\n\tjaia ssh chf${FLEET_ID} (ssh jaia@${CLOUDHUB_VPN_SERVER_IPV6})"
 else
-    echo ">>>>>> Prototype config for VPNs in /tmp/${CLOUD_VPN}.conf. You will need to enable this VPN to access the Cloudhub VM."
+    echo ">>>>>> No VPN tunnel for this machine (ENABLE_CLIENT_VPN=false): use the CloudHub's web sites, or SSH while a support grant or fleet pairing is open"
 fi
 
 if [[ "$UPDATE_CLIENT_ETC_HOSTS" == "true" ]]; then
@@ -604,4 +635,7 @@ cat <<EOF
 	*.$AUTH_BASE_URI_HOST CNAME $AUTH_BASE_URI
 EOF
 
-echo -e "Authelia login at https://$AUTH_BASE_URI\n\tuser: jaia_admin\n\tpass: none yet - set one with \"Reset password?\" on the login page, which emails cloudhub.admin_email"
+echo -e "Authelia login at https://$AUTH_BASE_URI"
+echo -e "\tjaia_bootstrap: Jaia's, to commission this CloudHub and pair its fleet. Set a password with \"Reset password?\" on the login page, which emails ${BOOTSTRAP_EMAIL}."
+echo -e "\t\tDelete it at https://users.$AUTH_BASE_URI before the CloudHub is shipped."
+echo -e "\tfleet_admin: the customer's. Set a password the same way, which emails cloudhub.admin_email."

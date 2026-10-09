@@ -167,7 +167,7 @@ if common.app == 'goby_intervehicle_portal':
         link_block += config.template_substitute(templates_dir+'/link_udp.pb.cfg.in',
                                                  subnet_mask=common.comms.subnet_mask,
                                                  modem_id=common.comms.hub2hub_modem_id(hub_id),
-                                                 local_port=common.udp.hub2hub_udp_port(hub_id),
+                                                 local_port=common.udp.hub2hub_udp_port(hub_id, common.comms.hub2hub_single_machine_sim(hub_id, fleet_id)),
                                                  remotes=common.comms.hub2hub_remotes(hub_id, fleet_id),
                                                  hub_endpoints='',
                                                  mac_slots=common.comms.hub2hub_mac_slots(hub_id),
@@ -226,12 +226,33 @@ elif common.app == 'goby_liaison_prelaunch':
     inventory='/etc/jaiabot/inventory.yml'
     if is_cloudhub:
         vfleet_playbooks=config.template_substitute(templates_dir+'/hub/_liaison_prelaunch_vfleet_playbooks.pb.cfg.in', this_hub=this_hub)
+        hub_vpn_playbooks=''
+        node_pairing_playbooks=''
     else:
         vfleet_playbooks=''
+        hub_vpn_playbooks=config.template_substitute(templates_dir+'/hub/_liaison_prelaunch_hub_vpn_playbooks.pb.cfg.in', this_hub=this_hub)
+        node_pairing_playbooks=config.template_substitute(templates_dir+'/hub/_liaison_prelaunch_node_pairing_playbooks.pb.cfg.in')
+
+    if common.comms.has_cloudhub_vpn(fleet_id):
+        pairing_playbooks=config.template_substitute(templates_dir+'/hub/_liaison_prelaunch_pairing_playbooks.pb.cfg.in', this_hub=this_hub)
+    else:
+        pairing_playbooks=''
 
     limit=''
     if is_cloudhub:
         limit='limit: "all"'
+
+    if is_cloudhub:
+        # The CloudHub downloads its image and upgrades only itself; its nodes upgrade
+        # from a hub on site. Its default disk is too small for the backup.
+        major_upgrade_limit='limit: "' + this_hub + '"'
+        major_upgrade_note='this CloudHub only; downloads the Major Upgrade image'
+        major_upgrade_backup_values='value: "no"\n            value: "yes"'
+    else:
+        major_upgrade_limit=limit
+        major_upgrade_note='Requires Major Upgrade image to be connected to this Hub via USB Key or CD'
+        major_upgrade_backup_values='value: "yes"\n            value: "no"'
+
     print(config.template_substitute(templates_dir+'/hub/goby_liaison_prelaunch.pb.cfg.in',
                                      app_block=app_common,
                                      http_port=liaison_port,
@@ -240,8 +261,14 @@ elif common.app == 'goby_liaison_prelaunch':
                                      user_role=user_role,
                                      inventory=inventory,
                                      vfleet_playbooks=vfleet_playbooks,
+                                     hub_vpn_playbooks=hub_vpn_playbooks,
+                                     node_pairing_playbooks=node_pairing_playbooks,
+                                     pairing_playbooks=pairing_playbooks,
                                      this_hub_id=hub_id,
                                      limit=limit,
+                                     major_upgrade_limit=major_upgrade_limit,
+                                     major_upgrade_note=major_upgrade_note,
+                                     major_upgrade_backup_values=major_upgrade_backup_values,
                                      ansible_log_dir=common.jaia_log_dir + '/ansible'))
 elif common.app == 'goby_gps':
     print(config.template_substitute(templates_dir+'/goby_gps.pb.cfg.in',

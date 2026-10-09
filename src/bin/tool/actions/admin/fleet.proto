@@ -63,8 +63,12 @@ message FleetTool
             external_command: "jaia-fleet-config.py",
             external_help_param: "--help"
         }];
-        vpn_authorize = 4 [(goby.ev).cfg = {
-            short_help_msg: "Renew this fleet's authorization to enroll nodes on its CloudHub VPN"
+        reserved 4, 6, 7, 11, 13;
+        reserved "vpn_authorize", "create_cloudhub", "delete_cloudhub", "set_cloudhub_key", "refresh_cloudhub_permissions";
+        support_request = 12 [(goby.ev).cfg = {
+            short_help_msg: "Sign a request for support access, for the customer to approve",
+            external_command: "jaia-support-request.sh",
+            external_help_param: "--help"
         }];
         update_iso = 5 [(goby.ev).cfg = {
             short_help_msg: "Update existing jaiabot_updates ISO with fleet config"
@@ -72,16 +76,6 @@ message FleetTool
             full_help_msg: "Update existing jaiabot_updates ISO (USB/CD image) with fleet config.\n"
                            "Usage: \"jaia admin fleet update_iso [fleet.cfg] [updates.iso] [output_updates.iso (optional)]\""
             }];        
-        create_cloudhub = 6 [(goby.ev).cfg = {
-            short_help_msg: "Create VPC and CloudHub",
-            external_command: "jaia-create-cloudhub.py",
-            external_help_param: "--help"
-        }];
-        delete_cloudhub = 7 [(goby.ev).cfg = {
-            short_help_msg: "Delete VPC and CloudHub",
-            external_command: "jaia-delete-cloudhub.py",
-            external_help_param: "--help"
-        }];
         migrate = 8 [(goby.ev).cfg = {
             short_help_msg: "Rewrite a fleet config at the current fleet config version",
             external_command: "jaia-fleet-config.py",
@@ -92,10 +86,8 @@ message FleetTool
             external_command: "jaia-fleet-config.py",
             external_help_param: "--help"
         }];
-        set_cloudhub_key = 11 [(goby.ev).cfg = {
-            short_help_msg: "Record the public SSH key a CloudHub made for itself",
-            external_command: "jaia-fleet-config.py",
-            external_help_param: "--help"
+        cloudhub = 14 [(goby.ev).cfg = {
+            short_help_msg: "CloudHub administration: create, delete, set_key, prep_major_upgrade",
         }];
     }
 

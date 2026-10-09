@@ -70,7 +70,7 @@ message AdminTool
             full_help_msg: "VPN configuration tool.\n"
                            "Usage: \"jaia admin vpn cloudhub_vpn|vfleet_vpn bot|hub|desktop node_id client_pubkey\"\n"
                            "       \"jaia admin vpn fleet_vpn bot|hub|desktop node_id fleet_id [client_pubkey]\"\n"
-                           "       \"jaia admin vpn server_init fleet_id initial_client_pubkey\"\n"
+                           "       \"jaia admin vpn server_init fleet_id [initial_client_pubkey]\"\n"
                            "\n"
                            "client_pubkey is 'wg genkey | wg pubkey' run on the node being added, so that its private half never leaves it.\n"
         }];

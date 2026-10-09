@@ -65,7 +65,7 @@ That trials the newest `continuous` image with this branch's scripts, which is w
 you want when changing the trial itself rather than the image.
 
 The job installs `jaiabot-apps` and `jaiabot-python` from packages.jaia.tech for the
-repo and version this commit built, because `jaia admin fleet create_cloudhub`
+repo and version this commit built, because `jaia admin fleet cloudhub create`
 dispatches to the copy in `/usr/bin`: tooling from another commit writes answers the
 image's packages no longer accept.
 
@@ -181,7 +181,7 @@ a CloudHub role cannot be given IAM permissions whatever its inline policy says.
 
 `create_vpc.sh` attaches it when `CLOUDHUB_PERMISSIONS_BOUNDARY` names a policy, so
 the CI fleet config sets `CLOUDHUB_PERMISSIONS_BOUNDARY=JaiaCloudHubBoundary`, or
-`jaia admin fleet create_cloudhub --permissions-boundary JaiaCloudHubBoundary`.
+`jaia admin fleet cloudhub create --permissions-boundary JaiaCloudHubBoundary`.
 Create the boundary before attaching the sea-trial policy: with the policy attached
 and no boundary named, every `CreateRole` call is denied.
 

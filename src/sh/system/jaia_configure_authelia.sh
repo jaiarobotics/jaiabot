@@ -26,6 +26,7 @@ lldap_ldap_port=3890
 lldap_web_port=17170
 jcc_port=8080
 authelia_port=9991
+support_portal_port=9992
 
 ## IP/URLs
 base_uri=$jaia_auth_base_uri
@@ -47,6 +48,7 @@ authelia_persistent_dir=$auth_persistent_dir/authelia
 # Not under /etc/authelia: the package's tmpfiles.d rule sets 0640 on everything there, directories included
 authelia_asset_dir=$authelia_persistent_dir/assets
 lldap_persistent_dir=$auth_persistent_dir/lldap
+support_persistent_dir=$auth_persistent_dir/support
 
 
 if [ ! -d "$lldap_persistent_dir" ]; then
@@ -367,6 +369,13 @@ access_control:
         - 'group:lldap_admin'
         - 'group:super_admin'
 
+    # Whoever administers the directory is who decides on Jaia's access to the fleet
+    - domain: support.$base_uri
+      policy: 'two_factor'
+      subject:
+        - 'group:lldap_admin'
+        - 'group:super_admin'
+
     # Landing page listing the sites
     - domain: $base_uri
       policy: 'two_factor'
@@ -511,6 +520,16 @@ users.$base_uri {
         }
 }
 
+# Jaia support access
+support.$base_uri {
+        $caddy_tls
+        import jaia_nav
+        handle {
+                import authelia_forward_auth
+                import jaia_nav_proxy :$support_portal_port
+        }
+}
+
 # Runtime JCC
 run.$base_uri {
         $caddy_tls
@@ -583,19 +602,63 @@ for group in "${groups[@]}"; do
 EOF
 done
 
-# Only an initial password: Authelia binds as authelia so a reset here can't lock it out
 # No password: bootstrap.sh reapplies every password its user configs carry, so one
 # here would be restored over whatever the admin has since chosen. They set their
 # own through the portal's reset link.
-cat > /etc/lldap/bootstrap/user-configs/jaia_admin.json <<EOF
+cat > /etc/lldap/bootstrap/user-configs/fleet_admin.json <<EOF
 {
-  "id": "jaia_admin",
+  "id": "fleet_admin",
   "email": "$admin_email",
   "groups": ["super_admin", "lldap_admin"
   ]
 }
 EOF
-chmod 0600 /etc/lldap/bootstrap/user-configs/jaia_admin.json
+chmod 0600 /etc/lldap/bootstrap/user-configs/fleet_admin.json
+
+# Groupless, and no "groups" key rather than an empty one, so re-running bootstrap
+# cannot withdraw a grant that is in force. The account exists so the support page
+# has something to move in and out of the web groups, and so the customer has one
+# name to audit; it reaches nothing until a grant puts it somewhere.
+# Jaia's account for commissioning: testing the CloudHub and pairing its first fleet,
+# deleted from the directory before the CloudHub is shipped. Created only the first
+# time this CloudHub bootstraps, which the marker in the persistent directory records:
+# bootstrap.sh runs again after a major upgrade - its own record of having run lives in
+# cloud.env, on the root filesystem the upgrade replaces - and would otherwise bring a
+# deleted account back with super_admin on a fleet the customer already owns. No
+# password, as for the administrator; Jaia sets one through the reset link.
+jaia_bootstrap_marker=$auth_persistent_dir/jaia_bootstrap_created
+jaia_bootstrap_config=/etc/lldap/bootstrap/user-configs/jaia_bootstrap.json
+jaia_bootstrap_email=$(cat "$auth_persistent_dir/jaia_bootstrap_email" 2>/dev/null || true)
+if $jaia_auth_lldap_bootstrap_completed; then
+    mkdir -p "$auth_persistent_dir"
+    touch "$jaia_bootstrap_marker"
+fi
+if [ -e "$jaia_bootstrap_marker" ]; then
+    rm -f "$jaia_bootstrap_config"
+elif [ -z "$jaia_bootstrap_email" ]; then
+    # create_cloudhub --bootstrap-email names it; a CloudHub made any other way has no one to send the reset link to
+    echo "No jaia_bootstrap email in $auth_persistent_dir/jaia_bootstrap_email: not creating jaia_bootstrap"
+    rm -f "$jaia_bootstrap_config"
+else
+    cat > "$jaia_bootstrap_config" <<EOF
+{
+  "id": "jaia_bootstrap",
+  "email": "$jaia_bootstrap_email",
+  "displayName": "Jaia commissioning",
+  "groups": ["super_admin", "lldap_admin"
+  ]
+}
+EOF
+    chmod 0600 "$jaia_bootstrap_config"
+fi
+
+cat > /etc/lldap/bootstrap/user-configs/jaia_support.json <<EOF
+{
+  "id": "jaia_support",
+  "email": "support@jaia.tech",
+  "displayName": "Jaia support"
+}
+EOF
 
 cat <<EOF > /etc/lldap/docker-compose.yaml
 services:
@@ -656,6 +719,9 @@ if ! $jaia_auth_lldap_bootstrap_completed; then
     for attempt in $(seq 1 120); do
         if docker compose -f /etc/lldap/docker-compose.yaml exec -T lldap /app/bootstrap.sh; then
             echo "jaia_auth_lldap_bootstrap_completed=true" >> /etc/jaiabot/cloud.env
+            mkdir -p "$auth_persistent_dir"
+            touch "$jaia_bootstrap_marker"
+            rm -f "$jaia_bootstrap_config"
             break
         fi
         if (( attempt == 120 )); then
@@ -689,6 +755,80 @@ else
     systemctl start authelia
 fi
 
+
+####################
+## Support portal ##
+####################
+
+if [ ! -d "$support_persistent_dir" ]; then
+    mkdir -p $support_persistent_dir
+    chmod 0700 $support_persistent_dir
+fi
+
+# The portal's trust root, in the form ssh-keygen -Y verify reads. Derived from
+# the root keys the image already carries rather than from a list kept here, so
+# adding or retiring a Yubikey is the one edit it has always been. Written whole
+# so a request is never checked against a half-written file.
+mkdir -p /etc/jaiabot/support
+awk '$1 ~ /^(ssh|sk-ssh|ecdsa|sk-ecdsa)-/ { print "jaia-support", $1, $2 }' \
+    /etc/jaiabot/ssh/root_authorized_keys > /etc/jaiabot/support/allowed_signers.new
+[ -s /etc/jaiabot/support/allowed_signers.new ]
+mv /etc/jaiabot/support/allowed_signers.new /etc/jaiabot/support/allowed_signers
+
+cat > /etc/systemd/system/jaia_support_portal.service <<EOF
+[Unit]
+Description=Jaia support access portal
+
+[Service]
+ExecStart=/usr/bin/jaia-support-portal.py
+Environment=JAIA_FLEET_ID=$jaia_fleet_id
+Environment=JAIA_SUPPORT_PORTAL_PORT=$support_portal_port
+
+# Root to drive ufw, and strict confinement would stop that, so only what it
+# never writes is made read-only
+ProtectSystem=true
+PrivateTmp=true
+
+Restart=always
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+# A firewall rule has no expiry of its own, so this is the one mechanism that
+# ends a grant nobody remembers to end.
+cat > /etc/systemd/system/jaia_support_reconcile.service <<EOF
+[Unit]
+Description=Bring Jaia's support access back in line with what the customer granted
+# Web access lives in the directory, so a run before it is up has nothing to say;
+# the next tick would recover anyway, but not before reporting a failure
+After=lldap.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/jaia-support-access.py reconcile
+Environment=JAIA_FLEET_ID=$jaia_fleet_id
+EOF
+
+cat > /etc/systemd/system/jaia_support_reconcile.timer <<EOF
+[Unit]
+Description=Bring Jaia's support access back in line with what the customer granted
+
+[Timer]
+# On boot as well as on the interval: a grant must not outlive a CloudHub that
+# happened to be switched off when it expired
+OnBootSec=2min
+OnUnitActiveSec=5min
+
+[Install]
+WantedBy=timers.target
+EOF
+
+systemctl daemon-reload
+systemctl enable jaia_support_portal
+systemctl restart jaia_support_portal
+systemctl enable --now jaia_support_reconcile.timer
 
 ##############
 ## Firewall ##

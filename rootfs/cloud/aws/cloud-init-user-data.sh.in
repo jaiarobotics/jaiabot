@@ -6,5 +6,10 @@ SERVER_VPN_PUBKEY=$(cat /etc/wireguard/publickey)
 
 jaia admin vpn server_init {{FLEET_ID}} {{CLIENT_VPN_WIREGUARD_PUBKEY}}
 
-## Let each node enroll itself on the VPN with the fleet's bootstrap key
-jaia-vpn-authorize.sh "{{VPN_TMP_PUBKEY}}" {{VPN_ENROLLMENT_VALID_DAYS}}
+## Keep the fleet's bootstrap key for when pairing is opened from the JCU; until
+## then the CloudHub admits no node
+jaia-support-access.py set-bootstrap-key --key "{{VPN_TMP_PUBKEY}}"
+
+## Who jaia_bootstrap is, for the first time the directory is set up
+mkdir -p /var/log/jaiabot/auth
+echo "{{BOOTSTRAP_EMAIL}}" > /var/log/jaiabot/auth/jaia_bootstrap_email

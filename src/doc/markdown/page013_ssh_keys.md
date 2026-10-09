@@ -29,6 +29,10 @@ Each hub ships with its own Yubikey permanently installed into the USB port of t
 
 Re-running fleet configuration with a new key will the key for that hub on all bots.
 
+### Test fleets without Yubikeys
+
+For a test fleet (for example a VirtualBox fleet), `jaia admin fleet create --test-keys` (also accepted by `edit`) gives each new hub an ordinary ed25519 key instead of asking for its Yubikey. The private key is then only a file in the fleet config, so anyone with a copy of the config can log in as that hub. Never use it for a real deployment. Such keys are marked by their comment, `hub<N>_fleet<M>_test_key`.
+
 ### CloudHub key
 
 The CloudHub has no Yubikey. It generates its own key on first boot, the private half never leaves it, and the fleet config records only the public half. Every node accepts that key only from the CloudHub's address on the CloudHub VPN. See [CloudHub SSH key](page056_cloud.md#cloudhub-ssh-key).
@@ -158,3 +162,72 @@ or by manually editing the `/home/jaia/.ssh/authorized_keys` file.
 ```
 jaia admin ssh <action> --user=ubuntu packages.jaia.tech
 ```
+## Support access to a CloudHub
+
+The keys above decide *who* a node will accept. Reaching a customer's CloudHub
+turns on something else first: **whether anyone can knock at all.**
+
+Port 22 is shut at the CloudHub's own AWS security group, in the customer's own
+account. A grant opens it, for the window the customer approved and only to the
+address the request was signed from; the expiry timer shuts it again. The keys
+that then work are the root Yubikeys the image already carries, so nothing is
+pushed anywhere and nothing has to be taken back.
+
+That is worth stating plainly, because it is the whole design: **reachability is
+the control, not key trust.** The customer cannot stop a Yubikey from being a
+valid key, and does not need to — they decide whether there is a route to use it
+on, in a place Jaia cannot reach.
+
+It also means recovery never depends on our software. If the CloudHub's own
+directory will not start, its support page is unreachable too, since that page
+sits behind Authelia. The customer opens port 22 from the AWS console and a
+Yubikey gets in.
+
+From that shell, bots and hubs are reached as they always are — `jaia admin ssh
+add` run on the CloudHub, with the CloudHub's own key already authorized on
+every node. There is no second grant.
+
+### Asking for it
+
+The customer's administrator should never have to judge whether a phone call
+claiming to be Jaia really is. So the right to ask is tied to the root Yubikeys
+rather than to convention. `jaia admin fleet support_request` signs the fleet,
+the window, the reason and the address to admit with one of them:
+
+```
+jaia admin fleet support_request --fleet 7 --key ~/.ssh/id_ed25519_sk \
+    --reason "Pump fault on bot 3" --days 7
+```
+
+It prints a block to send to the customer, who pastes it at
+`https://support.<their base uri>` — a page beside the directory, behind the
+same login, open to `lldap_admin` and `super_admin` at two factors. The CloudHub
+verifies the signature against the root keys already on its own image
+(`/etc/jaiabot/ssh/root_authorized_keys`) and draws nothing at all for a request
+it cannot verify, so a request cannot be forged by anyone who reaches that page.
+Approving it is one click, and opens the port. The page shows the customer the
+address it will admit before they do.
+
+Granting runs from the approval, not from when the request was made, and no
+grant lasts more than two weeks.
+
+The grant is one record, and the firewall is derived from it by a timer that
+reconciles every few minutes — so an expiry takes effect with nobody acting, and
+a rule with no grant behind it is closed rather than left. The rule is written
+both to the security group and to `ufw`: the first is the one that matters,
+because AWS enforces it off the instance, and the second so the gate also exists
+on a CloudHub that is not in EC2. The support page shows what is open, until
+when, and the log of every grant and every ending.
+
+### The fleet's own link, which is a different thing
+
+A hub can disable and re-enable its own tunnel to the CloudHub from its Upgrade
+GUI. That decides whether the *fleet* reaches the cloud, and has nothing to do
+with support — but the two meet in one place: a hub with its tunnel off is out
+of reach even during a live grant.
+
+That control is deliberately local. It acts on the hub it is run from and no
+other node, so it can never stop the CloudHub's own end and take the whole fleet
+off, and because the GUI serving it runs on that hub over the fleet WLAN, the
+link can always be restored on-site. Note that it also carries HUB2HUB, so
+cutting it costs inter-hub comms as well.
