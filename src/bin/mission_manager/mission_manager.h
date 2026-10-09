@@ -57,6 +57,11 @@ class MissionManager : public goby::zeromq::MultiThreadApplication<config::Missi
         return test_modes_.count(mode);
     }
 
+    bool is_delegated(jaiabot::protobuf::MissionState state) const
+    {
+        return delegated_states_.count(state);
+    }
+
   private:
     void initialize() override;
     void finalize() override;
@@ -66,7 +71,6 @@ class MissionManager : public goby::zeromq::MultiThreadApplication<config::Missi
     void handle_command(const protobuf::Command& command);
     bool handle_command_fragment(const protobuf::Command& input_command_fragment,
                                  protobuf::Command& out_command);
-    void handle_bottom_dive_safety_params(const protobuf::BottomDepthSafetyParams);
 
     bool health_considered_ok(const goby::middleware::protobuf::VehicleHealth& vehicle_health);
     void handle_self_test_results(bool result); // TODO: replace with Protobuf message
@@ -126,6 +130,8 @@ class MissionManager : public goby::zeromq::MultiThreadApplication<config::Missi
     };
 
     ForwardProgressData fwd_progress_data_;
+
+    std::set<jaiabot::protobuf::MissionState> delegated_states_;
 };
 
 } // namespace apps

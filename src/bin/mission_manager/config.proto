@@ -6,6 +6,7 @@ import "goby/middleware/protobuf/transporter_config.proto";
 import "dccl/option_extensions.proto";
 import "jaiabot/messages/health.proto";
 import "jaiabot/messages/mission.proto";
+import "jaiabot/messages/node.proto";
 import "jaiabot/messages/camera_driver.proto";
 
 package jaiabot.config;
@@ -25,7 +26,7 @@ message MissionManager
         13;
     optional goby.middleware.protobuf.TransporterConfig bot_status_sub_cfg = 14;
 
-    // timeout to allow all applications to report HEALTH__OK
+    // timeout to allow all applications to report HEALTH__OK; 0 disables the timeout
     optional double startup_timeout = 12
         [default = 120, (dccl.field).units = { base_dimensions: "T" }];
 
@@ -196,7 +197,7 @@ message MissionManager
     repeated jaiabot.protobuf.Error ignore_error = 81;
 
     optional bool is_sim = 82 [default = false];
-    
+
     // Determines if the acceleration is hard or soft
     optional double hard_bottom_type_acceleration = 84 [default = 100];
 
@@ -246,15 +247,36 @@ message MissionManager
     optional jaiabot.protobuf.CameraCommand stop_camera_command = 91;
 
     optional bool camera_available = 92 [default = false];
-    
+
     // The distance from the pressure sensor to the waterline
-    optional double pressure_sensor_to_waterline = 93 
+    optional double pressure_sensor_to_waterline = 93
         [default = 0.4572, (dccl.field).units = { base_dimensions: "L" }];
 
     // The distance from the pressure sensor to the end of the tail
     optional double pressure_sensor_to_tail = 94
         [default = 0.3683, (dccl.field).units = { base_dimensions: "L" }];
-        
+
     optional int32 min_subsurface_current_vector_hold_time = 95 [default = 10];
     optional int32 min_subsurface_current_vector_drift_time = 96 [default = 15];
+
+    // states that are managed external (their transitions are delegated to an
+    // external app)
+    repeated jaiabot.protobuf.MissionState delegated_states = 97;
+    optional jaiabot.protobuf.BotType bot_type = 98 [default = HYDRO];
+
+    optional bool allow_gps_error_during_pre_deployment_startup = 99 [default = false];
+
+    // time to wait in IN_MISSION__PAUSE__REACQUIRE_GPS before giving up and
+    // resuming the mission (diving in place) without a GPS fix. 0 disables the
+    // timeout. Intended for STORM bots, which are rudderless and so cannot
+    // improve a degraded fix by maneuvering.
+    optional int32 reacquire_gps_timeout = 100
+        [default = 0, (dccl.field).units = { base_dimensions: "T" }];
+
+    // while in a delegated PRE_DEPLOYMENT__SELF_TEST, re-send the delegate request at this
+    // interval. The request is otherwise only sent once on entering SELF_TEST, so a delegate
+    // that already finished (and responded) before this app got there would never respond
+    // again, leaving the bot stuck in SELF_TEST. 0 disables.
+    optional double self_test_delegate_retry_interval = 101
+        [default = 10, (dccl.field).units = { base_dimensions: "T" }];
 }

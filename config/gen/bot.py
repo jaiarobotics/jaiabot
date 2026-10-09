@@ -82,6 +82,11 @@ echo_enabled=(bot_type == "ECHO")
 # Ignore health warnings from UDP gateway if data comes from BIO payload board
 salinity_enabled=(bot_type != "BIO")
 bar30_enabled=(bot_type != "BIO")
+storm_enabled=(bot_type == "STORM")
+
+allow_gps_error_during_pre_deployment_startup=""
+if storm_enabled:
+    allow_gps_error_during_pre_deployment_startup="allow_gps_error_during_pre_deployment_startup: true"
 
 # Only enable TSYS01 driver if the Bot is not a BIO and the TSYS01 is the selected temperature sensor type
 tsys01_enabled=(jaia_temperature_sensor_type == 'tsys01' and bot_type != 'BIO')
@@ -152,7 +157,9 @@ verbosities = \
   'jaiabot_turner_c_fluor_sensor_driver':         { 'runtime': { 'tty': 'WARN', 'log': 'WARN' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'jaiabot_aml_sensor_driver':                    { 'runtime': { 'tty': 'WARN', 'log': 'WARN' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'jaiabot_ctd_manager':                          { 'runtime': { 'tty': 'WARN', 'log': 'WARN' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
-  'jaiabot_power_board':                          { 'runtime': { 'tty': 'DEBUG1', 'log': 'DEBUG1' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
+  'jaiabot_power_board':                          { 'runtime': { 'tty': 'WARN', 'log': 'WARN' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
+  'jaiabot_ppk':                                  { 'runtime': { 'tty': 'WARN', 'log': 'WARN' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
+  'jaiabot_storm_manager':                        { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  }, 'simulation': { 'tty': 'WARN', 'log': 'WARN' }}
 }
 
 app_common = common.app_block(verbosities, debug_log_file_dir)
@@ -359,7 +366,8 @@ elif common.app == 'jaiabot_simulator':
                                      interprocess_block = interprocess_common,
                                      moos_port=common.bot.moos_simulator_port(node_id),
                                      gpsd_simulator_udp_port=common.bot.gpsd_simulator_udp_port(node_id),
-                                     udp_gateway_port=udp_gateway_port))
+                                     udp_gateway_port=udp_gateway_port,
+                                     bot_type=bot_type))
 elif common.app == 'jaiabot_udp_gateway':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_udp_gateway.pb.cfg.in',
                                      app_block=app_common,
@@ -382,6 +390,18 @@ elif common.app == 'jaiabot_fusion':
                                      imu_detection_solution=imu_detection_solution,
                                      bot_gpsd_device=common.bot.gpsd_device(node_id)))
 elif common.app == 'jaiabot_mission_manager':
+
+    delegated_states=''
+    startup_timeout=''
+    # STORM bots are rudderless, so they cannot maneuver to improve a degraded fix;
+    # give up after 5 minutes and dive in place. Other bot types keep waiting.
+    reacquire_gps_timeout=0
+    if storm_enabled:
+        # delegated to jaiabot_storm_manager
+        delegated_states='delegated_states: [IN_MISSION__UNDERWAY__SLEEP__PREP, PRE_DEPLOYMENT__SELF_TEST]'
+        startup_timeout='startup_timeout: 0 # disabled so STORM can recover health after waking'
+        reacquire_gps_timeout=300
+        
     print(config.template_substitute(templates_dir+'/bot/jaiabot_mission_manager.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
@@ -391,10 +411,16 @@ elif common.app == 'jaiabot_mission_manager':
                                      bot_log_archive_dir=common.bot_log_archive_dir,
                                      mission_manager_in_simulation=is_simulation(),
                                      total_after_dive_gps_fix_checks=total_after_dive_gps_fix_checks,
+                                     startup_timeout=startup_timeout,
+                                     reacquire_gps_timeout=reacquire_gps_timeout,
                                      fleet_id=fleet_index,
                                      jaia_data_offload_ignore_type=jaia_data_offload_ignore_type,
                                      subnet_mask=common.comms.subnet_mask,
-                                     camera_available=common.camera_available))
+                                     camera_available=common.camera_available,
+                                     delegated_states=delegated_states,
+                                     bot_type=bot_type,
+                                     allow_gps_error_during_pre_deployment_startup=allow_gps_error_during_pre_deployment_startup))
+
 elif common.app == 'jaiabot_sensors':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_sensors.pb.cfg.in',
                                      app_block=app_common,
@@ -494,7 +520,15 @@ elif common.app == 'jaiabot_ctd_manager':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_ctd_manager.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
+                                     fleet_id=fleet_index,
+                                     use_localhost_for_data_offload=(common.comms.wifi_ip_addr(node_id, node_id, fleet_index) == '127.0.0.1'),
+                                     iridium_offload=str(storm_enabled).lower(),
                                      log_dir=log_file_dir))
+elif common.app == 'jaiabot_storm_manager':
+    print(config.template_substitute(templates_dir+'/bot/jaiabot_storm_manager.pb.cfg.in',
+                                     app_block=app_common,
+                                     interprocess_block = interprocess_common,
+                                     bot_id=bot_index))
 else:
     print(config.template_substitute(templates_dir+f'/bot/{common.app}.pb.cfg.in',
                                      app_block=app_common,

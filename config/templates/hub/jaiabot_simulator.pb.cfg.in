@@ -6,6 +6,9 @@ start_location {
     lon: $lon
 }
 
-is_bot_sim: false
+node_type: HUB
 
-hub_gpsd_device: "$hub_gpsd_device"
+hub_config
+{
+    gpsd_device: "$hub_gpsd_device"
+}
