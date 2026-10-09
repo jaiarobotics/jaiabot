@@ -1,0 +1,41 @@
+---
+# This hub's own link to its CloudHub. Not Jaia's access to the fleet: that is
+# granted by the customer at https://support.<fleet base uri> and only shown
+# here, by check-support-access.yml.
+#
+# Local by design, in two ways that matter. It acts on the hub it is run from
+# and reaches no other node, so it can never stop the CloudHub's own end of the
+# tunnel and take the whole fleet off. And because the GUI that runs it is
+# served by this hub on the fleet WLAN, the link can always be restored from
+# on-site - which the web JCU, served through the CloudHub, could not do.
+#
+# Cutting this also cuts HUB2HUB, which runs over the same tunnel.
+- name: Change this hub's CloudHub VPN state
+  hosts: all
+  connection: local
+  become: yes
+  gather_facts: no
+  vars:
+    allowed_states:
+      - start
+      - stop
+      - enable
+      - disable
+  pre_tasks:
+    - include_tasks: tasks/read-debconf.yml
+
+    - name: Check if state is a valid enumeration
+      ansible.builtin.assert:
+        that:
+          - state is defined
+          - state in allowed_states
+        fail_msg: "Invalid state. Allowed values are: {{ allowed_states | join(', ') }}"
+  tasks:
+    - name: Change current CloudHub VPN state
+      shell: "systemctl {{ state }} wg-quick@wg_jaia_ch{{ jaiabot_embedded_fleet_id }}"
+      register: vpn_status
+
+    # HUB2HUB only comes up if the tunnel exists when the portal starts
+    - name: Restart the intervehicle portal so HUB2HUB uses the tunnel
+      shell: "systemctl restart jaiabot_goby_intervehicle_portal"
+      when: state == 'start' and jaiabot_embedded_type == 'hub'

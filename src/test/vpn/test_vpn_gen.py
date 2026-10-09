@@ -81,6 +81,9 @@ class Env:
             f.write("jaia_cloudhub_public_ipv4_address=203.0.113.7\n")
 
         self.calls = os.path.join(self.dir, "calls")
+        self.sysctl_dir = os.path.join(self.dir, "sysctl.d")
+        self.systemd_dir = os.path.join(self.dir, "systemd")
+        os.makedirs(self.sysctl_dir)
 
         fake_bin = os.path.join(self.dir, "bin")
         os.makedirs(fake_bin)
@@ -100,6 +103,8 @@ class Env:
             JAIA_CLOUD_ENV=self.cloud_env,
             JAIA_VPN_OUT_DIR=self.out_dir,
             JAIA_TEST_CALLS=self.calls,
+            JAIA_SYSCTL_DIR=self.sysctl_dir,
+            JAIA_SYSTEMD_DIR=self.systemd_dir,
         )
 
     def run(self, *args):
@@ -272,6 +277,26 @@ class ServerInitTest(GeneratorTest):
         self.assertIn("not a WireGuard public key", result.stderr)
         self.assertEqual(self.env.recorded(), [],
                          "a refused server_init had already started configuring")
+
+    def peers(self, interface):
+        directory = os.path.join(self.env.wg_dir, interface + ".peers.d")
+        return sorted(os.listdir(directory)) if os.path.isdir(directory) else []
+
+    def test_with_no_initial_key_the_servers_come_up_with_no_peer(self):
+        """Whoever builds a customer's CloudHub is not left a standing way into it."""
+        result = self.env.run("server_init", "7")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        for interface in ("wg_cloudhub", "wg_virtualfleet"):
+            self.assertTrue(os.path.exists(os.path.join(self.env.wg_dir, interface + ".conf")))
+            self.assertEqual(self.peers(interface), [])
+            self.assertIn("systemctl enable wg-quick@" + interface, self.env.recorded())
+
+    def test_an_initial_key_is_still_made_a_peer_of_both(self):
+        result = self.env.run("server_init", "7", NODE_PUBKEY)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        for interface in ("wg_cloudhub", "wg_virtualfleet"):
+            self.assertEqual(self.peers(interface), ["desktop1.conf"])
+            self.assertIn(NODE_PUBKEY, self.env.peer_fragment(interface, "desktop1"))
 
 
 class UsageTest(GeneratorTest):

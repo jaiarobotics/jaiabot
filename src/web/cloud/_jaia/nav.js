@@ -1,5 +1,5 @@
 // Shared CloudHub navigation. Caddy injects this into every proxied HTML page
-// (run, sim, users, auth) and the landing page includes it directly.
+// (run, sim, users, support, auth) and the landing page includes it directly.
 //
 // Authelia's portal is served with a strict CSP (script-src 'self';
 // style-src 'self' + nonce), so everything here must stay in external files:
@@ -11,7 +11,7 @@
         return;
     }
 
-    var SITE_LABELS = ["run", "sim", "users", "auth"];
+    var SITE_LABELS = ["run", "sim", "users", "support", "auth"];
     var hostParts = location.hostname.split(".");
     var site = SITE_LABELS.indexOf(hostParts[0]) >= 0 ? hostParts.shift() : "home";
     var base = hostParts.join(".");
@@ -55,6 +55,7 @@
             ],
         },
         { id: "users", text: "Users", href: url("users"), groups: ["lldap_admin"] },
+        { id: "support", text: "Support", href: url("support"), groups: ["lldap_admin"] },
         { id: "auth", text: "Account", href: url("auth", "/settings"), groups: null },
     ];
     var LOGIN_URL = url(

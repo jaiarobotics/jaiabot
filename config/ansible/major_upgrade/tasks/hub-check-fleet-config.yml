@@ -47,3 +47,53 @@
   vars:
     error_message: "Fleet configuration cannot be used with the new release: {{ fleet_config_migrate_result.stderr | default(fleet_config_migrate_result.stdout) }}"
   when: fleet_config_migrate_result.failed
+
+# A hub's own copy is written at first boot and when a hub is paired, but not when
+# a bot is, so it can miss nodes its inventory lists. Every node is rebuilt from
+# the staged config, so one that is missing a node must come from the ISO instead.
+# Not on a CloudHub, whose inventory follows the nodes paired with it.
+- name: Ask the new release's tool which hubs and bots the fleet config lists
+  shell: |
+    python3 {{ fleet_config_tool }} nodes {{ staged_fleet_cfg }}
+  register: fleet_config_nodes
+  changed_when: false
+  when: staged_fleet_cfg_source == 'hub' and not is_cloudhub | bool
+
+- name: Compare the hub's inventory with its fleet config
+  set_fact:
+    inventory_node_ids:
+      hubs: "{{ groups['hubs'] | default([]) | select('match', '^hub[0-9]+-') | map('regex_replace', '^hub([0-9]+)-.*$', '\\1') | map('int') | sort }}"
+      bots: "{{ groups['bots'] | default([]) | select('match', '^bot[0-9]+-') | map('regex_replace', '^bot([0-9]+)-.*$', '\\1') | map('int') | sort }}"
+    fleet_config_node_ids:
+      hubs: "{{ (fleet_config_nodes.stdout_lines | select('match', '^hubs') | first).split()[1:] | map('int') | sort }}"
+      bots: "{{ (fleet_config_nodes.stdout_lines | select('match', '^bots') | first).split()[1:] | map('int') | sort }}"
+  when: staged_fleet_cfg_source == 'hub' and not is_cloudhub | bool
+
+- name: Handle a hub fleet config that does not match its inventory
+  include_tasks: handle_failure.yml
+  vars:
+    error_message: >-
+      This hub's inventory lists hubs {{ inventory_node_ids.hubs | join(', ') }} and bots
+      {{ inventory_node_ids.bots | join(', ') }}, but its own fleet configuration lists hubs
+      {{ fleet_config_node_ids.hubs | join(', ') }} and bots {{ fleet_config_node_ids.bots | join(', ') }},
+      so it may be out of date. Write the fleet's current configuration onto the update image
+      with 'jaia admin fleet update_iso', attach it to this hub, and run the upgrade again.
+  when: staged_fleet_cfg_source == 'hub' and not is_cloudhub | bool and inventory_node_ids != fleet_config_node_ids
+
+# The operator says what the fleet is; the config says what it was built as. A
+# disagreement means one of them is wrong, and upgrading on the wrong answer
+# either strands a CloudHub or expects one that was never there.
+- name: Ask the new release's tool whether this fleet has a CloudHub
+  shell: |
+    python3 {{ fleet_config_tool }} has_cloudhub {{ staged_fleet_cfg }}
+  register: fleet_config_has_cloudhub
+  changed_when: false
+
+- name: Handle a fleet config that disagrees about the CloudHub
+  include_tasks: handle_failure.yml
+  vars:
+    error_message: >-
+      You answered has_cloudhub={{ has_cloudhub | default('yes') }}, but the fleet
+      configuration describes a fleet {{ 'without' if fleet_config_has_cloudhub.stdout_lines[-1] == 'no' else 'with' }}
+      a CloudHub. Correct the answer, or the fleet config with 'jaia admin fleet edit'.
+  when: fleet_config_has_cloudhub.stdout_lines[-1] != (has_cloudhub | default('yes'))

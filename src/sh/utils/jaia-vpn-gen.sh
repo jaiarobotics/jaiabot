@@ -6,6 +6,7 @@ set -u -e
 WG_DIR="${JAIA_WG_DIR:-/etc/wireguard}"
 CLOUD_ENV="${JAIA_CLOUD_ENV:-/etc/jaiabot/cloud.env}"
 OUT_DIR="${JAIA_VPN_OUT_DIR:-/tmp}"
+SYSCTL_DIR="${JAIA_SYSCTL_DIR:-/etc/sysctl.d}"
 
 # What a client config carries in place of a key this server must never hold.
 PRIVATE_KEY_PLACEHOLDER="REPLACE_WITH_THE_CONTENTS_OF_/etc/wireguard/privatekey"
@@ -35,10 +36,10 @@ else
 fi
 
 # Check if necessary parameters are provided
-if (( "$#" < 3 )); then
+if (( "$#" < 2 )) || { [[ "$1" != "server_init" ]] && (( "$#" < 3 )); }; then
     echo "Usage: ${binary} cloudhub_vpn|vfleet_vpn bot|hub|desktop node_id client_pubkey"
     echo "       ${binary} fleet_vpn bot|hub|desktop node_id fleet_id [client_pubkey]"
-    echo "       ${binary} server_init fleet_id initial_client_pubkey"
+    echo "       ${binary} server_init fleet_id [initial_client_pubkey]"
     echo
     echo "client_pubkey is 'wg genkey | wg pubkey' run on the node being added, so that"
     echo "its private half never leaves it. fleet_vpn may still omit it, since the server"
@@ -51,15 +52,18 @@ FLEET_ID=""
 
 if [[ "$VPN_TYPE" = "server_init" ]]; then
     FLEET_ID=$2
-    INITIAL_CLIENT_PUBKEY=$3
-    validate_pubkey "${INITIAL_CLIENT_PUBKEY}"
+    # Absent unless whoever built the CloudHub asked for a tunnel of their own
+    INITIAL_CLIENT_PUBKEY=${3:-}
+    if [ -n "${INITIAL_CLIENT_PUBKEY}" ]; then
+        validate_pubkey "${INITIAL_CLIENT_PUBKEY}"
+    fi
     # CLOUDHUB_ID=30: Hub ID for the CloudHub server node in the fleet
     CLOUDHUB_ID=30
     # INITIAL_CLIENT_NODE_ID=1: Desktop node ID 1 is used as the initial setup client
     INITIAL_CLIENT_NODE_ID=1
 
     ## Create sysctl settings for IP forwarding
-    cat <<EOF | sudo tee /etc/sysctl.d/wg.conf
+    cat <<EOF | sudo tee ${SYSCTL_DIR}/wg.conf
 net.ipv4.ip_forward = 1
 net.ipv6.conf.all.forwarding = 1
 net.ipv6.conf.eth0.accept_ra = 2
@@ -103,7 +107,9 @@ PostUp = iptables -w 60 -A FORWARD -i wg_${vpn_type} -j ACCEPT; iptables -w 60 -
 PostDown = iptables -w 60 -D FORWARD -i wg_${vpn_type} -j ACCEPT; iptables -w 60 -t nat -D POSTROUTING -o eth0 -j MASQUERADE; ip6tables -D FORWARD -i eth0 -o wg_${vpn_type} -j ACCEPT; ip6tables -D FORWARD -i wg_${vpn_type} -j ACCEPT;
 EOF
 
-        sudo jaia-vpn-peers.sh add wg_${vpn_type} desktop${INITIAL_CLIENT_NODE_ID} "${INITIAL_CLIENT_PUBKEY}" "${client_ipv6}/128"
+        if [ -n "${INITIAL_CLIENT_PUBKEY}" ]; then
+            sudo jaia-vpn-peers.sh add wg_${vpn_type} desktop${INITIAL_CLIENT_NODE_ID} "${INITIAL_CLIENT_PUBKEY}" "${client_ipv6}/128"
+        fi
         sudo jaia-vpn-peers.sh enable wg_${vpn_type}
         sudo systemctl enable "wg-quick@wg_${vpn_type}"
     done

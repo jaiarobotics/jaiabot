@@ -1,5 +1,9 @@
 # VPN Setup
 
+*This section written by Claude*
+
+From release 3, each fleet's VPN is served by its own CloudHub. Its bots and hubs pair with the CloudHub (see "Enrolling a node at first boot" below) and reach it, and through it the fleet's other hubs, over `wg_jaia_ch<fleet>`. Addressing on it is in [Cloud Computing](page056_cloud.md). `vpn.jaia.tech` no longer enrolls a fleet's nodes; what follows on it is kept for servicing release 2 fleets.
+
 We use a VPN to securely connect to the JaiaBots for development and testing.
 
 ## Wireguard
@@ -180,11 +184,18 @@ The config it writes carries no private key, so it can be copied to the node by 
 *This section written by Claude*
 
 A bot or hub enrolls with its own fleet's CloudHub rather than `vpn.jaia.tech`:
-`/etc/jaiabot/init/configure-wireguard-service-vpn.sh` generates the node's key
+`/etc/jaiabot/init/pair-with-cloudhub.sh` generates the node's key
 pair, hands the public half to the CloudHub over SSH, and writes the config that
 comes back to `/etc/wireguard/wg_jaia_ch<fleet>.conf` with its own private key in
 it. `jaia admin fleet generate` puts the CloudHub's base URI in the preseed, and
 leaves the step out for the CloudHub itself and for a fleet that has none.
+
+Before it pairs, the node waits up to two minutes (`JAIA_PAIRING_WAIT_SECONDS`)
+for a TCP connection to the CloudHub's HTTPS port, which answers whether or not
+pairing is open; no ping is needed, so networks that block ICMP still pair. A
+node that cannot reach the CloudHub, or that the CloudHub turns away because
+fleet pairing is closed, keeps its bootstrap key and says which in its log; run
+"Pair Fleet to CloudHub" once pairing is open to try again.
 
 The SSH key it uses (`id_vpn_tmp`) is on the boot media of every node in the
 fleet, so on the CloudHub it is authorized with `restrict`, an expiry, and
@@ -195,14 +206,41 @@ key buys a peer entry on `wg_cloudhub` and nothing else - no shell, no other
 interface, and no way to read what another node was given. A re-imaged node
 comes back with a new key, so enrolling one that is already a peer replaces it.
 
-`create_vpc.sh` writes that entry when the CloudHub is built, and
-`jaia admin fleet vpn_authorize fleetN.cfg` renews it afterwards, which is what a
-node added to the fleet months later needs. Both go through
-`jaia-vpn-authorize.sh` on the CloudHub, so the entry has one author; it replaces
-its own line and leaves the temporary keys of whoever `jaia admin ssh add` has let
-into the same file alone. `--rm` takes the authorization back.
+*This section written by Claude*
+
+That entry exists only while **fleet pairing** is open. A CloudHub is built with
+pairing closed, keeping the fleet's bootstrap public key for later; pairing is opened
+for a set time - at most two weeks - from **Open Fleet Pairing** in the JCU's Fleet
+Changes, and closes itself. While it is open, `jaia-support-access.py` on the
+CloudHub writes the entry through `jaia-vpn-authorize.sh`, so it has one author, and
+opens port 22 at the security group to every address, since a node enrolls over SSH
+from wherever it is. The entry is rewritten on every run of the CloudHub's reconcile
+timer from a record in its persistent support directory, so it survives a reboot and
+ends when pairing does; the expiry it carries is a full UTC timestamp, since sshd reads
+a bare date as midnight at the start of that day. It leaves the temporary keys of
+whoever `jaia admin ssh add` has let into the same file alone.
+
+**Pair Fleet to CloudHub**, run from a hub on site, re-runs enrollment on every bot
+and hub over the fleet WLAN. A node remembers the CloudHub it was given at first boot,
+so the re-run needs no argument; one already paired is left as it is.
 
 A node whose enrollment is refused keeps `id_vpn_tmp` in `/home/jaia/.ssh`, so
-once the authorization is renewed the node can be made to run
-`configure-wireguard-service-vpn.sh` again rather than be re-imaged. The key is
-deleted only once a config has been installed.
+once fleet pairing is open again **Pair Fleet to CloudHub** picks it up rather than
+it having to be re-imaged. The key is deleted only once a config has been installed.
+
+*This section written by Claude*
+
+### Starting at boot
+
+Whether a node's tunnel starts by itself at boot is the fleet configuration's
+`service_vpn_enabled`, and nothing else: enrollment happens whenever the fleet has a
+CloudHub, and leaves the tunnel stopped on a node set not to start it. On site, the
+JCU's **Change CloudHub VPN State** starts, stops, enables or disables it on the hub,
+and **Check CloudHub VPN Status** reports both. The hub-to-hub link (HUB2HUB) runs
+through the CloudHub, so a hub whose tunnel is down loses it.
+
+### After a major upgrade
+
+A major upgrade carries no node's enrollment over, only the CloudHub's own
+`/etc/wireguard`, so afterwards the fleet is paired again as a new fleet would be
+(see [Major software upgrade](page091_major_upgrade.md)).

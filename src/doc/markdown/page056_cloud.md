@@ -190,6 +190,8 @@ CircleCI builds the AMI in `us-east-1` (and separately in `us-gov-east-1` for Go
 - jaiabot-rootfs-gen_repository_version: same as AMI.
 - jaia_fleet: Fleet ID
 
+CUSTOMER_NAME is the fleet config's `customer` (default `jaia`), which `jaia admin fleet create` and `edit` ask for when the fleet has a CloudHub.
+
 
 ### VM Instances
 
@@ -213,9 +215,10 @@ settings are split by where they can be obtained again:
 
 | Field | Default |
 |---|---|
+| `includes_cloudhub` (top level) | `true` — answer no to the CloudHub question in `jaia admin fleet create`/`edit` for a fleet sold without one |
 | `customer` (top level) | `jaia` — the value of the `jaia_customer` tag on every AWS resource the fleet owns |
 | `cloudhub.base_uri` | required — the name the authentication front end is served under |
-| `cloudhub.admin_email` | required — address of the `jaia_admin` user created on first boot |
+| `cloudhub.admin_email` | required — address of the `fleet_admin` user created on first boot |
 | `cloudhub.smtp_address` | required — the relay Authelia sends enrolment and reset mail through |
 | `cloudhub.data_bucket` | `jaia--cloudhub-data--fleet<fleet>` — the bucket mounted at the bot offload directory |
 | `cloudhub.smtp_sender` | `noreply@auth.jaia.tech` — the From address, verified with the SMTP provider |
@@ -223,9 +226,16 @@ settings are split by where they can be obtained again:
 
 `customer` is a property of the fleet rather than of its CloudHub, so it sits at the top
 level; the rest are meaningless without hub 30 and `validate` requires the `cloudhub`
-message exactly when hub 30 is in the fleet. `jaia admin fleet create_cloudhub` renders
-them into `vpc.conf` for `create_vpc.sh`, and its `customer` argument overrides the
-config, which is how CI gives each run its own customer name.
+message exactly when hub 30 is in the fleet.
+
+Most fleets have a CloudHub and that is what the questions propose, but a fleet can be
+built without one. It has to say so — `includes_cloudhub: false` — rather than simply
+omitting hub 30, because a fleet that never had one and a fleet that lost it by mistake
+would otherwise look identical, and only the first should validate. `jaia admin fleet
+has_cloudhub fleetN.cfg` prints `yes` or `no`, which is what the major upgrade compares
+against the `has_cloudhub` answer the operator gives it. `jaia admin fleet cloudhub create` renders
+them into `vpc.conf` for `create_vpc.sh`. CI gives each run its own customer name by
+writing it into the fleet config it generates.
 
 **Discoverable from AWS**, so deliberately not stored: the region, VPC, subnets,
 security groups, account ID and Elastic IP. Each is available from instance metadata
@@ -235,6 +245,34 @@ or from a tag lookup within the fleet's VPC.
 be regenerated without every client peer, including the login server, having to be
 reissued. The same goes for its SSH key, `/home/jaia/.ssh/hub30_fleetN`, which no fleet
 config holds (see below).
+
+## Accounts and commissioning
+
+*This section written by Claude*
+
+A new CloudHub's directory has two accounts, neither with a password: set one with
+**Reset password?** on the login page, which emails the address shown.
+
+| Account | Whose | Groups | Email |
+| --- | --- | --- | --- |
+| `jaia_bootstrap` | Jaia's, for commissioning | `super_admin`, `lldap_admin` | `create_cloudhub --bootstrap-email` |
+| `fleet_admin` | the customer's | `super_admin`, `lldap_admin` | `cloudhub.admin_email` |
+
+Commissioning, signed in as `jaia_bootstrap`:
+
+1. Test the CloudHub's sites.
+2. In the CloudHub's JCU (`https://run.<base uri>/jcu`), **Open Fleet Pairing**.
+3. From a hub on site, **Pair Fleet to CloudHub**, and check every bot and hub reports it
+   is paired.
+4. **Close Fleet Pairing**.
+5. Before the CloudHub is shipped, delete `jaia_bootstrap` at `https://users.<base uri>`.
+
+`jaia_bootstrap` is created the first time the CloudHub's directory is set up and never
+again. `--bootstrap-email` is required, and cannot be `support@jaia.tech`, which `jaia_support`
+already has. A CloudHub made without it, such as one upgraded from 2.y, gets no `jaia_bootstrap`. A major upgrade sets the directory up a second time, so a marker in the persistent
+`/var/log/jaiabot/auth` records that the account has had its turn; deleting it is final.
+There is also a `jaia_support` account, in no groups, which the support page moves into
+the web groups when a customer grants Jaia web access.
 
 ## CloudHub SSH key
 
@@ -248,7 +286,7 @@ ordinary file instead, so it is made on the CloudHub and never leaves it:
 2. On first boot the CloudHub finds no key in its preseed and generates
    `/home/jaia/.ssh/hub30_fleetN`, nothing secret having been put in its EC2 user data.
 3. `create_cloudhub` copies the public half back and records it in the fleet config it
-   was given (`jaia admin fleet set_cloudhub_key fleetN.cfg hub30_fleetN.pub`), with an
+   was given (`jaia admin fleet cloudhub set_key fleetN.cfg hub30_fleetN.pub`), with an
    empty `private_key`.
 
 Create the CloudHub before generating the boot files of the other nodes. A node
@@ -269,6 +307,17 @@ installed, read from `common-versions.env`, so a VirtualFleet raised after a maj
 upgrade matches the upgraded CloudHub rather than the release it came from.
 
 ## Usage
+
+*This section written by Claude*
+
+The CloudHub's sites (JCC, JDV, JCU and the rest, see "Cloud Login server" below) are
+reached through its login page, with no VPN. A tunnel of your own is for CI and
+development: `jaia admin fleet cloudhub create --client-vpn` makes the machine running
+it a peer (`desktop1`) of the CloudHub's VPNs, installs `wg_jaia_ch<fleet>`, and adds
+`cloudhub-fleet<fleet>` to its `/etc/hosts`. It is off by default because the peer stays
+on the CloudHub for as long as it runs, which is a standing way in that a customer's
+CloudHub should not ship with. In `vpc.conf` the same switches are `ENABLE_CLIENT_VPN`
+and `UPDATE_CLIENT_ETC_HOSTS`.
 
 Once connected to the appropriate VPN and hosts are configured in `/etc/hosts`, one can open a web-browser as usual to JCC, etc.
 

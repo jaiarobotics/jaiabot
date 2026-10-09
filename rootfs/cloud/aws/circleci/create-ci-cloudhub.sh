@@ -46,14 +46,17 @@ mkdir -p "${OUTPUT_DIR}"
     --fleet "${FLEET}" \
     --bots "${BOTS}" \
     --warp "${WARP}" \
+    --customer "${JAIA_CI_CUSTOMER}" \
     "${OUTPUT_DIR}/fleet.cfg"
 
-jaia admin fleet create_cloudhub "${OUTPUT_DIR}/fleet.cfg" "${JAIA_CI_CUSTOMER}" \
+jaia admin fleet cloudhub create "${OUTPUT_DIR}/fleet.cfg" \
     --region "${AWS_DEFAULT_REGION}" \
     --repo "${JAIA_CI_REPO}" \
     --permissions-boundary JaiaCloudHubBoundary \
+    --bootstrap-email ci-bootstrap@example.invalid \
     --instance-type "${INSTANCE_TYPE}" \
     --virtualfleet-instance-type "${INSTANCE_TYPE}" \
     --output-json "${OUTPUT_DIR}/cloudhub.json" \
     --jaiabot-dir "${repo_root}" \
+    --client-vpn \
     --aws-profile OIDC-User

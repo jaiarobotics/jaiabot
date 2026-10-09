@@ -28,7 +28,7 @@ function apply_ufw_rules_for_fleet_wifi {
     ufw --force enable
 } 
 
-function apply_ufw_rules_for_service_wifi {
+function apply_restrictive_ufw_rules {
     ufw --force reset 
     ufw default deny incoming
     ufw default allow outgoing
@@ -44,12 +44,9 @@ case "$WIFI_ID_STR" in
     "fleet_wifi")
         apply_ufw_rules_for_fleet_wifi
         ;;
-    "service_wifi")
-        apply_ufw_rules_for_service_wifi
-        ;;
     *)
         # use restrictive rules for any other network 
-        apply_ufw_rules_for_service_wifi
+        apply_restrictive_ufw_rules
         ;;
 esac
 

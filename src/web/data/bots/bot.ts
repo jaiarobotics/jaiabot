@@ -4,7 +4,8 @@ import { HealthState } from "@proto/goby/middleware/protobuf/coroner";
 import { Engineering } from "@proto/jaiabot/messages/engineering";
 import { GeographicCoordinate } from "@proto/jaiabot/messages/geographic_coordinate";
 import { Error, Warning } from "@proto/jaiabot/messages/health";
-import { BotStatus_ActiveLink, BotStatus_BotType } from "@proto/jaiabot/messages/jaia_dccl";
+import { BotStatus_ActiveLink } from "@proto/jaiabot/messages/jaia_dccl";
+import { BotType } from "@proto/jaiabot/messages/node";
 import { Link } from "@proto/jaiabot/messages/link";
 import { IRIDIUM_NO_COMMS_STATUS_AGE, NO_COMMS_STATUS_AGE } from "../../utils/constants";
 import { microsecondsToSeconds } from "../../utils/conversions";
@@ -12,7 +13,7 @@ import BotSensors from "./bot-sensors";
 
 export default class Bot {
     private botID: number;
-    private botType: BotStatus_BotType;
+    private botType: BotType;
     private healthState: HealthState;
     private errors: Error[];
     private warnings: Warning[];
@@ -45,7 +46,7 @@ export default class Bot {
         return this.botType;
     }
 
-    setBotType(botType: BotStatus_BotType) {
+    setBotType(botType: BotType) {
         this.botType = botType;
         this.initializeSensors();
     }
@@ -176,7 +177,7 @@ export default class Bot {
 
     private initializeSensors() {
         switch (this.getBotType()) {
-            case BotStatus_BotType.PAM:
+            case BotType.PAM:
                 this.getBotSensors().initPAMSensors();
                 break;
             default:

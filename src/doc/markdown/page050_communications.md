@@ -234,4 +234,4 @@ The bots and any laptop on the fleet WiFi keep resolving through their own names
 jaia@bot3-fleet2:~$ sudo sed -i "1i nameserver $(jaia ip h1)" /etc/resolv.conf
 ```
 
-The fleet WiFi firewall rules allow this; the service WiFi rules do not (see `jaia-update-ufw-rules.sh`), so the DNS server is not reachable when a hub is connected to a network other than its fleet's.
+The fleet WiFi firewall rules allow this; the rules for any other network do not (see `jaia-update-ufw-rules.sh`), so the DNS server is not reachable when a hub is connected to a network other than its fleet's.

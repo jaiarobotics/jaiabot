@@ -135,7 +135,7 @@ services:
 
 The Jaia REST API can be exercised in the Docker simulation by submitting the appropriate URLs in a web browser.
 
-For more information on using the REST API see [REST API](http://52.36.157.57/md_page12_rest_api.html) .
+For more information on using the REST API see [REST API](page012_rest_api.md) .
 
 #### Example
 
