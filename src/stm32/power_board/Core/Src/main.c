@@ -71,12 +71,13 @@ static volatile uint8_t reed_wake_flag = 0;
 
 /* LSI ~32 kHz, LPTIM prescaler /128 -> 250 Hz. */
 #define LPTIM_TICK_HZ 250U
-#define SLEEP_INTERVAL_MS 10000U
+#define DEFAULT_SLEEP_INTERVAL_MS 10000U
+#define LPTIM_MAX_CHUNK_MS 10000U
 
 uint8_t bits_in_byte = 8;
 bool usb_tx_busy = false;
-enum state current_state = REED_WAIT_STATE;
-static volatile uint32_t sleep_interval_ms = SLEEP_INTERVAL_MS;
+enum power_board_state current_state = REED_WAIT_STATE;
+static volatile uint32_t sleep_interval_ms = DEFAULT_SLEEP_INTERVAL_MS;
 static volatile uint32_t requested_low_power_ms = 0U;
 static bool adc_calibration_failed = false;
 
@@ -124,8 +125,7 @@ static bool adc_read_channel(ADC_HandleTypeDef* hadc, uint32_t channel, uint32_t
     sConfig.OffsetNumber = ADC_OFFSET_NONE;
     sConfig.Offset = 0;
 
-    // Bounded timeout so a misconfigured/failed conversion can't hang the
-    // main loop forever
+    // Bounded timeout so a failed conversion can't hang the main loop
     const uint32_t adc_poll_timeout_ms = 10U;
 
     if (HAL_ADC_ConfigChannel(hadc, &sConfig) != HAL_OK)
@@ -147,13 +147,10 @@ static bool adc_read_channel(ADC_HandleTypeDef* hadc, uint32_t channel, uint32_t
 }
 
 #define ADC_TO_VOLTS(raw) ((raw) / 4095.0f * 3.3f)
-// VCC_V_SENSE uses the same battery-sense divider calibration as the former
-// Arduino implementation: analogRead(VccVoltage) * 0.0306.
-// It saturates the sense op-amp (3.3V supply) above ~20.9V battery, which is
-// within normal pack voltage, so it is kept only as a raw diagnostic value.
+// VCC_V_SENSE saturates within the normal pack voltage range,
+// so it is only kept as a raw diagnostic value.
 #define ADC_TO_BATTERY_VOLTS(raw) ((raw) * 0.00503f)
-// VCC_MID_SENSE reads the pack center tap through a divider ratio of
-// R117/(R116+R117) = 100k/430k, so battery volts = raw/4095*3.3 * (2*430/100).
+// VCC_MID_SENSE reads the pack center tap through a 100k/430k divider.
 #define ADC_TO_BATTERY_VOLTS_FROM_MID(raw) ((raw) * 0.00693f)
 
 static void tach_start(void)
@@ -181,8 +178,8 @@ static void tach_periodic_update(void)
         return;
     }
 
-    uint32_t now = HAL_GetTick();
-    uint32_t elapsed_ms = now - tach_window_start_ms;
+    uint32_t now_ms = HAL_GetTick();
+    uint32_t elapsed_ms = now_ms - tach_window_start_ms;
     if (elapsed_ms < TACH_WINDOW_MS)
     {
         return;
@@ -194,7 +191,7 @@ static void tach_periodic_update(void)
     __enable_irq();
 
     motor_rpm = ((float)pulses * 60000.0f) / ((float)TACH_PULSES_PER_REV * (float)elapsed_ms);
-    tach_window_start_ms = now;
+    tach_window_start_ms = now_ms;
 }
 
 static void power_board_build_telemetry(PowerBoardResponse* response)
@@ -205,19 +202,17 @@ static void power_board_build_telemetry(PowerBoardResponse* response)
     // HAL_GPIO_WritePin(VS_VBATT_EN_GPIO_Port, VS_VBATT_EN_Pin, GPIO_PIN_SET);
     // HAL_GPIO_WritePin(VS_OP_EN_GPIO_Port, VS_OP_EN_Pin, GPIO_PIN_SET);
     HAL_Delay(10);
-    uint32_t vcc_raw = 0U;
-    adc_read_channel(&hadc1, ADC_CHANNEL_1, &vcc_raw);
+    uint32_t vcc_direct_raw = 0U;
+    adc_read_channel(&hadc1, ADC_CHANNEL_1, &vcc_direct_raw);
     response->has_vcc_direct_sense_raw = true;
-    response->vcc_direct_sense_raw = vcc_raw;
+    response->vcc_direct_sense_raw = vcc_direct_raw;
 
     uint32_t vcc_mid_raw = 0U;
     adc_read_channel(&hadc1, ADC_CHANNEL_9, &vcc_mid_raw);
     response->has_vcc_mid_sense_raw = true;
     response->vcc_mid_sense_raw = vcc_mid_raw;
 
-    // VCC_V_SENSE saturates at any normal pack voltage (see ADC_TO_BATTERY_VOLTS
-    // comment above), so derive the reported battery voltage from the center
-    // tap instead, which has headroom across the full pack voltage range.
+    // Report battery voltage from the center tap since VCC_V_SENSE saturates.
     response->has_vccvoltage = true;
     response->vccvoltage = ADC_TO_BATTERY_VOLTS_FROM_MID(vcc_mid_raw);
     response->has_vccvoltage_raw = true;
@@ -245,7 +240,7 @@ static void power_board_build_telemetry(PowerBoardResponse* response)
     response->generic_gpio_voltage = ADC_TO_VOLTS(generic_gpio_raw);
 
     response->has_motor = true;
-    response->motor = controls_get_motor_actual();
+    response->motor = controls_get_motor_output();
 
     response->has_motor_rpm = tach_running;
     response->motor_rpm = motor_rpm;
@@ -263,7 +258,7 @@ static uint32_t take_low_power_request_ms(void)
 
 static void service_host_commands(uint32_t budget_ms)
 {
-    uint32_t start = HAL_GetTick();
+    uint32_t start_ms = HAL_GetTick();
 
     do {
         power_board_command_process();
@@ -275,7 +270,7 @@ static void service_host_commands(uint32_t budget_ms)
             break;
         }
         HAL_Delay(5);
-    } while ((HAL_GetTick() - start) < budget_ms);
+    } while ((HAL_GetTick() - start_ms) < budget_ms);
 }
 
 static uint64_t lptim_counts_from_ms(uint32_t duration_ms)
@@ -287,25 +282,25 @@ static uint64_t lptim_counts_from_ms(uint32_t duration_ms)
 
 static void gpio_sleep_analog(void)
 {
-    GPIO_InitTypeDef a = {0};
-    a.Mode = GPIO_MODE_ANALOG;
-    a.Pull = GPIO_NOPULL;
+    GPIO_InitTypeDef analog_cfg = {0};
+    analog_cfg.Mode = GPIO_MODE_ANALOG;
+    analog_cfg.Pull = GPIO_NOPULL;
 
-    a.Pin = GPIO_PIN_All & ~(GPIO_PIN_13 | GPIO_PIN_14);
-    HAL_GPIO_Init(GPIOA, &a); // keep SWDIO/SWCLK
-    a.Pin = GPIO_PIN_All;
-    HAL_GPIO_Init(GPIOB, &a);
-    a.Pin = GPIO_PIN_All & ~GPIO_PIN_13;
-    HAL_GPIO_Init(GPIOC, &a); // keep reed EXTI (PC13)
-    a.Pin = GPIO_PIN_All & ~BLE_RSTn_Pin;
-    HAL_GPIO_Init(GPIOD, &a); // keep NINA in reset
-    a.Pin = GPIO_PIN_All & ~(RS232_EN_Pin | RS232_FOFF_Pin);
-    HAL_GPIO_Init(GPIOE, &a); // keep RS232 forced off
+    analog_cfg.Pin = GPIO_PIN_All & ~(GPIO_PIN_13 | GPIO_PIN_14);
+    HAL_GPIO_Init(GPIOA, &analog_cfg); // keep SWDIO/SWCLK
+    analog_cfg.Pin = GPIO_PIN_All;
+    HAL_GPIO_Init(GPIOB, &analog_cfg);
+    analog_cfg.Pin = GPIO_PIN_All & ~GPIO_PIN_13;
+    HAL_GPIO_Init(GPIOC, &analog_cfg); // keep reed EXTI (PC13)
+    analog_cfg.Pin = GPIO_PIN_All & ~BLE_RSTn_Pin;
+    HAL_GPIO_Init(GPIOD, &analog_cfg); // keep NINA in reset
+    analog_cfg.Pin = GPIO_PIN_All & ~(RS232_EN_Pin | RS232_FOFF_Pin);
+    HAL_GPIO_Init(GPIOE, &analog_cfg); // keep RS232 forced off
 }
 
 static void stop2_sleep(uint32_t duration_ms, bool wake_on_reed)
 {
-    const uint64_t interval_counts = lptim_counts_from_ms(SLEEP_INTERVAL_MS);
+    const uint64_t max_chunk_counts = lptim_counts_from_ms(LPTIM_MAX_CHUNK_MS);
     uint64_t remaining_counts = lptim_counts_from_ms(duration_ms);
     reed_wake_flag = 0U;
 
@@ -314,7 +309,7 @@ static void stop2_sleep(uint32_t duration_ms, bool wake_on_reed)
     while (remaining_counts > 0U && !(wake_on_reed && reed_wake_flag != 0U))
     {
         const uint64_t chunk_counts =
-            (remaining_counts > interval_counts) ? interval_counts : remaining_counts;
+            (remaining_counts > max_chunk_counts) ? max_chunk_counts : remaining_counts;
         lptim_wake_flag = 0U;
 
         if (HAL_LPTIM_Counter_Start_IT(&hlptim1, (uint16_t)(chunk_counts - 1U)) != HAL_OK)
@@ -338,7 +333,7 @@ static void stop2_sleep(uint32_t duration_ms, bool wake_on_reed)
 
 static void power_board_disable_external_power(void)
 {
-    target_motor_ = motor_off_;
+    target_motor_us = MOTOR_NEUTRAL_US;
     controls_periodic_update();
 
     HAL_GPIO_WritePin(LED_R_GPIO_Port, LED_R_Pin, GPIO_PIN_RESET);
@@ -365,16 +360,11 @@ static void power_board_enable_external_power(void)
                       GPIO_PIN_RESET); // Needs to be RESET to enable the op-amp
 }
 
-// Peripherals that are only needed once the reed switch has closed and
-// external power is enabled. Deferring their init keeps REED_WAIT_STATE
-// idle current near the ~0.6 mA measured with these clocks off, instead of
-// the ~4 mA drawn when they run unconditionally from boot.
-// Called again on every wake from SLEEP_STATE, after
-// power_board_deinit_runtime_peripherals() shut these down for the sleep.
+// Peripherals only needed once the reed switch has closed. Deferring their
+// init reduces current draw in REED_WAIT_STATE. Also re-run on each wake.
 static void power_board_init_runtime_peripherals(void)
 {
-    // The RTC runs from the LSI, which stays on in STOP2 anyway, and FatFs
-    // only links its driver once, so neither is torn down for sleep.
+    // RTC and FatFs only need initializing once; neither is torn down for sleep.
     static bool did_one_time_init = false;
 
     MX_ADC1_Init();
@@ -428,9 +418,8 @@ static void power_board_deinit_runtime_peripherals(void)
     HAL_ADC_DeInit(&hadc1);
 }
 
-// Host-requested sleep between missions. Powers down exactly like
-// REED_WAIT_STATE and always sleeps the full duration (the reed switch does
-// not end it), then brings the board back up the same way as at boot.
+// Host-requested sleep between missions. Powers down like REED_WAIT_STATE
+// and sleeps the full duration; the reed switch does not wake it.
 static void power_board_sleep_between_missions(uint32_t duration_ms)
 {
     power_board_disable_external_power();
@@ -498,16 +487,13 @@ int main(void)
 
         HAL_IWDG_Refresh(&hiwdg);
 
-        // USB/motor peripherals aren't initialized yet while waiting on the reed
-        // switch, so skip servicing them until power_board_init_runtime_peripherals()
-        // has run.
+        // Runtime peripherals aren't initialized while waiting on the reed switch.
         if (current_state != REED_WAIT_STATE)
         {
             // Dispatch complete USB commands while the board is awake.
             power_board_command_process();
 
-            // Always service the motor ramp/timeout, regardless of state, so it
-            // keeps stepping toward target_motor_ (e.g. ramping down to neutral)
+            // Step the motor ramp toward target_motor_us and check for command timeout.
             controls_periodic_update();
             tach_periodic_update();
             if (controls_take_timeout_event())
@@ -536,15 +522,14 @@ int main(void)
                 else
                 {
                     reed_active_samples = 0U;
-                    stop2_sleep(SLEEP_INTERVAL_MS, true);
+                    stop2_sleep(DEFAULT_SLEEP_INTERVAL_MS, true);
                 }
             }
             break;
 
             case INIT_STATE:
             {
-                // Guarded so this only runs once at boot, not on every wake from
-                // SLEEP_STATE: let the host know we just came up.
+                // Notify the host once at boot, not on every wake from SLEEP_STATE.
                 static bool did_startup_init = false;
 
                 if (!did_startup_init)
@@ -583,8 +568,7 @@ int main(void)
                 break;
 
             case SLEEP_STATE:
-                // A host request overrides the normal periodic sleep interval. USB is
-                // shut down for the whole sleep, so no new request can cut it short.
+                // A host request overrides the periodic sleep interval.
                 {
                     uint32_t sleep_duration_ms = take_low_power_request_ms();
                     if (sleep_duration_ms == 0U)
@@ -1428,12 +1412,8 @@ void power_board_request_low_power_mode_seconds(uint32_t duration_s)
     power_board_request_low_power_mode_ms(duration_s * 1000U);
 }
 
-// Jumps to the STM32 ROM bootloader (system memory), which on this part
-// (STM32L433) re-enumerates the USB peripheral as a DFU device so the
-// application can be reflashed with dfu-util over the same USB cable.
-// Do not erase the application before the jump. If the ROM bootloader fails
-// to start, erasing the vector table would leave the board unable to recover
-// without an SWD programmer.
+// Jumps to the ROM bootloader, which re-enumerates USB as a DFU device.
+// The app is not erased first, so a failed jump doesn't require SWD to recover.
 void jumpToBootloader(void)
 {
     __disable_irq();

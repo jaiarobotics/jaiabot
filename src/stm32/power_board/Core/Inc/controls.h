@@ -11,14 +11,13 @@ extern "C" {
     typedef struct _jaiabot_protobuf_ControlSurfaces jaiabot_protobuf_ControlSurfaces;
 
     // Motor
-    extern int target_motor_;
-    extern int max_reverse_;
-    extern int motor_off_;
+#define MOTOR_NEUTRAL_US 1500
+    extern int target_motor_us;
 
     // Rudder and Elevators
-    extern int rudder_;
-    extern int port_elevator_;
-    extern int stbd_elevator_;
+    extern int rudder_us;
+    extern int port_elevator_us;
+    extern int stbd_elevator_us;
 
     // Applies incoming control-surface commands from the host link to local
     // actuator outputs (GPIO / PWM) and cached state.
@@ -32,7 +31,7 @@ extern "C" {
 
     // Returns the motor pulse width (microseconds) currently being driven to
     // the ESC, after ramping/clamping, for telemetry reporting.
-    int controls_get_motor_actual(void);
+    int controls_get_motor_output(void);
 
     // Stops the ESC PWM and resets the motor to neutral before TIM16 is
     // de-initialized for sleep, so the PWM is restarted once it is re-initialized.

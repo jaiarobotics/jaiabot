@@ -27,7 +27,7 @@ void power_board_send_status(jaiabot_protobuf_PowerBoardStatusCode status_code)
     response.has_status_code = true;
     response.status_code = status_code;
     response.has_motor = true;
-    response.motor = controls_get_motor_actual();
+    response.motor = controls_get_motor_output();
     usb_transmit(&response);
 }
 

@@ -333,8 +333,7 @@ void HAL_LPTIM_MspInit(LPTIM_HandleTypeDef* hlptim)
     /* Peripheral clock enable */
     __HAL_RCC_LPTIM1_CLK_ENABLE();
     /* USER CODE BEGIN LPTIM1_MspInit 1 */
-    /* Override: clock LPTIM1 from LSI so it can run in Sleep with a 10 s period.
-       Kept in USER CODE so CubeMX regen doesn't revert it. */
+    /* Clock LPTIM1 from LSI so it runs during sleep (kept here to survive CubeMX regen) */
     {
       RCC_PeriphCLKInitTypeDef LptimClkInit = {0};
       LptimClkInit.PeriphClockSelection = RCC_PERIPHCLK_LPTIM1;
