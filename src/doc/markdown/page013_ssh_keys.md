@@ -35,6 +35,8 @@ For a test fleet (for example a VirtualBox fleet), `jaia admin fleet create --te
 
 ### CloudHub key
 
+*This section written by Claude*
+
 The CloudHub has no Yubikey. It generates its own key on first boot, the private half never leaves it, and the fleet config records only the public half. Every node accepts that key only from the CloudHub's address on the CloudHub VPN. See [CloudHub SSH key](page056_cloud.md#cloudhub-ssh-key).
 
 ## Temporary Yubikeys

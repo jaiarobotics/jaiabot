@@ -1,5 +1,7 @@
 # JaiaBot Port Map
 
+*This section written by Copilot*
+
 All ports are defined in the configuration generators, primarily `jaiabot/config/gen/common/udp.py`, `jaiabot/config/gen/common/bot.py` and `jaiabot/config/gen/common/hub.py`. Where the runtime (in-water) and simulation values differ, both are given below.
 
 In simulation all the nodes may run on a single host, so ports that would otherwise collide are offset by the node id (`node_id` is 0 for the hub and `bot_id + 1` for a bot).

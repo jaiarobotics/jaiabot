@@ -12,6 +12,8 @@ It consists of source code that is compiled into a variety of binary application
 
 ## Scripts: `scripts` versus `src/sh`
 
+*This section written by Copilot*
+
 There is a clear separation between scripts that are installed and run on the system versus those used by people:
 
 - `src/sh`: installed by CMake (into `${CMAKE_INSTALL_BINDIR}`, and copied into the build tree's `bin` directory) and run by the system or by users of a deployed system. Organized into:
@@ -36,6 +38,8 @@ There is a clear separation between scripts that are installed and run on the sy
 If you add a new script, put it in `src/sh` only if it needs to be installed onto a bot, hub or cloudhub; otherwise it belongs in `scripts`.
 
 ## Script naming convention
+
+*This section written by Copilot*
 
 Script (and script directory) names use hyphens, not underscores, to separate words: for example `jaia-update-network.sh`, not `jaia_update_network.sh`.
 

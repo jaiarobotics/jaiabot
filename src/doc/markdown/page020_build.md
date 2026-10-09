@@ -4,6 +4,8 @@ JaiaBot development is done on Ubuntu Linux, with the version of Ubuntu supporte
 
 ## Bootstrapping a fresh clone
 
+*This section written by Claude*
+
 On a fresh clone there's no `jaia` tool yet to run `jaia dev setup` or `jaia dev build`, so `init.sh` bridges that gap: it runs the underlying setup and build steps directly, then puts `build/<arch>/bin` on `PATH` so `jaia` is available right away.
 
 ```bash
@@ -17,6 +19,8 @@ Source it (rather than running it) so the `PATH` change also applies to your cur
 The JaiaBot software depends on Goby3, MOOS, and other packages.
 
 When using the `jaiabot` Debian packages (see the CI/CD section below), these dependencies are automatically installed by `apt`.
+
+*This section written by Claude*
 
 When building from source, these can be installed from the regular Ubuntu package repositories plus the `packages.jaia.tech` mirror of the `packages.gobysoft.org` repository (also reference the steps in jaiabot/.docker/resolute/amd64/Dockerfile). If you have the `jaia` tool already installed (e.g. from a package), `jaia dev setup` runs these steps for you (see below).
 
@@ -48,6 +52,8 @@ sudo apt-get -y install libgoby3:amd64 \
 
 ## CMake
 
+*This section written by Claude*
+
 The `jaiabot` software is configured using CMake, which generates a Ninja build by default (Ninja is faster than, and otherwise a drop-in replacement for, the Makefiles CMake generates by default).
 
 This process is summarized by:
@@ -61,6 +67,8 @@ cmake -G Ninja ../..
 # build it
 cmake --build .
 ```
+
+*This section written by Claude*
 
 This project provides a convenience script called `build.sh` that runs cmake to configure and build the project (using as many jobs as your machine has processors). The build.sh script segregates the CMake working directory by machine architecture (e.g. build/amd64, build/arm64, etc.). Additionally, you can set the environmental variables `JAIABOT_CMAKE_FLAGS` and/or `JAIABOT_MAKE_FLAGS` to pass command line parameters to CMake (during configure) or the underlying build tool, respectively. Pass `--make` to `build.sh` to use GNU Make instead of Ninja (e.g. if `ninja-build` isn't installed); switching between the two automatically discards the existing CMake cache, since CMake can't reconfigure a directory with a different generator than the one it was first configured with.
 
@@ -85,6 +93,8 @@ export JAIABOT_CMAKE_FLAGS="-Dbuild_doc=ON"
 ```
 
 ### Using `jaia dev`
+
+*This section written by Claude*
 
 If you have the `jaia` tool available (from a package, or already built from this source tree), `jaia dev` provides a friendlier front end for the day-to-day build workflow:
 
@@ -354,6 +364,8 @@ cd jaiabot
 ./scripts/build/container-image-build.sh
 ```
 
+*This section written by Copilot*
+
 This generates the Dockerfile from `.docker/${jaia_version_ubuntu_codename}/arm64/Dockerfile.in` (or `.../amd64/Dockerfile.in` when `jaiabot_machine_type=virtualbox`) and builds an image tagged `jaia_build_${distro}_${repo}_${version}` (e.g. `jaia_build_resolute_release_3.y`). The `jaiabot_repo`, `jaiabot_version` and `jaiabot_distro` environmental variables can be used to override the defaults taken from `scripts/common-versions.env`.
 
 ### Cross-compile in the container
@@ -384,6 +396,8 @@ rsync -aP build/bin build/lib jaia@172.20.11.10:/home/jaia/jaiabot/build
 
 
 ### Build and copy in one step
+
+*This section written by Claude*
 
 Use `jaia dev local_deploy` from anywhere within your jaiabot source tree:
 

@@ -275,6 +275,9 @@ If you are modifying code on a Mac, [create an SSH Key](#creating-an-ssh-key-mac
     sudo systemctl stop jaiabot
     ```
 5. Deploy. Targets are given as host codes (`bYfX` for bots, `hYfX` for hubs), either individually or as a range.
+
+    *This section written by Claude*
+
     ```
     cd ~/jaiabot
     ```
