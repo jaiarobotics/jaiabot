@@ -115,32 +115,6 @@ export class JaiaAPI {
         return this.clientId;
     }
 
-    /**
-     * Queries the server for TaskPackets within a specified range. If no start and end date, the
-     * server defaults to a 14 hour window with the end date set to now
-     *
-     * @param {string} startDate (optional) sets the lower bound on the TaskPackets displayed
-     * @param {string} endDate (optional) sets the upper bound on the TaskPackets displayed
-     * @returns {Promise<TaskPacket[]>} array of TaskPackets or error obj
-     *
-     * @notes
-     * Expected startDate format: yyyy-mm-dd hh:mm
-     * Expected endDate format: yyyy-mm-dd hh:mm
-     */
-    getTaskPackets(startDate?: string, endDate?: string): Promise<JaiaResponse<TaskPackets>> {
-        if (startDate && endDate) {
-            const startDateStr = convertHTMLStrDateToISO(startDate);
-            const endDateStr = convertHTMLStrDateToISO(endDate);
-            return this.get(`jaia/v0/task-packets?startDate=${startDateStr}&endDate=${endDateStr}`);
-        } else if (startDate && !endDate) {
-            const startDateStr = convertHTMLStrDateToISO(startDate);
-            return this.get(`jaia/v0/task-packets?startDate=${startDateStr}`);
-        } else {
-            // Let server set default date values
-            return this.get(`jaia/v0/task-packets`);
-        }
-    }
-
     async postTaskPacketInclude(
         task_packet_id: string,
         include: boolean,

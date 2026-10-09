@@ -14,6 +14,7 @@ import {
 } from "../../types/context-types";
 import { MapModes } from "../../types/openlayers-types";
 import { jaiaAPI } from "../../utils/jaia-api";
+import { jaia_rest_api } from "../../utils/jaia-rest-api";
 import { MAX_WAYPOINTS, UNASSIGNED_ID } from "../../utils/constants";
 import { isLocationBlockedByZone } from "../../data/exclusion_zones/exclusion-zone-router";
 import { detectMissionReroutes } from "../../data/exclusion_zones/exclusion-zone-detection";
@@ -316,12 +317,34 @@ export function handleChangeTaskPacketVisibility(
     action: JaiaAction,
 ) {
     const include = action.taskPacketVisibility === TaskPacketVisibility.INCLUDE;
-    jaiaAPI.postTaskPacketInclude(action.taskPacketID, include).then((response) => {
-        jaiaAPI.getTaskPackets().then((response) => {
-            taskPackets.setIncludedTaskPackets(response.result.included);
-            taskPackets.setExcludedTaskPackets(response.result.excluded);
-            syncTaskLayers();
-        });
+    jaiaAPI.postTaskPacketInclude(action.taskPacketID, include).then((res) => {
+        jaia_rest_api
+            .request({
+                target: {
+                    all: true,
+                },
+                task_packets: {
+                    included_only: true,
+                },
+            })
+            .then((response) => {
+                taskPackets.setIncludedTaskPackets(response.task_packets?.packets ?? []);
+                syncTaskLayers();
+            });
+
+        jaia_rest_api
+            .request({
+                target: {
+                    all: true,
+                },
+                task_packets: {
+                    included_only: true,
+                },
+            })
+            .then((response) => {
+                taskPackets.setIncludedTaskPackets(response.task_packets?.packets ?? []);
+                syncTaskLayers();
+            });
     });
     return mutableState;
 }

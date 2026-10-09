@@ -120,10 +120,6 @@ def JaiaResponse(result: any):
 
 ######## Mission files
 
-@app.route('/missionfiles/initdb', methods=['GET'])
-def init_mission_database():
-    return JSONResponse([])
-
 @app.route('/missionfiles/create', methods=['POST'])
 def get_mission_list():
     mission_gdf, mission_dict = missions.create_mission_plan(
@@ -137,14 +133,6 @@ def get_mission_list():
         # inside_points_all=request.json['inside_points_all']
     )
     return JSONResponse(mission_dict)
-
-@app.route('/missionfiles/save', methods=['POST'])
-def save_mission_list():
-    return JSONResponse([])
-
-@app.route('/missionfiles/update', methods=['POST'])
-def update_mission_list():
-    return JSONResponse([])
 
 
 ######## Exclusion zone sets
@@ -282,23 +270,6 @@ def jedRoot():
     return jedStaticFile('index.html')
 
 ######## TaskPackets
-
-@app.route('/jaia/v0/task-packets', methods=['GET'])
-def getPackets():
-    """
-    Date Format: yyyy-mm-dd hh:mm:ss
-    Timezone: GMT
-    Example Request: http://10.23.1.10/jaia/v0/task-packets?startDate="2023-10-18 09:04:00"&endDate="2023-10-22 09:04:00"
-    """
-    startDate = parseDate(request.args.get('startDate', (datetime.now(timezone.utc) - timedelta(hours=14))))
-    endDate = parseDate(request.args.get('endDate', ''))
-
-    result = jaia_interface.task_packet_database.get_task_packets(start_date=startDate, end_date=endDate)
-    return JaiaResponse(result)
-
-@app.route('/jaia/v0/task-packets-version', methods=['GET'])
-def getTaskPacketsVersion():
-    return JSONResponse(jaia_interface.task_packet_database.get_task_packets_version())
 
 @app.route('/jaia/v0/task-packet-include', methods=['POST'])
 def postTaskPacketInclude():

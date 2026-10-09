@@ -119,7 +119,7 @@ def task_packets(jaia_request: APIRequest):
     else:
         bot_ids = jaia_request.target.bots
 
-    start_time = jaia_request.task_packets.start_time if jaia_request.task_packets.HasField('start_time') else None
+    start_time = jaia_request.task_packets.start_time if jaia_request.task_packets.HasField('start_time') else utc_now_microseconds() - 14 * 60 * 60 * 1000000  # 14 hours ago in microseconds
     end_time = jaia_request.task_packets.end_time if jaia_request.task_packets.HasField('end_time') else None
     mission_names = list(jaia_request.task_packets.mission_name) or None
 
