@@ -211,6 +211,10 @@ message APIRequest
             presence: GUARANTEED,
             doc: "Include or exclude a task packet. Expect a response of type 'task_packet_include_response'."
         }];
+        bool download_ctd_profiles = 22 [(jaia.field).rest_api = {
+            presence: GUARANTEED,
+            doc: "Indicates whether to download CTD profiles."
+        }];
     }
 }
 

@@ -148,12 +148,6 @@ export class JaiaAPI {
         });
     }
 
-    async getCTDProfiles() {
-        return fetch("ctd-profiles", {
-            method: "GET",
-        });
-    }
-
     postMissionFilesCreate(descriptor: any) {
         return this.post("missionfiles/create", descriptor);
     }

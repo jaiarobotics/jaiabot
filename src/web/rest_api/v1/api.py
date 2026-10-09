@@ -15,6 +15,13 @@ from common.api_exception import APIException
 
 
 import logging
+from pathlib import Path
+import io
+import zipfile
+import shutil
+from http import HTTPStatus
+from flask import Response, send_file
+
 
 l = logging.getLogger(__name__)
 
@@ -324,3 +331,33 @@ def task_packets_version(_: APIRequest) -> APIResponse:
     with common.shared_data.data_lock:
         jaia_response.task_packets_version.version = common.shared_data.data.task_packet_database.task_packets_version
     return jaia_response
+
+
+def download_ctd_profiles(_: APIRequest) -> Response:
+    """Provides access to CTD files on the Hub
+    """
+    dir = Path("/var/log/jaiabot/bot_offload")
+    files = list(dir.glob("*.unb")) if dir.exists() else []
+
+    if len(files) == 0:
+        return Response(status=HTTPStatus.NO_CONTENT)
+
+    zip_file = io.BytesIO()
+    with zipfile.ZipFile(zip_file, "w", zipfile.ZIP_DEFLATED) as zf:
+        for path in files:
+            zf.write(path, arcname=path.name)
+    zip_file.seek(0)
+    zip_name = "jaia-ctd.zip"
+
+    # Move zipped files to archive so they are not re-zipped
+    ctd_archive = dir / "ctd_archive"
+    ctd_archive.mkdir(parents=True, exist_ok=True)
+    for ctd_file in files:
+        shutil.move(str(ctd_file), ctd_archive / ctd_file.name);
+    
+    return send_file(
+        zip_file,
+        as_attachment=True,
+        download_name=zip_name,
+        mimetype="application/zip",
+    )

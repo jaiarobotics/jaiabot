@@ -61,6 +61,14 @@ export class JaiaRESTAPI {
             });
     }
 
+    async fetch_request(api_request: APIRequest): Promise<Response> {
+        return fetch(this.base_url.href, {
+            method: "POST",
+            headers: this.headers,
+            body: JSON.stringify(api_request),
+        });
+    }
+
     // Higher level helpers
     async takeControl(): Promise<APIResponse> {
         return this.request({
