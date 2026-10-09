@@ -93,6 +93,35 @@ message TaskPacketIncludeResponse {
         [(jaia.field).rest_api.presence = GUARANTEED];
 }
 
+message RecordQuery {
+    // Implement a CRUD+L interface for exclusion zones and mission sets (Create, Read, Update, Delete, List)
+
+    enum RecordType {
+        EXCLUSION_ZONE = 1
+        [(jaia.ev).rest_api.presence = GUARANTEED];
+        MISSION_SET = 2
+        [(jaia.ev).rest_api.presence = GUARANTEED];
+    }
+
+    required RecordType type = 6
+        [(jaia.field).rest_api.presence = GUARANTEED];
+
+    optional bool list = 1 [(jaia.field).rest_api.presence = GUARANTEED];
+    
+    optional string get_name = 2 [(jaia.field).rest_api.presence = GUARANTEED];
+    
+    optional string delete_name = 3 [(jaia.field).rest_api.presence = GUARANTEED];
+
+    optional string save_name = 4 [(jaia.field).rest_api.presence = GUARANTEED];
+    optional string save_content = 5 [(jaia.field).rest_api.presence = GUARANTEED];
+}
+
+message RecordQueryResponse {
+    repeated string names = 1 [(jaia.field).rest_api.presence = GUARANTEED];
+    optional string content = 2 [(jaia.field).rest_api.presence = GUARANTEED];
+}
+
+
 enum APIErrorCode
 {
     // REST API URL errors
@@ -215,6 +244,10 @@ message APIRequest
             presence: GUARANTEED,
             doc: "Indicates whether to download CTD profiles."
         }];
+        RecordQuery record_query = 23 [(jaia.field).rest_api = {
+            presence: GUARANTEED,
+            doc: "Request related to exclusion zones and mission sets."
+        }];
     }
 }
 
@@ -324,6 +357,10 @@ message APIResponse
             presence: GUARANTEED,
             doc: "Response to a task packet include/exclude request."
         }];
+        RecordQueryResponse record_query_response = 22 [(jaia.field).rest_api = {
+            presence: GUARANTEED,
+            doc: "Response related to exclusion zones and mission sets."
+        }];
     }
 
     // copy of original request
@@ -368,7 +405,7 @@ message APIConfig
                 permitted_action: [ 'status', 'metadata', 'task_packets', 'missions', 'pod_status', 'task_packets_version' ]
             }];
             WRITE = 2 [(jaia.ev).rest_api = {
-                permitted_action: [ 'command', 'command_for_hub', 'engineering_command', 'take_control', 'task_packet_include' ]
+                permitted_action: [ 'command', 'command_for_hub', 'engineering_command', 'take_control', 'task_packet_include', 'record_query' ]
             }];
             STATUS = 3
                 [(jaia.ev).rest_api = { permitted_action: [ 'status' ] }];
@@ -397,6 +434,9 @@ message APIConfig
             ];
             TASK_PACKET_INCLUDE = 13 [
                 (jaia.ev).rest_api = { permitted_action: [ 'task_packet_include' ] }
+            ];
+            RECORD_QUERY = 14 [
+                (jaia.ev).rest_api = { permitted_action: [ 'record_query' ] }
             ];
         }
 

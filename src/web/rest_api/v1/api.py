@@ -1,6 +1,6 @@
 import google.protobuf.json_format
 import jaiabot.messages.rest_api_pb2 as rest_api
-from jaiabot.messages.rest_api_pb2 import TaskPacketQuery, APIRequest, APIResponse
+from jaiabot.messages.rest_api_pb2 import TaskPacketQuery, APIRequest, APIResponse, RecordQuery
 import jaiabot.messages.portal_pb2
 from jaiabot.messages.jaia_dccl_pb2 import BotStatus
 from jaiabot.messages.mission_pb2 import MissionPlan
@@ -14,7 +14,6 @@ from pyjaia.contours import task_packets_to_geojson
 import common.shared_data
 from common.time import utc_now_microseconds
 from common.api_exception import APIException
-import common.missions
 
 import logging
 from pathlib import Path
@@ -364,3 +363,34 @@ def download_ctd_profiles(_: APIRequest) -> Response:
         mimetype="application/zip",
     )
 
+
+
+def record_query(jaia_request: APIRequest) -> APIResponse:
+    jaia_response = APIResponse()
+
+    try:
+        with common.shared_data.data_lock:
+            records_request = jaia_request.record_query
+
+            if records_request.type == RecordQuery.RecordType.EXCLUSION_ZONE:
+                records_handler = common.shared_data.data.exclusion_zones
+            elif records_request.type == RecordQuery.RecordType.MISSION_SET:
+                records_handler = common.shared_data.data.mission_sets
+            else:
+                raise ValueError("Invalid record type")
+
+            if records_request.HasField("list"):
+                jaia_response.record_query_response.names.extend(records_handler.list_zones())
+            if records_request.HasField("get_name"):
+                jaia_response.record_query_response.content = records_handler.get_zone(records_request.get_name)
+            if records_request.HasField("delete_name"):
+                records_handler.delete_zone(records_request.delete_name)
+            if records_request.HasField("save_name"):
+                records_handler.save_zone(records_request.save_name, records_request.save_content)
+
+        return jaia_response
+    except Exception as e:
+        print(f"Error processing records request: {e}")
+        jaia_response.error.code = 1
+        jaia_response.error.details = str(e)
+        return jaia_response

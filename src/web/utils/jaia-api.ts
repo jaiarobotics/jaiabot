@@ -149,6 +149,7 @@ export class JaiaAPI {
     }
 
     // ── Exclusion zone hub storage ──────────────────────────────────────────
+    // TODO:  Port the tests to REST API v1, and remove these
 
     async listExclusionZones(): Promise<string[]> {
         const response = await this.get("jaia/v0/exclusion-zones");
@@ -172,6 +173,7 @@ export class JaiaAPI {
     }
 
     // ── Mission set hub storage ─────────────────────────────────────────────
+    // TODO:  Port the tests to REST API v1, and remove these
 
     async listMissionSets(): Promise<string[]> {
         const response = await this.get("jaia/v0/mission-sets");

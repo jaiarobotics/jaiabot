@@ -14,6 +14,7 @@ export interface MissionSetSnapshot {
     missionIDInEditMode: number;
     name: string;
     speeds: Speeds;
+    version?: string;
 }
 
 export class MissionSet {

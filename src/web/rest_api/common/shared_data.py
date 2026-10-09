@@ -11,6 +11,9 @@ import logging
 # Jaia
 from common.time import utc_now_microseconds
 from pyjaia.task_packet_database import TaskPacketDatabase
+from common.crudl_records import CRUDLRecords
+from pathlib import Path
+import os
 
 # Messages
 from jaiabot.messages.hub_pb2 import HubStatus
@@ -20,6 +23,8 @@ from jaiabot.messages.engineering_pb2 import Engineering
 from jaiabot.messages.metadata_pb2 import DeviceMetadata
 from jaiabot.messages.portal_pb2 import PortalToClientMessage
 
+# Respect jaia_log_dir so simulation and runtime each store in their own directory.
+_LOG_DIR = Path(os.environ.get('jaia_log_dir', '/var/log/jaiabot'))
 
 log = logging.getLogger()
 
@@ -50,6 +55,9 @@ class Data:
     task_packet_loaded_filenames: Set[str] = set()
 
     controlling_client_id = "NONE"
+
+    exclusion_zones = CRUDLRecords(_LOG_DIR / 'exclusion-zones')
+    mission_sets = CRUDLRecords(_LOG_DIR / 'mission-sets')
 
     def __init__(self) -> None:
         pass
