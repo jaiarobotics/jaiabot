@@ -24,6 +24,13 @@ pushd ${HOME}/jaiabot/${build_dir}/share/jaiabot/python
     # /tmp does not necessarily have enough space on the embedded boards, but /var/log is large
     python3 -m pip -q install wheel
     python3 -m pip install -q -r requirements.txt
+
+    # Local packages have a fixed version, so force a reinstall to pick up new code.
+    local_pkgs=$(grep '^\./' requirements.txt)
+    if [ -n "${local_pkgs}" ]; then
+        echo "🟢 Reinstalling local python packages: $(echo ${local_pkgs} | tr '\n' ' ')"
+        python3 -m pip install -q --force-reinstall --no-deps --no-cache-dir ${local_pkgs}
+    fi
 popd
 
 jaiabot_version=$(cat ${HOME}/jaiabot/${build_dir}/share/version.txt)
@@ -66,6 +73,11 @@ if [ ! -z "$jaiabot_systemd_type" ]; then
 
         sudo chmod o+x ${HOME}
         sudo a2ensite jcc
+
+        # mod_wsgi daemon processes are long-lived and keep the previously imported python
+        # modules in memory, so they must be restarted to pick up the venv we just updated.
+        echo "🟢 Restarting apache2 to reload the updated python code"
+        sudo systemctl restart apache2
     fi
 
 fi
@@ -81,7 +93,7 @@ if [ "$jaia_arduino_type" != "none" ]; then
     sudo ${HOME}/jaiabot/${build_dir}/share/jaiabot/arduino/jaiabot_runtime/$jaia_arduino_type/upload.sh
 fi
 
-# Check for STM32 deploy scripts (one per sketch, e.g. bio_payload)
+# Check for STM32 deploy scripts (one per sketch, e.g. bio_payload, power_board)
 for stm32_upload in ${HOME}/jaiabot/${build_dir}/share/jaiabot/stm32/*/uart/upload.sh; do
     if [ -f "${stm32_upload}" ]; then
         echo "🟢 STM32 firmware deployment script found at:"
