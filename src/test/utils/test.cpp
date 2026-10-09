@@ -503,29 +503,31 @@ const auto downsample_y = [](const std::vector<double>& values) { return values[
 
 BOOST_AUTO_TEST_CASE(test_downsample_indices_edge_cases)
 {
-    const std::vector<Point> points = {{0, 0}, {1, 1}, {2, 0}, {3, 1}, {4, 0}};
+    const std::vector<DownsamplePoint> points = {{0, 0}, {1, 1}, {2, 0}, {3, 1}, {4, 0}};
 
-    BOOST_CHECK(downsampleIndices({}, 3).empty());
+    BOOST_CHECK(select_downsample_indices({}, 3).empty());
 
     // A target at or above the input size keeps everything
     const std::vector<size_t> all = {0, 1, 2, 3, 4};
-    const auto kept = downsampleIndices(points, 10);
+    const auto kept = select_downsample_indices(points, 10);
     BOOST_CHECK_EQUAL_COLLECTIONS(kept.begin(), kept.end(), all.begin(), all.end());
 
     // A target of two or fewer keeps only the endpoints
     const std::vector<size_t> endpoints = {0, 4};
-    const auto two = downsampleIndices(points, 2);
-    BOOST_CHECK_EQUAL_COLLECTIONS(two.begin(), two.end(), endpoints.begin(), endpoints.end());
-    const auto one = downsampleIndices(points, 1);
-    BOOST_CHECK_EQUAL_COLLECTIONS(one.begin(), one.end(), endpoints.begin(), endpoints.end());
+    const auto kept_target_two = select_downsample_indices(points, 2);
+    BOOST_CHECK_EQUAL_COLLECTIONS(kept_target_two.begin(), kept_target_two.end(), endpoints.begin(),
+                                  endpoints.end());
+    const auto kept_target_one = select_downsample_indices(points, 1);
+    BOOST_CHECK_EQUAL_COLLECTIONS(kept_target_one.begin(), kept_target_one.end(), endpoints.begin(),
+                                  endpoints.end());
 }
 
 BOOST_AUTO_TEST_CASE(test_downsample_indices_shape)
 {
-    std::vector<Point> points;
+    std::vector<DownsamplePoint> points;
     for (int i = 0; i < 100; ++i) points.push_back({static_cast<double>(i), std::sin(i * 0.1)});
 
-    const auto indices = downsampleIndices(points, 10);
+    const auto indices = select_downsample_indices(points, 10);
     BOOST_REQUIRE_EQUAL(indices.size(), 10u);
     BOOST_CHECK_EQUAL(indices.front(), 0u);
     BOOST_CHECK_EQUAL(indices.back(), 99u);
@@ -535,10 +537,10 @@ BOOST_AUTO_TEST_CASE(test_downsample_indices_shape)
 BOOST_AUTO_TEST_CASE(test_downsample_indices_keeps_spike)
 {
     // A single spike on a flat line is the most significant point and must survive
-    std::vector<Point> points;
+    std::vector<DownsamplePoint> points;
     for (int i = 0; i < 100; ++i) points.push_back({static_cast<double>(i), i == 50 ? 100.0 : 0.0});
 
-    const auto indices = downsampleIndices(points, 5);
+    const auto indices = select_downsample_indices(points, 5);
     BOOST_CHECK(std::find(indices.begin(), indices.end(), 50u) != indices.end());
 }
 
@@ -546,42 +548,41 @@ BOOST_AUTO_TEST_CASE(test_parse_data_row_values)
 {
     std::vector<double> values;
 
-    BOOST_REQUIRE(parseDataRowValues("7 1.5 -2e3 4", values));
+    BOOST_REQUIRE(parse_data_row("7 1.5 -2e3 4", values));
     const std::vector<double> expected = {1.5, -2000.0, 4.0};
     BOOST_CHECK_EQUAL_COLLECTIONS(values.begin(), values.end(), expected.begin(), expected.end());
 
     // Too few columns for the caller's selectors
-    BOOST_CHECK(!parseDataRowValues("42 1.0 2.0", values, 3));
-    BOOST_CHECK(parseDataRowValues("42 1.0 2.0", values, 2));
+    BOOST_CHECK(!parse_data_row("42 1.0 2.0", values, 3));
+    BOOST_CHECK(parse_data_row("42 1.0 2.0", values, 2));
 
     // An index alone is never a data row, even when zero columns are requested
-    BOOST_CHECK(!parseDataRowValues("42", values, 0));
+    BOOST_CHECK(!parse_data_row("42", values, 0));
 
     // Metadata lines, including ones that only start with a number
-    BOOST_CHECK(!parseDataRowValues("", values));
-    BOOST_CHECK(!parseDataRowValues("time depth temperature", values));
-    BOOST_CHECK(!parseDataRowValues("2026-09-30 12:00:00 dive start", values));
-    BOOST_CHECK(!parseDataRowValues("1.5 2.0 3.0", values));  // non-integer index
-    BOOST_CHECK(!parseDataRowValues("1 2.0 3.0 OK", values)); // trailing text
+    BOOST_CHECK(!parse_data_row("", values));
+    BOOST_CHECK(!parse_data_row("time depth temperature", values));
+    BOOST_CHECK(!parse_data_row("2026-09-30 12:00:00 dive start", values));
+    BOOST_CHECK(!parse_data_row("1.5 2.0 3.0", values));  // non-integer index
+    BOOST_CHECK(!parse_data_row("1 2.0 3.0 OK", values)); // trailing text
 }
 
 BOOST_AUTO_TEST_CASE(test_downsample_dataset_under_budget_unchanged)
 {
     const auto lines = make_downsample_dataset(50);
     const auto result =
-        downsampleDatasetToMaxBytes(lines, joinedSizeBytes(lines), 3, downsample_x, downsample_y);
+        downsample_to_max_bytes(lines, joined_size_bytes(lines), 3, downsample_x, downsample_y);
     BOOST_CHECK_EQUAL_COLLECTIONS(result.begin(), result.end(), lines.begin(), lines.end());
 }
 
 BOOST_AUTO_TEST_CASE(test_downsample_dataset_respects_budget)
 {
     const auto lines = make_downsample_dataset(200);
-    const size_t max_bytes = joinedSizeBytes(lines) / 4;
+    const size_t max_bytes = joined_size_bytes(lines) / 4;
 
-    const auto result =
-        downsampleDatasetToMaxBytes(lines, max_bytes, 3, downsample_x, downsample_y);
+    const auto result = downsample_to_max_bytes(lines, max_bytes, 3, downsample_x, downsample_y);
 
-    BOOST_CHECK_LE(joinedSizeBytes(result), max_bytes);
+    BOOST_CHECK_LE(joined_size_bytes(result), max_bytes);
     BOOST_CHECK_LT(result.size(), lines.size());
 
     // Metadata stays at the top, and the first and last data rows are kept
@@ -592,28 +593,28 @@ BOOST_AUTO_TEST_CASE(test_downsample_dataset_respects_budget)
     BOOST_CHECK_EQUAL(result.back(), lines.back());
 
     // The budget is used as fully as possible: keeping one more data row would not fit
-    std::vector<Point> points;
-    std::vector<size_t> positions;
+    std::vector<DownsamplePoint> points;
+    std::vector<size_t> data_line_positions;
     std::vector<double> values;
     for (size_t i = 0; i < lines.size(); ++i)
     {
-        if (parseDataRowValues(lines[i], values, 3))
+        if (parse_data_row(lines[i], values, 3))
         {
             points.push_back({downsample_x(values), downsample_y(values)});
-            positions.push_back(i);
+            data_line_positions.push_back(i);
         }
     }
     const size_t kept_rows = result.size() - 2; // minus the two metadata lines
-    const auto one_more =
-        buildOutputWithSelectedRows(lines, positions, downsampleIndices(points, kept_rows + 1));
-    BOOST_CHECK_GT(joinedSizeBytes(one_more), max_bytes);
+    const auto one_more_row = keep_selected_rows(lines, data_line_positions,
+                                                 select_downsample_indices(points, kept_rows + 1));
+    BOOST_CHECK_GT(joined_size_bytes(one_more_row), max_bytes);
 }
 
 BOOST_AUTO_TEST_CASE(test_downsample_dataset_over_budget_keeps_endpoints)
 {
     // Even when nothing fits, the metadata and first/last data rows are returned
     const auto lines = make_downsample_dataset(20);
-    const auto result = downsampleDatasetToMaxBytes(lines, 1, 3, downsample_x, downsample_y);
+    const auto result = downsample_to_max_bytes(lines, 1, 3, downsample_x, downsample_y);
 
     const std::vector<std::string> expected = {lines[0], lines[1], lines[2], lines.back()};
     BOOST_CHECK_EQUAL_COLLECTIONS(result.begin(), result.end(), expected.begin(), expected.end());
@@ -636,7 +637,7 @@ BOOST_AUTO_TEST_CASE(test_downsample_dataset_skips_short_rows)
     };
 
     const auto result =
-        downsampleDatasetToMaxBytes(lines, joinedSizeBytes(lines) / 2, 3, downsample_x, y_selector);
+        downsample_to_max_bytes(lines, joined_size_bytes(lines) / 2, 3, downsample_x, y_selector);
 
     BOOST_CHECK_EQUAL(short_rows_selected, 0u);
     // The short row is treated as metadata, so it is always kept

@@ -38,19 +38,19 @@ namespace middleware = goby::middleware;
 #include "jaiabot/comms/comms.h"
 #include "jaiabot/health/health.h"
 #include "jaiabot/intervehicle.h"
+#include "jaiabot/messages/arduino.pb.h"
 #include "jaiabot/messages/engineering.pb.h"
+#include "jaiabot/messages/mission.pb.h"
 #include "jaiabot/messages/sensor/pressure_temperature.pb.h"
 #include "jaiabot/messages/sensor/salinity.pb.h"
-#include "jaiabot/messages/arduino.pb.h"
-#include "jaiabot/messages/mission.pb.h"
 
 // Mission Manager app
 #include "states.h"
-#include "mission_manager_state_machine.h"
-#include "mission_manager.h"
-#include "groups.h"
-#include "utils.h"
 
+#include "groups.h"
+#include "mission_manager.h"
+#include "mission_manager_state_machine.h"
+#include "utils.h"
 
 // Main thread
 void jaiabot::apps::MissionManager::initialize()
@@ -107,17 +107,17 @@ jaiabot::apps::MissionManager::MissionManager()
     for (auto e : cfg().ignore_error()) ignore_errors_.insert(static_cast<protobuf::Error>(e));
 
     interthread().subscribe<jaiabot::groups::state_change>(
-        [this](const std::pair<bool, jaiabot::protobuf::MissionState>& state_pair)
+        [this](const jaiabot::protobuf::MissionStateChange& state_change)
         {
-            const auto& state_name = jaiabot::protobuf::MissionState_Name(state_pair.second);
+            const auto& state_name = jaiabot::protobuf::MissionState_Name(state_change.state());
 
-            if (state_pair.first)
+            if (state_change.direction() == protobuf::MissionStateChange::ENTERED)
             {
                 glog.is_verbose() && glog << group("statechart") << "Entered: " << state_name
                                           << std::endl;
 
                 // publish the mission report on each state change
-                publish_mission_report(state_pair.second);
+                publish_mission_report(state_change.state());
             }
             else
                 glog.is_verbose() && glog << group("statechart") << "Exited: " << state_name
@@ -231,12 +231,13 @@ jaiabot::apps::MissionManager::MissionManager()
                 // consider the system started when it reports a non-failed health report (as at least all the expected apps have responded)
                 machine_->process_event(statechart::EvStarted());
 
-                // TODO make SelfTest include more information?
-                machine_->process_event(statechart::EvSelfTestSuccessful());
+                if (!delegated_states_.count(protobuf::PRE_DEPLOYMENT__SELF_TEST))
+                    machine_->process_event(statechart::EvSelfTestSuccessful());
             }
             else
             {
-                machine_->process_event(statechart::EvSelfTestFails());
+                if (!delegated_states_.count(protobuf::PRE_DEPLOYMENT__SELF_TEST))
+                    machine_->process_event(statechart::EvSelfTestFails());
             }
         });
 
@@ -272,7 +273,8 @@ jaiabot::apps::MissionManager::MissionManager()
     interprocess().subscribe<jaiabot::groups::arduino_to_pi>(
         [this](const jaiabot::protobuf::ArduinoResponse& arduino_response)
         {
-            glog.is_debug2() && glog << "Received Arduino Response " << arduino_response.ShortDebugString() << std::endl;
+            glog.is_debug2() && glog << "Received Arduino Response "
+                                     << arduino_response.ShortDebugString() << std::endl;
 
             if (arduino_response.has_motor())
             {
@@ -396,7 +398,7 @@ jaiabot::apps::MissionManager::MissionManager()
             }
             if (command.has_bottom_depth_safety_params())
             {
-                handle_bottom_dive_safety_params(command.bottom_depth_safety_params());
+                machine_->set_bottom_depth_safety_params(command.bottom_depth_safety_params());
             }
 
             // Publish only when we get a query for status
@@ -453,6 +455,49 @@ jaiabot::apps::MissionManager::MissionManager()
                 }
             }
         });
+
+    for (auto goal : cfg().delegated_states())
+    {
+        auto goal_state = static_cast<jaiabot::protobuf::MissionState>(goal);
+        delegated_states_.insert(goal_state);
+    }
+
+    interprocess().subscribe<jaiabot::groups::state_delegate_response>(
+        [this](const jaiabot::protobuf::MissionStateDelegateResponse& resp)
+        {
+            if (resp.state() != machine_->state())
+            {
+                glog.is_warn() &&
+                    glog << "Ignoring MissionStateDelegateResponse for wrong state. Response: "
+                         << resp.ShortDebugString()
+                         << ", current state: " << protobuf::MissionState_Name(machine_->state())
+                         << std::endl;
+                return;
+            }
+
+            if (!delegated_states_.count(resp.state()))
+            {
+                glog.is_warn() && glog << "Ignoring MissionStateDelegateResponse for state that is "
+                                          "not in delegated_states config. Response: "
+                                       << resp.ShortDebugString() << std::endl;
+                return;
+            }
+
+            switch (resp.event())
+            {
+                case protobuf::MissionStateDelegateResponse::EV_SELF_TEST_FAILS:
+                    machine_->process_event(statechart::EvSelfTestFails());
+                    break;
+
+                case protobuf::MissionStateDelegateResponse::EV_SELF_TEST_SUCCESSFUL:
+                    machine_->process_event(statechart::EvSelfTestSuccessful());
+                    break;
+
+                case protobuf::MissionStateDelegateResponse::EV_SHUTDOWN:
+                    machine_->process_event(statechart::EvShutdown());
+                    break;
+            }
+        });
 }
 
 jaiabot::apps::MissionManager::~MissionManager()
@@ -472,6 +517,15 @@ jaiabot::apps::MissionManager::~MissionManager()
 
         intervehicle().unsubscribe_dynamic<protobuf::Command>(*groups::hub_command_this_bot,
                                                               command_subscriber);
+    }
+
+    if (cfg().has_bot_status_sub_cfg())
+    {
+        goby::middleware::Subscriber<jaiabot::protobuf::BotStatus> bot_status_subscriber{
+            latest_bot_status_sub_cfg_,
+            intervehicle::default_subscriber_group_func<jaiabot::protobuf::BotStatus>};
+
+        intervehicle().unsubscribe<jaiabot::groups::bot_status>(bot_status_subscriber);
     }
 
     if (cfg().has_contact_update_sub_cfg())
@@ -545,14 +599,12 @@ void jaiabot::apps::MissionManager::intervehicle_subscribe(
             if (command_valid)
             {
                 handle_command(out_command);
-                // republish for logging purposes
                 interprocess().publish<jaiabot::groups::hub_command>(out_command);
             }
         }
         else
         {
             handle_command(input_command);
-            // republish for logging purposes
             interprocess().publish<jaiabot::groups::hub_command>(input_command);
         }
     };
@@ -560,8 +612,23 @@ void jaiabot::apps::MissionManager::intervehicle_subscribe(
     intervehicle().subscribe_dynamic<protobuf::Command>(
         command_callback, *groups::hub_command_this_bot, command_subscriber);
 
-    // also subscribe to commands originating on the bot, e.g. from jaiabot_mission_repeater
+    // also subscribe to commands originating on the bot, e.g. from jaiabot_mission_repeater or jaiabot_storm_manager
     interprocess().subscribe<jaiabot::groups::self_command, protobuf::Command>(command_callback);
+
+    // subscribe to BotStatus messages broadcasted by other Bots
+    if (cfg().has_bot_status_sub_cfg())
+    {
+        latest_bot_status_sub_cfg_ = cfg().bot_status_sub_cfg();
+
+        goby::middleware::Subscriber<jaiabot::protobuf::BotStatus> bot_status_subscriber{
+            latest_bot_status_sub_cfg_,
+            intervehicle::default_subscriber_group_func<jaiabot::protobuf::BotStatus>};
+
+        intervehicle().subscribe<jaiabot::groups::bot_status, jaiabot::protobuf::BotStatus>(
+            [this](const jaiabot::protobuf::BotStatus& bot_status)
+            { interprocess().publish<jaiabot::groups::bot2bot_data>(bot_status); },
+            bot_status_subscriber);
+    }
 
     if (cfg().has_contact_update_sub_cfg())
     {
@@ -890,18 +957,7 @@ void jaiabot::apps::MissionManager::handle_command(const protobuf::Command& comm
                 mission_is_feasible = false;
             }
 
-            if (command.plan().has_bottom_depth_safety_params())
-            {
-                handle_bottom_dive_safety_params(command.plan().bottom_depth_safety_params());
-            }
-            else
-            {
-                jaiabot::protobuf::BottomDepthSafetyParams bottom_depth_safety_params;
-                handle_bottom_dive_safety_params(bottom_depth_safety_params);
-            }
-
-            if (command.plan().has_speeds())
-                machine_->set_transit_speed(command.plan().speeds().transit_with_units());
+            machine_->apply_plan_baseline_params(command.plan());
 
             if (mission_is_feasible)
             {
@@ -984,6 +1040,9 @@ void jaiabot::apps::MissionManager::handle_command(const protobuf::Command& comm
                 glog << "MISSION_PLAN_FRAGMENT command not processed by handle_command()"
                      << std::endl;
             break;
+
+            // handled by jaiabot_storm_manager
+        case protobuf::Command::STORM_DYNAMIC_MISSION_UPDATE: break;
     }
 }
 
@@ -1118,21 +1177,6 @@ bool jaiabot::apps::MissionManager::handle_command_fragment(
     return false;
 }
 
-/**
- * Passes Safety Return Path (SRP) values to the state machine
- *  
- * @param {jaiabot::apps::MissionManager} handle_bottom_dive_safety_params Contains the SRP values
- * @returns {void} 
- */
-void jaiabot::apps::MissionManager::handle_bottom_dive_safety_params(
-    jaiabot::protobuf::BottomDepthSafetyParams params)
-{
-    machine_->set_bottom_depth_safety_constant_heading(params.constant_heading());
-    machine_->set_bottom_depth_safety_constant_heading_speed(params.constant_heading_speed());
-    machine_->set_bottom_depth_safety_constant_heading_time(params.constant_heading_time());
-    machine_->set_bottom_safety_depth(params.safety_depth());
-}
-
 // To determine no forward progress:
 //    If the vehicle is in the vertical position; pitch > resolve_pitch_threshold  (default 30 deg)
 //    If the vehicle desired speed is > resolve_desired_speed_threshold (default: 0 m/s)
@@ -1187,6 +1231,24 @@ bool jaiabot::apps::MissionManager::health_considered_ok(
     {
         return true;
     }
+    else if (cfg().allow_gps_error_during_pre_deployment_startup() &&
+             machine_->state() == protobuf::PRE_DEPLOYMENT__STARTING_UP)
+    {
+        jaiabot::protobuf::BotStatus status;
+        jaiabot::health::populate_status_from_health(status, vehicle_health, false);
+
+        for (auto e : status.error())
+        {
+            switch (static_cast<protobuf::Error>(e))
+            {
+                case protobuf::ERROR__MISSING_DATA__GPS_FIX:
+                case protobuf::ERROR__MISSING_DATA__GPS_POSITION:
+                case protobuf::ERROR__NOT_RESPONDING__GOBY_GPS: break;
+                default: return false;
+            }
+        }
+        return true;
+    }
     else if (is_test_mode(config::MissionManager::ENGINEERING_TEST__IGNORE_SOME_ERRORS))
     {
         jaiabot::protobuf::BotStatus status;
@@ -1209,4 +1271,3 @@ bool jaiabot::apps::MissionManager::health_considered_ok(
     }
     return false;
 }
-

@@ -161,50 +161,6 @@ void jaiabot::comms::XBeeDriver::startup(const goby::acomms::protobuf::DriverCon
         close(fd);
     }
 
-    // if simulation, add XBee to Simulated XBee Network
-    if (is_in_sim)
-    {
-        std::string create_cmd = "CREATE " + driver_cfg_.serial_port().substr(5);
-        int fd = socket(AF_UNIX, SOCK_STREAM, 0);
-        if (fd == -1)
-        {
-            perror("socket");
-            return;
-        }
-
-        sockaddr_un addr{};
-        addr.sun_family = AF_UNIX;
-        strcpy(addr.sun_path, "/tmp/sxbsim.sock");
-
-        const int retries = 5;
-        int retry_count = 0;
-        while (connect(fd, (sockaddr*)&addr, sizeof(addr)) == -1 && retry_count < retries)
-        {
-            if (errno == ENOENT || errno || ECONNREFUSED)
-            {
-                std::this_thread::sleep_for(std::chrono::milliseconds(500));
-                ++retry_count;
-            }
-            else
-            {
-                perror("connect");
-                close(fd);
-                return;
-            }
-        }
-
-        ssize_t bytes_sent = write(fd, create_cmd.c_str(), create_cmd.size());
-        if (bytes_sent != static_cast<ssize_t>(create_cmd.size())) {
-            perror("write");
-        }
-        
-        char buffer[512];
-        ssize_t bytes_read = read(fd, buffer, sizeof(buffer));
-        // Blocks until response.
-
-        close(fd);
-    }
-
     device_.startup(driver_cfg_.serial_port(), driver_cfg_.serial_baud(),
                     encode_modem_id(driver_cfg_.modem_id()), network_id, xbee_info_location,
                     use_encryption, encryption_password, mesh_unicast_retries, unicast_mac_retries,

@@ -58,7 +58,7 @@ parser.add_argument('--imu_type', choices=['bno055', 'bno085', 'none'], help='If
 parser.add_argument('--imu_install_type', choices=['embedded', 'retrofit', 'none'], help='If set, configure services for imu install type')
 parser.add_argument('--arduino_type', choices=['spi', 'usb', 'none'], help='If set, configure services for arduino type')
 parser.add_argument('--pam_connection_type', choices=['uart', 'usb', 'none'], help='If set, configure services for PAM connection type')
-parser.add_argument('--bot_type', choices=['hydro', 'echo', 'bio', 'none'], help='If set, configure services for bot type')
+parser.add_argument('--bot_type', choices=['hydro', 'echo', 'bio', 'storm', 'none'], help='If set, configure services for bot type')
 parser.add_argument('--bot_vin', default='unknown_vin', help='If set, configure services for bot vin (defaults to "unknown_vin")')
 parser.add_argument('--data_offload_ignore_type', choices=['goby', 'taskpacket', 'none'], help='If set, configure services for arduino type')
 parser.add_argument('--motor_harness_type', choices=['rpm_and_thermistor', 'none'], help='If set, configure services for motor harness type')
@@ -68,7 +68,7 @@ parser.add_argument('--rf_encryption_password', default ='', help='Encryption ke
 parser.add_argument('--comms_links', choices=['xbee', 'wifi', 'iridium'], nargs="+", default=['xbee'], help='Select one or more comms_links')
 parser.add_argument('--camera_positions', choices=['aft', 'fore', 'outward', 'none'], nargs="+", default=['none'], help='Select one or more camera_positions')
 parser.add_argument('--dccl_encryption_password', default ='', help='Encryption passphrase for DCCL (intervehicle) messages: can be any string')
-parser.add_argument('--additional_sensors', choices=['turner_c_flour', 'aml', 'ppk', 'none'], nargs="+", default=['none'], help='Select one or more additional sensors')
+parser.add_argument('--additional_sensors', choices=['turner_c_fluor', 'turner_c_fluor_2', 'aml', 'ppk', 'none'], nargs="+", default=['none'], help='Select one or more additional sensors')
 parser.add_argument('--tail_serial_number', default='unknown_serial_number', help='Tail serial number to use for this bot (defaults to "unknown_serial_number")')
 
 args=parser.parse_args()
@@ -112,6 +112,7 @@ class BOT_TYPE(Enum):
     HYDRO = 'HYDRO'
     ECHO = 'ECHO'
     BIO = 'BIO'
+    STORM = 'STORM'
     NONE = 'NONE'
 
 class DATA_OFFLOAD_IGNORE_TYPE(Enum):
@@ -191,6 +192,8 @@ elif args.bot_type == 'echo':
     jaia_bot_type = BOT_TYPE.ECHO
 elif args.bot_type == 'bio':
     jaia_bot_type = BOT_TYPE.BIO
+elif args.bot_type == 'storm':
+    jaia_bot_type = BOT_TYPE.STORM
 else:
     jaia_bot_type = BOT_TYPE.NONE
 
@@ -276,6 +279,12 @@ elif cloudhub_type == CloudHubType.SECONDARY:
 
 camera_positions_in_use = args.camera_positions
 jaia_additional_sensors = args.additional_sensors
+
+# a second fluorometer implies the first: the channels are numbered, not independent, so
+# selecting only turner_c_fluor_2 would otherwise leave the base fluorometer unconfigured
+if 'turner_c_fluor_2' in jaia_additional_sensors and \
+   not ('turner_c_fluor' in jaia_additional_sensors):
+    jaia_additional_sensors = jaia_additional_sensors + ['turner_c_fluor']
     
 # generate env file from preseed.goby
 print('Writing ' + args.env_file + ' from preseed.goby')
@@ -494,6 +503,12 @@ jaiabot_apps = [
      'extra_service': 'Environment=PATH=' + args.jaiabot_bin_dir + ':/usr/bin', # to execute correct data pre/post offload scripts
      'runs_on': [Type.BOT],
      'wanted_by': 'jaiabot_health.service'},
+    {'exe': 'jaiabot_storm_manager',
+     'description': 'JaiaBot Storm Manager',
+     'template': 'goby-app.service.in',
+     'error_on_fail': 'ERROR__NOT_RESPONDING__JAIABOT_STORM_MANAGER',
+     'runs_on': [BOT_TYPE.STORM],
+     'wanted_by': 'jaiabot_health.service'},
     {'exe': 'jaiabot_pid_control',
      'description': 'JaiaBot PID Controller',
      'template': 'goby-app.service.in',
@@ -539,8 +554,7 @@ jaiabot_apps = [
      'error_on_fail': 'ERROR__FAILED__MOOS_SIM_MOOSDB',
      'runs_on': [Type.BOT],
      'runs_when': Mode.SIMULATION,
-     'service': 'jaiabot_moosdb_sim' # override default service name to avoid conflict with jaiabot_moosdb
-    },
+     'service': 'jaiabot_moosdb_sim'}, # override default service name to avoid conflict with jaiabot_moosdb
     {'exe': 'uSimMarine',
      'description': 'uSimMarine marine vehicle simulator',
      'template': 'moos-app-sim.service.in',
@@ -567,7 +581,7 @@ jaiabot_apps = [
      'subdir': 'pressure_sensor',
      'args': f'-t {jaia_pressure_sensor_type.value} -p {UDP_GATEWAY_PORT}',
      'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_PRESSURE_SENSOR',
-     'runs_on': [BOT_TYPE.HYDRO, BOT_TYPE.ECHO],
+    'runs_on': [BOT_TYPE.HYDRO, BOT_TYPE.ECHO, BOT_TYPE.STORM],
      'runs_when': Mode.RUNTIME,
      'wanted_by': 'jaiabot_health.service',
      'restart': 'on-failure'},
@@ -577,7 +591,7 @@ jaiabot_apps = [
      'subdir': 'atlas_scientific_ezo_ec',
      'args': f'-p {UDP_GATEWAY_PORT}',
      'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_AS_EZO_EC',
-     'runs_on': [BOT_TYPE.HYDRO, BOT_TYPE.ECHO],
+    'runs_on': [BOT_TYPE.HYDRO, BOT_TYPE.ECHO, BOT_TYPE.STORM],
      'runs_when': Mode.RUNTIME,
      'wanted_by': 'jaiabot_health.service',
      'restart': 'on-failure'},
@@ -673,7 +687,9 @@ if 'none' not in camera_positions_in_use:
     ]
     jaiabot_apps.extend(jaiabot_apps_camera)
 
-if 'turner_c_flour' in jaia_additional_sensors:
+# on BIO bots the fluorometers are read through the payload board by jaiabot_sensors, so this
+# standalone analog driver would publish a second, indistinguishable stream on the same group
+if ('turner_c_fluor' in jaia_additional_sensors) and jaia_bot_type != BOT_TYPE.BIO:
     jaiabot_turner_c_fluor = [
         {'exe': 'jaiabot_turner_c_fluor_sensor_driver',
         'description': 'JaiaBot Turner C Fluor Sensor Driver',
@@ -696,6 +712,7 @@ if 'aml' in jaia_additional_sensors:
         'wanted_by': 'jaiabot_health.service'},
     ]
     jaiabot_apps.extend(jaiabot_aml_sensor)
+    
 if 'ppk' in jaia_additional_sensors:
     jaiabot_ubx_ppk = {
         'exe': 'jaiabot_ubx_ppk.py',
@@ -712,7 +729,9 @@ if 'ppk' in jaia_additional_sensors:
 
     jaiabot_apps.append(jaiabot_ubx_ppk)
 
-if jaia_temperature_sensor_type.value == 'tsys01':
+# BIO bots read the TSYS01 through the payload board, so skip the Python driver there to
+# avoid double-publishing (checked here since 'runs_on' can't express "bot AND not BIO").
+if jaia_temperature_sensor_type.value == 'tsys01' and jaia_bot_type != BOT_TYPE.BIO:
     jaiabot_apps_tsys01 = [
         {'exe': 'jaiabot_tsys01.py',
          'description': 'JaiaBot TSYS01 Temperature Sensor Python Driver',
