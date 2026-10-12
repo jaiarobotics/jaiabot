@@ -833,7 +833,7 @@ void HAL_TIM_IC_MspInit(TIM_HandleTypeDef* htim_ic)
     HAL_GPIO_Init(PHASE_A_GPIO_Port, &GPIO_InitStruct);
 
     /* USER CODE BEGIN TIM15_MspInit 1 */
-    // Tach output is open-collector, so it needs a pull-up
+    // Backs up the R9 pull-up on PHASE_A
     GPIO_InitStruct.Pull = GPIO_PULLUP;
     HAL_GPIO_Init(PHASE_A_GPIO_Port, &GPIO_InitStruct);
 

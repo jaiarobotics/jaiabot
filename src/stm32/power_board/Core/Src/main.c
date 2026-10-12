@@ -82,11 +82,16 @@ static volatile uint32_t requested_low_power_ms = 0U;
 static bool adc_calibration_failed = false;
 
 // Motor tach on PHASE_A (TIM15_CH1), 2 pulses per revolution.
-// RPM is computed from pulse counts over a fixed window.
+// RPM is computed from the time between edges, averaged over one revolution.
 #define TACH_PULSES_PER_REV 2U
-#define TACH_WINDOW_MS 200U
-static volatile uint32_t tach_pulse_count = 0U;
-static uint32_t tach_window_start_ms = 0U;
+#define TACH_TICK_HZ 100000U // TIM15 24 MHz / (prescaler 239 + 1)
+#define TACH_TIMEOUT_MS 600U // must stay below the 16-bit counter wrap
+static volatile uint16_t tach_last_capture = 0U;
+static volatile uint32_t tach_last_edge_ms = 0U;
+static volatile bool tach_have_edge = false;
+static volatile uint32_t tach_periods[TACH_PULSES_PER_REV] = {0U};
+static volatile uint8_t tach_period_count = 0U;
+static volatile uint8_t tach_period_next = 0U;
 static bool tach_running = false;
 static float motor_rpm = 0.0f;
 /* USER CODE END PV */
@@ -120,7 +125,8 @@ static bool adc_read_channel(ADC_HandleTypeDef* hadc, uint32_t channel, uint32_t
     ADC_ChannelConfTypeDef sConfig = {0};
     sConfig.Channel = channel;
     sConfig.Rank = ADC_REGULAR_RANK_1;
-    sConfig.SamplingTime = ADC_SAMPLETIME_92CYCLES_5;
+    // Long sample time for the high-impedance THERMISTOR input
+    sConfig.SamplingTime = ADC_SAMPLETIME_640CYCLES_5;
     sConfig.SingleDiff = ADC_SINGLE_ENDED;
     sConfig.OffsetNumber = ADC_OFFSET_NONE;
     sConfig.Offset = 0;
@@ -155,8 +161,9 @@ static bool adc_read_channel(ADC_HandleTypeDef* hadc, uint32_t channel, uint32_t
 
 static void tach_start(void)
 {
-    tach_pulse_count = 0U;
-    tach_window_start_ms = HAL_GetTick();
+    tach_have_edge = false;
+    tach_period_count = 0U;
+    tach_period_next = 0U;
     motor_rpm = 0.0f;
     tach_running = (HAL_TIM_IC_Start_IT(&htim15, TIM_CHANNEL_1) == HAL_OK);
 }
@@ -178,20 +185,22 @@ static void tach_periodic_update(void)
         return;
     }
 
-    uint32_t now_ms = HAL_GetTick();
-    uint32_t elapsed_ms = now_ms - tach_window_start_ms;
-    if (elapsed_ms < TACH_WINDOW_MS)
+    __disable_irq();
+    bool have_edge = tach_have_edge;
+    uint32_t last_edge_ms = tach_last_edge_ms;
+    uint8_t period_count = tach_period_count;
+    uint32_t period_ticks_sum = 0U;
+    for (uint8_t i = 0U; i < period_count; ++i) { period_ticks_sum += tach_periods[i]; }
+    __enable_irq();
+
+    if (!have_edge || (HAL_GetTick() - last_edge_ms) >= TACH_TIMEOUT_MS || period_count == 0U)
     {
+        motor_rpm = 0.0f;
         return;
     }
 
-    __disable_irq();
-    uint32_t pulses = tach_pulse_count;
-    tach_pulse_count = 0U;
-    __enable_irq();
-
-    motor_rpm = ((float)pulses * 60000.0f) / ((float)TACH_PULSES_PER_REV * (float)elapsed_ms);
-    tach_window_start_ms = now_ms;
+    motor_rpm = (60.0f * (float)TACH_TICK_HZ * (float)period_count) /
+                ((float)TACH_PULSES_PER_REV * (float)period_ticks_sum);
 }
 
 static void power_board_build_telemetry(PowerBoardResponse* response)
@@ -339,7 +348,7 @@ static void power_board_disable_external_power(void)
     HAL_GPIO_WritePin(LED_R_GPIO_Port, LED_R_Pin, GPIO_PIN_RESET);
     HAL_GPIO_WritePin(LED_G_GPIO_Port, LED_G_Pin, GPIO_PIN_RESET);
     HAL_GPIO_WritePin(LED_B_GPIO_Port, LED_B_Pin, GPIO_PIN_RESET);
-    HAL_GPIO_WritePin(EXT_5V_CTRL_GPIO_Port, EXT_5V_CTRL_Pin, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(CTRL_ACTS_GPIO_Port, CTRL_ACTS_Pin, GPIO_PIN_RESET);
     HAL_GPIO_WritePin(VS_VBATT_EN_GPIO_Port, VS_VBATT_EN_Pin, GPIO_PIN_RESET);
     HAL_GPIO_WritePin(EN_12V_REG_GPIO_Port, EN_12V_REG_Pin, GPIO_PIN_RESET);
     HAL_GPIO_WritePin(EN_5V_REG_GPIO_Port, EN_5V_REG_Pin, GPIO_PIN_RESET);
@@ -356,8 +365,8 @@ static void power_board_enable_external_power(void)
     HAL_GPIO_WritePin(EN_5V_REG_GPIO_Port, EN_5V_REG_Pin, GPIO_PIN_SET);
     HAL_GPIO_WritePin(EN_3V3_REG_GPIO_Port, EN_3V3_REG_Pin, GPIO_PIN_SET);
     HAL_GPIO_WritePin(VS_VBATT_EN_GPIO_Port, VS_VBATT_EN_Pin, GPIO_PIN_SET);
-    // TEST: external 5V, to check whether it powers the motor thermistor divider
-    HAL_GPIO_WritePin(EXT_5V_CTRL_GPIO_Port, EXT_5V_CTRL_Pin, GPIO_PIN_SET);
+    // +5V_ACT on motor header J4-1 powers the tach and thermistor
+    HAL_GPIO_WritePin(CTRL_ACTS_GPIO_Port, CTRL_ACTS_Pin, GPIO_PIN_SET);
 
     HAL_GPIO_WritePin(VS_OP_EN_GPIO_Port, VS_OP_EN_Pin,
                       GPIO_PIN_RESET); // Needs to be RESET to enable the op-amp
@@ -1166,7 +1175,16 @@ static void MX_TIM15_Init(void)
         Error_Handler();
     }
     /* USER CODE BEGIN TIM15_Init 2 */
-
+    // 100 kHz ticks for tach period measurement, kept here to survive CubeMX regen
+    __HAL_TIM_SET_PRESCALER(&htim15, 239U);
+    htim15.Init.Prescaler = 239U;
+    htim15.Instance->EGR = TIM_EGR_UG;
+    // Light input filter so ringing on the tach line isn't counted as extra edges
+    sConfigIC.ICFilter = 8U;
+    if (HAL_TIM_IC_ConfigChannel(&htim15, &sConfigIC, TIM_CHANNEL_1) != HAL_OK)
+    {
+        Error_Handler();
+    }
     /* USER CODE END TIM15_Init 2 */
 }
 
@@ -1360,7 +1378,32 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef* htim)
 {
     if (htim->Instance == TIM15 && htim->Channel == HAL_TIM_ACTIVE_CHANNEL_1)
     {
-        ++tach_pulse_count;
+        uint16_t capture = (uint16_t)HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_1);
+        uint32_t now_ms = HAL_GetTick();
+
+        // After a stall the counter may have wrapped, so only time edges that are close together
+        if (tach_have_edge && (now_ms - tach_last_edge_ms) < TACH_TIMEOUT_MS)
+        {
+            uint16_t period_ticks = (uint16_t)(capture - tach_last_capture);
+            if (period_ticks > 0U)
+            {
+                tach_periods[tach_period_next] = period_ticks;
+                tach_period_next = (tach_period_next + 1U) % TACH_PULSES_PER_REV;
+                if (tach_period_count < TACH_PULSES_PER_REV)
+                {
+                    ++tach_period_count;
+                }
+            }
+        }
+        else
+        {
+            tach_period_count = 0U;
+            tach_period_next = 0U;
+        }
+
+        tach_last_capture = capture;
+        tach_last_edge_ms = now_ms;
+        tach_have_edge = true;
     }
 }
 
