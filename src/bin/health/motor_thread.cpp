@@ -35,8 +35,24 @@ using goby::glog;
 
 #define now_microseconds() (goby::time::SystemClock::now<goby::time::MicroTime>().value())
 
-constexpr double arduino_thermistor_supply_voltage = 5;
-constexpr double arduino_thermistor_fixed_ohms = 10000;
+// Arduino: 10k pull-up to 5 V, thermistor to GND, node read directly
+constexpr jaiabot::apps::ThermistorDivider arduino_thermistor{5.0, 10000, 1.0, false};
+
+// Thermistor resistance from a reported voltage. Returns false when the node is near a rail
+// (open, shorted or unpowered thermistor).
+static bool thermistor_ohms(const jaiabot::apps::ThermistorDivider& divider,
+                            double reported_voltage, float& ohms)
+{
+    const double rail_margin = 0.02 * divider.supply_voltage;
+    const double node_voltage = reported_voltage / divider.adc_gain;
+    if (node_voltage < rail_margin || node_voltage > divider.supply_voltage - rail_margin)
+        return false;
+
+    const double fixed_voltage =
+        divider.thermistor_high_side ? node_voltage : divider.supply_voltage - node_voltage;
+    ohms = divider.fixed_ohms * (divider.supply_voltage - fixed_voltage) / fixed_voltage;
+    return true;
+}
 
 constexpr int32_t MOTOR_MICROS_BIN = 50;   // Bin size for motor microseconds
 constexpr int32_t MOTOR_OFF_MICROS = 1500; // Value at which the motor is off (neutral)
@@ -80,30 +96,28 @@ jaiabot::apps::MotorStatusThread::MotorStatusThread(const jaiabot::config::Motor
                 rpm_value_ = power_board_response.motor_rpm();
                 last_motor_rpm_report_time_ = goby::time::SteadyClock::now();
             }
-            handle_motor_response(power_board_response,
-                                  this->cfg().power_board_thermistor_supply_voltage(),
-                                  this->cfg().power_board_thermistor_fixed_ohms());
+            const ThermistorDivider power_board_thermistor{
+                this->cfg().power_board_thermistor_supply_voltage(),
+                this->cfg().power_board_thermistor_fixed_ohms(),
+                this->cfg().power_board_thermistor_adc_gain(),
+                this->cfg().power_board_thermistor_high_side()};
+            handle_motor_response(power_board_response, power_board_thermistor);
         });
 
     interprocess().subscribe<jaiabot::groups::arduino_to_pi>(
         [this](const jaiabot::protobuf::ArduinoResponse& arduino_response)
-        {
-            handle_motor_response(arduino_response, arduino_thermistor_supply_voltage,
-                                  arduino_thermistor_fixed_ohms);
-        });
+        { handle_motor_response(arduino_response, arduino_thermistor); });
 }
 
 template <typename Response>
 void jaiabot::apps::MotorStatusThread::handle_motor_response(const Response& response,
-                                                             double thermistor_supply_voltage,
-                                                             double thermistor_fixed_ohms)
+                                                             const ThermistorDivider& thermistor)
 {
-    // a reading at the supply voltage means an open thermistor, so skip it
+    float resistance = 0;
     if (response.has_thermistor_voltage() &&
-        response.thermistor_voltage() < thermistor_supply_voltage)
+        thermistor_ohms(thermistor, response.thermistor_voltage(), resistance))
     {
         float voltage = response.thermistor_voltage();
-        float resistance = thermistor_fixed_ohms * voltage / (thermistor_supply_voltage - voltage);
         float temperature = goby::util::linear_interpolate(resistance, resistance_to_temperature_);
         float temperature_celsius = (temperature - 32) / 1.8;
 
