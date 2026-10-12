@@ -23,71 +23,74 @@
 #define __MAIN_H
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 /* Includes ------------------------------------------------------------------*/
 #include "stm32l4xx_hal.h"
 
-/* Private includes ----------------------------------------------------------*/
-/* USER CODE BEGIN Includes */
+    /* Private includes ----------------------------------------------------------*/
+    /* USER CODE BEGIN Includes */
 
-#include "crc32.h"
-#include "cobs.h"
-#include "serial.h"
-#include "controls.h"
-#include "icas.h"
 #include "ble.h"
+#include "cobs.h"
 #include "command.h"
+#include "controls.h"
+#include "crc32.h"
+#include "icas.h"
+#include "serial.h"
 
-#include <pb_encode.h>
 #include "jaiabot/messages/power_board/power_board.pb.h"
+#include <pb_encode.h>
 
-/* USER CODE END Includes */
+    /* USER CODE END Includes */
 
-/* Exported types ------------------------------------------------------------*/
-/* USER CODE BEGIN ET */
-struct boot_vectable_ {
-    uint32_t Initial_SP;
-    void (*Reset_Handler)(void);
-};
+    /* Exported types ------------------------------------------------------------*/
+    /* USER CODE BEGIN ET */
+    struct boot_vectable_
+    {
+        uint32_t Initial_SP;
+        void (*Reset_Handler)(void);
+    };
 
-typedef jaiabot_protobuf_PowerBoardResponse PowerBoardResponse;
+    typedef jaiabot_protobuf_PowerBoardResponse PowerBoardResponse;
 
-enum state{
-  REED_WAIT_STATE,
-  INIT_STATE,
-  BROADCAST_STATE,
-  SLEEP_STATE
-};
-/* USER CODE END ET */
+    enum power_board_state
+    {
+        REED_WAIT_STATE,
+        INIT_STATE,
+        BROADCAST_STATE,
+        SLEEP_STATE
+    };
+    /* USER CODE END ET */
 
-/* Exported constants --------------------------------------------------------*/
-/* USER CODE BEGIN EC */
-extern uint8_t bits_in_byte;
-extern bool usb_tx_busy;
+    /* Exported constants --------------------------------------------------------*/
+    /* USER CODE BEGIN EC */
+    extern uint8_t bits_in_byte;
+    extern bool usb_tx_busy;
 /* USER CODE END EC */
 
 /* Exported macro ------------------------------------------------------------*/
 /* USER CODE BEGIN EM */
 #define MAX_MSG_SIZE 256
 #define BOOT_ADDR 0x1FFF0000
-#define BOOTVTAB  ((struct boot_vectable_ *)BOOT_ADDR)
+#define BOOTVTAB ((struct boot_vectable_*)BOOT_ADDR)
 #define REED_WAKE_ACTIVE_STATE GPIO_PIN_SET
-/* USER CODE END EM */
+    /* USER CODE END EM */
 
-void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
+    void HAL_TIM_MspPostInit(TIM_HandleTypeDef* htim);
 
-/* Exported functions prototypes ---------------------------------------------*/
-void Error_Handler(void);
+    /* Exported functions prototypes ---------------------------------------------*/
+    void Error_Handler(void);
 
-/* USER CODE BEGIN EFP */
-void jumpToBootloader(void);
-void power_board_set_sleep_interval_ms(uint32_t interval_ms);
-void power_board_set_sleep_interval_seconds(uint32_t interval_s);
-uint32_t power_board_get_sleep_interval_ms(void);
-void power_board_request_low_power_mode_ms(uint32_t duration_ms);
-void power_board_request_low_power_mode_seconds(uint32_t duration_s);
+    /* USER CODE BEGIN EFP */
+    void jumpToBootloader(void);
+    void power_board_set_sleep_interval_ms(uint32_t interval_ms);
+    void power_board_set_sleep_interval_seconds(uint32_t interval_s);
+    uint32_t power_board_get_sleep_interval_ms(void);
+    void power_board_request_low_power_mode_ms(uint32_t duration_ms);
+    void power_board_request_low_power_mode_seconds(uint32_t duration_s);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
@@ -180,9 +183,9 @@ void power_board_request_low_power_mode_seconds(uint32_t duration_s);
 #define EXT_LED_CTRL_Pin GPIO_PIN_1
 #define EXT_LED_CTRL_GPIO_Port GPIOE
 
-/* USER CODE BEGIN Private defines */
+    /* USER CODE BEGIN Private defines */
 
-/* USER CODE END Private defines */
+    /* USER CODE END Private defines */
 
 #ifdef __cplusplus
 }

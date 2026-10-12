@@ -82,8 +82,7 @@ if [ -z "${GOBY_TOOL_LOAD_SHARED_LIBRARY:-}" ]; then
     exit 1
 fi
 
-# Goby's publish command remains alive after publishing while it services the
-# middleware connection, so bound each invocation before continuing.
+# goby publish doesn't exit on its own, so bound each invocation
 for attempt in $(seq 1 5); do
     timeout 2s goby zeromq publish \
         jaiabot_power_board::mcu_command \

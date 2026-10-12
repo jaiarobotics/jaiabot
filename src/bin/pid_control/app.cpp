@@ -247,9 +247,6 @@ jaiabot::apps::BotPidControl::BotPidControl()
                                      << " depth: " << actual_depth_ << std::endl;
         });
 
-    // the STM32 power board and the (older) Arduino driver publish equivalent
-    // response messages on different groups; only one of the two drivers runs
-    // on a given bot, so we subscribe to both to support either configuration
     auto handle_motor_response = [this](const auto& response)
     {
         if (response.has_motor())
@@ -260,6 +257,7 @@ jaiabot::apps::BotPidControl::BotPidControl()
         }
     };
 
+    // subscribe to both the power board and Arduino drivers; only one runs per bot
     interprocess().subscribe<jaiabot::groups::power_board_pb_data_in>(
         [handle_motor_response](const jaiabot::protobuf::PowerBoardResponse& power_board_response)
         { handle_motor_response(power_board_response); });

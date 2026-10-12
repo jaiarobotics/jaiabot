@@ -2,17 +2,45 @@ import JaiaVectorLayer from "./jaia-vector-layer";
 import { LayerTitles } from "../../../types/openlayers-types";
 import { layersZIndexes } from "../zindex";
 import { jaiaAPI } from "../../../utils/jaia-api";
+import { taskPackets } from "../../../data/task_packets/task-packets";
+import { taskPacketFilter } from "../../../data/task_packets/task-packet-filter";
 import { generateContourFeatures } from "../../features/contour-feature";
 
+// Minimum bottom dives the backend needs to generate contours (pyjaia/contours.py)
+const MIN_BOTTOM_DIVES = 3;
+
 class ContourLayer extends JaiaVectorLayer {
+    // Increments per request so a slower earlier response can't overwrite a newer one
+    private latestRequest = 0;
+
     constructor() {
         super(LayerTitles.CONTOUR_LAYER, layersZIndexes.get(LayerTitles.CONTOUR_LAYER));
     }
 
     override updateFeatures() {
-        jaiaAPI
-            .getDepthContours()
+        const includedTaskPackets = taskPacketFilter.filter(taskPackets.getIncludedTaskPackets());
+        // Too few bottom dives to contour -> clear the layer and skip the request so the
+        // backend isn't asked to contour a set it can't use on every poll. Bump latestRequest
+        // so a response still in flight can't repaint the cleared layer.
+        const bottomDiveCount = includedTaskPackets.filter(
+            (taskPacket) => taskPacket.dive?.bottom_dive,
+        ).length;
+        if (bottomDiveCount < MIN_BOTTOM_DIVES) {
+            this.latestRequest += 1;
+            this.getVectorLayer().getSource().clear();
+            return;
+        }
+        // Contour only the packets shown on the map.
+        this.renderContours(jaiaAPI.getDepthContoursForTaskPackets(includedTaskPackets));
+    }
+
+    private renderContours(contours: ReturnType<typeof jaiaAPI.getDepthContoursForTaskPackets>) {
+        const requestID = ++this.latestRequest;
+        contours
             .then((geoJSON) => {
+                if (requestID !== this.latestRequest) {
+                    return;
+                }
                 const features = generateContourFeatures(geoJSON);
                 const source = this.getVectorLayer().getSource();
                 source.clear();

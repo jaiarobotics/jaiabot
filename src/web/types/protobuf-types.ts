@@ -1101,6 +1101,7 @@ export interface TaskPacket {
     type?: TaskType;
     dive?: DivePacket;
     drift?: DriftPacket;
+    mission_name?: string;
 }
 
 export interface SurfaceBounds {

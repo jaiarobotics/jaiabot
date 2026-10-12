@@ -25,9 +25,7 @@ pushd ${HOME}/jaiabot/${build_dir}/share/jaiabot/python
     python3 -m pip -q install wheel
     python3 -m pip install -q -r requirements.txt
 
-    # The local packages carry a fixed version (e.g. pyjaia 1.0.0) that never changes, so pip
-    # cannot tell when their contents change and may leave stale or partially-written files
-    # behind. Reinstall them explicitly so a deploy always lands the code we just built.
+    # Local packages have a fixed version, so force a reinstall to pick up new code.
     local_pkgs=$(grep '^\./' requirements.txt)
     if [ -n "${local_pkgs}" ]; then
         echo "🟢 Reinstalling local python packages: $(echo ${local_pkgs} | tr '\n' ' ')"

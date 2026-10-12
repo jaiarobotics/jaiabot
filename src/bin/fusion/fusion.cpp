@@ -472,9 +472,6 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
             }
         });
 
-    // the STM32 power board and the (older) Arduino driver publish equivalent
-    // response messages on different groups; only one of the two drivers runs
-    // on a given bot, so we subscribe to both to support either configuration
     auto handle_battery_response = [this](const auto& response)
     {
         if (response.has_vccvoltage())
@@ -491,6 +488,7 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
         }
     };
 
+    // subscribe to both the power board and Arduino drivers; only one runs per bot
     interprocess().subscribe<jaiabot::groups::power_board_pb_data_in>(
         [handle_battery_response](const jaiabot::protobuf::PowerBoardResponse& power_board_response)
         { handle_battery_response(power_board_response); });
@@ -671,7 +669,6 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
                 latest_bot_status_.clear_wifi_link_quality_percentage();
             }
         });
-
 
     if (cfg().bot_type() == protobuf::STORM)
     {

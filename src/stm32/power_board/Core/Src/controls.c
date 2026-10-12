@@ -5,30 +5,26 @@
 // TIM handles are instantiated by STM32CubeMX in main.c.
 extern TIM_HandleTypeDef htim16;
 
-int target_motor_ = 1500;
-int max_reverse_ = 1100;
-int motor_off_ = 1500;
+int target_motor_us = 1500;
 
-int rudder_ = 1500;
-int port_elevator_ = 1500;
-int stbd_elevator_ = 1500;
+int rudder_us = 1500;
+int port_elevator_us = 1500;
+int stbd_elevator_us = 1500;
 
-// motor_min_forward/motor_min_reverse: the smallest pulse offset from
-// neutral needed for the ESC to actually engage. These are near-neutral
-// thresholds, NOT the same as max_reverse_, which is the far outer safety
-// limit (e.g. 1100us == -100% throttle) applied by the host driver.
-static const int motor_min_forward_ = 1600;
-static const int motor_min_reverse_ = 1400;
+// Smallest pulse offset from neutral that engages the ESC.
+// Not the same as the host driver's max reverse limit.
+static const int motor_min_forward_us = 1600;
+static const int motor_min_reverse_us = 1400;
 
 // Max change in microseconds applied to the motor per ramp step
-static const int motor_max_step_ = 12;
+static const int motor_max_step_us = 12;
 
 // Time between ramp steps (20 Hz)
-static const uint32_t motor_ramp_interval_ms_ = 50U;
+static const uint32_t motor_ramp_interval_ms = 50U;
 
-static int motor_tracked_ = 1500;
-static int motor_actual_ = 1500;
-static uint32_t motor_last_ramp_ms_ = 0U;
+static int motor_ramped_us = 1500;
+static int motor_output_us = 1500;
+static uint32_t motor_last_ramp_ms = 0U;
 
 static bool esc_pwm_started = false;
 static uint32_t motor_timeout_ms = 0U;
@@ -83,64 +79,59 @@ static void apply_motor_output_us(int pulse_us)
     __HAL_TIM_SET_COMPARE(&htim16, TIM_CHANNEL_1, clamp_u32((uint32_t)pulse_us, 1000U, 2000U));
 }
 
-// Only clamps values that are actively driving the motor; neutral always
-// passes through so the motor can stop regardless of the forward/reverse
-// bound currently in effect.
+// Only clamps values that drive the motor; neutral always passes so it can stop.
 static int motor_forward_clamp(int value)
 {
-    if (value == motor_off_)
-        return motor_off_;
-    if (value < motor_min_forward_)
-        return motor_min_forward_;
+    if (value == MOTOR_NEUTRAL_US)
+        return MOTOR_NEUTRAL_US;
+    if (value < motor_min_forward_us)
+        return motor_min_forward_us;
     return value;
 }
 
 static int motor_reverse_clamp(int value)
 {
-    if (value == motor_off_)
-        return motor_off_;
-    if (value > motor_min_reverse_)
-        return motor_min_reverse_;
+    if (value == MOTOR_NEUTRAL_US)
+        return MOTOR_NEUTRAL_US;
+    if (value > motor_min_reverse_us)
+        return motor_min_reverse_us;
     return value;
 }
 
-// Steps motor_tracked_ toward target_motor_ by at most motor_max_step_ so
-// the ESC sees a ramp rather than an instantaneous jump. The clamp side is
-// chosen by the sign of motor_tracked_ (the value being applied), not
-// target_motor_, so a direction-reversal command still ramps through neutral
-// instead of snapping straight to the opposite side's near-neutral threshold.
+// Ramps motor_ramped_us toward target_motor_us by at most motor_max_step_us.
+// Clamping follows motor_ramped_us's sign so reversals ramp through neutral.
 static void step_motor_toward_target(void)
 {
-    if (target_motor_ > motor_off_ && target_motor_ > motor_tracked_)
+    if (target_motor_us > MOTOR_NEUTRAL_US && target_motor_us > motor_ramped_us)
     {
-        motor_tracked_ += min_int(target_motor_ - motor_tracked_, motor_max_step_);
+        motor_ramped_us += min_int(target_motor_us - motor_ramped_us, motor_max_step_us);
     }
-    else if ((target_motor_ > motor_off_ && target_motor_ < motor_tracked_) ||
-             (target_motor_ == motor_off_ && motor_tracked_ > motor_off_))
+    else if ((target_motor_us > MOTOR_NEUTRAL_US && target_motor_us < motor_ramped_us) ||
+             (target_motor_us == MOTOR_NEUTRAL_US && motor_ramped_us > MOTOR_NEUTRAL_US))
     {
-        motor_tracked_ -= min_int(motor_tracked_ - target_motor_, motor_max_step_);
+        motor_ramped_us -= min_int(motor_ramped_us - target_motor_us, motor_max_step_us);
     }
-    else if ((target_motor_ < motor_off_ && target_motor_ > motor_tracked_) ||
-             (target_motor_ == motor_off_ && motor_tracked_ < motor_off_))
+    else if ((target_motor_us < MOTOR_NEUTRAL_US && target_motor_us > motor_ramped_us) ||
+             (target_motor_us == MOTOR_NEUTRAL_US && motor_ramped_us < MOTOR_NEUTRAL_US))
     {
-        motor_tracked_ += min_int(target_motor_ - motor_tracked_, motor_max_step_);
+        motor_ramped_us += min_int(target_motor_us - motor_ramped_us, motor_max_step_us);
     }
-    else if (target_motor_ < motor_off_ && target_motor_ < motor_tracked_)
+    else if (target_motor_us < MOTOR_NEUTRAL_US && target_motor_us < motor_ramped_us)
     {
-        motor_tracked_ -= min_int(motor_tracked_ - target_motor_, motor_max_step_);
+        motor_ramped_us -= min_int(motor_ramped_us - target_motor_us, motor_max_step_us);
     }
 
-    if (motor_tracked_ > motor_off_)
-        motor_actual_ = motor_forward_clamp(motor_tracked_);
-    else if (motor_tracked_ < motor_off_)
-        motor_actual_ = motor_reverse_clamp(motor_tracked_);
+    if (motor_ramped_us > MOTOR_NEUTRAL_US)
+        motor_output_us = motor_forward_clamp(motor_ramped_us);
+    else if (motor_ramped_us < MOTOR_NEUTRAL_US)
+        motor_output_us = motor_reverse_clamp(motor_ramped_us);
     else
-        motor_actual_ = motor_off_;
+        motor_output_us = MOTOR_NEUTRAL_US;
 
-    apply_motor_output_us(motor_actual_);
+    apply_motor_output_us(motor_output_us);
 }
 
-int controls_get_motor_actual(void) { return motor_actual_; }
+int controls_get_motor_output(void) { return motor_output_us; }
 
 void controls_stop_outputs(void)
 {
@@ -152,9 +143,9 @@ void controls_stop_outputs(void)
 
     // Power is about to be cut, so drop straight to neutral rather than
     // resuming a ramp from a stale pulse width after waking.
-    target_motor_ = motor_off_;
-    motor_tracked_ = motor_off_;
-    motor_actual_ = motor_off_;
+    target_motor_us = MOTOR_NEUTRAL_US;
+    motor_ramped_us = MOTOR_NEUTRAL_US;
+    motor_output_us = MOTOR_NEUTRAL_US;
     motor_timeout_active = false;
     motor_timeout_event_pending = false;
 }
@@ -166,10 +157,10 @@ void handle_control_surfaces(const jaiabot_protobuf_ControlSurfaces* control_sur
         return;
     }
 
-    target_motor_ = control_surfaces->motor;
-    rudder_ = control_surfaces->rudder;
-    stbd_elevator_ = control_surfaces->stbd_elevator;
-    port_elevator_ = control_surfaces->port_elevator;
+    target_motor_us = control_surfaces->motor;
+    rudder_us = control_surfaces->rudder;
+    stbd_elevator_us = control_surfaces->stbd_elevator;
+    port_elevator_us = control_surfaces->port_elevator;
 
     if (control_surfaces->timeout > 0)
     {
@@ -202,16 +193,16 @@ void controls_periodic_update(void)
     if (motor_timeout_active && (HAL_GetTick() - motor_last_command_ms) >= motor_timeout_ms)
     {
         motor_timeout_active = false;
-        target_motor_ = motor_off_;
-        rudder_ = 1500;
-        stbd_elevator_ = 1500;
-        port_elevator_ = 1500;
+        target_motor_us = MOTOR_NEUTRAL_US;
+        rudder_us = 1500;
+        stbd_elevator_us = 1500;
+        port_elevator_us = 1500;
         motor_timeout_event_pending = true;
     }
 
-    if ((HAL_GetTick() - motor_last_ramp_ms_) >= motor_ramp_interval_ms_)
+    if ((HAL_GetTick() - motor_last_ramp_ms) >= motor_ramp_interval_ms)
     {
-        motor_last_ramp_ms_ = HAL_GetTick();
+        motor_last_ramp_ms = HAL_GetTick();
         step_motor_toward_target();
     }
 }

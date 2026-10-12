@@ -333,8 +333,7 @@ void HAL_LPTIM_MspInit(LPTIM_HandleTypeDef* hlptim)
     /* Peripheral clock enable */
     __HAL_RCC_LPTIM1_CLK_ENABLE();
     /* USER CODE BEGIN LPTIM1_MspInit 1 */
-    /* Override: clock LPTIM1 from LSI so it can run in Sleep with a 10 s period.
-       Kept in USER CODE so CubeMX regen doesn't revert it. */
+    /* Clock LPTIM1 from LSI so it runs during sleep (kept here to survive CubeMX regen) */
     {
       RCC_PeriphCLKInitTypeDef LptimClkInit = {0};
       LptimClkInit.PeriphClockSelection = RCC_PERIPHCLK_LPTIM1;
@@ -834,6 +833,12 @@ void HAL_TIM_IC_MspInit(TIM_HandleTypeDef* htim_ic)
     HAL_GPIO_Init(PHASE_A_GPIO_Port, &GPIO_InitStruct);
 
     /* USER CODE BEGIN TIM15_MspInit 1 */
+    // Backs up the R9 pull-up on PHASE_A
+    GPIO_InitStruct.Pull = GPIO_PULLUP;
+    HAL_GPIO_Init(PHASE_A_GPIO_Port, &GPIO_InitStruct);
+
+    HAL_NVIC_SetPriority(TIM1_BRK_TIM15_IRQn, 5, 0);
+    HAL_NVIC_EnableIRQ(TIM1_BRK_TIM15_IRQn);
 
     /* USER CODE END TIM15_MspInit 1 */
 
@@ -952,6 +957,7 @@ void HAL_TIM_IC_MspDeInit(TIM_HandleTypeDef* htim_ic)
     HAL_GPIO_DeInit(PHASE_A_GPIO_Port, PHASE_A_Pin);
 
     /* USER CODE BEGIN TIM15_MspDeInit 1 */
+    HAL_NVIC_DisableIRQ(TIM1_BRK_TIM15_IRQn);
 
     /* USER CODE END TIM15_MspDeInit 1 */
   }

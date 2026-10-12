@@ -119,6 +119,15 @@ class HelmIVPStatusThread : public HealthMonitorThread<jaiabot::config::HelmIVPS
     goby::time::SteadyClock::time_point helm_ivp_data_last_updated_{std::chrono::seconds(0)};
 };
 
+// Motor thermistor voltage divider, as seen from the reported voltage
+struct ThermistorDivider
+{
+    double supply_voltage;
+    double fixed_ohms;
+    double adc_gain; // reported voltage / divider node voltage
+    bool thermistor_high_side;
+};
+
 class MotorStatusThread : public HealthMonitorThread<jaiabot::config::MotorStatusConfig>
 {
   public:
@@ -136,12 +145,15 @@ class MotorStatusThread : public HealthMonitorThread<jaiabot::config::MotorStatu
     goby::time::SteadyClock::time_point last_motor_thermistor_report_time_{std::chrono::seconds(0)};
     goby::time::SteadyClock::time_point next_motor_usage_report_time_{goby::time::SteadyClock::now()};
     double rpm_value_{0};
+    // set once the power board reports RPM, after which the Pi GPIO tach is ignored
+    bool use_power_board_rpm_{false};
 
     // Motor usage database
     void open_vehicle_database();
     void load_motor_usage_from_db();
     void log_motor(int32_t motor_micros, double usage_duration_seconds, float rpm);
-    template <typename Response> void handle_motor_response(const Response& response);
+    template <typename Response>
+    void handle_motor_response(const Response& response, const ThermistorDivider& thermistor);
     template <typename Response> void log_usage(const Response& response);
     void update_total_motor_usage();
     sqlite3* vehicle_db_;

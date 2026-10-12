@@ -35,8 +35,24 @@ using goby::glog;
 
 #define now_microseconds() (goby::time::SystemClock::now<goby::time::MicroTime>().value())
 
-constexpr int thermistor_ohms_neutral = 10000;
-constexpr int thermistor_voltage = 5;
+// Arduino: 10k pull-up to 5 V, thermistor to GND, node read directly
+constexpr jaiabot::apps::ThermistorDivider arduino_thermistor{5.0, 10000, 1.0, false};
+
+// Thermistor resistance from a reported voltage. Returns false when the node is near a rail
+// (open, shorted or unpowered thermistor).
+static bool thermistor_ohms(const jaiabot::apps::ThermistorDivider& divider,
+                            double reported_voltage, float& ohms)
+{
+    const double rail_margin = 0.02 * divider.supply_voltage;
+    const double node_voltage = reported_voltage / divider.adc_gain;
+    if (node_voltage < rail_margin || node_voltage > divider.supply_voltage - rail_margin)
+        return false;
+
+    const double fixed_voltage =
+        divider.thermistor_high_side ? node_voltage : divider.supply_voltage - node_voltage;
+    ohms = divider.fixed_ohms * (divider.supply_voltage - fixed_voltage) / fixed_voltage;
+    return true;
+}
 
 constexpr int32_t MOTOR_MICROS_BIN = 50;   // Bin size for motor microseconds
 constexpr int32_t MOTOR_OFF_MICROS = 1500; // Value at which the motor is off (neutral)
@@ -62,29 +78,46 @@ jaiabot::apps::MotorStatusThread::MotorStatusThread(const jaiabot::config::Motor
             glog.is_debug2() && glog << "Publishing Motor message: " << motor.ShortDebugString()
                                      << std::endl;
 
+            if (use_power_board_rpm_)
+                return;
+
             rpm_value_ = motor.rpm();
             last_motor_rpm_report_time_ = goby::time::SteadyClock::now();
         });
 
-    // the STM32 power board and the (older) Arduino driver publish equivalent
-    // response messages on different groups; only one of the two drivers runs
-    // on a given bot, so we subscribe to both to support either configuration
+    // subscribe to both the power board and Arduino drivers; only one runs per bot
     interprocess().subscribe<jaiabot::groups::power_board_pb_data_in>(
         [this](const jaiabot::protobuf::PowerBoardResponse& power_board_response)
-        { handle_motor_response(power_board_response); });
+        {
+            // prefer the power board's tach RPM over the Pi GPIO tach
+            if (power_board_response.has_motor_rpm())
+            {
+                use_power_board_rpm_ = true;
+                rpm_value_ = power_board_response.motor_rpm();
+                last_motor_rpm_report_time_ = goby::time::SteadyClock::now();
+            }
+            const ThermistorDivider power_board_thermistor{
+                this->cfg().power_board_thermistor_supply_voltage(),
+                this->cfg().power_board_thermistor_fixed_ohms(),
+                this->cfg().power_board_thermistor_adc_gain(),
+                this->cfg().power_board_thermistor_high_side()};
+            handle_motor_response(power_board_response, power_board_thermistor);
+        });
 
     interprocess().subscribe<jaiabot::groups::arduino_to_pi>(
         [this](const jaiabot::protobuf::ArduinoResponse& arduino_response)
-        { handle_motor_response(arduino_response); });
+        { handle_motor_response(arduino_response, arduino_thermistor); });
 }
 
 template <typename Response>
-void jaiabot::apps::MotorStatusThread::handle_motor_response(const Response& response)
+void jaiabot::apps::MotorStatusThread::handle_motor_response(const Response& response,
+                                                             const ThermistorDivider& thermistor)
 {
-    if (response.has_thermistor_voltage())
+    float resistance = 0;
+    if (response.has_thermistor_voltage() &&
+        thermistor_ohms(thermistor, response.thermistor_voltage(), resistance))
     {
         float voltage = response.thermistor_voltage();
-        float resistance = thermistor_ohms_neutral * voltage / (thermistor_voltage - voltage);
         float temperature = goby::util::linear_interpolate(resistance, resistance_to_temperature_);
         float temperature_celsius = (temperature - 32) / 1.8;
 

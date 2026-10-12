@@ -97,3 +97,17 @@ export function syncTaskLayers() {
     contourLayer.updateFeatures();
     excludedTaskPacketsLayer.updateFeatures();
 }
+
+/**
+ * Repaints only the per-packet task layers (dive, drift, excluded) from the current
+ * client-side data. Unlike syncTaskLayers() this does NOT refresh the contour layer,
+ * so it makes no network request. Used by the task packet filter's time slider so
+ * dragging is instant.
+ *
+ * @returns {void}
+ */
+export function syncTaskPacketMarkerLayers() {
+    diveLayer.updateFeatures();
+    driftLayer.updateFeatures();
+    excludedTaskPacketsLayer.updateFeatures();
+}
