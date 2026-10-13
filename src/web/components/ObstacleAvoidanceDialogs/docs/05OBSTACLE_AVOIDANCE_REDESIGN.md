@@ -163,8 +163,12 @@ waypoints change:
 
 - **Its visible waypoints cross a zone:** conflicted.
 - **Some suppressed waypoints are no longer blocked:** a reroute would bring them back.
-- **Its original waypoints cross no zone:** the detours are no longer needed, and the operator can
-  restore the original waypoints.
+
+Status does not report detours that are no longer needed. Only a reroute can tell whether a
+simpler route exists, and a cheaper test misses cases (a deleted zone's detours stay unflagged
+while another suppressed waypoint is still blocked). Stale detours still give a clear route. To
+drop them, the operator restores the original waypoints and, if the mission then crosses a zone,
+reroutes it.
 
 Fixing any of these is the operator's choice. If a zone is deleted and later restored, the
 operator reroutes, or uses undo; nothing comes back on its own.
@@ -174,7 +178,7 @@ Worked example, a survey:
 1. The survey planner creates missions.
 2. The operator reroutes them. The reroute suppresses the blocked survey waypoints and adds detours.
 3. The zone is deleted. The missions do not change, because a zone edit never changes waypoints.
-   Their status icons change to "detours no longer needed".
+   Their status icons show suppressed waypoints that are clear again.
 4. The operator clicks **Restore original waypoints**. The full survey is back, with its tasks and
    lane boundaries.
 
@@ -313,7 +317,7 @@ The data formats and code layout that support the Phase 1 workflow.
 - **`Mission` accessors: one per view, and who uses each.**
     - _Visible waypoints_, `getWaypoints()` and `getWaypoint(n)`: the map, panels, waypoint
       numbering, the waypoint count, and building the MissionPlan.
-    - _Original waypoints_: the reroute handler's input, and the "detours no longer needed" status.
+    - _Original waypoints_: the reroute handler's input.
     - _Suppressed waypoints_: the "a reroute would bring them back" status, and the reroute
       report.
     - _Full stored list_: private to `Mission`, apart from serialisation.
@@ -555,7 +559,6 @@ The data formats and code layout that support the Phase 1 workflow.
     interface RoutingStatus {
         isConflicted: boolean; // the visible route, detours included, crosses a zone
         clearSuppressed: number[]; // original numbers of suppressed waypoints no longer blocked
-        detoursUnneeded: boolean; // it has detours, and the original route is clear
     }
     ```
 
@@ -626,7 +629,7 @@ In progress. Decided and known items:
 - **Two dialogs, one per status icon, sharing their content.** The status icons are the only
   way into rerouting and restoring; no separate Reroute or Restore buttons exist.
     - _One mission:_ tapping the mission's routing-status icon opens a dialog with its status
-      details (which suppressed waypoints are clear, whether detours are still needed) and its
+      details (whether its route crosses a zone, which suppressed waypoints are clear) and its
       actions: reroute, and restore original waypoints.
     - _Mission set:_ an icon at the top of the missions list shows the status of the whole set and
       opens the same kind of dialog, listing the status of each mission, with buttons to reroute
@@ -669,8 +672,7 @@ In progress. Decided and known items:
         - _Reroute_ takes a mission that is conflicted (`isConflicted`) or has suppressed
           waypoints that are now clear (`clearSuppressed`). A mission that was rerouted and is
           still clear is left alone: rerouting it again would usually give the same detours.
-        - _Restore_ takes a mission that has detours or suppressed waypoints, including one whose
-          detours are no longer needed (`detoursUnneeded`).
+        - _Restore_ takes a mission that has detours or suppressed waypoints.
         - Reroute all and Restore all send every mission that qualifies; the report lists only
           those. In either dialog, a button with no qualifying mission is disabled.
     - Opening the dialog is the operator's choice, so it does not interrupt an edit (principle 2).
@@ -678,8 +680,9 @@ In progress. Decided and known items:
       accepted (principle 4): the reroute runs only when its button is pressed.
 - The router is a function the reroute handler calls. Its interface is redesigned to produce what
   `Mission`'s reroute method takes; the current interface is not a constraint. It has no
-  operator-facing choices, so it is settled while implementing step 3, together with the Parked
-  projection-frame item.
+  operator-facing choices, so it was settled in step 3: `autoRoute` returns a step per
+  original waypoint, or "all waypoints blocked", or "no route" on a leg named by original waypoint
+  numbers. It projects legs from the first kept waypoint, the same origin the status check uses.
 - The reroute report dialog: layout, and how a reroute of all missions is summarised.
 - **A reroute or restore records exactly one undo entry**, including one of the whole mission
   set, so one Undo backs it out. Each is a **single tracked action**: one dispatch, carrying the
@@ -728,13 +731,6 @@ changes.
   a tracked action, unlike Save, so undoing the next edit reverts the name. (b) A placement
   refused inside a zone still records an empty undo entry; fixed by refusing in `Map.tsx` before
   dispatch (Phase 3).
-- **Phase 3, with the router's interface:** `getBlockingZoneIDs` ignores its `zones` argument
-  when given a prebuilt buffer cache.
-- **Phase 3, with the router's interface:** routing status projects a route from its first
-  waypoint, and the router projects a mission from its first goal. If the reroute routes legs from
-  any other origin, a detour leg that grazes a buffer can test as blocked once stored, and a
-  freshly rerouted mission shows as conflicted. Route and test in the same frame, or test with a
-  tolerance.
 - **Step 4:** `getRoutingStatus` rebuilds and buffers every zone for each mission. When the icon
   shows status for every mission, share the zone geometry across missions or recompute only when
   the zones change.
