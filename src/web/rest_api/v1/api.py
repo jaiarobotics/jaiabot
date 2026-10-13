@@ -189,7 +189,7 @@ def task_packets(jaia_request: APIRequest):
             jaia_response.task_packets.unchanged = True
             return jaia_response
 
-        task_packets = task_packet_database.query_task_packets(bot_ids, start_time, end_time, included=included, mission_names=mission_names)
+        task_packets = task_packet_database.query_task_packets(bot_ids, start_time, end_time, included=included, mission_names=mission_names, limit=jaia_request.task_packets.limit)
 
     if is_json:
         jaia_response = APIResponse()
