@@ -34,6 +34,10 @@ message TaskPacketQuery
             presence: GUARANTEED,
             doc: "Whether to only return excluded task packets. Takes precedence over included_only."
         }];
+    optional uint32 known_version = 6
+        [(jaia.field).rest_api = {
+            doc: "The version from an earlier response to this same query. If the task packets haven't changed since, the response has no packets and 'unchanged' is set. Only used with the JSON format."
+        }];
     
     enum Format {
         JSON = 0 [(jaia.ev).rest_api = { presence: GUARANTEED }];
@@ -49,6 +53,15 @@ message TaskPacketQueryResults
 {
     repeated TaskPacket packets = 1
         [(jaia.field).rest_api.presence = GUARANTEED];
+    optional uint32 version = 2
+        [(jaia.field).rest_api = {
+            presence: GUARANTEED,
+            doc: "Version of the hub's task packets when this response was built. It changes whenever task packets are added, included or excluded."
+        }];
+    optional bool unchanged = 3
+        [(jaia.field).rest_api = {
+            doc: "Set when the request's known_version is still current, in which case packets is empty."
+        }];
 }
 
 message DepthContoursQuery
@@ -79,11 +92,6 @@ message MissionQueryResults
 message CommandResult
 {
     required bool command_sent = 1
-        [(jaia.field).rest_api.presence = GUARANTEED];
-}
-
-message TaskPacketsVersionResult {
-    required uint32 version = 1
         [(jaia.field).rest_api.presence = GUARANTEED];
 }
 
@@ -234,10 +242,6 @@ message APIRequest
             }
         }];
         // Endpoints for JCC & JED
-        bool task_packets_version = 18 [(jaia.field).rest_api = {
-            presence: GUARANTEED,
-            doc: "Check the version of the task packets."
-        }];
         string take_control = 19 [(jaia.field).rest_api = {
             presence: GUARANTEED,
             doc: "The client ID of the operator who wants to take control. Expect a response of type 'controlling_client_id'."
@@ -390,10 +394,6 @@ message APIResponse
         CommandResult command_result = 14 [(jaia.field).rest_api = {
             presence: GUARANTEED,
             doc: "Command result. This is sent in response to a successful Request 'command', 'command_for_hub' or 'engineering_command' action."
-        }];
-        TaskPacketsVersionResult task_packets_version = 17 [(jaia.field).rest_api = {
-            presence: GUARANTEED,
-            doc: "Task packet version response. This is sent in response to a successful Request 'task_packets_version' action."
         }];
         string controlling_client_id = 18 [(jaia.field).rest_api = {
             presence: GUARANTEED,
