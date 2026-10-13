@@ -300,8 +300,10 @@ def stage_import(args, ova, nodes):
     bots = ','.join(str(n.id) for n in nodes if n.type == 'bot')
     hubs = ','.join(str(n.id) for n in nodes if n.type == 'hub')
     log(f'importing bots [{bots}] hubs [{hubs}] as fleet {args.fleet}')
+    log(f'simulation warp {args.warp}')
     run(['./import_vms.sh', ova, bots, hubs, str(args.fleet)],
-        cwd=IMPORT_VMS_DIR, capture=False)
+        cwd=IMPORT_VMS_DIR, capture=False,
+        env={**os.environ, 'JAIA_SIM_WARP': str(args.warp)})
 
     resolve_nodes(args, ova, nodes)
     return group
@@ -883,6 +885,10 @@ def parse_args(argv):
     p.add_argument('--cache-dir', default=os.path.expanduser('~/jaia-ova-cache'),
                    help='where downloaded OVAs are kept (default: %(default)s)')
     p.add_argument('--fleet', type=int, default=300, help='fleet id (default: %(default)s)')
+    p.add_argument('--warp', type=int, default=10, choices=[1, 2, 5, 10, 20, 30, 40, 50],
+                   help='simulation warp written into the fleet config at import; at 10 the '
+                        "bots' clock runs from 1970 at 10x and reaches the year 2537, which JDV "
+                        'cannot display (default: %(default)s)')
     p.add_argument('--bots', default='1,2',
                    help='comma separated bot ids (default: %(default)s)')
     p.add_argument('--hubs', default='1,2',
