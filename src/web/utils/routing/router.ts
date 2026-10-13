@@ -233,13 +233,21 @@ function expandPolygon(poly: XYPt[], margin: number): XYPt[] {
     const cleaned = Clipper.unionD(input, FillRule.NonZero);
     const subject = cleaned.length > 0 ? cleaned : input;
 
-    const result = Clipper.inflatePathsD(subject, margin, JoinType.Round, EndType.Polygon);
+    // Simplifying cuts across the rounded corners by up to its tolerance, so inflate that much
+    // further first: the simplified buffer then never comes closer than `margin`.
+    const tolerance = margin * 0.1;
+    const result = Clipper.inflatePathsD(
+        subject,
+        margin + tolerance,
+        JoinType.Round,
+        EndType.Polygon,
+    );
     if (!result || result.length === 0 || result[0].length === 0) return poly;
 
     const merged = Clipper.unionD(result, FillRule.NonZero);
     if (!merged || merged.length === 0) return poly;
 
-    const simplified = Clipper.ramerDouglasPeuckerPathsD(merged, margin * 0.25);
+    const simplified = Clipper.ramerDouglasPeuckerPathsD(merged, tolerance);
     const output = simplified.length > 0 ? simplified[0] : merged[0];
     const pts = output.map((p: { x: number; y: number }) => ({ x: p.x, y: p.y }));
 
