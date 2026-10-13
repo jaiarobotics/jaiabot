@@ -1,4 +1,4 @@
-import { jaia_rest_api } from "../../../utils/jaia-rest-api";
+import { jaia_rest_api, nullIfRecordNotFound } from "../../../utils/jaia-rest-api";
 import { RecordQuery_RecordType } from "@proto/jaiabot/messages/rest_api";
 import {
     exclusionZoneSet,
@@ -50,7 +50,7 @@ export async function listSavedZoneSetsFromHub(): Promise<string[]> {
  * @returns {Promise<void>}
  */
 export async function saveToHub(name: string): Promise<void> {
-    jaia_rest_api.request({
+    await jaia_rest_api.request({
         target: {
             all: true,
         },
@@ -69,8 +69,8 @@ export async function saveToHub(name: string): Promise<void> {
  * @returns {Promise<ExclusionZoneSetSnapshot | null>} The loaded snapshot, or null if not found
  */
 export async function loadSnapshotFromHub(name: string): Promise<ExclusionZoneSetSnapshot | null> {
-    return jaia_rest_api
-        .request({
+    return nullIfRecordNotFound(
+        jaia_rest_api.request({
             target: {
                 all: true,
             },
@@ -78,12 +78,12 @@ export async function loadSnapshotFromHub(name: string): Promise<ExclusionZoneSe
                 type: RecordQuery_RecordType.EXCLUSION_ZONE,
                 get_name: name,
             },
-        })
-        .then((response) =>
-            response?.record_query_response?.content
-                ? (JSON.parse(response.record_query_response.content) as ExclusionZoneSetSnapshot)
-                : null,
-        );
+        }),
+    ).then((response) =>
+        response?.record_query_response?.content
+            ? (JSON.parse(response.record_query_response.content) as ExclusionZoneSetSnapshot)
+            : null,
+    );
 }
 
 /**
@@ -93,15 +93,17 @@ export async function loadSnapshotFromHub(name: string): Promise<ExclusionZoneSe
  * @returns {Promise<void>}
  */
 export async function deleteFromHub(name: string): Promise<void> {
-    jaia_rest_api.request({
-        target: {
-            all: true,
-        },
-        record_query: {
-            type: RecordQuery_RecordType.EXCLUSION_ZONE,
-            delete_name: name,
-        },
-    });
+    await nullIfRecordNotFound(
+        jaia_rest_api.request({
+            target: {
+                all: true,
+            },
+            record_query: {
+                type: RecordQuery_RecordType.EXCLUSION_ZONE,
+                delete_name: name,
+            },
+        }),
+    );
 }
 
 // ── File export / import ────────────────────────────────────────────────────
