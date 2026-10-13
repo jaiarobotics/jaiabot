@@ -1,6 +1,7 @@
 from common import is_simulation
 from common import config
 import common.comms
+import common.udp
 
 def bot_id_to_node_id(bot_id):
     return bot_id+common.comms.hub_node_id+1
@@ -12,13 +13,10 @@ def moos_simulator_port(node_id):
     return 9100 + node_id
 
 def gpsd_device(node_id):
-    if is_simulation():
-        return "udp://127.0.0.1:" + str(gpsd_simulator_udp_port(node_id))
-    else:
-        return '/dev/gps0'
+    return "udp://127.0.0.1:" + str(common.udp.gpsd_udp_port(node_id))
 
 def gpsd_simulator_udp_port(node_id):
-    return 32100 + node_id
+    return common.udp.gpsd_udp_port(node_id)
 
 def gpsd_port(node_id):
     if is_simulation():
@@ -27,17 +25,21 @@ def gpsd_port(node_id):
         default_gpsd_port=2947
         return default_gpsd_port
 
-def serial_camera_port(bot_id: int):
+def serial_camera_port(bot_id: int, jaia_iridium_enabled: bool) -> str:
     """Get the device path to the serial port connected to the Pi Zero device running the camera driver.
 
     Args:
         bot_id (int): The bot id.
+        jaia_iridium_enabled (bool): Whether Iridium is enabled on the bot.
 
     Returns:
         str: Path to the serial port, i.e. "/dev/ttyAMA5"
     """
     if is_simulation():
         return f"/tmp/bot{bot_id}_camera_0"
+
+    if jaia_iridium_enabled:
+        return '/dev/ttyAMA3'
     else:
         return '/dev/ttyAMA5' # TODO: Change to /dev/rpicam when camera udev rules are updated
 
@@ -77,5 +79,10 @@ def arduino_bounds():
 def xbee_info():
     return config.read_pb_cfg_block('/etc/jaiabot/xbee_info.pb.cfg', 'xbee')
 
+# bots provisioned before dual fluorometer support have a single unnumbered file, which
+# belongs to the first fluorometer
 def fluorometer_coefficients():
     return config.read_pb_cfg_block('/etc/jaiabot/fluorometer_coefficients.pb.cfg', 'fluorometer_coefficients')
+
+def fluorometer_coefficients_2():
+    return config.read_pb_cfg_block('/etc/jaiabot/fluorometer_coefficients_2.pb.cfg', 'fluorometer_coefficients')

@@ -2,8 +2,11 @@ import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 
 import StopAllBotsButton from "../StopAllBotsButton";
+import { JaiaDispatchContext } from "../../../../context/JaiaContext";
+import { JaiaActions } from "../../../../context/jaia-actions";
 
 import { bots } from "../../../../data/bots/bots";
+import { jaia_rest_api } from "../../../../utils/jaia-rest-api";
 
 import { PortalBotStatus } from "@proto/jaiabot/messages/rest_api";
 import { MissionState } from "@proto/jaiabot/messages/mission";
@@ -57,11 +60,9 @@ const botStatusMock4: PortalBotStatus = {
 bots.setBot(botStatusMock2);
 bots.setBot(botStatusMock3);
 
-// Mock Jaia API
-const originalModule = jest.requireActual("../../../../utils/jaia-api");
-originalModule.jaiaAPI.hit = jest
-    .fn()
-    .mockResolvedValue({ code: 200, msg: "Mocked Success", bots: [], hubs: [] });
+jest.spyOn(jaia_rest_api, "request").mockResolvedValue({
+    command_result: { command_sent: true },
+});
 
 test("0 Bots accepting stop commands", async () => {
     render(<StopAllBotsButton bots={bots.getBots()} />);
@@ -107,8 +108,13 @@ test("1 Bot accepting stop commands", async () => {
 
 test("2 Bots accepting stop commands", async () => {
     bots.setBot(botStatusMock4);
+    const jaiaDispatch = jest.fn();
 
-    render(<StopAllBotsButton bots={bots.getBots()} />);
+    render(
+        <JaiaDispatchContext.Provider value={jaiaDispatch}>
+            <StopAllBotsButton bots={bots.getBots()} />
+        </JaiaDispatchContext.Provider>,
+    );
     const button = screen.getByRole("button", { name: "stop-all-bots" });
     await userEvent.click(button);
 
@@ -126,6 +132,10 @@ test("2 Bots accepting stop commands", async () => {
     const stopButton = screen.getByText("Stop Bots");
     await userEvent.click(stopButton);
     expect(screen.queryByText("Confirm")).toBeNull();
+    expect(jaiaDispatch).toHaveBeenCalledTimes(2);
+    expect(jaiaDispatch).toHaveBeenCalledWith(
+        expect.objectContaining({ type: JaiaActions.SENT_COMMAND }),
+    );
 });
 
 test("All Bots accepting stop commands", async () => {

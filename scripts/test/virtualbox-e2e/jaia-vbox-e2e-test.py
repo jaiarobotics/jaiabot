@@ -769,7 +769,7 @@ def hub_api(args, hub):
     """The shared REST client for a hub, one per address."""
     if hub.hostonly_ip not in hub_api.clients:
         hub_api.clients[hub.hostonly_ip] = jaia_api.HubApi(
-            f'http://{hub.hostonly_ip}', args.api_key)
+            f'http://{hub.hostonly_ip}')
     return hub_api.clients[hub.hostonly_ip]
 
 
@@ -830,8 +830,6 @@ def parse_args(argv):
                         '(default: %(default)s)')
     p.add_argument('--ssh-key', default=os.path.expanduser('~/.ssh/id_rsa'),
                    help='private key matching a public key in ~/.ssh (default: %(default)s)')
-    p.add_argument('--api-key', default='',
-                   help='REST API key, if the hubs require one')
     p.add_argument('--vm-type', default='headless', choices=['headless', 'gui', 'separate'],
                    help='how to start the VMs (default: %(default)s)')
     p.add_argument('--mission-bots',

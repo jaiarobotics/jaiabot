@@ -287,6 +287,11 @@ def pod_status(jaia_request: APIRequest) -> APIResponse:
     return jaia_response
 
 
+def depth_contours(jaia_request: APIRequest):
+    geojson_contours = task_packets_to_geojson(jaia_request.depth_contours.packets)
+    return geojson_contours, {'Content-Type': 'application/vnd.geo+json'}
+
+
 def take_control(jaia_request: APIRequest) -> APIResponse:
     jaia_response = APIResponse()
     with common.shared_data.data_lock:
@@ -338,7 +343,13 @@ def download_ctd_profiles(_: APIRequest) -> Response:
     """Provides access to CTD files on the Hub
     """
     dir = Path("/var/log/jaiabot/bot_offload")
-    files = list(dir.glob("*.unb")) if dir.exists() else []
+    downloaded_dir = Path("/var/log/jaiabot/ctd_downloaded")
+    downloaded_dir.mkdir(parents=True, exist_ok=True)
+    files = [
+        path
+        for path in dir.glob("*.unb")
+        if not (downloaded_dir / path.name).exists()
+    ] if dir.exists() else []
 
     if len(files) == 0:
         return Response(status=HTTPStatus.NO_CONTENT)
@@ -354,7 +365,16 @@ def download_ctd_profiles(_: APIRequest) -> Response:
     ctd_archive = dir / "ctd_archive"
     ctd_archive.mkdir(parents=True, exist_ok=True)
     for ctd_file in files:
-        shutil.move(str(ctd_file), ctd_archive / ctd_file.name);
+        archived_file = ctd_archive / ctd_file.name
+        try:
+            shutil.move(str(ctd_file), archived_file)
+        except PermissionError:
+            if not archived_file.exists():
+                raise
+            l.warning(
+                f"CTD profile archived but source could not be removed: {ctd_file}"
+            )
+        (downloaded_dir / ctd_file.name).touch()
     
     return send_file(
         zip_file,

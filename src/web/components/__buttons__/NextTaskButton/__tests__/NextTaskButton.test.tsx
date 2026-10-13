@@ -6,6 +6,7 @@ import { messages } from "../next-task-messages";
 import { DisabledCodes } from "../../disabled-codes";
 
 import { bots } from "../../../../data/bots/bots";
+import { jaia_rest_api } from "../../../../utils/jaia-rest-api";
 import { PortalBotStatus } from "@proto/jaiabot/messages/rest_api";
 import { MissionState } from "@proto/jaiabot/messages/mission";
 
@@ -26,10 +27,9 @@ const botStatusMock2: PortalBotStatus = {
 bots.setBot(botStatusMock1);
 bots.setBot(botStatusMock2);
 
-const originalModule = jest.requireActual("../../../../utils/jaia-api");
-originalModule.jaiaAPI.hit = jest
-    .fn()
-    .mockResolvedValue({ code: 200, msg: "Mocked Success", bots: [], hubs: [] });
+jest.spyOn(jaia_rest_api, "request").mockResolvedValue({
+    command_result: { command_sent: true },
+});
 
 // Place user in control by default
 jest.mock("../../../../utils/commands", () => {

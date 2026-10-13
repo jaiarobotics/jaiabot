@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>VirtualFleet not running</title>
+        <link rel="icon" href="/_jaia/logo.svg" />
+        <link rel="stylesheet" href="/_jaia/landing.css" />
+        <link rel="stylesheet" href="/_jaia/nav.css" />
+        <!-- nav.js reloads this page once the VirtualFleet answers -->
+        <script defer src="/_jaia/nav.js"></script>
+    </head>
+
+    <body>
+        <main class="landing" data-jaia-sim-wait>
+            <header class="landing-header">
+                <img class="landing-logo" src="/_jaia/logo.svg" alt="Jaia" />
+                <h1 class="landing-title">Sim</h1>
+            </header>
+
+            <div class="site">
+                <h2 class="site-title">The VirtualFleet isn't running</h2>
+                <p class="site-description">
+                    The simulated VirtualFleet runs only once it has been started. This page
+                    reloads by itself when it is up.
+                </p>
+                <p class="site-notice">
+                    <span data-jaia-sim-start>
+                        Start it from
+                        <a data-jaia-site="run-jcu" href="#">Jaiabot Configuration &amp; Upgrade</a>
+                        (VirtualFleet section).
+                    </span>
+                    <span data-jaia-sim-ask hidden>Ask an administrator to start it.</span>
+                </p>
+            </div>
+        </main>
+    </body>
+</html>

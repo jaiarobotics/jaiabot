@@ -22,7 +22,10 @@ if "jaia_electronics_stack" in os.environ:
     jaia_electronics_stack=os.environ['jaia_electronics_stack']
 
 jaia_temperature_sensor_type = os.environ.get('jaia_temperature_sensor_type', default='bar30')
-tsys01_enabled = jaia_temperature_sensor_type == 'tsys01'
+
+jaia_additional_sensors = [sensor for sensor in
+                           os.environ.get('jaia_additional_sensors', default='none').split(',')
+                           if sensor]
 
 jaia_pressure_sensor_type = os.environ.get('jaia_pressure_sensor_type', default='bar30')
 
@@ -53,12 +56,29 @@ jaia_data_offload_ignore_type="NONE"
 if "jaia_data_offload_ignore_type" in os.environ:
     jaia_data_offload_ignore_type=os.environ['jaia_data_offload_ignore_type']
 
+jaia_iridium_enabled = common.CommsMode.IRIDIUM in common.jaia_comms_modes
 bot_type = os.environ.get("jaia_bot_type", default="HYDRO")
 
 payload_flags = common.bot.payload_flags(bot_type)
 pam_enabled=payload_flags['pam_enabled']
 salinity_enabled=payload_flags['salinity_enabled']
 bar30_enabled=payload_flags['bar30_enabled']
+storm_enabled=(bot_type == "STORM")
+
+allow_gps_error_during_pre_deployment_startup=""
+if storm_enabled:
+    allow_gps_error_during_pre_deployment_startup="allow_gps_error_during_pre_deployment_startup: true"
+
+# On a BIO bot the payload board reads the TSYS01; this stanza (has_tsys01) lets
+# jaiabot_sensors warn if a configured TSYS01 never reports.
+if jaia_temperature_sensor_type == 'tsys01' and bot_type == 'BIO':
+    tsys01_config = ('tsys01 {\n'
+                     '    sample_rate: 10\n'
+                     '    report_timeout_seconds: 20\n'
+                     '    resend_cfg_timeout_seconds: 20\n'
+                     '}')
+else:
+    tsys01_config = ''
 
 jaia_motor_harness_type="NONE"
 
@@ -120,6 +140,7 @@ verbosities = \
   'jaiabot_driver_imu':                           { 'runtime': { 'tty': 'WARN', 'log': 'WARN' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'jaiabot_driver_pam':                           { 'runtime': { 'tty': 'WARN', 'log': 'WARN' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'jaiabot_imu_test':                             { 'runtime': { 'tty': 'VERBOSE', 'log': 'QUIET' },  'simulation': { 'tty': 'VERBOSE', 'log': 'QUIET' }},
+  'jaiabot_storm_manager':                        { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  }, 'simulation': { 'tty': 'WARN', 'log': 'WARN' }},
 }
 
 app_common = common.app_block(verbosities, debug_log_file_dir)
@@ -130,6 +151,19 @@ interprocess_common = config.template_substitute(templates_dir+'/_interprocess.p
 jaiabot_driver_arduino_bounds = common.bot.arduino_bounds()
 xbee_info = common.bot.xbee_info()
 fluorometer_coefficients = common.bot.fluorometer_coefficients()
+fluorometer_coefficients_2 = common.bot.fluorometer_coefficients_2()
+
+# The payload board always announces two fluorometers (an unwired one reads zero), so
+# this stanza (has_fluorometer_2) is what enables the second driver in jaiabot_sensors.
+if 'turner_c_fluor_2' in jaia_additional_sensors:
+    fluorometer_2_config = ('fluorometer_2 {\n'
+                            '    sample_rate: 10\n'
+                            '    report_timeout_seconds: 20\n'
+                            '    resend_cfg_timeout_seconds: 20\n'
+                            '    ' + fluorometer_coefficients_2 + '\n'
+                            '}')
+else:
+    fluorometer_2_config = ''
 
 ack_timeout=10
 iridium_ack_timeout=120
@@ -151,7 +185,7 @@ if common.CommsMode.WIFI in common.jaia_comms_modes:
     resubscribe_interval: 60
 }\n'''
 
-if common.CommsMode.IRIDIUM in common.jaia_comms_modes:
+if jaia_iridium_enabled:
     subscribes_block+='''subscribe {
     link: LINK_IRIDIUM
     subscribe_on_start: true
@@ -287,7 +321,8 @@ elif common.app == 'jaiabot_simulator':
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
                                      moos_port=common.bot.moos_simulator_port(node_id),
-                                     gpsd_simulator_udp_port=common.bot.gpsd_simulator_udp_port(node_id)))
+                                     gpsd_simulator_udp_port=common.bot.gpsd_simulator_udp_port(node_id),
+                                     bot_type=bot_type))
 elif common.app == 'jaiabot_driver_tsys01':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_driver_tsys01.pb.cfg.in',
                                      app_block=app_common,
@@ -343,6 +378,18 @@ elif common.app == 'jaiabot_fusion':
                                      imu_detection_solution=imu_detection_solution,
                                      bot_gpsd_device=common.bot.gpsd_device(node_id)))
 elif common.app == 'jaiabot_mission_manager':
+
+    delegated_states=''
+    startup_timeout=''
+    # STORM bots are rudderless, so they cannot maneuver to improve a degraded fix;
+    # give up after 5 minutes and dive in place. Other bot types keep waiting.
+    reacquire_gps_timeout=0
+    if storm_enabled:
+        # delegated to jaiabot_storm_manager
+        delegated_states='delegated_states: [IN_MISSION__UNDERWAY__SLEEP__PREP, PRE_DEPLOYMENT__SELF_TEST]'
+        startup_timeout='startup_timeout: 0 # disabled so STORM can recover health after waking'
+        reacquire_gps_timeout=300
+        
     print(config.template_substitute(templates_dir+'/bot/jaiabot_mission_manager.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
@@ -352,18 +399,25 @@ elif common.app == 'jaiabot_mission_manager':
                                      bot_log_archive_dir=common.bot_log_archive_dir,
                                      mission_manager_in_simulation=is_simulation(),
                                      total_after_dive_gps_fix_checks=total_after_dive_gps_fix_checks,
+                                     startup_timeout=startup_timeout,
+                                     reacquire_gps_timeout=reacquire_gps_timeout,
                                      fleet_id=fleet_id,
                                      jaia_data_offload_ignore_type=jaia_data_offload_ignore_type,
                                      subnet_mask=common.comms.subnet_mask,
-                                     camera_available=common.camera_available))
+                                     camera_available=common.camera_available,
+                                     delegated_states=delegated_states,
+                                     bot_type=bot_type,
+                                     allow_gps_error_during_pre_deployment_startup=allow_gps_error_during_pre_deployment_startup))
 
 elif common.app == 'jaiabot_sensors':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_sensors.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block=interprocess_common,
-                                     port='/dev/ttyUSB0',
+                                     port='/dev/bio-payload',
                                      baud=115200,
-                                     fluorometer_coefficients=fluorometer_coefficients))
+                                     fluorometer_coefficients=fluorometer_coefficients,
+                                     fluorometer_2_config=fluorometer_2_config,
+                                     tsys01_config=tsys01_config))
 elif common.app == 'jaiabot_engineering':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_engineering.pb.cfg.in',
                                      app_block=app_common,
@@ -427,7 +481,7 @@ elif common.app == 'jaiabot_driver_camera':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_driver_camera.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
-                                     serial_camera_port=common.bot.serial_camera_port(bot_id)))
+                                     serial_camera_port=common.bot.serial_camera_port(bot_id, jaia_iridium_enabled)))
 elif common.app == 'jaiabot_comms_manager':
     print(config.template_substitute(templates_dir+'/jaiabot_comms_manager.pb.cfg.in',
                                      app_block=app_common,
@@ -447,7 +501,13 @@ elif common.app == 'jaiabot_ctd_manager':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_ctd_manager.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
+                                     iridium_offload=str(storm_enabled).lower(),
                                      log_dir=log_file_dir))
+elif common.app == 'jaiabot_storm_manager':
+    print(config.template_substitute(templates_dir+'/bot/jaiabot_storm_manager.pb.cfg.in',
+                                     app_block=app_common,
+                                     interprocess_block = interprocess_common,
+                                     bot_id=bot_id))
 else:
     print(config.template_substitute(templates_dir+f'/bot/{common.app}.pb.cfg.in',
                                      app_block=app_common,

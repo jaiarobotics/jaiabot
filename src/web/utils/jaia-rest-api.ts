@@ -26,11 +26,7 @@ export class JaiaRESTAPI {
     }
 
     async request(api_request: APIRequest): Promise<APIResponse> {
-        return fetch(this.base_url.href, {
-            method: "POST",
-            headers: this.headers,
-            body: JSON.stringify(api_request),
-        })
+        return this.fetch_request(api_request)
             .then((response) => {
                 return response.json() as APIResponse;
             })
@@ -47,11 +43,7 @@ export class JaiaRESTAPI {
     }
 
     async geojson_request(api_request: APIRequest): Promise<FeatureCollection<Geometry>> {
-        return fetch(this.base_url.href, {
-            method: "POST",
-            headers: this.headers,
-            body: JSON.stringify(api_request),
-        })
+        return this.fetch_request(api_request)
             .then((response) => {
                 return response.json() as Promise<FeatureCollection<Geometry>>;
             })
@@ -62,11 +54,17 @@ export class JaiaRESTAPI {
     }
 
     async fetch_request(api_request: APIRequest): Promise<Response> {
-        return fetch(this.base_url.href, {
+        const response = await fetch(this.base_url.href, {
             method: "POST",
             headers: this.headers,
             body: JSON.stringify(api_request),
+            redirect: "manual",
         });
+        // CloudHub redirects to sign in once the session expires; reloading takes the operator there and back
+        if (response.type === "opaqueredirect") {
+            location.reload();
+        }
+        return response;
     }
 
     // Higher level helpers
@@ -81,12 +79,3 @@ export class JaiaRESTAPI {
 }
 
 export const jaia_rest_api = new JaiaRESTAPI();
-
-jaia_rest_api
-    .request({
-        target: {
-            all: true,
-        },
-        status: true,
-    })
-    .then((response) => console.log("API Status:", response));

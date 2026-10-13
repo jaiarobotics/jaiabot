@@ -65,13 +65,30 @@ That trials the newest `continuous` image with this branch's scripts, which is w
 you want when changing the trial itself rather than the image.
 
 The job installs `jaiabot-apps` and `jaiabot-python` from packages.jaia.tech for the
-repo and version this commit built, because `jaia admin fleet create_cloudhub`
+repo and version this commit built, because `jaia admin fleet cloudhub create`
 dispatches to the copy in `/usr/bin`: tooling from another commit writes answers the
 image's packages no longer accept.
 
 The VirtualFleet playbooks are not copied up: `jaiabot-config` puts them in
 `/usr/share/jaiabot/config/ansible` on the CloudHub, so the ones that run are the
 image's own.
+
+### The steps
+
+Each step of the job is one script in this directory, so a trial can be reproduced by
+hand from a checkout in the same order the job runs them:
+
+```
+./install-jaiabot-tooling.sh                 # needs JAIA_CI_REPO, JAIABOT_APT_VERSION
+./create-ci-cloudhub.sh --bots 2 --warp 5    # needs JAIA_CI_CUSTOMER, AWS_DEFAULT_REGION
+./check-cloudhub-auth.sh
+./raise-ci-virtualfleet.sh --bots 2 --warp 5
+./run-ci-sea-trial.sh --bots 2 --goals 2 --warp 5
+./collect-ci-results.sh --bots 2
+./teardown-ci-fleet.sh
+```
+
+All of them take `--fleet`, defaulting to `JAIA_CI_FLEET` and then to 9.
 
 ## The fleet config
 
@@ -82,8 +99,9 @@ mean private keys checked into the repository, so CI writes one per run:
 ./make-ci-fleet-config.sh --fleet 9 --bots 2 --warp 5 /tmp/ci-fleet9.cfg
 ```
 
-It generates the hub keys and, unless given `--authorized-key`, the runner's own key, so
-the fleet is reachable only by the run that created it and the keys go away with it.
+It generates the virtual hub's key and, unless given `--authorized-key`, the runner's own key, so
+the fleet is reachable only by the run that created it and the keys go away with it. The
+CloudHub makes its own key, and `create_cloudhub` writes its public half into this file.
 
 ## Sharing one fleet
 
@@ -163,7 +181,7 @@ a CloudHub role cannot be given IAM permissions whatever its inline policy says.
 
 `create_vpc.sh` attaches it when `CLOUDHUB_PERMISSIONS_BOUNDARY` names a policy, so
 the CI fleet config sets `CLOUDHUB_PERMISSIONS_BOUNDARY=JaiaCloudHubBoundary`, or
-`jaia admin fleet create_cloudhub --permissions-boundary JaiaCloudHubBoundary`.
+`jaia admin fleet cloudhub create --permissions-boundary JaiaCloudHubBoundary`.
 Create the boundary before attaching the sea-trial policy: with the policy attached
 and no boundary named, every `CreateRole` call is denied.
 
