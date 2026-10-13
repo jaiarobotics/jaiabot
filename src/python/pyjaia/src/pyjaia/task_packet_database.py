@@ -123,10 +123,14 @@ class TaskPacketDatabase:
         """Loads all modified taskpacket files from the offload directory.  THREAD UNSAFE.
         """
 
+        taskpacket_fullpaths = glob.glob(self.taskpacket_files_path + '*.taskpacket')
+        if not taskpacket_fullpaths:
+            return
+
         processed_path = self.database_path + '/processed/'
         os.makedirs(processed_path, exist_ok=True)
 
-        for taskpacket_fullpath in glob.glob(self.taskpacket_files_path + '*.taskpacket'):
+        for taskpacket_fullpath in taskpacket_fullpaths:
             l.info(f'Loading modified taskpacket file: {taskpacket_fullpath}')
             for line in open(taskpacket_fullpath):
                 try:
