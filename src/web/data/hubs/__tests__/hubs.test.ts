@@ -5,21 +5,21 @@ const mockHubStatus1: PortalHubStatus = {
     hub_status: {
         hub_id: 1,
     },
-    portalStatusAge: 11,
+    status_age: 11,
 };
 
 const mockHubStatus2: PortalHubStatus = {
     hub_status: {
         hub_id: 2,
     },
-    portalStatusAge: 22,
+    status_age: 22,
 };
 
 const mockHubStatus5: PortalHubStatus = {
     hub_status: {
         hub_id: 5,
     },
-    portalStatusAge: 55,
+    status_age: 55,
 };
 
 test("Verify hubs are sorted when adding", () => {

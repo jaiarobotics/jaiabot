@@ -287,8 +287,8 @@ function updateBots(botStatuses: PortalBotStatus[]) {
         const numericBotID = botStatus.bot_status?.bot_id ?? -1;
         const wasCommsDropped = bots.getBot(numericBotID)?.isCommsDropped() ?? false;
         bots.setBot(botStatus);
-        botStatus.isDisconnected = bots.getBot(numericBotID)?.isCommsDropped() ?? false;
-        handleBotSoundEffects(wasCommsDropped, botStatus.isDisconnected);
+        botStatus.is_disconnected = bots.getBot(numericBotID)?.isCommsDropped() ?? false;
+        handleBotSoundEffects(wasCommsDropped, botStatus.is_disconnected);
     }
     bots.setTick(bots.getTick() + 1);
 }

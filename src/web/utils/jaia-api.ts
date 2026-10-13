@@ -1,20 +1,4 @@
-import { GeoJSON } from "ol/format";
-import { Engineering } from "@proto/jaiabot/messages/engineering";
-import { Command, CommandForHub, TaskPacket } from "@proto/jaiabot/messages/jaia_dccl";
-import { randomBase57, convertHTMLStrDateToISO } from "../shared/Utilities";
-import { FeatureCollection, Geometry } from "geojson";
-
-export interface JaiaError {
-    code?: number;
-    message?: string;
-}
-
-export type TaskPackets = { included: TaskPacket[]; excluded: TaskPacket[] };
-
-export interface JaiaResponse<T> {
-    error?: JaiaError;
-    result?: T;
-}
+import { randomBase57 } from "../shared/Utilities";
 
 export interface Tileset {
     name: string;
@@ -146,54 +130,6 @@ export class JaiaAPI {
         return fetch(`maps/${mapName}`, {
             method: "DELETE",
         });
-    }
-
-    // ── Exclusion zone hub storage ──────────────────────────────────────────
-    // TODO:  Port the tests to REST API v1, and remove these
-
-    async listExclusionZones(): Promise<string[]> {
-        const response = await this.get("jaia/v0/exclusion-zones");
-        return response?.result ?? [];
-    }
-
-    async saveExclusionZone(name: string, snapshot: any): Promise<void> {
-        await this.post(`jaia/v0/exclusion-zones/${encodeURIComponent(name)}`, snapshot);
-    }
-
-    async loadExclusionZone(name: string): Promise<any | null> {
-        try {
-            return await this.get(`jaia/v0/exclusion-zones/${encodeURIComponent(name)}`);
-        } catch {
-            return null;
-        }
-    }
-
-    async deleteExclusionZone(name: string): Promise<void> {
-        await this.delete(`jaia/v0/exclusion-zones/${encodeURIComponent(name)}`);
-    }
-
-    // ── Mission set hub storage ─────────────────────────────────────────────
-    // TODO:  Port the tests to REST API v1, and remove these
-
-    async listMissionSets(): Promise<string[]> {
-        const response = await this.get("jaia/v0/mission-sets");
-        return response?.result ?? [];
-    }
-
-    async saveMissionSet(name: string, snapshot: any): Promise<void> {
-        await this.post(`jaia/v0/mission-sets/${encodeURIComponent(name)}`, snapshot);
-    }
-
-    async loadMissionSet(name: string): Promise<any | null> {
-        try {
-            return await this.get(`jaia/v0/mission-sets/${encodeURIComponent(name)}`);
-        } catch {
-            return null;
-        }
-    }
-
-    async deleteMissionSet(name: string): Promise<void> {
-        await this.delete(`jaia/v0/mission-sets/${encodeURIComponent(name)}`);
     }
 }
 

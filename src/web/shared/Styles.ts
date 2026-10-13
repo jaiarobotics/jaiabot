@@ -121,7 +121,7 @@ export function botMarker(feature: Feature): Style[] {
 
     let color: string;
 
-    if (portalBotStatus?.isDisconnected ?? false) {
+    if (portalBotStatus?.is_disconnected ?? false) {
         color = disconnectedColor;
     } else if (feature.get("rcMode")) {
         color = remoteControlledColor;

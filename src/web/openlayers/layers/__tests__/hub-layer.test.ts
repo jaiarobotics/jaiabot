@@ -7,7 +7,7 @@ const hubStatusMock1: PortalHubStatus = {
         hub_id: 1,
         location: { lat: 77.0369, lon: 38.9072 },
     },
-    portalStatusAge: 0,
+    status_age: 0,
 };
 
 // location undefined
@@ -15,7 +15,7 @@ const hubStatusMock2: PortalHubStatus = {
     hub_status: {
         hub_id: 1,
     },
-    portalStatusAge: 0,
+    status_age: 0,
 };
 
 describe("Add Hub to hub-layer", () => {
