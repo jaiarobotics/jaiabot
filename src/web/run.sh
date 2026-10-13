@@ -44,13 +44,16 @@ popd > /dev/null
 
 # Determine ports
 hub_id=${jaia_hub_id:-1}
-portal_port=$((40001 - hub_id))
 web_port=$((40000 + hub_id))
+
+# A hub serves the REST API through Apache; the simulator runs it on its own port
+rest_api_url=${1:+http://$1}
+rest_api_url=${rest_api_url:-http://localhost:9092}
 
 # Start server
 echo 🟢 Starting server for hub ${hub_id}
 pushd server > /dev/null
-    ./app.py -p ${portal_port} -P ${web_port} -a ${BUILD_DIR} $1 &
+    ./app.py -P ${web_port} -a ${BUILD_DIR} -R ${rest_api_url} &
 popd > /dev/null
 
 
