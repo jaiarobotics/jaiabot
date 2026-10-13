@@ -123,10 +123,14 @@ class TaskPacketDatabase:
         """Loads all modified taskpacket files from the offload directory.  THREAD UNSAFE.
         """
 
+        taskpacket_fullpaths = glob.glob(self.taskpacket_files_path + '*.taskpacket')
+        if not taskpacket_fullpaths:
+            return
+
         processed_path = self.database_path + '/processed/'
         os.makedirs(processed_path, exist_ok=True)
 
-        for taskpacket_fullpath in glob.glob(self.taskpacket_files_path + '*.taskpacket'):
+        for taskpacket_fullpath in taskpacket_fullpaths:
             l.info(f'Loading modified taskpacket file: {taskpacket_fullpath}')
             for line in open(taskpacket_fullpath):
                 try:
@@ -211,7 +215,8 @@ class TaskPacketDatabase:
                            start_utime: Union[int, None]=None, 
                            end_utime: Union[int, None]=None, 
                            included: Union[bool, None]=True, 
-                           mission_names: Union[Iterable[str], None]=None) -> List[Dict]:
+                           mission_names: Union[Iterable[str], None]=None,
+                           limit: int=1000) -> List[Dict]:
         """Queries the task packets.
 
         Args:
@@ -220,6 +225,7 @@ class TaskPacketDatabase:
             end_utime (Union[int, None]): End of time window (or None if no maximum time)
             included (Union[bool, None]): Included or excluded task packets (None for both types)
             mission_names (Union[Iterable[str], None]): Mission name(s) to filter by (None for all)
+            limit (int): Maximum number of task packets to return, keeping the most recent
         Returns:
             list[dict]: A list of task packet dictionaries that match the criteria.
         """
@@ -263,7 +269,8 @@ class TaskPacketDatabase:
             if len(conditionals) > 0:
                 query_string = query_string + " where " + " and ".join(conditionals)
 
-            query_string = query_string + ' order by utime desc limit 1000'
+            query_string = query_string + ' order by utime desc limit ?'
+            parameters.append(limit)
 
             l.debug(f"Executing query: {query_string} with parameters {parameters}")
 
@@ -343,7 +350,8 @@ class TaskPacketDatabase:
                            start_utime: Union[int, None]=None, 
                            end_utime: Union[int, None]=None, 
                            included: Union[bool, None]=True,
-                           mission_names: Union[Iterable[str], None]=None) -> List[TaskPacket]:
+                           mission_names: Union[Iterable[str], None]=None,
+                           limit: int=1000) -> List[TaskPacket]:
         """Queries the task packets and returns them as protobuf objects.
 
         Args:
@@ -352,11 +360,12 @@ class TaskPacketDatabase:
             end_utime (Union[int, None]): End of time window (or None if no maximum time)
             included (Union[bool, None]): Included or excluded task packets (None for both types)
             mission_names (Union[Iterable[str], None]): List of mission names to filter by (None for all missions)
+            limit (int): Maximum number of task packets to return, keeping the most recent
 
         Returns:
             list[TaskPacket]: A list of task packets that match the criteria, as protobuf objects.
         """
-        taskpacket_dicts = self.query_task_packets_as_dicts(bot_ids=bot_ids, start_utime=start_utime, end_utime=end_utime, included=included, mission_names=mission_names)
+        taskpacket_dicts = self.query_task_packets_as_dicts(bot_ids=bot_ids, start_utime=start_utime, end_utime=end_utime, included=included, mission_names=mission_names, limit=limit)
 
         return [ParseDict(tp_dict, TaskPacket(), ignore_unknown_fields=True) for tp_dict in taskpacket_dicts]
 

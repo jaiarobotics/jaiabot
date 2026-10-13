@@ -5,7 +5,7 @@ import { taskPacketFilter } from "../../data/task_packets/task-packet-filter";
 import { contourLayer } from "../../openlayers/layers/vector/contour-layer";
 import { TaskPacket } from "@proto/jaiabot/messages/jaia_dccl";
 import { Engineering } from "@proto/jaiabot/messages/engineering";
-import { APIRequest, APIResponse } from "@proto/jaiabot/messages/rest_api";
+import { APIRequest, APIResponse, TaskPacketQuery } from "@proto/jaiabot/messages/rest_api";
 
 // The map layers are replaced so polling can be tested without OpenLayers.
 jest.mock("../../openlayers/layers/vector/bot-layer", () => ({
@@ -48,6 +48,12 @@ interface PendingResponse {
 
 let pendingResponses: PendingResponse[] = [];
 
+// A refresh asks for its excluded packets once its included packets arrive
+let lastResolvedBody: Promise<TaskPacketsBody>;
+
+// Version of the fake hub's task packets
+let hubVersion = 5;
+
 /**
  * Builds a minimal task packet for tests.
  *
@@ -84,32 +90,50 @@ async function expectPollSkipsFetch() {
     expect(fetchCount).toBe(1);
 }
 
+/**
+ * Returns the task packet queries JCC has sent so far.
+ *
+ * @returns {TaskPacketQuery[]} Queries in the order they were sent
+ */
+function sentTaskPacketQueries(): TaskPacketQuery[] {
+    return (global.fetch as jest.Mock).mock.calls
+        .map(([, init]) => (JSON.parse(init.body) as APIRequest).task_packets)
+        .filter((query) => query !== undefined);
+}
+
 beforeEach(() => {
     pendingResponses = [];
+    hubVersion = 5;
     taskPacketFilter.reset();
     taskPackets.setIncludedTaskPackets([]);
     taskPackets.setExcludedTaskPackets([]);
     taskPackets.setVersion(0);
-    // Each task packet fetch waits for the test to resolve it; the version request returns 5.
+    // The hub answers a current known_version at once; any other fetch waits for the test.
     global.fetch = jest.fn((_url: string, init: RequestInit) => {
-        const request: APIRequest = JSON.parse(init.body as string);
+        const query = (JSON.parse(init.body as string) as APIRequest).task_packets;
+        const version = hubVersion;
         const respond = (body: APIResponse) => ({ ok: true, json: () => Promise.resolve(body) });
 
-        if (request.task_packets_version) {
-            return Promise.resolve(respond({ task_packets_version: { version: 5 } }));
+        if (query?.known_version === version) {
+            return Promise.resolve(respond({ task_packets: { version, unchanged: true } }));
         }
 
-        // A refresh requests the included packets first, then the excluded ones.
-        const includedOnly = request.task_packets?.included_only;
-        if (includedOnly) {
-            let resolve: (body: TaskPacketsBody) => void;
-            const body = new Promise<TaskPacketsBody>((r) => (resolve = r));
-            pendingResponses.push({ resolve: resolve!, body });
+        if (query?.included_only) {
+            let resolveBody: (body: TaskPacketsBody) => void;
+            const body = new Promise<TaskPacketsBody>((r) => (resolveBody = r));
+            pendingResponses.push({
+                resolve: (resolved) => {
+                    lastResolvedBody = body;
+                    resolveBody(resolved);
+                },
+                body,
+            });
+            return body.then((resolved) =>
+                respond({ task_packets: { packets: resolved.included, version } }),
+            );
         }
-        return pendingResponses[pendingResponses.length - 1].body.then((body) =>
-            respond({
-                task_packets: { packets: includedOnly ? body.included : body.excluded },
-            }),
+        return lastResolvedBody.then((resolved) =>
+            respond({ task_packets: { packets: resolved.excluded, version } }),
         );
     }) as unknown as typeof fetch;
 });
@@ -126,6 +150,7 @@ describe("refreshTaskPacketsForWindow", () => {
         expect(await refresh).toBe(true);
         expect(taskPackets.getIncludedTaskPackets()).toBe(included);
         expect(taskPackets.getExcludedTaskPackets()).toBe(excluded);
+        expect(taskPackets.getVersion()).toBe(5);
         expect(contourLayer.updateFeatures).toHaveBeenCalledTimes(1);
     });
 
@@ -186,9 +211,8 @@ describe("pollTaskPackets", () => {
         pendingResponses[0].resolve({ included: [], excluded: [] });
         await poll;
 
-        const taskPacketQuery = (global.fetch as jest.Mock).mock.calls
-            .map(([, init]) => (JSON.parse(init.body) as APIRequest).task_packets)
-            .find((query) => query !== undefined);
+        const taskPacketQuery = sentTaskPacketQueries()[0];
+        expect(taskPacketQuery?.known_version).toBeUndefined();
         expect(taskPacketQuery?.start_time).toBe(
             String(new Date("2026-06-01T00:00").getTime() * 1000),
         );
@@ -203,10 +227,10 @@ describe("pollTaskPackets", () => {
         pendingResponses[0].resolve({ included: [], excluded: [] });
         await poll;
 
-        const inclusions = (global.fetch as jest.Mock).mock.calls
-            .map(([, init]) => (JSON.parse(init.body) as APIRequest).task_packets)
-            .filter((query) => query !== undefined)
-            .map(({ included_only, excluded_only }) => ({ included_only, excluded_only }));
+        const inclusions = sentTaskPacketQueries().map(({ included_only, excluded_only }) => ({
+            included_only,
+            excluded_only,
+        }));
         expect(inclusions).toEqual([
             { included_only: true, excluded_only: undefined },
             { included_only: undefined, excluded_only: true },
@@ -226,9 +250,9 @@ describe("pollTaskPackets", () => {
         await expectPollSkipsFetch();
     });
 
-    test("records the window it fetched when the filter changes during the version check", async () => {
+    test("refetches the new window when the filter changes during a fetch", async () => {
         const poll = pollTaskPackets();
-        // The poll is now waiting on the version endpoint.
+        // The poll's fetch is now in flight for the old window.
         taskPacketFilter.setSearchWindow(
             new Date("2026-06-03T00:00"),
             new Date("2026-06-03T23:59"),
@@ -237,8 +261,15 @@ describe("pollTaskPackets", () => {
         pendingResponses[0].resolve({ included: [], excluded: [] });
         await poll;
 
-        // The first poll fetched the new window, so the second has nothing to refetch.
-        await expectPollSkipsFetch();
+        const nextPoll = pollTaskPackets();
+        await flushPromises();
+        expect(pendingResponses).toHaveLength(2);
+        pendingResponses[1].resolve({ included: [], excluded: [] });
+        await nextPoll;
+
+        const lastQuery = sentTaskPacketQueries().at(-1);
+        expect(lastQuery?.known_version).toBeUndefined();
+        expect(lastQuery?.start_time).toBe(String(new Date("2026-06-03T00:00").getTime() * 1000));
     });
 
     test("skips the fetch after a refresh outside the poll already loaded the window", async () => {
@@ -253,6 +284,49 @@ describe("pollTaskPackets", () => {
         pendingResponses[0].resolve({ included: [], excluded: [] });
         await refresh;
         await expectPollSkipsFetch();
+    });
+
+    test("asks only whether the packets changed once a window is loaded", async () => {
+        taskPacketFilter.setSearchWindow(
+            new Date("2026-06-05T00:00"),
+            new Date("2026-06-05T23:59"),
+        );
+        const included = [makeTaskPacket(1000)];
+        const first = pollTaskPackets();
+        await flushPromises();
+        pendingResponses[0].resolve({ included, excluded: [] });
+        await first;
+        (global.fetch as jest.Mock).mockClear();
+        (contourLayer.updateFeatures as jest.Mock).mockClear();
+
+        await pollTaskPackets();
+
+        expect(sentTaskPacketQueries()).toEqual([
+            expect.objectContaining({ included_only: true, known_version: 5 }),
+        ]);
+        expect(taskPackets.getIncludedTaskPackets()).toBe(included);
+        expect(contourLayer.updateFeatures).not.toHaveBeenCalled();
+    });
+
+    test("refetches when the hub's packets have changed", async () => {
+        taskPacketFilter.setSearchWindow(
+            new Date("2026-06-06T00:00"),
+            new Date("2026-06-06T23:59"),
+        );
+        const first = pollTaskPackets();
+        await flushPromises();
+        pendingResponses[0].resolve({ included: [], excluded: [] });
+        await first;
+
+        hubVersion = 6;
+        const changed = [makeTaskPacket(2000)];
+        const poll = pollTaskPackets();
+        await flushPromises();
+        pendingResponses[1].resolve({ included: changed, excluded: [] });
+        await poll;
+
+        expect(taskPackets.getIncludedTaskPackets()).toBe(changed);
+        expect(taskPackets.getVersion()).toBe(6);
     });
 });
 

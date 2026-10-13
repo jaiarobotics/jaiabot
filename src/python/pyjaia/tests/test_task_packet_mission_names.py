@@ -92,3 +92,22 @@ def test_packet_with_no_known_name_has_none_added(db, offload_path):
 
     assert len(results) == 1
     assert "mission_name" not in results[0]
+
+
+def test_loading_from_an_empty_offload_directory_changes_nothing(db, offload_path):
+    version = db.task_packets_version
+
+    db.add_task_packets_from_files()
+
+    assert db.task_packets_version == version
+    assert not (offload_path.parent / "db" / "processed").exists()
+
+
+def test_loading_an_offload_file_bumps_the_version(db, offload_path):
+    version = db.task_packets_version
+    offload(offload_path, [make_task_packet()])
+
+    db.add_task_packets_from_files()
+
+    assert db.task_packets_version == version + 1
+    assert len(db.query_task_packets_as_dicts(included=None)) == 1

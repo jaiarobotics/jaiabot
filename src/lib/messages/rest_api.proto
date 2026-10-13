@@ -34,6 +34,15 @@ message TaskPacketQuery
             presence: GUARANTEED,
             doc: "Whether to only return excluded task packets. Takes precedence over included_only."
         }];
+    optional uint32 known_version = 6
+        [(jaia.field).rest_api = {
+            doc: "The version from an earlier response to this same query. If the task packets haven't changed since, the response has no packets and 'unchanged' is set. Only used with the JSON format."
+        }];
+    optional uint32 limit = 7
+        [default = 1000, (jaia.field).rest_api = {
+            presence: GUARANTEED,
+            doc: "Maximum number of task packets to return. When more match, the most recent are returned."
+        }];
     
     enum Format {
         JSON = 0 [(jaia.ev).rest_api = { presence: GUARANTEED }];
@@ -49,6 +58,15 @@ message TaskPacketQueryResults
 {
     repeated TaskPacket packets = 1
         [(jaia.field).rest_api.presence = GUARANTEED];
+    optional uint32 version = 2
+        [(jaia.field).rest_api = {
+            presence: GUARANTEED,
+            doc: "Version of the hub's task packets when this response was built. It changes whenever task packets are added, included or excluded."
+        }];
+    optional bool unchanged = 3
+        [(jaia.field).rest_api = {
+            doc: "Set when the request's known_version is still current, in which case packets is empty."
+        }];
 }
 
 message DepthContoursQuery
@@ -79,11 +97,6 @@ message MissionQueryResults
 message CommandResult
 {
     required bool command_sent = 1
-        [(jaia.field).rest_api.presence = GUARANTEED];
-}
-
-message TaskPacketsVersionResult {
-    required uint32 version = 1
         [(jaia.field).rest_api.presence = GUARANTEED];
 }
 
@@ -206,7 +219,7 @@ message APIRequest
             doc: "Query task packets from a given range of time. Expect a response of type 'task_packets'."
             example {
                 request: '{"target": {"bots": [1]}, "task_packets": {"start_time": 1722797666581176.0, "end_time": 1722970466581176.0}}'
-                response: '{"request": {"target": {"bots": [1]}, "task_packets": {"end_time": "1722970466581176", "start_time": "1722797666581176"}}, "task_packets": {"packets": [{"bot_id": 1, "drift": {"drift_duration": 10, "end_location": {"lat": 41.658228, "lon": -71.275736}, "estimated_drift": {"heading": 237.0, "speed": 0.9}, "significant_wave_height": 0.0, "start_location": {"lat": 41.658275, "lon": -71.275645}}, "end_time": "1722895675000000", "start_time": "1722895664000000", "type": "SURFACE_DRIFT"}, {"bot_id": 1, "drift": {"drift_duration": 10, "end_location": {"lat": 41.65826, "lon": -71.2757}, "estimated_drift": {"heading": 316.0, "speed": 0.6}, "significant_wave_height": 0.0, "start_location": {"lat": 41.658225, "lon": -71.275651}}, "end_time": "1722896712000000", "start_time": "1722896702000000", "type": "SURFACE_DRIFT"}, {"bot_id": 1, "drift": {"drift_duration": 10, "end_location": {"lat": 41.659469, "lon": -71.272064}, "estimated_drift": {"heading": 72.0, "speed": 0.7}, "significant_wave_height": 0.0, "start_location": {"lat": 41.659448, "lon": -71.272146}}, "end_time": "1722896904000000", "start_time": "1722896893000000", "type": "SURFACE_DRIFT"}]}}'
+                response: '{"request": {"target": {"bots": [1]}, "task_packets": {"end_time": "1722970466581176", "start_time": "1722797666581176"}}, "task_packets": {"packets": [{"bot_id": 1, "drift": {"drift_duration": 10, "end_location": {"lat": 41.658228, "lon": -71.275736}, "estimated_drift": {"heading": 237.0, "speed": 0.9}, "significant_wave_height": 0.0, "start_location": {"lat": 41.658275, "lon": -71.275645}}, "end_time": "1722895675000000", "start_time": "1722895664000000", "type": "SURFACE_DRIFT"}, {"bot_id": 1, "drift": {"drift_duration": 10, "end_location": {"lat": 41.65826, "lon": -71.2757}, "estimated_drift": {"heading": 316.0, "speed": 0.6}, "significant_wave_height": 0.0, "start_location": {"lat": 41.658225, "lon": -71.275651}}, "end_time": "1722896712000000", "start_time": "1722896702000000", "type": "SURFACE_DRIFT"}, {"bot_id": 1, "drift": {"drift_duration": 10, "end_location": {"lat": 41.659469, "lon": -71.272064}, "estimated_drift": {"heading": 72.0, "speed": 0.7}, "significant_wave_height": 0.0, "start_location": {"lat": 41.659448, "lon": -71.272146}}, "end_time": "1722896904000000", "start_time": "1722896893000000", "type": "SURFACE_DRIFT"}], "version": 1593724481}}'
             }
         }];
         MissionQuery missions = 16 [(jaia.field).rest_api = {
@@ -234,10 +247,6 @@ message APIRequest
             }
         }];
         // Endpoints for JCC & JED
-        bool task_packets_version = 18 [(jaia.field).rest_api = {
-            presence: GUARANTEED,
-            doc: "Check the version of the task packets."
-        }];
         string take_control = 19 [(jaia.field).rest_api = {
             presence: GUARANTEED,
             doc: "The client ID of the operator who wants to take control. Expect a response of type 'controlling_client_id'."
@@ -390,10 +399,6 @@ message APIResponse
         CommandResult command_result = 14 [(jaia.field).rest_api = {
             presence: GUARANTEED,
             doc: "Command result. This is sent in response to a successful Request 'command', 'command_for_hub' or 'engineering_command' action."
-        }];
-        TaskPacketsVersionResult task_packets_version = 17 [(jaia.field).rest_api = {
-            presence: GUARANTEED,
-            doc: "Task packet version response. This is sent in response to a successful Request 'task_packets_version' action."
         }];
         string controlling_client_id = 18 [(jaia.field).rest_api = {
             presence: GUARANTEED,
