@@ -71,7 +71,6 @@ export function handleInit(mutableState: JaiaContextType) {
         exclusionZoneSet: exclusionZoneSet,
         visibleDetails: NodeTypes.NONE,
         visiblePanel: ButtonNames.NONE,
-        placementError: null,
         rerouteReport: null,
         visibleWaypointSection: WaypointSections.NONE,
         hubAccordionStates: defaultHubAccordionStates,

@@ -44,8 +44,6 @@ export interface JaiaContextType {
 
     visibleDetails: NodeTypes;
     visiblePanel: ButtonNames;
-    // Why the last waypoint placement was refused; shown until dismissed or undone
-    placementError: string | null;
     // Outcome of the last reroute or restore
     rerouteReport: RerouteOutcome[] | null;
     visibleWaypointSection: WaypointSections;

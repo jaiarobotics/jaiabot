@@ -1,9 +1,4 @@
-import {
-    handleAddWaypoint,
-    handleMoveWaypoint,
-    handleClearPlacementError,
-} from "../waypoint-handlers";
-import { handleClickedUndo, saveHistory } from "../history-handlers";
+import { handleAddWaypoint, handleMoveWaypoint } from "../waypoint-handlers";
 import { missionSet } from "../../../data/mission_set/mission-set";
 import { exclusionZoneSet } from "../../../data/exclusion_zones/exclusion-zone-set";
 import { jaiaGlobal } from "../../../data/jaia_global/jaia-global";
@@ -24,62 +19,50 @@ function addEditedMission(locations = [CLEAR]): Mission {
     return mission;
 }
 
-describe("placement errors", () => {
+describe("placement refusals in the handlers", () => {
     beforeEach(() => {
         resetHandlerSingletons();
         exclusionZoneSet.addZone(squareZone(ZONE_CENTER.lat, ZONE_CENTER.lon));
     });
 
-    test("adding a waypoint inside a zone is refused with a placement error", () => {
+    test("a waypoint added clear of every zone is appended", () => {
         const mission = addEditedMission();
-        const mutableState = makeMutableState();
 
-        handleAddWaypoint(mutableState, { type: JaiaActions.ADD_WAYPOINT, location: ZONE_CENTER });
+        handleAddWaypoint(makeMutableState(), {
+            type: JaiaActions.ADD_WAYPOINT,
+            location: coord(41.02, -72.02),
+        });
 
-        expect(mutableState.placementError).toMatch(/exclusion zone/);
+        expect(mission.getWaypoints().length).toBe(2);
+    });
+
+    test("adding a waypoint inside a zone leaves the mission unchanged", () => {
+        const mission = addEditedMission();
+
+        handleAddWaypoint(makeMutableState(), {
+            type: JaiaActions.ADD_WAYPOINT,
+            location: ZONE_CENTER,
+        });
+
         expect(mission.getWaypoints().length).toBe(1);
     });
 
-    test("adding a waypoint past the limit is refused with a placement error", () => {
+    test("adding a waypoint past the limit leaves the mission unchanged", () => {
         const mission = addEditedMission(Array.from({ length: MAX_WAYPOINTS }, () => CLEAR));
-        const mutableState = makeMutableState();
 
-        handleAddWaypoint(mutableState, { type: JaiaActions.ADD_WAYPOINT, location: CLEAR });
+        handleAddWaypoint(makeMutableState(), { type: JaiaActions.ADD_WAYPOINT, location: CLEAR });
 
-        expect(mutableState.placementError).toMatch(/maximum/);
         expect(mission.getWaypoints().length).toBe(MAX_WAYPOINTS);
     });
 
-    test("moving a waypoint into a zone is refused with a placement error", () => {
+    test("moving a waypoint into a zone leaves it where it was", () => {
         const mission = addEditedMission();
-        const mutableState = makeMutableState();
 
-        handleMoveWaypoint(mutableState, {
+        handleMoveWaypoint(makeMutableState(), {
             type: JaiaActions.MOVE_WAYPOINT,
             location: ZONE_CENTER,
         });
 
-        expect(mutableState.placementError).toMatch(/exclusion zone/);
         expect(mission.getWaypoint(1)!.getLocation()).toEqual(CLEAR);
-    });
-
-    test("dismissing clears the placement error", () => {
-        const mutableState = makeMutableState();
-        mutableState.placementError = "refused";
-
-        handleClearPlacementError(mutableState);
-
-        expect(mutableState.placementError).toBeNull();
-    });
-
-    test("undo clears the placement error", () => {
-        const mutableState = makeMutableState();
-        saveHistory(mutableState, JaiaActions.INIT);
-        saveHistory(mutableState, JaiaActions.ADD_WAYPOINT);
-        mutableState.placementError = "refused";
-
-        handleClickedUndo(mutableState);
-
-        expect(mutableState.placementError).toBeNull();
     });
 });

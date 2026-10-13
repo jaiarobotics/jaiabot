@@ -1,3 +1,5 @@
+import { createPortal } from "react-dom";
+
 interface ObstacleAvoidanceBaseDialogProps {
     title: string;
     children: React.ReactNode;
@@ -9,7 +11,8 @@ export default function ObstacleAvoidanceBaseDialog({
     children,
     buttons,
 }: ObstacleAvoidanceBaseDialogProps) {
-    return (
+    // Rendered on the body so a positioned panel cannot stack above it
+    return createPortal(
         <div className="jaia-dialog-container">
             <div className="blocking-overlay" />
             <div className="jaia-dialog">
@@ -23,6 +26,7 @@ export default function ObstacleAvoidanceBaseDialog({
                     ))}
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body,
     );
 }

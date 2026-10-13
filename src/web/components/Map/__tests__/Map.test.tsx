@@ -1,4 +1,4 @@
-import { render } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 
 import { act } from "react";
 
@@ -14,13 +14,16 @@ import { hubs } from "../../../data/hubs/hubs";
 import { missionSet } from "../../../data/mission_set/mission-set";
 import { jaiaGlobal } from "../../../data/jaia_global/jaia-global";
 import { missionsManager } from "../../../data/missions_manager/missions-manager";
+import { exclusionZoneSet } from "../../../data/exclusion_zones/exclusion-zone-set";
+
+import { toLonLat } from "ol/proj";
 
 import { map } from "../../../openlayers/maps/map";
 import { missionLayer } from "../../../openlayers/layers/vector/mission-layer";
 
 import { NodeTypes } from "../../../types/jaia-system-types";
 import { MapFeatureTypes } from "../../../types/openlayers-types";
-import { UNASSIGNED_ID } from "../../../utils/constants";
+import { MAX_WAYPOINTS, UNASSIGNED_ID } from "../../../utils/constants";
 import { PortalBotStatus, PortalHubStatus } from "../../../shared/PortalStatus";
 
 import { mapBrowserEventMock } from "../../../tests/__mocks__/openlayers/events/map-browser-click.mock";
@@ -43,6 +46,13 @@ const hubStatusMock1: PortalHubStatus = {
     hub_id: 1,
     portalStatusAge: 1,
 };
+
+afterEach(() => {
+    exclusionZoneSet.clearZones();
+    missionSet.deleteAllMissions();
+    missionsManager.clear();
+    missionLayer.getVectorLayer().getSource().clear();
+});
 
 beforeEach(() => {
     render(
@@ -140,4 +150,65 @@ test("Click on map with Bot selected and not assigned to a mission", () => {
     expect(missionLayerFeatures.length).toBe(0);
 
     jaiaGlobal.setSelectedNode({ type: NodeTypes.NONE, id: UNASSIGNED_ID });
+});
+
+test("Click inside an exclusion zone with mission in edit mode is refused before dispatch", () => {
+    addZoneUnderClick();
+    const missionID = missionSet.addMission(new Mission());
+    expect(missionSet.getMissionIDInEditMode()).toBe(missionID);
+
+    act(() => {
+        map.dispatchEvent(mapBrowserEventMock);
+    });
+
+    expect(missionSet.getMission(missionID).getWaypoints()).toHaveLength(0);
+    expect(screen.getByText(/inside an exclusion zone/)).toBeTruthy();
+
+    fireEvent.click(screen.getByText("OK"));
+    expect(screen.queryByText(/inside an exclusion zone/)).toBeNull();
+});
+
+/** A zone centred on the location the mocked click resolves to. */
+function addZoneUnderClick() {
+    const [lon, lat] = toLonLat(mapBrowserEventMock.coordinate);
+    const halfSide = 0.001;
+    exclusionZoneSet.addZone({
+        vertices: [
+            { lat: lat - halfSide, lon: lon - halfSide },
+            { lat: lat - halfSide, lon: lon + halfSide },
+            { lat: lat + halfSide, lon: lon + halfSide },
+            { lat: lat + halfSide, lon: lon - halfSide },
+        ],
+    });
+}
+
+test("Tap to move into an exclusion zone is refused before dispatch", () => {
+    addZoneUnderClick();
+    const mission = new Mission();
+    mission.addWaypoint({ lat: 41.0, lon: -72.0 });
+    const missionID = missionSet.addMission(mission);
+    jaiaGlobal.setSelectedWaypoint({ missionID, waypointNum: 1, isMoveable: true });
+
+    act(() => {
+        map.dispatchEvent(mapBrowserEventMock);
+    });
+
+    expect(mission.getWaypoint(1)!.getLocation()).toEqual({ lat: 41.0, lon: -72.0 });
+    expect(screen.getByText(/inside an exclusion zone/)).toBeTruthy();
+
+    jaiaGlobal.resetSelectedWaypoint();
+});
+
+test("Click with the mission at the waypoint limit is refused before dispatch", () => {
+    const mission = new Mission();
+    for (let i = 0; i < MAX_WAYPOINTS; i++) mission.addWaypoint({ lat: 41.0, lon: -72.0 });
+    const missionID = missionSet.addMission(mission);
+    expect(missionSet.getMissionIDInEditMode()).toBe(missionID);
+
+    act(() => {
+        map.dispatchEvent(mapBrowserEventMock);
+    });
+
+    expect(mission.getWaypoints()).toHaveLength(MAX_WAYPOINTS);
+    expect(screen.getByText(/maximum of/)).toBeTruthy();
 });

@@ -97,7 +97,7 @@ describe("zone edits never change a mission's waypoints", () => {
         ],
     ];
 
-    test.each(edits)("%s leaves waypoints, detours and the dialog alone", (_, edit) => {
+    test.each(edits)("%s leaves waypoints and detours alone", (_, edit) => {
         const zoneID = exclusionZoneSet.addZone(rectZone());
         const missionID = addRoutedMission();
         const before = cloneDeep(missionSet.getMission(missionID).getWaypoints());
@@ -106,7 +106,6 @@ describe("zone edits never change a mission's waypoints", () => {
         edit(mutableState, zoneID);
 
         expect(missionSet.getMission(missionID).getWaypoints()).toEqual(before);
-        expect(mutableState.placementError).toBeNull();
     });
 });
 

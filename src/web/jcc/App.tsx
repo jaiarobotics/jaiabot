@@ -20,7 +20,6 @@ import DepthMap3D from "../components/DepthMap3D/DepthMap3D";
 import MeasurePanel from "../components/MeasurePanel/MeasurePanel";
 import MissionsPanel from "../components/MissionsPanel/MissionsPanel";
 import ExclusionZonesPanel from "../components/ExclusionZonesPanel/ExclusionZonesPanel";
-import ObstacleAvoidanceDialog from "../components/ObstacleAvoidanceDialogs/ObstacleAvoidanceDialog";
 import SettingsPanel from "../components/SettingsPanel/SettingsPanel";
 import WaypointPanel from "../components/WaypointPanel/WaypointPanel";
 import ZoneVertexPanel from "../components/ZoneVertexPanel/ZoneVertexPanel";
@@ -77,7 +76,6 @@ export default function App() {
                 <SimulationBanner />
                 <NotificationDot className="jaia-about-button" />
                 <TakeControl />
-                <ObstacleAvoidanceDialog />
             </JaiaContextProvider>
             <div id="connection-warning">Connection to Hub Dropped</div>
             <div id="congestion-warning">Slow Hub WiFi Speeds</div>

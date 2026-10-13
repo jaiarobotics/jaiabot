@@ -25,7 +25,6 @@ import {
     handleToggleHydrophone,
     handleToggleConstantHeadingSelect,
     handleChangeCoordinateSystem,
-    handleClearPlacementError,
 } from "./handlers/waypoint-handlers";
 import {
     handleAddRallyPoint,
@@ -250,6 +249,4 @@ export const actionConfigs: Map<JaiaActions, ActionConfig> = new Map([
         JaiaActions.TOGGLE_ZONE_VERTEX_TAP_TO_MOVE,
         { handler: handleToggleZoneVertexTapToMove, tracked: false },
     ],
-
-    [JaiaActions.CLEAR_PLACEMENT_ERROR, { handler: handleClearPlacementError, tracked: false }],
 ]);

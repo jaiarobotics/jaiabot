@@ -15,8 +15,8 @@ import {
 import { MapModes } from "../../types/openlayers-types";
 import { jaiaAPI } from "../../utils/jaia-api";
 import { refreshTaskPacketsForWindow } from "../../jcc/polling";
-import { MAX_WAYPOINTS, UNASSIGNED_ID } from "../../utils/constants";
-import { isLocationBlockedByZone } from "../../utils/routing/router";
+import { UNASSIGNED_ID } from "../../utils/constants";
+import { checkPlacement } from "../../utils/routing/placement";
 import { syncTaskLayers } from "./handler-utils";
 
 /**
@@ -30,22 +30,15 @@ export function handleAddWaypoint(mutableState: JaiaContextType, action: JaiaAct
     const missionIDInEditMode = missionSet.getMissionIDInEditMode();
 
     if (missionIDInEditMode !== UNASSIGNED_ID) {
-        if (
-            action.location &&
-            isLocationBlockedByZone(action.location, exclusionZoneSet.getZones())
-        ) {
-            mutableState.placementError =
-                "Cannot place a point inside an exclusion zone or its safety buffer.";
-            return mutableState;
-        }
-
         const mission = missionSet.getMission(missionIDInEditMode);
-        if (mission.getWaypoints().length < MAX_WAYPOINTS) {
-            mission.addWaypoint(action.location);
-        } else {
-            mutableState.placementError = `Mission has reached the maximum of ${MAX_WAYPOINTS} waypoints.`;
+        // A refused placement is normally caught before dispatch
+        if (
+            !action.location ||
+            checkPlacement(action.location, exclusionZoneSet.getZones(), mission).kind === "refused"
+        ) {
             return mutableState;
         }
+        mission.addWaypoint(action.location);
     }
 
     missionLayer.updateFeatures();
@@ -83,9 +76,11 @@ export function handleDeleteWaypoint(mutableState: JaiaContextType) {
  * @returns {JaiaContextType} Updated mutable state object
  */
 export function handleMoveWaypoint(mutableState: JaiaContextType, action: JaiaAction) {
-    if (action.location && isLocationBlockedByZone(action.location, exclusionZoneSet.getZones())) {
-        mutableState.placementError =
-            "Cannot place a point inside an exclusion zone or its safety buffer.";
+    // A refused placement is normally caught before dispatch
+    if (
+        !action.location ||
+        checkPlacement(action.location, exclusionZoneSet.getZones()).kind === "refused"
+    ) {
         return mutableState;
     }
 
@@ -93,17 +88,6 @@ export function handleMoveWaypoint(mutableState: JaiaContextType, action: JaiaAc
     const mission = missionSet.getMission(selectedWaypoint.missionID);
     mission.moveWaypoint(selectedWaypoint.waypointNum, action.location);
     missionLayer.updateFeatures();
-    return mutableState;
-}
-
-/**
- * Clears the placement error dialog, e.g. after the operator dismisses it.
- *
- * @param {JaiaContextType} mutableState State object ref for making modifications
- * @returns {JaiaContextType} Updated mutable state object
- */
-export function handleClearPlacementError(mutableState: JaiaContextType) {
-    mutableState.placementError = null;
     return mutableState;
 }
 

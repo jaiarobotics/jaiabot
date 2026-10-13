@@ -9,13 +9,16 @@ import { JaiaActions } from "../../context/jaia-actions";
 import JaiaToggle from "../JaiaToggle/JaiaToggle";
 
 import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
+import { exclusionZoneSet } from "../../data/exclusion_zones/exclusion-zone-set";
 import Waypoint from "../../data/waypoints/waypoint";
 
 import { selectTheme } from "../../utils/style";
 import { MGRS_PLACEHOLDER } from "../../utils/constants";
 import { snakeCaseToTitleCase, validateCoordinate } from "../../utils/input";
 import { mgrsToLonLat } from "../../utils/conversions";
+import { checkPlacement } from "../../utils/routing/placement";
 import { compareSelectedWaypoints } from "./waypoint-panel";
+import PlacementErrorDialog from "../ObstacleAvoidanceDialogs/PlacementErrorDialog/PlacementErrorDialog";
 
 import {
     CoordinateSystem,
@@ -327,6 +330,7 @@ function LatLonDisplay(props: Props) {
     const jaiaDispatch = useContext(JaiaDispatchContext);
     const [latInput, setLatInput] = useState(props.waypoint.getLocation().lat.toString());
     const [lonInput, setLonInput] = useState(props.waypoint.getLocation().lon.toString());
+    const [placementError, setPlacementError] = useState<string | null>(null);
 
     /**
      * Compares the lat stored in state and context. If the value in context
@@ -399,10 +403,14 @@ function LatLonDisplay(props: Props) {
         setLatInput(updatedLatLon[0]);
         setLonInput(updatedLatLon[1]);
 
-        jaiaDispatch({
-            type: JaiaActions.MOVE_WAYPOINT,
-            location: { lat: Number(updatedLatLon[0]), lon: Number(updatedLatLon[1]) },
-        });
+        // A refused location is never dispatched, so the inputs resync to the waypoint
+        const location = { lat: Number(updatedLatLon[0]), lon: Number(updatedLatLon[1]) };
+        const placement = checkPlacement(location, exclusionZoneSet.getZones());
+        if (placement.kind === "refused") {
+            setPlacementError(placement.message);
+            return;
+        }
+        jaiaDispatch({ type: JaiaActions.MOVE_WAYPOINT, location });
     };
 
     return (
@@ -426,6 +434,13 @@ function LatLonDisplay(props: Props) {
                 disabled={props.isDisabled}
                 onChange={(evt) => handleCoordinateChange(evt)}
             />
+
+            {placementError && (
+                <PlacementErrorDialog
+                    message={placementError}
+                    onDismiss={() => setPlacementError(null)}
+                />
+            )}
         </div>
     );
 }
@@ -450,19 +465,29 @@ function MGRSDisplay(props: Props) {
     const [squareID, setSquareID] = useState(currentMGRS.squareIdentifier);
     const [easting, setEasting] = useState(currentMGRS.easting);
     const [northing, setNorthing] = useState(currentMGRS.northing);
+    const [placementError, setPlacementError] = useState<string | null>(null);
 
     useEffect(() => {
         const locationChange = compareLocation();
         // Update MGRS values from an external change such as tap to move
         if (locationChange) {
-            const mgrs = props.waypoint.latLonToMGRS();
-            setGZD(mgrs.gridZoneDesignator);
-            setSquareID(mgrs.squareIdentifier);
-            setEasting(mgrs.easting);
-            setNorthing(mgrs.northing);
-            currentMGRS = props.waypoint.latLonToMGRS();
+            showWaypointLocation();
         }
     });
+
+    /**
+     * Sets the MGRS inputs to the waypoint's location
+     *
+     * @returns {void}
+     */
+    const showWaypointLocation = () => {
+        const mgrs = props.waypoint.latLonToMGRS();
+        setGZD(mgrs.gridZoneDesignator);
+        setSquareID(mgrs.squareIdentifier);
+        setEasting(mgrs.easting);
+        setNorthing(mgrs.northing);
+        currentMGRS = mgrs;
+    };
 
     /**
      * Updates the MGRS data in state as an operator changes the values
@@ -502,6 +527,12 @@ function MGRSDisplay(props: Props) {
 
         if (isNaN(lon) || isNaN(lat)) {
             error("Invalid MGRS input");
+            return;
+        }
+
+        const placement = checkPlacement({ lat, lon }, exclusionZoneSet.getZones());
+        if (placement.kind === "refused") {
+            setPlacementError(placement.message);
             return;
         }
 
@@ -587,6 +618,16 @@ function MGRSDisplay(props: Props) {
             <button onClick={handleSubmitMGRSCoordinates}>
                 <Icon path={mdiArrowRight} />
             </button>
+
+            {placementError && (
+                <PlacementErrorDialog
+                    message={placementError}
+                    onDismiss={() => {
+                        setPlacementError(null);
+                        showWaypointLocation();
+                    }}
+                />
+            )}
         </div>
     );
 }

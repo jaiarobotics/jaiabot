@@ -20,20 +20,19 @@ import { generateSurveyEndpoint } from "../../openlayers/features/survey/survey-
 import { NodeTypes, TaskParameterKeys } from "../../types/jaia-system-types";
 import { ButtonNames, ButtonTypes, JaiaAction } from "../../types/context-types";
 import { MapFeatureTypes, MapModes, SurveyEndpoints } from "../../types/openlayers-types";
+import { GeographicCoordinate } from "../../types/protobuf-types";
 import { MAP_FEATURE_HIT_TOLERANCE, UNASSIGNED_ID } from "../../utils/constants";
 import { locationToConstantHeadingParams } from "../../utils/conversions";
 
+import Mission from "../../data/mission_set/mission";
 import { missionSet } from "../../data/mission_set/mission-set";
 import { gridPlan, GridPlanningStates } from "../../data/survey_planner/grid-plan";
 import { exclusionZoneSet } from "../../data/exclusion_zones/exclusion-zone-set";
-import { isLocationBlockedByZone } from "../../utils/routing/router";
+import { checkPlacement } from "../../utils/routing/placement";
 
 import PlacementErrorDialog from "../ObstacleAvoidanceDialogs/PlacementErrorDialog/PlacementErrorDialog";
 
 import "./Map.less";
-
-const PLACEMENT_ERROR_MESSAGE =
-    "Cannot place a point inside an exclusion zone or its safety buffer.";
 
 /**
  * Renders the OpenLayers map and routes map click events to the appropriate handlers
@@ -43,6 +42,20 @@ const PLACEMENT_ERROR_MESSAGE =
 export default function Map() {
     const jaiaDispatch = useContext(JaiaDispatchContext);
     const [placementError, setPlacementError] = useState<string | null>(null);
+
+    /**
+     * Shows why a point may not be placed at a location, if it may not
+     *
+     * @param {GeographicCoordinate} location Where the point would go
+     * @param {Mission} [appendingTo] Mission the point is appended to as a new waypoint
+     * @returns {boolean} True if the placement was refused
+     */
+    const refusePlacement = (location: GeographicCoordinate, appendingTo?: Mission) => {
+        const placement = checkPlacement(location, exclusionZoneSet.getZones(), appendingTo);
+        if (placement.kind === "allowed") return false;
+        setPlacementError(placement.message);
+        return true;
+    };
 
     useEffect(() => {
         map.setTarget("map");
@@ -168,10 +181,7 @@ export default function Map() {
     const handleAddRallyPoint = (coordinate: Coordinate) => {
         const lonLat = toLonLat(coordinate, view.getProjection());
         const location = { lon: lonLat[0], lat: lonLat[1] };
-        if (isLocationBlockedByZone(location, exclusionZoneSet.getZones())) {
-            setPlacementError(PLACEMENT_ERROR_MESSAGE);
-            return;
-        }
+        if (refusePlacement(location)) return;
         jaiaDispatch({ type: JaiaActions.ADD_RALLY_POINT, location });
     };
 
@@ -188,10 +198,7 @@ export default function Map() {
 
         switch (gridPlan.getState()) {
             case GridPlanningStates.ACCEPTING_MISSION_START_LOCATION:
-                if (isLocationBlockedByZone(location, exclusionZoneSet.getZones())) {
-                    setPlacementError(PLACEMENT_ERROR_MESSAGE);
-                    return;
-                }
+                if (refusePlacement(location)) return;
                 gridPlan.setMissionStart(location);
                 gridLayer
                     .getVectorLayer()
@@ -200,10 +207,7 @@ export default function Map() {
                 nextState = GridPlanningStates.ACCEPTING_MISSION_END_LOCATION;
                 break;
             case GridPlanningStates.ACCEPTING_MISSION_END_LOCATION:
-                if (isLocationBlockedByZone(location, exclusionZoneSet.getZones())) {
-                    setPlacementError(PLACEMENT_ERROR_MESSAGE);
-                    return;
-                }
+                if (refusePlacement(location)) return;
                 gridPlan.setMissionEnd(location);
                 gridLayer
                     .getVectorLayer()
@@ -395,10 +399,9 @@ export default function Map() {
      */
     const handleMoveWaypointClick = (coordinate: Coordinate) => {
         const lonLat = toLonLat(coordinate, view.getProjection());
-        jaiaDispatch({
-            type: JaiaActions.MOVE_WAYPOINT,
-            location: { lon: lonLat[0], lat: lonLat[1] },
-        });
+        const location = { lon: lonLat[0], lat: lonLat[1] };
+        if (refusePlacement(location)) return;
+        jaiaDispatch({ type: JaiaActions.MOVE_WAYPOINT, location });
     };
 
     /**
@@ -445,19 +448,17 @@ export default function Map() {
     };
 
     /**
-     * Dispatches action to add a waypoint to the current mission. Any zone-crossing
-     * detection and confirm/revert dialog is handled by the reducer, the same way
-     * moving a waypoint is.
+     * Dispatches action to add a waypoint to the mission in edit mode
      *
      * @param {Coordinate} coordinate Location of click on map
      * @returns {void}
      */
     const handleAddWaypointClick = (coordinate: Coordinate) => {
         const lonLat = toLonLat(coordinate, view.getProjection());
-        jaiaDispatch({
-            type: JaiaActions.ADD_WAYPOINT,
-            location: { lon: lonLat[0], lat: lonLat[1] },
-        });
+        const location = { lon: lonLat[0], lat: lonLat[1] };
+        const mission = missionSet.getMission(missionSet.getMissionIDInEditMode());
+        if (refusePlacement(location, mission)) return;
+        jaiaDispatch({ type: JaiaActions.ADD_WAYPOINT, location });
     };
 
     /**

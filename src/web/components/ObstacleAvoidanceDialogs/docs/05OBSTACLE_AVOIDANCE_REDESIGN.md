@@ -26,7 +26,7 @@ Each step is one or more commits that leave the branch compiling and its tests p
 | 0    | Remove the old machinery: the reroute and removal dialogs, proposal and revert types, detection and bypass stripping in the handlers, and their tests. Zones keep working and missions are never touched; nothing reroutes until step 3.                                                                                                                         |
 | 1    | Data model: the `Waypoint` interface and `MissionWaypoint`, flags and markers, `Mission`'s accessors and operations, segments built at send, the 2.2 saved-file migration.                                                                                                                                                                                       |
 | 2    | Code layout, in three commits: (2a) `ObstacleAvoidanceData` goes, the zone set returns to `data/exclusion_zones/` and the placement error moves into screen state in `JaiaContextType`; (2b) the router moves to `utils/routing/router.ts` with the zones passed in; (2c) routing status in `utils/routing/routing-status.ts`, which has no caller until step 4. |
-| 3    | Handlers: the single reroute action, restore original waypoints, and the reroute report in screen state in `JaiaContextType`, with `RerouteOutcome`. Placement refusals move into `Map.tsx`, before dispatch, and `placementError` is removed from `JaiaContextType`.                                                                                            |
+| 3    | Handlers: the single reroute action, restore original waypoints, and the reroute report in screen state in `JaiaContextType`, with `RerouteOutcome`. Placement refusals move into `Map.tsx` and the waypoint panel, before dispatch, and `placementError` is removed from `JaiaContextType`.                                                                     |
 | 4    | UI: the routing-status icon and dialog, reroute all, and the report.                                                                                                                                                                                                                                                                                             |
 | 5    | Docs: page113 rewritten for this design, and this document removed.                                                                                                                                                                                                                                                                                              |
 
@@ -621,19 +621,22 @@ In progress. Decided and known items:
   two PRs coordinate. Battery prediction is stored because it comes from an async server call;
   routing status is derived at render.
 - **Mission-set status** is the worst status across the set's missions.
-- **Placement refusals happen in `Map.tsx`, before dispatch,** for waypoint adds and moves as they
-  already do for rally points and survey corners. A point inside a zone, or past the waypoint
-  limit, is never dispatched, so a refusal records no undo entry (this fixes Parked defect b).
-  `Map.tsx` shows its own placement error dialog for all of them.
-    - One function in `utils/` returns the refusal message, or none, for a location, the mission
-      and the zones. `Map.tsx` calls it for all four cases, so the message text has one copy, and
-      it is unit tested directly.
+- **Placement refusals happen before dispatch,** in `Map.tsx` for waypoint adds and moves as
+  they already do for rally points and survey corners, and in the waypoint panel for moves typed
+  as latitude and longitude or MGRS. A point inside a zone, or past the waypoint limit, is never
+  dispatched, so a refusal records no undo entry (this fixes Parked defect b). Each shows its own
+  placement error dialog; after a refused typed move, the panel's inputs return to the
+  waypoint's location.
+    - `checkPlacement(location, zones, appendingTo?)` in `utils/routing/placement.ts` returns
+      `{ kind: "allowed" }` or `{ kind: "refused"; message }`. The waypoint limit is checked only when appending to a
+      mission. Every caller uses it, so the message text has one copy, and it is unit tested
+      directly.
     - The handlers keep their checks as a safety net; a refused call leaves the mission unchanged.
     - `placementError` leaves `JaiaContextType`: the field, the
       `CLEAR_PLACEMENT_ERROR` action and handler, the `ObstacleAvoidanceDialog` host and the line
       in `handleClickedUndo` that clears it.
-    - Undo cannot clear `Map.tsx`'s dialog, and does not need to: the dialog blocks the screen, so
-      Undo cannot be tapped while it is open.
+    - Undo cannot clear these dialogs, and does not need to: each blocks the screen, so Undo
+      cannot be tapped while it is open.
 - **The reroute stays synchronous, with a working indicator while it runs.** A\* cost grows with
   the area searched (Finding 12 in `00FINDINGS_AND_DECISIONS.md`): about 2 s for a 6 km zone on
   a development machine. Under this design only an explicit Reroute runs A\*; editing only
@@ -726,7 +729,7 @@ changes.
 | -------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- | ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Editing missions**                                     |                                                                                                                                     |                                                                  |                           |                                                                                                                                                                                                                                    |
 | Add a waypoint                                           | `ADD_WAYPOINT`                                                                                                                      | `handleAddWaypoint`                                              | yes                       | **Changed:** a point inside a zone, or past the waypoint limit, is refused in `Map.tsx` before dispatch, with `Map.tsx`'s placement error dialog, so a refusal records no undo entry. Otherwise appends through `Mission`, as now. |
-| Move a waypoint                                          | `MOVE_WAYPOINT`                                                                                                                     | `handleMoveWaypoint`                                             | yes                       | **Changed:** a move into a zone is refused in `Map.tsx` before dispatch, as for adding. Otherwise moves through `Mission`, as now.                                                                                                 |
+| Move a waypoint                                          | `MOVE_WAYPOINT`                                                                                                                     | `handleMoveWaypoint`                                             | yes                       | **Changed:** a move into a zone is refused before dispatch, in `Map.tsx` or the waypoint panel, as for adding. Otherwise moves through `Mission`, as now.                                                                          |
 | Delete a waypoint                                        | `DELETE_WAYPOINT`                                                                                                                   | `handleDeleteWaypoint`                                           | yes                       | **Unchanged:** `Mission.deleteWaypoint` removes the waypoint (step 1 made it carry segment markers forward and drop detours left at the end), and the handler clears the selection.                                                |
 | Change a waypoint's task                                 | `SELECT_TASK`, `CHANGE_TASK_PARAMETER`, `TOGGLE_BOTTOM_DIVE`, `TOGGLE_HYDROPHONE`                                                   | existing task handlers                                           | yes                       | **Unchanged.**                                                                                                                                                                                                                     |
 | Approve a survey                                         | `SURVEY_APPROVED`                                                                                                                   | `handleChangeGridPlanningState`                                  | yes                       | **Unchanged:** builds the lane missions. Survey points inside a zone become blocked waypoints; no dialog.                                                                                                                          |
@@ -752,11 +755,20 @@ changes.
 - **In this PR, revisited once the reworked code can be tested in the browser:** two undo
   defects carried over from PR #1674's review. (a) Export renames the zone or mission set without
   a tracked action, unlike Save, so undoing the next edit reverts the name. (b) A placement
-  refused inside a zone still records an empty undo entry; fixed by refusing in `Map.tsx` before
-  dispatch (Phase 3).
+  refused inside a zone still records an empty undo entry; fixed by refusing before dispatch
+  (Phase 3).
 - **Step 4:** `getRoutingStatus` rebuilds and buffers every zone for each mission. When the icon
   shows status for every mission, share the zone geometry across missions or recompute only when
-  the zones change.
+  the zones change. The same holds for placement: an accepted placement buffers every zone twice,
+  once in the component's refusal check and once in the handler's.
+- **Step 4:** `PlacementErrorDialog` and `ObstacleAvoidanceBaseDialog` are shown by `Map.tsx` and
+  the waypoint panel, so they leave `components/ObstacleAvoidanceDialogs/` when the old dialogs
+  are deleted.
+- **Later:** the waypoint panel's latitude and longitude fields move the waypoint on every
+  keystroke, so a partly typed coordinate moves it to the partial location. If the partial
+  location is inside a zone, the refusal dialog appears mid-typing and the field resets. Rarely used by operators, but testers may rely on it. Fixing it
+  means committing a typed coordinate only when the operator finishes, as the MGRS fields do with
+  their submit button.
 - **Later:** Jest maps `clipper2-ts` to a mock, so no test runs the real buffering. A test against
   the real library would have caught the whole-metre rounding and the corners that came within
   3.75 m of a zone.

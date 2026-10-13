@@ -28,8 +28,7 @@ export function handleClickedUndo(mutableState: JaiaContextType) {
     // Restore snapshot into mutableState and update data model
     mutableState = restoreSnapshot(mutableState, snapshot);
 
-    // A placement error and a reroute report belong to the state being undone.
-    mutableState.placementError = null;
+    // The reroute report belongs to the state being undone.
     mutableState.rerouteReport = null;
 
     // Reset the map mode

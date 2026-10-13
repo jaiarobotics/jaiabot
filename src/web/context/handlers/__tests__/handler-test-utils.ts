@@ -49,8 +49,8 @@ const defaultMapLayerAccordionStates: MapLayerAccordionStates = {
 
 /**
  * Builds a JaiaContextType wired to the real singleton data models, the same way
- * handleInit() does. Handlers under test read/write `mutableState.placementError`
- * and `mutableState.missionAccordionStates`, but resolve `missionSet`/`missionsManager`/
+ * handleInit() does. Handlers under test read/write `mutableState.missionAccordionStates`
+ * and `mutableState.rerouteReport`, but resolve `missionSet`/`missionsManager`/
  * `jaiaGlobal` via their own module-level singleton imports — so pointing every field at
  * the same singleton instances keeps mutableState and direct singleton assertions in sync.
  */
@@ -68,7 +68,6 @@ export function makeMutableState(): JaiaContextType {
         exclusionZoneSet,
         visibleDetails: NodeTypes.NONE,
         visiblePanel: ButtonNames.NONE,
-        placementError: null,
         rerouteReport: null,
         visibleWaypointSection: WaypointSections.NONE,
         hubAccordionStates: defaultHubAccordionStates,
