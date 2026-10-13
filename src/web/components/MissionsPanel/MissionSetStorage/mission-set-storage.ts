@@ -10,7 +10,7 @@ import Task from "../../../data/tasks/task";
 import { MissionTask_TaskType } from "@proto/jaiabot/messages/mission";
 import { LegacyMissionInterface, LegacyRunInterface } from "../../../types/legacy-types";
 import { DEFAULT_SPEED, UNASSIGNED_ID } from "../../../utils/constants";
-import { jaia_rest_api } from "../../../utils/jaia-rest-api";
+import { jaia_rest_api, nullIfRecordNotFound } from "../../../utils/jaia-rest-api";
 import { RecordQuery_RecordType } from "@proto/jaiabot/messages/rest_api";
 
 export enum LoadResultType {
@@ -64,8 +64,8 @@ export async function saveToHub(name: string): Promise<void> {
  * Called by UI code, snapshot is sent to the reducer/action handler
  */
 export async function loadSnapshotFromHub(saveName: string): Promise<LoadSnapshotResult> {
-    const targetSet = await jaia_rest_api
-        .request({
+    const targetSet = await nullIfRecordNotFound(
+        jaia_rest_api.request({
             target: {
                 all: true,
             },
@@ -73,10 +73,10 @@ export async function loadSnapshotFromHub(saveName: string): Promise<LoadSnapsho
                 type: RecordQuery_RecordType.MISSION_SET,
                 get_name: saveName,
             },
-        })
-        .then(
-            (res) => JSON.parse(res.record_query_response?.content ?? "null") as MissionSetSnapshot,
-        );
+        }),
+    ).then(
+        (res) => JSON.parse(res?.record_query_response?.content ?? "null") as MissionSetSnapshot,
+    );
 
     if (!targetSet) {
         return {
@@ -123,15 +123,17 @@ export async function loadSnapshotFromHub(saveName: string): Promise<LoadSnapsho
  * @returns {boolean} False if the mission set was not found
  */
 export async function deleteFromHub(name: string): Promise<void> {
-    await jaia_rest_api.request({
-        target: {
-            all: true,
-        },
-        record_query: {
-            type: RecordQuery_RecordType.MISSION_SET,
-            delete_name: name,
-        },
-    });
+    await nullIfRecordNotFound(
+        jaia_rest_api.request({
+            target: {
+                all: true,
+            },
+            record_query: {
+                type: RecordQuery_RecordType.MISSION_SET,
+                delete_name: name,
+            },
+        }),
+    );
 }
 
 /**

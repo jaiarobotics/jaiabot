@@ -11,6 +11,7 @@ from pyjaia.csv import task_packets_to_csv
 from pyjaia.contours import task_packets_to_geojson
 
 import common.shared_data
+from common.crudl_records import RecordNotFound, InvalidRecordName
 from common.time import utc_now_microseconds
 from common.api_exception import APIException
 
@@ -434,30 +435,26 @@ def download_ctd_profiles(_: APIRequest) -> Response:
 
 def record_query(jaia_request: APIRequest) -> APIResponse:
     jaia_response = APIResponse()
+    records_request = jaia_request.record_query
+
+    if records_request.type == RecordQuery.RecordType.EXCLUSION_ZONE:
+        records = common.shared_data.data.exclusion_zones
+    else:
+        records = common.shared_data.data.mission_sets
 
     try:
         with common.shared_data.data_lock:
-            records_request = jaia_request.record_query
-
-            if records_request.type == RecordQuery.RecordType.EXCLUSION_ZONE:
-                records_handler = common.shared_data.data.exclusion_zones
-            elif records_request.type == RecordQuery.RecordType.MISSION_SET:
-                records_handler = common.shared_data.data.mission_sets
-            else:
-                raise ValueError("Invalid record type")
-
             if records_request.HasField("list"):
-                jaia_response.record_query_response.names.extend(records_handler.list_zones())
+                jaia_response.record_query_response.names.extend(records.list())
             if records_request.HasField("get_name"):
-                jaia_response.record_query_response.content = records_handler.get_zone(records_request.get_name)
+                jaia_response.record_query_response.content = records.get(records_request.get_name)
             if records_request.HasField("delete_name"):
-                records_handler.delete_zone(records_request.delete_name)
+                records.delete(records_request.delete_name)
             if records_request.HasField("save_name"):
-                records_handler.save_zone(records_request.save_name, records_request.save_content)
+                records.save(records_request.save_name, records_request.save_content)
+    except RecordNotFound as e:
+        raise APIException(rest_api.API_ERROR__RECORD_NOT_FOUND, str(e))
+    except InvalidRecordName as e:
+        raise APIException(rest_api.API_ERROR__INVALID_RECORD_NAME, str(e))
 
-        return jaia_response
-    except Exception as e:
-        print(f"Error processing records request: {e}")
-        jaia_response.error.code = 1
-        jaia_response.error.details = str(e)
-        return jaia_response
+    return jaia_response
