@@ -2,9 +2,7 @@ import google.protobuf.json_format
 import jaiabot.messages.rest_api_pb2 as rest_api
 from jaiabot.messages.rest_api_pb2 import TaskPacketQuery, APIRequest, APIResponse, RecordQuery
 import jaiabot.messages.portal_pb2
-from jaiabot.messages.jaia_dccl_pb2 import BotStatus, Command
-from jaiabot.messages.hub_pb2 import HubStatus
-from jaiabot.messages.rest_api_pb2 import PodStatus, PortalBotStatus, PortalHubStatus
+from jaiabot.messages.jaia_dccl_pb2 import Command
 
 from pyjaia.kmz import getKMZ
 from pyjaia.csv import task_packets_to_csv
@@ -110,6 +108,31 @@ def status(jaia_request: APIRequest) -> APIResponse:
                     empty = jaia_response.status.hubs.add()
                     empty.hub_id=hub_id
                     empty.time=0
+
+        for bot_id in jaia_response.target.bots:
+            if bot_id in common.shared_data.data.active_mission_plans:
+                active_mission_plan = jaia_response.status.active_mission_plans.add()
+                active_mission_plan.bot_id = bot_id
+                active_mission_plan.mission_plan.CopyFrom(common.shared_data.data.active_mission_plans[bot_id])
+
+        if common.shared_data.data.controlling_client_id is not None:
+            jaia_response.status.controlling_client_id = common.shared_data.data.controlling_client_id
+
+    jaia_response.status.time = utc_now_microseconds()
+    return jaia_response
+
+def engineering_status(jaia_request: APIRequest) -> APIResponse:
+    jaia_response = APIResponse()
+    jaia_response.engineering_status.SetInParent()
+
+    with common.shared_data.data_lock:
+        bots_engineering = common.shared_data.data.bots_engineering
+        bot_ids = bots_engineering.keys() if jaia_request.target.all else [bot_id for bot_id in jaia_request.target.bots if bot_id in bots_engineering]
+
+        for bot_id in bot_ids:
+            jaia_response.engineering_status.bots.extend([bots_engineering[bot_id]])
+            jaia_response.target.bots.append(bot_id)
+
     return jaia_response
 
 def metadata(jaia_request: APIRequest) -> APIResponse:
@@ -279,50 +302,6 @@ def command_for_hub(jaia_request: APIRequest) -> APIResponse:
     return jaia_response
 
 
-# status_age is int32 microseconds, which a node silent for about 36 minutes would overflow
-MAX_STATUS_AGE = 2**31 - 1
-
-def pod_status(jaia_request: APIRequest) -> APIResponse:
-    jaia_response = APIResponse()
-
-    bots: list[BotStatus] = []
-    hubs: list[HubStatus] = []
-
-    with common.shared_data.data_lock:
-        bots, hubs = get_bots_and_hubs(jaia_request.target)
-
-        if common.shared_data.data.controlling_client_id is not None:
-            jaia_response.pod_status.controlling_client_id = common.shared_data.data.controlling_client_id
-
-    jaia_response.target.bots.extend([bot.bot_id for bot in bots])
-
-    for bot in bots:
-        portal_bot_status = PortalBotStatus()
-        portal_bot_status.bot_status.CopyFrom(bot)
-        portal_bot_status.status_age = min(utc_now_microseconds() - bot.received_time, MAX_STATUS_AGE)
-
-        if bot.bot_id in common.shared_data.data.active_mission_plans:
-            portal_bot_status.active_mission_plan.CopyFrom(common.shared_data.data.active_mission_plans[bot.bot_id])
-
-        if bot.bot_id in common.shared_data.data.bots_engineering:
-            portal_bot_status.engineering.CopyFrom(common.shared_data.data.bots_engineering[bot.bot_id])
-
-        # TODO: portal_bot_status.active_link_status_age
-
-        jaia_response.pod_status.bots.append(portal_bot_status)
-
-    for hub in hubs:
-        portal_hub_status = PortalHubStatus()
-        portal_hub_status.hub_status.CopyFrom(hub)
-        portal_hub_status.status_age = min(utc_now_microseconds() - hub.received_time, MAX_STATUS_AGE)
-
-        jaia_response.pod_status.hubs.append(portal_hub_status)
-    
-    jaia_response.pod_status.contacts.extend(common.shared_data.data.contacts.values())
-
-    return jaia_response
-
-
 def depth_contours(jaia_request: APIRequest):
     geojson_contours = task_packets_to_geojson(jaia_request.depth_contours.packets)
     return geojson_contours, {'Content-Type': 'application/vnd.geo+json'}
@@ -362,9 +341,9 @@ def engineering_command(jaia_request: APIRequest) -> APIResponse:
 
         jaia_response.target.bots.extend(bot.bot_id for bot in bots)
         jaia_response.target.hubs.extend(hubs)
-        jaia_response.engineering_command_result.command_sent = len(hubs) > 0 and len(bots) > 0
+        jaia_response.command_result.command_sent = len(hubs) > 0 and len(bots) > 0
 
-        if jaia_response.engineering_command_result.command_sent:
+        if jaia_response.command_result.command_sent:
             take_control_for_requesting_client()
 
     return jaia_response
