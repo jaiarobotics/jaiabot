@@ -1,7 +1,7 @@
 import Mission from "../../../data/mission_set/mission";
 import { ExclusionZone } from "../../../data/exclusion_zones/exclusion-zone-set";
 import { GeographicCoordinate } from "../../../types/protobuf-types";
-import { routeAroundExclusionZones } from "../router";
+import { autoRoute } from "../router";
 import { getRoutingStatus } from "../routing-status";
 
 function coord(lat: number, lon: number): GeographicCoordinate {
@@ -40,20 +40,22 @@ function plainMission(...locations: GeographicCoordinate[]): Mission {
     return loadMission(locations.map((location) => ({ location })));
 }
 
+/** Reroutes a mission: the router's steps, applied with Mission.reroute. */
+function reroute(mission: Mission, zones: ReadonlyMap<number, ExclusionZone>): Mission {
+    const routing = autoRoute(
+        mission.getOriginalWaypoints().map((waypoint) => waypoint.getLocation()),
+        zones,
+    );
+    if (routing.kind !== "routed") throw new Error(`expected a route, got ${routing.kind}`);
+    expect(mission.reroute(routing.steps).kind).toBe("changed");
+    return mission;
+}
+
 /** A west-to-east mission across ZONE, with the detours the router finds around it. */
 function detouredMission(): Mission {
-    const { plan } = routeAroundExclusionZones(
-        { goal: [{ location: WEST }, { location: EAST }] },
-        ZONE,
-    );
-    const goals = plan.goal!;
-    expect(goals.length).toBeGreaterThan(2);
-    return loadMission(
-        goals.map((goal, i) => ({
-            location: goal.location!,
-            isDetour: i > 0 && i < goals.length - 1,
-        })),
-    );
+    const mission = reroute(plainMission(WEST, EAST), ZONE);
+    expect(mission.getWaypoints().length).toBeGreaterThan(2);
+    return mission;
 }
 
 describe("isConflicted", () => {
@@ -122,27 +124,60 @@ describe("clearSuppressed", () => {
     });
 });
 
-describe("detoursUnneeded", () => {
-    test("is false while the zone the detours go around is still there", () => {
-        expect(getRoutingStatus(detouredMission(), ZONE).detoursUnneeded).toBe(false);
+describe("a detour inside a zone", () => {
+    test("makes the mission conflicted", () => {
+        // A zone added after the reroute that swallows a detour point. Both legs touching
+        // the detour treat that zone as unroutable rather than blocked, so only the
+        // waypoint test catches it.
+        const mission = detouredMission();
+        const detour = mission.getWaypoints().find((waypoint) => waypoint.getIsDetour())!;
+        const zones = new Map(ZONE);
+        zones.set(2, squareZone(detour.getLocation().lat!, detour.getLocation().lon!, 0.0001));
+
+        expect(getRoutingStatus(mission, ZONE).isConflicted).toBe(false);
+        expect(getRoutingStatus(mission, zones).isConflicted).toBe(true);
+    });
+});
+
+describe("a freshly rerouted mission", () => {
+    const ZONE_SHAPES: Array<[string, ReadonlyMap<number, ExclusionZone>]> = [
+        ["one square zone", ZONE],
+        [
+            "two zones side by side",
+            new Map([
+                [1, squareZone(41.0, -72.001, 0.0004)],
+                [2, squareZone(41.0, -71.999, 0.0004)],
+            ]),
+        ],
+        [
+            "a zone off the route's own latitude",
+            new Map([
+                [1, squareZone(41.0, -72.0, 0.0005)],
+                [2, squareZone(41.004, -72.0, 0.0005)],
+            ]),
+        ],
+    ];
+
+    test.each(ZONE_SHAPES)("is not conflicted: %s", (_name, zones) => {
+        // East along the zones' latitude, then back west ~440 m further north
+        const mission = reroute(
+            plainMission(WEST, EAST, coord(41.004, -71.995), coord(41.004, -72.005)),
+            zones,
+        );
+        expect(mission.getWaypoints().some((waypoint) => waypoint.getIsDetour())).toBe(true);
+
+        expect(getRoutingStatus(mission, zones)).toEqual({
+            isConflicted: false,
+            clearSuppressed: [],
+        });
     });
 
-    test("is true once the original route is clear", () => {
-        expect(getRoutingStatus(detouredMission(), NO_ZONES).detoursUnneeded).toBe(true);
-    });
+    test("is not conflicted when its first waypoint was suppressed", () => {
+        // The route then starts at the second original waypoint.
+        const mission = reroute(plainMission(INSIDE, WEST, EAST), ZONE);
+        expect(mission.getWaypoints().some((waypoint) => waypoint.getIsDetour())).toBe(true);
 
-    test("is false for a mission without detours", () => {
-        expect(getRoutingStatus(plainMission(WEST, EAST), NO_ZONES).detoursUnneeded).toBe(false);
-    });
-
-    test("is false while a suppressed waypoint is still blocked", () => {
-        const mission = loadMission([
-            { location: coord(41.0, -72.01) },
-            { location: coord(41.005, -72.005), isDetour: true },
-            { location: INSIDE, isSuppressed: true },
-            { location: coord(41.01, -72.0) },
-        ]);
-
-        expect(getRoutingStatus(mission, ZONE).detoursUnneeded).toBe(false);
+        expect(mission.getWaypoints()[0].getLocation()).toEqual(WEST);
+        expect(getRoutingStatus(mission, ZONE).isConflicted).toBe(false);
     });
 });

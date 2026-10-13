@@ -1,8 +1,10 @@
-import { GeographicCoordinate, MissionPlan } from "../../../types/protobuf-types";
+import { GeographicCoordinate } from "../../../types/protobuf-types";
 import { ExclusionZone, exclusionZoneSet } from "../../../data/exclusion_zones/exclusion-zone-set";
+import { RerouteStep } from "../../../data/mission_set/mission";
 import {
-    routeAroundExclusionZones,
+    autoRoute,
     getZoneBufferVertices,
+    buildZoneBufferCache,
     getBlockingZoneIDs,
     isLocationBlockedByZone,
     routeNeedsBypass,
@@ -15,12 +17,31 @@ function coord(lat: number, lon: number): GeographicCoordinate {
     return { lat, lon };
 }
 
-function goal(lat: number, lon: number) {
-    return { location: coord(lat, lon) };
+/** Routes the waypoints, failing the test unless a route is found. */
+function routedSteps(waypoints: GeographicCoordinate[], safetyMargin?: number): RerouteStep[] {
+    const routing = autoRoute(waypoints, exclusionZoneSet.getZones(), safetyMargin);
+    if (routing.kind !== "routed") throw new Error(`expected a route, got ${routing.kind}`);
+    return routing.steps;
 }
 
-function plan(...goals: { location: GeographicCoordinate }[]): MissionPlan {
-    return { goal: goals };
+function detourCount(steps: RerouteStep[]): number {
+    return steps.reduce((count, step) => count + step.detoursAfter.length, 0);
+}
+
+/** The path the steps describe: the kept waypoints, each followed by its detours. */
+function routedPath(
+    waypoints: GeographicCoordinate[],
+    steps: RerouteStep[],
+): GeographicCoordinate[] {
+    return waypoints.flatMap((waypoint, i) =>
+        steps[i].suppress ? [] : [waypoint, ...steps[i].detoursAfter],
+    );
+}
+
+function expectPathClearOf(path: GeographicCoordinate[], hull: GeographicCoordinate[]) {
+    for (let i = 0; i < path.length - 1; i++) {
+        expect(segmentCrossesHull(path[i], path[i + 1], hull)).toBe(false);
+    }
 }
 
 /** A small square zone (~60m sides) centred at the given point. */
@@ -256,7 +277,10 @@ describe("getBlockingZoneIDs", () => {
         const id2 = exclusionZoneSet.addZone(squareZone(41.0, -72.0, 0.002));
         exclusionZoneSet.addZone(squareZone(42.0, -73.0));
 
-        const ids = getBlockingZoneIDs(coord(41.0, -72.0), exclusionZoneSet.getZones());
+        const ids = getBlockingZoneIDs(
+            coord(41.0, -72.0),
+            buildZoneBufferCache(exclusionZoneSet.getZones()),
+        );
         expect(ids).toContain(id1);
         expect(ids).toContain(id2);
         expect(ids.length).toBe(2);
@@ -264,199 +288,184 @@ describe("getBlockingZoneIDs", () => {
 
     test("returns empty array when no zones block the point", () => {
         exclusionZoneSet.addZone(squareZone(41.0, -72.0));
-        expect(getBlockingZoneIDs(coord(42.0, -73.0), exclusionZoneSet.getZones())).toEqual([]);
+        expect(
+            getBlockingZoneIDs(
+                coord(42.0, -73.0),
+                buildZoneBufferCache(exclusionZoneSet.getZones()),
+            ),
+        ).toEqual([]);
     });
 
     test("returns empty array when no zones exist", () => {
-        expect(getBlockingZoneIDs(coord(41.0, -72.0), exclusionZoneSet.getZones())).toEqual([]);
+        expect(
+            getBlockingZoneIDs(
+                coord(41.0, -72.0),
+                buildZoneBufferCache(exclusionZoneSet.getZones()),
+            ),
+        ).toEqual([]);
     });
 });
 
-// ── routeAroundExclusionZones ──────────────────────────────────────────────────
+// ── autoRoute ──────────────────────────────────────────────────────────────────
 
-describe("routeAroundExclusionZones", () => {
+const WEST = coord(41.0, -72.005);
+const EAST = coord(41.0, -71.995);
+
+describe("autoRoute", () => {
     beforeEach(() => {
         exclusionZoneSet.clearZones();
     });
 
-    // ── Early-exit cases ───────────────────────────────────────────────────────
+    // ── Nothing to route ───────────────────────────────────────────────────────
 
-    test("returns plan unchanged when no zones exist", () => {
-        const p = plan(goal(41.0, -72.0), goal(41.01, -72.0));
-        const result = routeAroundExclusionZones(p, exclusionZoneSet.getZones());
-        expect(result.bypassCount).toBe(0);
-        expect(result.plan).toBe(p);
+    test("gives one step per waypoint, none suppressed, when no zones exist", () => {
+        const steps = routedSteps([WEST, EAST]);
+        expect(steps).toEqual([
+            { suppress: false, detoursAfter: [] },
+            { suppress: false, detoursAfter: [] },
+        ]);
     });
 
-    test("returns plan unchanged for fewer than 2 goals", () => {
+    test("routes no waypoints, or a single one, without detours", () => {
         exclusionZoneSet.addZone(squareZone(41.0, -72.0));
-        const p = plan(goal(41.0, -72.0));
-        const result = routeAroundExclusionZones(p, exclusionZoneSet.getZones());
-        expect(result.bypassCount).toBe(0);
+        expect(routedSteps([])).toEqual([]);
+        expect(routedSteps([WEST])).toEqual([{ suppress: false, detoursAfter: [] }]);
     });
 
-    test("returns plan unchanged when path does not cross any zone", () => {
+    test("adds no detours when the route does not cross any zone", () => {
         exclusionZoneSet.addZone(squareZone(41.0, -72.0));
-        const p = plan(goal(42.0, -73.0), goal(42.01, -73.0));
-        const result = routeAroundExclusionZones(p, exclusionZoneSet.getZones());
-        expect(result.bypassCount).toBe(0);
-        expect(result.plan).toBe(p);
+        expect(detourCount(routedSteps([coord(42.0, -73.0), coord(42.01, -73.0)]))).toBe(0);
     });
 
-    // ── Basic routing ──────────────────────────────────────────────────────────
+    // ── Detours ────────────────────────────────────────────────────────────────
 
-    test("inserts bypass waypoints when path crosses a zone", () => {
+    test("puts detours after the waypoint that starts the blocked leg", () => {
         exclusionZoneSet.addZone(squareZone(41.0, -72.0, 0.0005));
-        const p = plan(goal(41.0, -72.005), goal(41.0, -71.995));
-        const result = routeAroundExclusionZones(p, exclusionZoneSet.getZones(), 15);
+        const steps = routedSteps([WEST, EAST], 15);
 
-        expect(result.bypassCount).toBeGreaterThan(0);
-        expect(result.plan.goal!.length).toBeGreaterThan(2);
-
-        const bypasses = result.plan.goal!.filter((g) => g.name === "route_bypass");
-        expect(bypasses.length).toBe(result.bypassCount);
+        expect(steps[0].suppress).toBe(false);
+        expect(steps[0].detoursAfter.length).toBeGreaterThan(0);
+        expect(steps[1]).toEqual({ suppress: false, detoursAfter: [] });
     });
 
-    test("preserves original waypoints in order around bypass insertions", () => {
+    test("detours only the legs that cross a zone", () => {
         exclusionZoneSet.addZone(squareZone(41.0, -72.0, 0.0005));
-        const g1 = goal(41.0, -72.005);
-        const g2 = goal(41.0, -71.995);
-        const p = plan(g1, g2);
-        const result = routeAroundExclusionZones(p, exclusionZoneSet.getZones(), 15);
+        const steps = routedSteps([coord(41.005, -72.005), WEST, EAST], 15);
 
-        const goals = result.plan.goal!;
-        expect(goals[0].location).toEqual(g1.location);
-        expect(goals[goals.length - 1].location).toEqual(g2.location);
+        expect(steps[0].detoursAfter).toEqual([]);
+        expect(steps[1].detoursAfter.length).toBeGreaterThan(0);
     });
-
-    test("does not route when start endpoint is inside the zone hull", () => {
-        exclusionZoneSet.addZone(squareZone(41.0, -72.0, 0.001));
-        const p = plan(goal(41.0, -72.0), goal(41.01, -72.0));
-        const result = routeAroundExclusionZones(p, exclusionZoneSet.getZones(), 15);
-        expect(result.bypassCount).toBe(0);
-    });
-
-    test("does not route when end endpoint is inside the zone hull", () => {
-        exclusionZoneSet.addZone(squareZone(41.0, -72.0, 0.001));
-        const p = plan(goal(41.01, -72.0), goal(41.0, -72.0));
-        const result = routeAroundExclusionZones(p, exclusionZoneSet.getZones(), 15);
-        expect(result.bypassCount).toBe(0);
-    });
-
-    // ── Path validity: the routed path must not cross zone hulls ────────────────
 
     test("routed path does not cross the zone hull", () => {
-        exclusionZoneSet.addZone(squareZone(41.0, -72.0, 0.0005));
-        const p = plan(goal(41.0, -72.005), goal(41.0, -71.995));
-        const result = routeAroundExclusionZones(p, exclusionZoneSet.getZones(), 15);
-
-        const hull = squareZone(41.0, -72.0, 0.0005).vertices!;
-        const goals = result.plan.goal!;
-        for (let i = 0; i < goals.length - 1; i++) {
-            expect(segmentCrossesHull(goals[i].location!, goals[i + 1].location!, hull)).toBe(
-                false,
-            );
-        }
+        const zone = squareZone(41.0, -72.0, 0.0005);
+        exclusionZoneSet.addZone(zone);
+        const waypoints = [WEST, EAST];
+        expectPathClearOf(routedPath(waypoints, routedSteps(waypoints, 15)), zone.vertices!);
     });
 
     test("routed path around a triangle does not cross the zone hull", () => {
-        exclusionZoneSet.addZone(triangleZone(41.0, -72.0, 0.0005));
-        const p = plan(goal(41.0, -72.005), goal(41.0, -71.995));
-        const result = routeAroundExclusionZones(p, exclusionZoneSet.getZones(), 15);
-
-        const hull = triangleZone(41.0, -72.0, 0.0005).vertices!;
-        const goals = result.plan.goal!;
-        for (let i = 0; i < goals.length - 1; i++) {
-            expect(segmentCrossesHull(goals[i].location!, goals[i + 1].location!, hull)).toBe(
-                false,
-            );
-        }
+        const zone = triangleZone(41.0, -72.0, 0.0005);
+        exclusionZoneSet.addZone(zone);
+        const waypoints = [WEST, EAST];
+        expectPathClearOf(routedPath(waypoints, routedSteps(waypoints, 15)), zone.vertices!);
     });
-
-    // ── Multiple zones ─────────────────────────────────────────────────────────
 
     test("routes around multiple zones", () => {
         const west = squareZone(41.0, -72.001, 0.0004);
         const east = squareZone(41.0, -71.999, 0.0004);
         exclusionZoneSet.addZone(west);
         exclusionZoneSet.addZone(east);
-        const p = plan(goal(41.0, -72.006), goal(41.0, -71.994));
-        const result = routeAroundExclusionZones(p, exclusionZoneSet.getZones(), 15);
+        const waypoints = [coord(41.0, -72.006), coord(41.0, -71.994)];
+        const steps = routedSteps(waypoints, 15);
 
-        expect(result.bypassCount).toBeGreaterThan(0);
-
-        // The routed path has to clear both zones, not just whichever it met first.
-        const locations = result.plan.goal!.map((g) => g.location!);
-        for (let i = 0; i < locations.length - 1; i++) {
-            for (const hull of [west.vertices!, east.vertices!]) {
-                expect(segmentCrossesHull(locations[i], locations[i + 1], hull)).toBe(false);
-            }
-        }
+        expect(detourCount(steps)).toBeGreaterThan(0);
+        // The path has to clear both zones, not just whichever it met first.
+        const path = routedPath(waypoints, steps);
+        expectPathClearOf(path, west.vertices!);
+        expectPathClearOf(path, east.vertices!);
     });
 
     test("routes around overlapping zones", () => {
         exclusionZoneSet.addZone(squareZone(41.0, -72.0002, 0.0005));
         exclusionZoneSet.addZone(squareZone(41.0, -71.9998, 0.0005));
-        const p = plan(goal(41.0, -72.005), goal(41.0, -71.995));
-        const result = routeAroundExclusionZones(p, exclusionZoneSet.getZones(), 15);
-
-        expect(result.bypassCount).toBeGreaterThan(0);
+        expect(detourCount(routedSteps([WEST, EAST], 15))).toBeGreaterThan(0);
     });
 
-    // ── Multi-segment paths ────────────────────────────────────────────────────
-
-    test("handles path with multiple segments, only some crossing zones", () => {
-        exclusionZoneSet.addZone(squareZone(41.0, -72.0, 0.0005));
-        const p = plan(goal(41.005, -72.005), goal(41.0, -72.005), goal(41.0, -71.995));
-        const result = routeAroundExclusionZones(p, exclusionZoneSet.getZones(), 15);
-        expect(result.bypassCount).toBeGreaterThan(0);
-        const nonBypass = result.plan.goal!.filter((g) => g.name !== "route_bypass");
-        expect(nonBypass.length).toBe(3);
-    });
-
-    test("handles multiple segments each crossing different zones", () => {
+    test("routes legs that each cross a different zone", () => {
         exclusionZoneSet.addZone(squareZone(41.001, -72.0, 0.0004));
         exclusionZoneSet.addZone(squareZone(40.999, -72.0, 0.0004));
-        const p = plan(goal(41.003, -72.0), goal(41.0, -72.0), goal(40.997, -72.0));
-        const result = routeAroundExclusionZones(p, exclusionZoneSet.getZones(), 15);
-        expect(result.bypassCount).toBeGreaterThan(0);
+        const steps = routedSteps(
+            [coord(41.003, -72.0), coord(41.0, -72.0), coord(40.997, -72.0)],
+            15,
+        );
+
+        expect(steps[0].detoursAfter.length).toBeGreaterThan(0);
+        expect(steps[1].detoursAfter.length).toBeGreaterThan(0);
     });
 
-    // ── Near-miss: no false positives ──────────────────────────────────────────
-
-    test("does not insert bypass when path passes near but does not cross the zone buffer", () => {
+    test("adds no detour when the route passes near but outside the zone buffer", () => {
         exclusionZoneSet.addZone(squareZone(41.0, -72.0, 0.0003));
-        // Path runs north of zone, well outside the 15m buffer (~0.0003 deg ≈ 33m from zone edge)
-        const p = plan(goal(41.001, -72.005), goal(41.001, -71.995));
-        const result = routeAroundExclusionZones(p, exclusionZoneSet.getZones(), 15);
-        expect(result.bypassCount).toBe(0);
+        // ~33 m north of the zone edge, well outside the 15 m buffer
+        expect(detourCount(routedSteps([coord(41.001, -72.005), coord(41.001, -71.995)], 15))).toBe(
+            0,
+        );
     });
 
-    // ── Safety margin edge cases ───────────────────────────────────────────────
-
-    test("safety margin of 0 still routes when path crosses hull", () => {
+    test("still detours with a safety margin of 0", () => {
         exclusionZoneSet.addZone(squareZone(41.0, -72.0, 0.0005));
-        const p = plan(goal(41.0, -72.005), goal(41.0, -71.995));
-        const result = routeAroundExclusionZones(p, exclusionZoneSet.getZones(), 0);
-        expect(result.bypassCount).toBeGreaterThan(0);
+        expect(detourCount(routedSteps([WEST, EAST], 0))).toBeGreaterThan(0);
     });
 
-    test("large safety margin causes routing for paths that miss the hull", () => {
+    test("a large safety margin detours a route that misses the hull", () => {
         exclusionZoneSet.addZone(squareZone(41.0, -72.0, 0.0003));
-        // Path passes ~30m north of zone edge — within a 50m buffer
-        const p = plan(goal(41.0006, -72.005), goal(41.0006, -71.995));
-        const result = routeAroundExclusionZones(p, exclusionZoneSet.getZones(), 50);
-        expect(result.bypassCount).toBeGreaterThan(0);
+        // ~30 m north of the zone edge, inside a 50 m buffer
+        expect(
+            detourCount(routedSteps([coord(41.0006, -72.005), coord(41.0006, -71.995)], 50)),
+        ).toBeGreaterThan(0);
     });
 
-    // ── Diagonal / corner-grazing paths ────────────────────────────────────────
-
-    test("routes a diagonal path that clips a zone corner", () => {
+    test("detours a diagonal leg that clips a zone corner", () => {
         exclusionZoneSet.addZone(squareZone(41.0, -72.0, 0.0005));
-        // Diagonal from SW to NE, clipping the zone
-        const p = plan(goal(40.999, -72.002), goal(41.001, -71.998));
-        const result = routeAroundExclusionZones(p, exclusionZoneSet.getZones(), 15);
-        expect(result.bypassCount).toBeGreaterThan(0);
+        expect(
+            detourCount(routedSteps([coord(40.999, -72.002), coord(41.001, -71.998)], 15)),
+        ).toBeGreaterThan(0);
+    });
+
+    // ── Suppressed waypoints ───────────────────────────────────────────────────
+
+    test("suppresses a waypoint inside a zone and joins its neighbours", () => {
+        exclusionZoneSet.addZone(squareZone(41.0, -72.0, 0.0005));
+        const steps = routedSteps([WEST, coord(41.0, -72.0), EAST], 15);
+
+        expect(steps[1]).toEqual({ suppress: true, detoursAfter: [] });
+        // The leg now runs from the first waypoint to the last, so its detours follow the first
+        expect(steps[0].detoursAfter.length).toBeGreaterThan(0);
+        expect(steps[2].detoursAfter).toEqual([]);
+    });
+
+    test("suppresses a waypoint inside the buffer but outside the hull", () => {
+        const halfSide = 0.0005;
+        exclusionZoneSet.addZone(squareZone(41.0, -72.0, halfSide));
+        const inBuffer = coord(41.0 + halfSide + 2 / METERS_PER_DEG, -72.0);
+
+        expect(routedSteps([WEST, inBuffer], 15)[1].suppress).toBe(true);
+    });
+
+    test("suppresses a blocked first waypoint and routes from the first kept one", () => {
+        exclusionZoneSet.addZone(squareZone(41.0, -72.0, 0.0005));
+        const steps = routedSteps([coord(41.0, -72.0), WEST, EAST], 15);
+
+        expect(steps[0]).toEqual({ suppress: true, detoursAfter: [] });
+        expect(steps[1].detoursAfter.length).toBeGreaterThan(0);
+    });
+
+    test("reports when every waypoint is blocked", () => {
+        exclusionZoneSet.addZone(squareZone(41.0, -72.0, 0.001));
+        const routing = autoRoute(
+            [coord(41.0, -72.0002), coord(41.0, -71.9998)],
+            exclusionZoneSet.getZones(),
+        );
+        expect(routing).toEqual({ kind: "allWaypointsBlocked" });
     });
 });
 
@@ -542,18 +551,15 @@ describe("routeNeedsBypass", () => {
         ).toBe(false);
     });
 
-    test("agrees with routeAroundExclusionZones about whether a detour is needed", () => {
+    test("agrees with autoRoute about whether a detour is needed", () => {
         exclusionZoneSet.addZone(squareZone(41.0, -72.0, 0.0005));
 
         for (const route of [
             [coord(41.0, -72.005), coord(41.0, -71.995)],
             [coord(41.01, -72.005), coord(41.01, -71.995)],
         ]) {
-            const routed = routeAroundExclusionZones(
-                plan(...route.map((c) => ({ location: c }))),
-                exclusionZoneSet.getZones(),
-            );
-            const needsDetour = routed.bypassCount > 0 || !!routed.isRoutingImpossible;
+            const routing = autoRoute(route, exclusionZoneSet.getZones());
+            const needsDetour = routing.kind !== "routed" || detourCount(routing.steps) > 0;
             expect(routeNeedsBypass(route, exclusionZoneSet.getZones())).toBe(needsDetour);
         }
     });
@@ -583,27 +589,19 @@ describe("bypass grid bounding", () => {
         };
     }
 
-    const BLOCKED_ROUTE = plan(goal(41.0, -72.005), goal(41.0, -71.995));
+    const BLOCKED_ROUTE = [WEST, EAST];
 
     test("a distant zone does not change the detour computed around a nearby one", () => {
         exclusionZoneSet.addZone(squareZone(41.0, -72.0, 0.0005));
-        const withoutDistantZone = routeAroundExclusionZones(
-            BLOCKED_ROUTE,
-            exclusionZoneSet.getZones(),
-        );
+        const withoutDistantZone = routedSteps(BLOCKED_ROUTE);
 
         // Roughly 30 km east — far enough that sizing the grid from every zone rather
         // than the blocking one would need tens of millions of cells.
         exclusionZoneSet.addZone(squareZone(41.0, -71.65, 0.0005));
-        const withDistantZone = routeAroundExclusionZones(
-            BLOCKED_ROUTE,
-            exclusionZoneSet.getZones(),
-        );
+        const withDistantZone = routedSteps(BLOCKED_ROUTE);
 
-        expect(withDistantZone.bypassCount).toBe(withoutDistantZone.bypassCount);
-        expect(withDistantZone.plan.goal!.map((g) => g.location)).toEqual(
-            withoutDistantZone.plan.goal!.map((g) => g.location),
-        );
+        expect(detourCount(withoutDistantZone)).toBeGreaterThan(0);
+        expect(withDistantZone).toEqual(withoutDistantZone);
     });
 
     test("a zone that does not block the direct line still blocks the detour", () => {
@@ -614,29 +612,36 @@ describe("bypass grid bounding", () => {
         const northZone = rectZone(41.0006, 41.0018, -72.004, -71.996);
         exclusionZoneSet.addZone(northZone);
 
-        const result = routeAroundExclusionZones(BLOCKED_ROUTE, exclusionZoneSet.getZones());
+        const steps = routedSteps(BLOCKED_ROUTE);
 
-        expect(result.bypassCount).toBeGreaterThan(0);
-        const locations = result.plan.goal!.map((g) => g.location!);
-        for (let i = 0; i < locations.length - 1; i++) {
-            expect(segmentCrossesHull(locations[i], locations[i + 1], northZone.vertices!)).toBe(
-                false,
-            );
-        }
+        expect(detourCount(steps)).toBeGreaterThan(0);
+        expectPathClearOf(routedPath(BLOCKED_ROUTE, steps), northZone.vertices!);
     });
 
     test("abandons a search whose grid would exceed the cell ceiling", () => {
         // A single zone spanning ~40 km: the detour around it cannot be searched within
-        // the cell ceiling, so it is reported unroutable instead of allocating the grid.
+        // the cell ceiling, so the leg is reported unroutable instead of allocating the grid.
         exclusionZoneSet.addZone(rectZone(40.8, 41.2, -72.2, -71.8));
 
-        const result = routeAroundExclusionZones(
-            plan(goal(41.0, -72.5), goal(41.0, -71.5)),
+        const routing = autoRoute(
+            [coord(41.0, -72.5), coord(41.0, -71.5)],
             exclusionZoneSet.getZones(),
         );
 
-        expect(result.bypassCount).toBe(0);
-        expect(result.isRoutingImpossible).toBe(true);
+        expect(routing).toEqual({ kind: "noRoute", leg: [1, 2] });
+    });
+
+    test("names the unroutable leg by waypoint numbers", () => {
+        // The middle waypoint is inside the zone, so it is suppressed and the leg that
+        // cannot be routed runs from waypoint 1 to waypoint 3.
+        exclusionZoneSet.addZone(rectZone(40.8, 41.2, -72.2, -71.8));
+
+        const routing = autoRoute(
+            [coord(41.0, -72.5), coord(41.0, -72.0), coord(41.0, -71.5)],
+            exclusionZoneSet.getZones(),
+        );
+
+        expect(routing).toEqual({ kind: "noRoute", leg: [1, 3] });
     });
 });
 

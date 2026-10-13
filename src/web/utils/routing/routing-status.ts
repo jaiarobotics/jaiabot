@@ -9,8 +9,6 @@ export interface RoutingStatus {
     isConflicted: boolean;
     /** Original numbers of suppressed waypoints that are no longer blocked. */
     clearSuppressed: number[];
-    /** The mission has detours, and its original route is clear. */
-    detoursUnneeded: boolean;
 }
 
 /**
@@ -27,27 +25,20 @@ export function getRoutingStatus(
 ): RoutingStatus {
     const zoneBufferCache = buildZoneBufferCache(zones);
     const isBlocked = (location: GeographicCoordinate) =>
-        getBlockingZoneIDs(location, zones, undefined, zoneBufferCache).length > 0;
+        getBlockingZoneIDs(location, zoneBufferCache).length > 0;
 
-    // A waypoint inside a zone is tested on its own: routing treats a leg touching it as
-    // unroutable rather than blocked, so the leg test alone misses it.
-    const crossesZone = (route: GeographicCoordinate[]) =>
-        route.some(isBlocked) || routeNeedsBypass(route, zones);
-
-    const visible = mission.getWaypoints();
-    const originals = mission.getOriginalWaypoints();
+    const route = mission.getWaypoints().map((waypoint) => waypoint.getLocation());
     const clearSuppressed: number[] = [];
-    originals.forEach((waypoint, index) => {
+    mission.getOriginalWaypoints().forEach((waypoint, index) => {
         if (waypoint.getIsSuppressed() && !isBlocked(waypoint.getLocation())) {
             clearSuppressed.push(index + 1);
         }
     });
 
+    // A waypoint inside a zone is tested on its own: routing treats a leg touching it as
+    // unroutable rather than blocked, so the leg test alone misses it.
     return {
-        isConflicted: crossesZone(visible.map((waypoint) => waypoint.getLocation())),
+        isConflicted: route.some(isBlocked) || routeNeedsBypass(route, zones),
         clearSuppressed,
-        detoursUnneeded:
-            visible.some((waypoint) => waypoint.getIsDetour()) &&
-            !crossesZone(originals.map((waypoint) => waypoint.getLocation())),
     };
 }
