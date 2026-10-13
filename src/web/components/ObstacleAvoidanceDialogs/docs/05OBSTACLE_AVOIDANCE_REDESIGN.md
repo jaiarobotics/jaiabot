@@ -7,11 +7,11 @@ Background: the design proposal at https://claude.ai/artifact/UPRfitQaA5xpRmfNUx
 
 The work is done in three phases, in order. A phase starts only when the one before it is agreed.
 
-| Phase | Subject                                                            | Status     |
-| ----- | ------------------------------------------------------------------ | ---------- |
-| 1     | Operator workflow, with data needs at a high level                 | **Agreed** |
-| 2     | Data formats that support the workflow                             | **Agreed** |
-| 3     | Mapping UI events to actions and the handlers that modify the data | **Next**   |
+| Phase | Subject                                                            | Status          |
+| ----- | ------------------------------------------------------------------ | --------------- |
+| 1     | Operator workflow, with data needs at a high level                 | **Agreed**      |
+| 2     | Data formats that support the workflow                             | **Agreed**      |
+| 3     | Mapping UI events to actions and the handlers that modify the data | **In progress** |
 
 Data model code (`Mission`, `Waypoint`) changes as soon as the Phase 2 decisions it depends on are
 agreed; it does not wait for Phase 3. Handler and UI code waits for Phase 3. Implementation
@@ -21,14 +21,14 @@ details that come up early go in [Parked for later phases](#parked-for-later-pha
 
 Each step is one or more commits that leave the branch compiling and its tests passing.
 
-| Step | Content                                                                                                                                                                                                                                                                                                                                      |
-| ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 0    | Remove the old machinery: the reroute and removal dialogs, proposal and revert types, detection and bypass stripping in the handlers, and their tests. Zones keep working and missions are never touched; nothing reroutes until step 3.                                                                                                     |
-| 1    | Data model: the `Waypoint` interface and `MissionWaypoint`, flags and markers, `Mission`'s accessors and operations, segments built at send, the 2.2 saved-file migration.                                                                                                                                                                   |
-| 2    | Code layout, in three commits: (2a) `ObstacleAvoidanceData` goes, the zone set returns to `data/exclusion_zones/` and the placement error moves into context state; (2b) the router moves to `utils/routing/router.ts` with the zones passed in; (2c) routing status in `utils/routing/routing-status.ts`, which has no caller until step 4. |
-| 3    | Handlers: the single reroute action, restore original waypoints, and the reroute report in context state with `RerouteOutcome`.                                                                                                                                                                                                              |
-| 4    | UI: the routing-status icon and dialog, reroute all, and the report with Undo.                                                                                                                                                                                                                                                               |
-| 5    | Docs: page113 rewritten for this design, and this document removed.                                                                                                                                                                                                                                                                          |
+| Step | Content                                                                                                                                                                                                                                                                                                                                                          |
+| ---- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0    | Remove the old machinery: the reroute and removal dialogs, proposal and revert types, detection and bypass stripping in the handlers, and their tests. Zones keep working and missions are never touched; nothing reroutes until step 3.                                                                                                                         |
+| 1    | Data model: the `Waypoint` interface and `MissionWaypoint`, flags and markers, `Mission`'s accessors and operations, segments built at send, the 2.2 saved-file migration.                                                                                                                                                                                       |
+| 2    | Code layout, in three commits: (2a) `ObstacleAvoidanceData` goes, the zone set returns to `data/exclusion_zones/` and the placement error moves into screen state in `JaiaContextType`; (2b) the router moves to `utils/routing/router.ts` with the zones passed in; (2c) routing status in `utils/routing/routing-status.ts`, which has no caller until step 4. |
+| 3    | Handlers: the single reroute action, restore original waypoints, and the reroute report in screen state in `JaiaContextType`, with `RerouteOutcome`. Placement refusals move into `Map.tsx`, before dispatch, and `placementError` is removed from `JaiaContextType`.                                                                                            |
+| 4    | UI: the routing-status icon and dialog, reroute all, and the report.                                                                                                                                                                                                                                                                                             |
+| 5    | Docs: page113 rewritten for this design, and this document removed.                                                                                                                                                                                                                                                                                              |
 
 Step 0 comes first so that no code that is about to be deleted has to be updated for the new
 data model.
@@ -77,8 +77,8 @@ data model.
    restoring original waypoints. A zone edit on its own never adds, deletes, moves or flags a
    waypoint.
 2. **Editing is not interrupted.** Changing a zone or a mission never opens an avoidance dialog.
-   The one exception is placing a new point inside a zone, which is refused with a message as it
-   is today (`PlacementErrorDialog` in `Map.tsx`).
+   The one exception is placing a waypoint inside a zone, by adding or moving it, which is refused
+   with a message as it is today (`PlacementErrorDialog` in `Map.tsx`).
 3. **Consequences are shown, not stored.** Blocked waypoints, conflicted missions and routing
    status are recomputed from current state whenever they are needed.
 4. **Rerouting is something the operator asks for.** It changes the mission immediately, as one
@@ -148,10 +148,10 @@ dialogs carry:
 - failures: every waypoint inside a zone, no way around the zones, or over the waypoint limit, with
   the mission left unchanged
 
-The dialog reports; it does not ask. It has an **Undo** button that backs the reroute out (see
-Phase 3). Undo backs out a reroute, not restore: if the mission had
-already been rerouted, restore would drop the earlier detours too, whereas undo returns exactly
-the state before this reroute.
+The dialog reports; it does not ask. How the operator backs out a reroute from it is pending (see
+Phase 3); either way it uses the normal Undo. Undo backs out a reroute,
+not restore: if the mission had already been rerouted, restore would drop the earlier detours too,
+whereas undo returns exactly the state before this reroute.
 
 **5. Edit a rerouted mission.** Edits apply to the visible waypoints the operator placed, exactly
 as for any mission. Detour waypoints cannot be selected, so they cannot be moved, deleted or given
@@ -207,19 +207,19 @@ undone action. Nothing is rerouted; status is recomputed when the screen draws.
 
 ### Data needs, at a high level
 
-| Kind                         | What                                                                                  | Status                                                        |
-| ---------------------------- | ------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
-| **Stored**                   | Mission waypoints and tasks                                                           | exists                                                        |
-|                              | Detour and suppressed flags on `Waypoint`, readable everywhere, set only by `Mission` | **changed**: `isBypass` becomes `isDetour`; suppressed is new |
-|                              | Segment and lane boundaries, as markers on the waypoint that starts each one          | **changed**: today they are indices into the waypoint list    |
-|                              | Zones                                                                                 | exists                                                        |
-| **Derived: never stored**    | Visible waypoints, and waypoint numbers                                               | computed by `Mission`                                         |
-|                              | Original waypoints                                                                    | computed by `Mission`                                         |
-|                              | Blocked waypoints                                                                     | computed                                                      |
-|                              | Mission routing status                                                                | computed                                                      |
-|                              | MissionPlan goal list and segment indices                                             | computed at send                                              |
-| **Transient**                | The reroute report while its dialog is open                                           | replaces today's pending proposal; held in context state      |
-| **What each bot is running** | Ghost missions                                                                        | exists                                                        |
+| Kind                         | What                                                                                  | Status                                                               |
+| ---------------------------- | ------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| **Stored**                   | Mission waypoints and tasks                                                           | exists                                                               |
+|                              | Detour and suppressed flags on `Waypoint`, readable everywhere, set only by `Mission` | **changed**: `isBypass` becomes `isDetour`; suppressed is new        |
+|                              | Segment and lane boundaries, as markers on the waypoint that starts each one          | **changed**: today they are indices into the waypoint list           |
+|                              | Zones                                                                                 | exists                                                               |
+| **Derived: never stored**    | Visible waypoints, and waypoint numbers                                               | computed by `Mission`                                                |
+|                              | Original waypoints                                                                    | computed by `Mission`                                                |
+|                              | Blocked waypoints                                                                     | computed                                                             |
+|                              | Mission routing status                                                                | computed                                                             |
+|                              | MissionPlan goal list and segment indices                                             | computed at send                                                     |
+| **Transient**                | The reroute report while its dialog is open                                           | replaces today's pending proposal; screen state in `JaiaContextType` |
+| **What each bot is running** | Ghost missions                                                                        | exists                                                               |
 
 Segment boundaries move onto waypoints because index-based boundaries would need shifting in every
 operation that inserts or removes stored waypoints. As markers, they move with their waypoints the
@@ -229,12 +229,10 @@ SW-2566's behaviour.
 
 ### Open items
 
-| #   | Question                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | Where it is settled |
-| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------- |
-| 1   | Wording and form of the send confirmation when a mission crosses a zone                                                                                                                                                                                                                                                                                                                                                                                                                                                    | Phase 3             |
-| 2   | Where the reroute and restore actions appear                                                                                                                                                                                                                                                                                                                                                                                                                                                                               | Phase 3             |
-| 3   | Styling of blocked waypoints, and whether crossing legs are marked                                                                                                                                                                                                                                                                                                                                                                                                                                                         | Phase 3             |
-| 4   | Whether the map shows which suppressed waypoints are no longer blocked. Either the mission-level status is enough, or every suppressed waypoint is drawn as a faint, unnumbered, unselectable marker, with a distinct style once it is clear. A marker could confuse an operator about a survey point that will not be run. The data supports either: `getSuppressedWaypoints()` plus the blocked test. Hover tooltips are ruled out: operators use touch tablets, so any detail must appear on a tap or always be visible | Phase 3             |
+| #   | Question                                                                | Where it is settled |
+| --- | ----------------------------------------------------------------------- | ------------------- |
+| 1   | Wording and form of the send confirmation when a mission crosses a zone | Phase 3             |
+| 3   | Styling of blocked waypoints, and whether crossing legs are marked      | Phase 3             |
 
 ---
 
@@ -574,8 +572,9 @@ The data formats and code layout that support the Phase 1 workflow.
     - `src/web/utils/routing/routing-status.ts`: `RoutingStatus` and `getRoutingStatus`, replacing
       `exclusion-zone-detection.ts`.
     - `Mission` defines `RerouteStep` and `RerouteResult` and imports nothing from routing.
-    - The reroute report and the placement error are screen state, so they move into
-      `JaiaContextType` beside `visiblePanel`, and `RerouteOutcome` is defined in
+    - The reroute report is screen state, not data model, so it moves into
+      `JaiaContextType` beside `visiblePanel` (the context's UI fields, not the data model in
+      `src/web/data`), and `RerouteOutcome` is defined in
       `types/context-types.ts`. `captureContextData` lists the fields it saves, so the report stays
       out of undo snapshots; the undo handler clears it, as `history-handlers.ts:32` clears
       `pendingChange` today.
@@ -594,64 +593,131 @@ The data formats and code layout that support the Phase 1 workflow.
 
 ## Phase 3 — UI events, actions and handlers
 
-Not started. Known items:
+In progress. Decided and known items:
 
-- **Routing status icon:** match PR #1554's predicted-battery icon, a coloured icon rather than a
-  tinted header, as that PR's review asked. Two per-mission health signals in the accordion
-  header share one affordance. Battery prediction is stored because it comes from an async server
-  call; routing status is derived at render.
+- **Suppressed waypoints are not drawn on the map.** A marker for a point the bot will not run
+  would confuse an operator. The mission's routing status, and the details in its dialog, are
+  the only places they appear.
+- **Routing status icon:** a coloured icon in the mission's accordion header, not a tinted header.
+  PR #1554 (predicted battery, Joey) still tints the header, and its review asked for an icon. This
+  work will likely land first, so the header-icon design is built here and offered to #1554; the
+  two PRs coordinate. Battery prediction is stored because it comes from an async server call;
+  routing status is derived at render.
+- **Mission-set status** is the worst status across the set's missions.
+- **Placement refusals happen in `Map.tsx`, before dispatch,** for waypoint adds and moves as they
+  already do for rally points and survey corners. A point inside a zone, or past the waypoint
+  limit, is never dispatched, so a refusal records no undo entry (this fixes Parked defect b).
+  `Map.tsx` shows its own placement error dialog for all of them.
+    - One function in `utils/` returns the refusal message, or none, for a location, the mission
+      and the zones. `Map.tsx` calls it for all four cases, so the message text has one copy, and
+      it is unit tested directly.
+    - The handlers keep their checks as a safety net; a refused call leaves the mission unchanged.
+    - `placementError` leaves `JaiaContextType`: the field, the
+      `CLEAR_PLACEMENT_ERROR` action and handler, the `ObstacleAvoidanceDialog` host and the line
+      in `handleClickedUndo` that clears it.
+    - Undo cannot clear `Map.tsx`'s dialog, and does not need to: the dialog blocks the screen, so
+      Undo cannot be tapped while it is open.
 - **The reroute stays synchronous, with a working indicator while it runs.** A\* cost grows with
   the area searched (Finding 12 in `00FINDINGS_AND_DECISIONS.md`): about 2 s for a 6 km zone on
   a development machine. Under this design only an explicit Reroute runs A\*; editing only
-  recomputes status, which uses the cheap blocked-leg test. An asynchronous router would let
-  tracked actions land while the report dialog is open (see the Undo button below). Speeding up the
-  router is a separate task (Parked).
+  recomputes status, which uses the cheap blocked-leg test. Speeding up the router is a separate
+  task (Parked).
 
-- **Proposal, not yet agreed: one dialog for status, actions and results, in two variants.**
+- **Two dialogs, one per status icon, sharing their content.** The status icons are the only
+  way into rerouting and restoring; no separate Reroute or Restore buttons exist.
     - _One mission:_ tapping the mission's routing-status icon opens a dialog with its status
       details (which suppressed waypoints are clear, whether detours are still needed) and its
       actions: reroute, and restore original waypoints.
-    - _All missions:_ a new button at the top of the missions list opens the same kind of dialog,
-      listing the current conflicts across all missions, with a button to reroute them.
-    - After a reroute, the dialog updates in place to show the report, with its Undo button,
-      rather than opening a second dialog.
-    - The two variants share most of their code: the all-missions one lists the per-mission
-      content.
+    - _Mission set:_ an icon at the top of the missions list shows the status of the whole set and
+      opens the same kind of dialog, listing the status of each mission, with buttons to reroute
+      or restore every mission in the set.
+    - Both icons look like buttons, so an operator can tell they can be tapped.
+    - After a reroute or restore, the dialog shows the report alongside the status and both
+      actions, rather than opening a second dialog. To switch from one to the other, the operator
+      taps the other action: both start from the original waypoints, so neither depends on the
+      other, and no undo is needed.
+    - **Pending (Jeff is consulting a coworker): how the operator backs out a reroute or restore
+      from the report.** A JCC dialog covers the screen with a transparent layer that catches every
+      tap, so the toolbar Undo stays visible but does not respond while the dialog is open.
+        - _Option 1:_ no Undo in the dialog; the toolbar Undo is the only one. The report has a
+          Close button and the line "Close this, then tap Undo to back out the reroute" (or
+          restore). Costs the operator a step.
+        - _Option 2:_ an "Undo reroute" (or "Undo restore") button in the dialog that dispatches
+          the same `CLICKED_UNDO` as the toolbar. No guard: every load that records an undo entry
+          starts inside a storage or editor dialog that blocks the screen until the load is
+          applied. The only way for a load to land while the routing dialog is open is to close
+          the storage dialog during the hub fetch and reroute before the hub answers; the button
+          would then undo the load, and the reroute can be run again. Accepted as a known edge
+          case if this option is chosen.
+    - **Structure, following Run and Run all** (`StartMissionButton` and `StartAllMissionsButton`):
+      two button components, each owning its dialog and its open state in a local `useState`,
+      with no action for opening or closing. The mission-set dialog repeats the shared
+      per-mission status block for each mission; the report block and the Reroute and Restore
+      buttons are shared too.
+    - **Two actions serve both dialogs:** `REROUTE_MISSIONS` and `RESTORE_ORIGINAL_WAYPOINTS`, each
+      carrying a list of mission IDs. The mission dialog sends one ID and the mission-set dialog
+      sends the missions that have something to do (see below), so one mission and the whole
+      set run through the same handler and produce the same report. Run and Run all likewise share
+      `SENT_COMMAND`.
+    - **The report is the only dialog state in `JaiaContextType`** (`rerouteReport`), because a
+      handler can hand data back only through context. Each reroute or restore overwrites it. A
+      dialog shows the report only after its own Reroute or Restore tap, tracked with a local flag,
+      so a reopened dialog never shows an old report and closing needs no dispatch. The report is
+      kept out of undo snapshots, and Undo cannot be tapped while a dialog is open.
+    - **Which missions an action takes: only those it would change.** It follows from
+      `getRoutingStatus`:
+        - _Reroute_ takes a mission that is conflicted (`isConflicted`) or has suppressed
+          waypoints that are now clear (`clearSuppressed`). A mission that was rerouted and is
+          still clear is left alone: rerouting it again would usually give the same detours.
+        - _Restore_ takes a mission that has detours or suppressed waypoints, including one whose
+          detours are no longer needed (`detoursUnneeded`).
+        - Reroute all and Restore all send every mission that qualifies; the report lists only
+          those. In either dialog, a button with no qualifying mission is disabled.
     - Opening the dialog is the operator's choice, so it does not interrupt an edit (principle 2).
       It shows the current status, not a computed reroute, so it is not a proposal waiting to be
       accepted (principle 4): the reroute runs only when its button is pressed.
-    - This would answer open item 2, and open item 4 for the details. It also works on touch
-      tablets.
 - The router is a function the reroute handler calls. Its interface is redesigned to produce what
-  `Mission`'s reroute method takes; the current interface is not a constraint.
+  `Mission`'s reroute method takes; the current interface is not a constraint. It has no
+  operator-facing choices, so it is settled while implementing step 3, together with the Parked
+  projection-frame item.
 - The reroute report dialog: layout, and how a reroute of all missions is summarised.
-- The report dialog has an **Undo** button. It dispatches the existing `CLICKED_UNDO` action and
-  closes the dialog; no reroute-specific revert logic exists. This is only correct if the reroute
-  is the latest undo entry when the button is pressed, so:
-    - the reroute, including a reroute of all missions, records exactly one undo entry. So a reroute
-      is a **single tracked action**: one dispatch, carrying the missions to reroute. Its handler runs
-      the router for each mission, applies each result through `Mission`'s reroute method, and stores
-      the report for the dialog. Closing the dialog and the button's `CLICKED_UNDO` are untracked.
-    - the dialog is modal, so nothing else can be done while it is open
-    - the button is enabled only while the reroute's undo entry is still the latest one; otherwise
-      it is disabled, with a note to use the normal Undo. This adds no logic to the reducer:
-        - The undo stack's top entry is the snapshot recorded after the latest tracked action. The
-          reroute's snapshot is already on top when the dialog renders.
-        - The dialog notes that snapshot when it opens and compares it again when Undo is clicked.
-          The comparison is by object identity, not by count, because a full stack drops its oldest
-          entry on push and the count does not change.
-        - This needs one new read-only method on `HistoryManager` returning its top entry. The
-          underlying `HistoryStack.peek()` already exists.
+- **A reroute or restore records exactly one undo entry**, including one of the whole mission
+  set, so one Undo backs it out. Each is a **single tracked action**: one dispatch, carrying the
+  missions. The reroute handler runs the router for each mission, applies each result through
+  `Mission`'s reroute method, and stores the report for the dialog; the restore handler does the
+  same through `Mission`'s restore method. Opening and closing the dialog are untracked.
+- The dialog appears only in response to the operator's own tap, so it does not interrupt an edit
+  (principle 2).
 
-    The guard is needed because a modal does not stop every tracked action. Only `tracked`
-    actions in `action-configs.ts` record undo entries, and all of them are operator actions; the
-    timer-driven data-model poll is not tracked, and no keyboard shortcut dispatches actions. But
-    the load and import buttons for mission sets and zone sets wait for a hub fetch or a file read
-    before dispatching. One started before the reroute can therefore land while the dialog is open.
-    The same gap would open if the router were made asynchronous.
+### UI events, actions and handlers (draft for review)
 
-    The dialog appears only in response to the operator's own reroute, so it does not interrupt an
-    edit (principle 2).
+Every operator event that touches missions, zones or the routing dialog, compared with this
+branch as it is now (after steps 0–2). The last column starts with **New**, **Changed** or
+**Unchanged** for each row. The handler column names the handler that runs, whether or not it
+changes.
+
+| Operator event                                           | Action                                                                                                                              | Handler                                                          | Undo entry                | What happens                                                                                                                                                                                                                       |
+| -------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- | ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Editing missions**                                     |                                                                                                                                     |                                                                  |                           |                                                                                                                                                                                                                                    |
+| Add a waypoint                                           | `ADD_WAYPOINT`                                                                                                                      | `handleAddWaypoint`                                              | yes                       | **Changed:** a point inside a zone, or past the waypoint limit, is refused in `Map.tsx` before dispatch, with `Map.tsx`'s placement error dialog, so a refusal records no undo entry. Otherwise appends through `Mission`, as now. |
+| Move a waypoint                                          | `MOVE_WAYPOINT`                                                                                                                     | `handleMoveWaypoint`                                             | yes                       | **Changed:** a move into a zone is refused in `Map.tsx` before dispatch, as for adding. Otherwise moves through `Mission`, as now.                                                                                                 |
+| Delete a waypoint                                        | `DELETE_WAYPOINT`                                                                                                                   | `handleDeleteWaypoint`                                           | yes                       | **Unchanged:** `Mission.deleteWaypoint` removes the waypoint (step 1 made it carry segment markers forward and drop detours left at the end), and the handler clears the selection.                                                |
+| Change a waypoint's task                                 | `SELECT_TASK`, `CHANGE_TASK_PARAMETER`, `TOGGLE_BOTTOM_DIVE`, `TOGGLE_HYDROPHONE`                                                   | existing task handlers                                           | yes                       | **Unchanged.**                                                                                                                                                                                                                     |
+| Approve a survey                                         | `SURVEY_APPROVED`                                                                                                                   | `handleChangeGridPlanningState`                                  | yes                       | **Unchanged:** builds the lane missions. Survey points inside a zone become blocked waypoints; no dialog.                                                                                                                          |
+| Add, duplicate, delete, assign missions; speeds, repeats | existing mission actions                                                                                                            | existing mission handlers                                        | yes                       | **Unchanged.**                                                                                                                                                                                                                     |
+| **Editing zones**                                        |                                                                                                                                     |                                                                  |                           |                                                                                                                                                                                                                                    |
+| Draw, edit or delete a zone, or clear all zones          | `ADD_EXCLUSION_ZONE`, `ADD_ZONE_VERTEX`, `MOVE_ZONE_VERTEX`, `DELETE_ZONE_VERTEX`, `DELETE_EXCLUSION_ZONE`, `CLEAR_EXCLUSION_ZONES` | existing zone handlers                                           | yes                       | **Unchanged:** changes the zone set only. No mission changes and no dialog; routing status is recomputed at render.                                                                                                                |
+| **Loading and saving**                                   |                                                                                                                                     |                                                                  |                           |                                                                                                                                                                                                                                    |
+| Load a mission set or a zone set                         | `LOAD_MISSION_SET`, `LOAD_EXCLUSION_ZONE_SET`                                                                                       | `handleLoadMissionSet`, `handleLoadExclusionZoneSet`             | yes                       | **Unchanged:** loads as is; nothing is rerouted and no dialog opens. Routing status shows any conflicts.                                                                                                                           |
+| Save or export a mission set or zone set                 | `CHANGE_MISSION_SET_NAME`, `CHANGE_EXCLUSION_ZONE_SET_NAME`                                                                         | `handleChangeMissionSetName`, `handleChangeExclusionZoneSetName` | yes                       | **Changed:** the Export buttons dispatch the name change as Save does, so undoing the next edit no longer reverts the name (Parked defect a). The handlers are unchanged.                                                          |
+| **Routing status and dialog**                            |                                                                                                                                     |                                                                  |                           |                                                                                                                                                                                                                                    |
+| Tap a mission's routing-status icon                      | none (component state)                                                                                                              | none                                                             | no                        | **New:** the mission's status button opens its dialog: status details, Reroute and Restore original waypoints.                                                                                                                     |
+| Tap the mission-set icon                                 | none (component state)                                                                                                              | none                                                             | no                        | **New:** the mission-set status button opens its dialog: each mission's status, Reroute all and Restore all.                                                                                                                       |
+| Tap Reroute (one mission or the set)                     | **new** `REROUTE_MISSIONS` with the mission IDs                                                                                     | **new** `handleRerouteMissions`                                  | yes, one for all missions | **New:** for each mission, the router, then `Mission.reroute`. Stores one `RerouteOutcome` per mission in `rerouteReport`; the dialog that dispatched shows it.                                                                    |
+| Tap Restore original waypoints (one mission or the set)  | **new** `RESTORE_ORIGINAL_WAYPOINTS` with the mission IDs                                                                           | **new** `handleRestoreOriginalWaypoints`                         | yes, one for all missions | **New:** for each mission, `Mission.restoreOriginalWaypoints`. Stores the report in `rerouteReport`; the dialog that dispatched shows it.                                                                                          |
+| Close the dialog                                         | none (component state)                                                                                                              | none                                                             | no                        | **New:** the dialog closes locally; the report stays in context, unseen, until the next reroute or restore overwrites it.                                                                                                          |
+| **Sending**                                              |                                                                                                                                     |                                                                  |                           |                                                                                                                                                                                                                                    |
+| Start a mission, or all missions                         | `SENT_COMMAND` after the start dialog                                                                                               | `handleSentCommand`                                              | no                        | **Unchanged** apart from open item 1: sends exactly the visible waypoints. If a mission crosses a zone, the start dialog warns and asks to confirm.                                                                                |
 
 ---
 
@@ -660,7 +726,8 @@ Not started. Known items:
 - **In this PR, revisited once the reworked code can be tested in the browser:** two undo
   defects carried over from PR #1674's review. (a) Export renames the zone or mission set without
   a tracked action, unlike Save, so undoing the next edit reverts the name. (b) A placement
-  refused inside a zone still records an empty undo entry; this fits the handler rework.
+  refused inside a zone still records an empty undo entry; fixed by refusing in `Map.tsx` before
+  dispatch (Phase 3).
 - **Phase 3, with the router's interface:** `getBlockingZoneIDs` ignores its `zones` argument
   when given a prebuilt buffer cache.
 - **Phase 3, with the router's interface:** routing status projects a route from its first
@@ -674,11 +741,10 @@ Not started. Known items:
 - **Separate task:** router performance (Finding 12). A fixed 5 m A\* grid makes cost grow with
   the area searched. Candidate fix: scale the cell size with the search area, paired with an exact
   check of the final path against every zone, so a thin zone cannot slip between cell centres.
-  Moving the search off the UI thread is the other option, and reopens the Undo-guard question in
-  Phase 3.
+  Moving the search off the UI thread is the other option.
 - **Later:** letting the operator acknowledge a conflict ("I've seen this, stop flagging it") is
   a stored decision, not derived. It was planned for `ObstacleAvoidanceData`, which this design
-  removes; it would go in context state, scoped to the session and kept out of saved files.
+  removes; it would go in screen state in `JaiaContextType`, scoped to the session and kept out of saved files.
 - **Later:** `utils/conversions.ts` imports `data/tasks/task.ts`, while `data/bots/bot.ts` and
   `data/hubs/hub.ts` import `utils/conversions.ts`: a two-way dependency between `utils/` and
   `data/` that predates this work.
