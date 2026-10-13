@@ -128,7 +128,8 @@ function import_bot_or_hub()
     find_uuid $VMNAME $GROUP
     echo "Imported UUID: $UUID"
     find_diskuuid $UUID
-    VBoxManage modifyvm $UUID --nic2 natnetwork --nat-network2 "${NATNET_NAME}"
+    # the image reads the hardware clock as UTC; VirtualBox's default is host local time
+    VBoxManage modifyvm $UUID --nic2 natnetwork --nat-network2 "${NATNET_NAME}" --rtcuseutc on
 
     echo "Disk UUID: $DISKUUID"
     write_preseed $DISKUUID $n ${bot_or_hub}
