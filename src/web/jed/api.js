@@ -71,11 +71,14 @@ class JaiaAPI {
      * @returns {*}
      */
     getStatus() {
-        return this.request({ target: { all: true }, status: true })
-            .then(({ status }) => {
+        return Promise.all([
+            this.request({ target: { all: true }, status: true }),
+            this.request({ target: { all: true }, engineering_status: true }),
+        ])
+            .then(([{ status }, { engineering_status }]) => {
                 const hubTime = Number(status.time ?? 0);
                 const engineering = {};
-                for (const engineeringStatus of status.engineering ?? []) {
+                for (const engineeringStatus of engineering_status?.bots ?? []) {
                     engineering[engineeringStatus.bot_id] = engineeringStatus;
                 }
 

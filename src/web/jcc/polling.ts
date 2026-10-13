@@ -10,6 +10,7 @@ import {
     PortalHubStatus,
 } from "@proto/jaiabot/messages/rest_api";
 import { BotStatus } from "@proto/jaiabot/messages/jaia_dccl";
+import { Engineering } from "@proto/jaiabot/messages/engineering";
 import { botLayer } from "../openlayers/layers/vector/bot-layer";
 import { hubLayer } from "../openlayers/layers/vector/hub-layer";
 import { ghostMissionLayer, missionLayer } from "../openlayers/layers/vector/mission-layer";
@@ -62,12 +63,20 @@ export async function pollStatus() {
         statusRequestInFlight = true;
         statusRequestStartTime = new Date().getTime();
 
-        const rest_response = await jaia_rest_api.request({
-            target: {
-                all: true,
-            },
-            status: true,
-        });
+        const [rest_response, engineering_response] = await Promise.all([
+            jaia_rest_api.request({
+                target: {
+                    all: true,
+                },
+                status: true,
+            }),
+            jaia_rest_api.request({
+                target: {
+                    all: true,
+                },
+                engineering_status: true,
+            }),
+        ]);
 
         const status = rest_response.status;
 
@@ -76,7 +85,9 @@ export async function pollStatus() {
             return;
         }
 
-        updateBots(toPortalBotStatuses(status));
+        updateBots(
+            toPortalBotStatuses(status, engineering_response.engineering_status?.bots ?? []),
+        );
         updateHubs(toPortalHubStatuses(status));
         updateJaiaGlobal(status.controlling_client_id ?? null);
         updateOpenLayers();
@@ -281,9 +292,13 @@ export async function pollInternet() {
  * Ages are measured against the hub's clock so they are independent of the client's clock.
  *
  * @param {APIResponse_Statuses} status Status response from the hub
+ * @param {Engineering[]} engineeringStatuses Engineering status response from the hub
  * @returns {PortalBotStatus[]} Status of each bot
  */
-function toPortalBotStatuses(status: APIResponse_Statuses): PortalBotStatus[] {
+function toPortalBotStatuses(
+    status: APIResponse_Statuses,
+    engineeringStatuses: Engineering[],
+): PortalBotStatus[] {
     const hubTime = Number(status.time ?? 0);
 
     return (status.bots ?? []).map((botStatus) => ({
@@ -291,7 +306,7 @@ function toPortalBotStatuses(status: APIResponse_Statuses): PortalBotStatus[] {
         active_mission_plan: status.active_mission_plans?.find(
             (plan) => plan.bot_id === botStatus.bot_id,
         )?.mission_plan,
-        engineering: status.engineering?.find(
+        engineering: engineeringStatuses.find(
             (engineering) => engineering.bot_id === botStatus.bot_id,
         ),
         active_link_status_age: getActiveLinkStatusAges(botStatus, hubTime),

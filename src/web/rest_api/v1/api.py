@@ -110,9 +110,6 @@ def status(jaia_request: APIRequest) -> APIResponse:
                     empty.time=0
 
         for bot_id in jaia_response.target.bots:
-            if bot_id in common.shared_data.data.bots_engineering:
-                jaia_response.status.engineering.extend([common.shared_data.data.bots_engineering[bot_id]])
-
             if bot_id in common.shared_data.data.active_mission_plans:
                 active_mission_plan = jaia_response.status.active_mission_plans.add()
                 active_mission_plan.bot_id = bot_id
@@ -122,6 +119,20 @@ def status(jaia_request: APIRequest) -> APIResponse:
             jaia_response.status.controlling_client_id = common.shared_data.data.controlling_client_id
 
     jaia_response.status.time = utc_now_microseconds()
+    return jaia_response
+
+def engineering_status(jaia_request: APIRequest) -> APIResponse:
+    jaia_response = APIResponse()
+    jaia_response.engineering_status.SetInParent()
+
+    with common.shared_data.data_lock:
+        bots_engineering = common.shared_data.data.bots_engineering
+        bot_ids = bots_engineering.keys() if jaia_request.target.all else [bot_id for bot_id in jaia_request.target.bots if bot_id in bots_engineering]
+
+        for bot_id in bot_ids:
+            jaia_response.engineering_status.bots.extend([bots_engineering[bot_id]])
+            jaia_response.target.bots.append(bot_id)
+
     return jaia_response
 
 def metadata(jaia_request: APIRequest) -> APIResponse:
@@ -330,9 +341,9 @@ def engineering_command(jaia_request: APIRequest) -> APIResponse:
 
         jaia_response.target.bots.extend(bot.bot_id for bot in bots)
         jaia_response.target.hubs.extend(hubs)
-        jaia_response.engineering_command_result.command_sent = len(hubs) > 0 and len(bots) > 0
+        jaia_response.command_result.command_sent = len(hubs) > 0 and len(bots) > 0
 
-        if jaia_response.engineering_command_result.command_sent:
+        if jaia_response.command_result.command_sent:
             take_control_for_requesting_client()
 
     return jaia_response
