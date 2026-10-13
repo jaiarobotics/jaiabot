@@ -84,6 +84,10 @@ class Data:
         if msg.HasField('hub_status'):            
             msg.hub_status.received_time = utc_now_microseconds()
             self.hubs[msg.hub_status.hub_id] = msg.hub_status
+
+            # Task packets that weren't sent over the radio arrive in files from the offload
+            if msg.hub_status.bot_offload.offload_succeeded:
+                self.task_packet_database.add_task_packets_from_files()
             
         if msg.HasField('task_packet'):
             log.info('Task packet received')
