@@ -38,6 +38,11 @@ message TaskPacketQuery
         [(jaia.field).rest_api = {
             doc: "The version from an earlier response to this same query. If the task packets haven't changed since, the response has no packets and 'unchanged' is set. Only used with the JSON format."
         }];
+    optional uint32 limit = 7
+        [default = 1000, (jaia.field).rest_api = {
+            presence: GUARANTEED,
+            doc: "Maximum number of task packets to return. When more match, the most recent are returned."
+        }];
     
     enum Format {
         JSON = 0 [(jaia.ev).rest_api = { presence: GUARANTEED }];
