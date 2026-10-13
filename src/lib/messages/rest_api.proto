@@ -284,16 +284,14 @@ message PortalBotStatus {
     optional BotStatus bot_status = 1;
     optional MissionPlan active_mission_plan = 2;
     repeated LinkStatusAge active_link_status_age = 3;
-    optional int32 portalStatusAge = 4;
-    optional bool isDisconnected = 5;
+    optional int32 status_age = 4;
+    optional bool is_disconnected = 5;
     optional Engineering engineering = 6;
-    optional int64 last_status_received_time = 7;
 }
 
 message PortalHubStatus {
     optional HubStatus hub_status = 1;
-    optional int32 portalStatusAge = 2;
-    optional int64 last_status_received_time = 3;
+    optional int32 status_age = 2;
 }
 
 message PodStatus {

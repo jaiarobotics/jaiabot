@@ -1,5 +1,4 @@
 import { jaia_rest_api } from "./jaia-rest-api";
-import { jaiaAPI } from "./jaia-api";
 import { Engineering } from "@proto/jaiabot/messages/engineering";
 import { Command, CommandForHub, Command_CommandType } from "@proto/jaiabot/messages/jaia_dccl";
 import { MissionState } from "@proto/jaiabot/messages/mission";
@@ -60,7 +59,7 @@ export function isCommandAvailable(commandType: Command_CommandType, missionStat
 }
 
 /**
- * Passes a command message for a Bot to the jaiaAPI
+ * Passes a command message for a Bot to the REST API
  * so it can reach the Hub for distribution
  *
  * @param {Command} command Command message to be sent to Bot
@@ -76,7 +75,7 @@ export function sendBotCommand(command: Command) {
 }
 
 /**
- * Passes a command message for a Hub to the jaiaAPI so it can reach the Hub
+ * Passes a command message for a Hub to the REST API so it can reach the Hub
  *
  * @param {Command} command Command message to be sent to Hub
  * @returns {Promise} Response from sending command
@@ -91,7 +90,7 @@ export function sendHubCommand(command: CommandForHub) {
 }
 
 /**
- * Passes a engineering command message for a Bot to the jaiaAPI
+ * Passes a engineering command message for a Bot to the REST API
  * so it can reach the Hub for distribution
  *
  * @param {Engineering} command Engineering command message to be sent to Bot

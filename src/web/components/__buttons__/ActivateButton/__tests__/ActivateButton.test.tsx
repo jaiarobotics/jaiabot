@@ -30,7 +30,7 @@ const botStatusMock2: PortalBotStatus = {
         bot_id: 2,
         mission_state: MissionState.PRE_DEPLOYMENT__IDLE,
     },
-    portalStatusAge: 40_000_000,
+    status_age: 40_000_000,
 };
 
 const botStatusMock3: PortalBotStatus = {

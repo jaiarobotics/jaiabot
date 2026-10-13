@@ -2,7 +2,6 @@ import { useContext, useState } from "react";
 import { FormControl, MenuItem, Select, SelectChangeEvent } from "@mui/material";
 import { JaiaContext } from "../../../context/JaiaContext";
 import { jaia_rest_api } from "../../../utils/jaia-rest-api";
-import { jaiaAPI } from "../../../utils/jaia-api";
 import { success } from "../../../utils/notifications";
 import {
     BotStatusRate,
