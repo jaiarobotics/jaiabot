@@ -29,6 +29,11 @@ message TaskPacketQuery
             presence: GUARANTEED,
             doc: "Whether to only return included (non-excluded) task packets."
         }];
+    optional bool excluded_only = 5
+        [default = false, (jaia.field).rest_api = {
+            presence: GUARANTEED,
+            doc: "Whether to only return excluded task packets. Takes precedence over included_only."
+        }];
     
     enum Format {
         JSON = 0 [(jaia.ev).rest_api = { presence: GUARANTEED }];
