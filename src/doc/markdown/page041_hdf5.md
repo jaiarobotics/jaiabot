@@ -665,6 +665,8 @@
 
 ### Group: time_status
 
+*This section written by Claude*
+
 * ChronyStatus
   * optional string reference_id
   * optional string reference_name

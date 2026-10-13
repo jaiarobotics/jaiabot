@@ -6,6 +6,8 @@ A major software upgrade is defined as updating the Ubuntu release as well as th
 
 ### Ensure all bots have a BNO085 IMU
 
+*This section written by Claude*
+
 The BNO055 IMU is no longer supported. Any bot still fitted with one must have it replaced with a BNO085 before the fleet can be upgraded. For each of those bots:
 
 1. Set the imu type to `bno085` on the bot itself with `jaia admin debconf set imu_type bno085`. This is what the major upgrade checks.
@@ -20,6 +22,8 @@ If this fleet was generated prior to fleet configuration files (this includes mo
 This fleet configuration must then be embedded in the upgrade image (see the next step).
 
 If the fleet was generated using a fleet configuration file, a valid file on the hub should already exist at `/etc/jaiabot/fleetN.cfg`. In this case that fleet configuration will be reused and no further action is required.
+
+*This section written by Claude*
 
 The hub's copy is not updated when a bot is added with "Pair new Bot", so before reusing it the upgrade compares the hubs and bots it lists with the hub's inventory (`/etc/jaiabot/inventory.yml`). If they differ, the upgrade stops on the hub, before any node is touched, and asks for the fleet's current configuration to be embedded in the upgrade image (see the next step). A configuration embedded in the image, or given with `-e fleet_cfg=...`, is used as it is, and a CloudHub's own upgrade skips the check: its inventory follows the nodes paired with it.
 
@@ -37,6 +41,8 @@ If you need to embed the fleet configuration (see previous section), do so now w
 ```
 jaia admin fleet update_iso /path/to/fleetN.cfg /path/to/jaiabot_updates_resolute_3.0.0_arm64.iso
 ```
+
+*This section written by Claude*
 
 This migrates and validates the fleet config with the fleet config tool of the release on the ISO, embeds it (at `major_upgrade/fleetN.cfg` within the ISO) and writes a new ISO called `/path/to/jaiabot_updates_resolute_3.0.0_arm64_fleetN.iso`. If the fleet config cannot be used with that release, this is where you find out.
 
@@ -66,6 +72,8 @@ ansible-playbook -i /etc/jaiabot/inventory.yml major-upgrade.yml -e hub_id=1 -e 
 
 where `hub_id` is the hub in use (the one with the upgrade USB flash key or CD connected) and `do_backup` is a boolean set to whether the existing (old) rootfs and overlay should be backed up to the `/var/log/jaiabot/major_upgrade/vX_codename` directory prior to the upgrade.
 
+*This section written by Claude*
+
 Each node downloads the new images from the hub one at a time, capped at 1.5 MB/s so the upgrade does not saturate the fleet's radio link. Fleets in simulation mode (VirtualBox fleets and VirtualFleets) download uncapped. Pass `-e major_upgrade_download_limit_rate=<rate>` (a curl `--limit-rate` value such as `500K`, or `0` for no cap) to override either.
 
 Only the hub named by `hub_id` stages the upgrade (mounts the updates disk and checks the fleet configuration and its SSH key); the other hubs skip staging and download the new images from it like the bots do.
@@ -80,9 +88,13 @@ Nor can a CloudHub be handed the fleet configuration on a USB key or CD, so it t
 
 ### Use the playbook from the release you are installing
 
+*This section written by Claude*
+
 Run the playbook from a git checkout of the release being installed, not from the copy installed on the hub. A hub still running the old release has the old playbook under `/usr/share/jaiabot/config/ansible`, and that playbook builds the new boot filesystem with the old release's fleet config tool, which cannot write a preseed the new image can read. Nothing reports an error until after the root filesystem has already been swapped, so the node reboots into the new release unconfigured: no hostname, no network, no `jaiabot`, reachable only over a serial console.
 
 ### Upgrading a fleet a few nodes at a time
+
+*This section written by Claude*
 
 The fleet does not have to be upgraded in one pass. A hub that has already been upgraded can upgrade bots still running the old release, so bots that were out of the water, switched off or otherwise absent can be brought up to the new release whenever they next appear:
 
@@ -128,6 +140,8 @@ This is necessary to allow the running rootfs to bootstrap the new image. This w
 
 See major-upgrade.yml for full details on the steps performed.
 
+*This section written by Claude*
+
 The playbook ensures that the new Ubuntu version is newer than the existing version and new Jaiabot version is not older than the existing version, to prevent meaningless double-upgrades or accidental major upgrades that should be normal upgrades (e.g. 1.16.0->1.17.0). It also checks that the system runs the release immediately before the one being installed (`major_upgrade_previous_major` in the ISO's `version.txt`), so releases are never skipped.
 
 On the hub, before anything else, the staged fleet configuration is migrated and validated with the fleet config tool (`jaia-fleet-config.py`) taken from the *new* release's boot tarball on the updates disk (`tasks/hub-check-fleet-config.yml`). A fleet configuration that the new release cannot use stops the upgrade here, on the hub, with the reason.
@@ -161,6 +175,8 @@ Finally the `do-major-upgrade.sh` is configured to `/var/log/jaiabot/major_upgra
 This script logs to `/var/log/jaiabot/major_upgrade/v{X}_{ubuntucode}/major_upgrade_final.log`
 
 ## Fleet configuration versioning
+
+*This section written by Claude*
 
 The fleet configuration is written once when a fleet is created and read again at every major upgrade, possibly years later by a newer release (see the Ansible steps above). This section describes how changes to what a fleet config must contain are tracked, so that a major upgrade either migrates an older file automatically or fails early with a clear message rather than silently producing a misconfigured system.
 

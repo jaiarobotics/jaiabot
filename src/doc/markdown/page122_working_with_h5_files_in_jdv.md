@@ -171,6 +171,8 @@ https://github.com/jaiarobotics/jaiabot/tree/task/developer-log-analysis-tools
 - *Measured via a **Turner Designs C Fluor***
   - http://docs.turnerdesigns.com/t2/doc/spec-guides/998-2125.pdf
 
+*This section written by Claude*
+
 A BIO payload board may carry two fluorometers. The second reports under `jaiabot::fluorometer_2`; the paths are otherwise identical.
 
 ##### Data Paths
@@ -181,6 +183,9 @@ A BIO payload board may carry two fluorometers. The second reports under `jaiabo
 |**Analyte**       |*N/A*   |*10 Hz*    |`jaiabot::fluorometer` ➔ `analyte_name`         |`/jaiabot::fluorometer/jaiabot.sensor.protobuf.TurnerCFluor/analyte_name`        |
 
 ##### Data Paths (Second Fluorometer)
+
+*This section written by Claude*
+
 | Data Field       | Unit   | Frequency | JDV Path                                         | HDF5 Log Path                                                                      |
 |------------------|--------|-----------|--------------------------------------------------|------------------------------------------------------------------------------------|
 |**Concentration** |*Varies*|*10 Hz*    |`jaiabot::fluorometer_2` ➔ `concentration`        |`/jaiabot::fluorometer_2/jaiabot.sensor.protobuf.TurnerCFluor/concentration`        |

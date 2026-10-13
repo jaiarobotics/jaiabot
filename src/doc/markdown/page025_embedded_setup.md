@@ -12,6 +12,8 @@ Flash this to as many SD cards as you have bots plus hubs:
 gunzip -c jaiabot__rootfs-jammy-v1.16.0__code-v1.16.0.img.gz | sudo dd of=/dev/sdd bs=1M status=progress
 ```
 
+*This section written by Claude*
+
 Create a fleet, generate first-boot configurations, and boot:
 
 ```
@@ -41,6 +43,8 @@ The simplest way to create a new fleet is to use the `jaia` tool (e.g. for fleet
 ```
 jaia admin fleet create fleet5.cfg
 ```
+
+*This section written by Claude*
 
 This will prompt you using a whiptail UI to set the various fleet related settings, and write the contents to `fleet5.cfg`. The bot/hub settings it asks for are the same questions, in the same order, as `jaiabot-embedded` asks on a node (both come from `fleet_config.proto`), first for the whole fleet and then, optionally, for sets of bots or hubs whose answers differ. Every dialog has a **Back** button that returns to the previous question; going back past the first one leaves without writing anything.
 
@@ -149,6 +153,8 @@ Each application has a service definition, and they are all set to `BindTo` the 
 
 When using the `jaiabot-embedded` Debian package, the systemd services are automatically installed to `/etc/systemd/system` and enabled. No further action is required in this case.
 
+*This section written by Claude*
+
 All bot/hub configuration is read from the `jaiabot-embedded` debconf database, so there are no configuration flags to pass. To change any of it, run `sudo dpkg-reconfigure jaiabot-embedded`, or use [`jaia admin debconf`](page005_jaia_tool.md) to `list`, `get` and `set` individual values without stepping through the menus.
 
 When using a built-from-source version of jaiabot, ensure that the local bin directory is on your `$PATH` (e.g., check that `which jaiabot_mission_manager` returns the correct binary), then run:
@@ -157,6 +163,8 @@ When using a built-from-source version of jaiabot, ensure that the local bin dir
 cd jaiabot/config/gen
 ./systemd-local.sh --enable
 ```
+
+*This section written by Claude*
 
 If the machine has no `jaiabot-embedded` debconf database — or you want to generate services for a configuration other than the local one — write the answers to a file in `debconf-set-selections` format and point at it instead:
 
@@ -183,11 +191,15 @@ The `jaiabot.service` waits for the system clock to be synchronized by `chrony` 
 
 The systemd service files are generated via templates much like the application configuration.
 
+*This section written by Claude*
+
 The generation script lives in: `jaiabot/config/gen/systemd.py` and is run by the `jaiabot-embedded` postinst, or by hand for a locally built copy of jaiabot. It reads the bot/hub configuration from debconf and takes only the deployment layout (where the binaries and services live) on the command line.
 
 The generated units carry their configuration in `Environment=` lines, which the configuration Generators (`gen/bot.py`, `gen/hub.py`) read when systemd starts them as children.
 
 To see all the options for configuring this script, run `systemd.py --help`
+
+*This section written by Claude*
 
 For a locally built copy, you can use the `systemd-local.sh` shell script (a thin wrapper around `systemd.py` that runs it under `sudo` while preserving the current `$PATH`).
 

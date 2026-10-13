@@ -57,6 +57,8 @@ The components of the VPC include:
 
 ## Network addresses
 
+*This section written by Copilot*
+
 The use of the `jaia ip` tool (or, in scripts, the standalone `jaia_ip` binary that it wraps) is recommended for determining IP addresses for a given node, id, fleet, etc.
 
 The network address assignment for the Jaia Cloud is intended to complement the existing fleet specific [VPN](page055_vpn.md). This means that a given fleet may have up to three VPN subnets assigned:
@@ -77,6 +79,8 @@ Additionally, each VPC has two subnets assigned as previously mentioned:
 2. VirtualFleet WLAN Subnet: 10.23.{flt}.0/24 (10.23.253.0/24 for a fleet above 250, see below) and 2001:db8:0:**2**::/64 where 2001:db8::/56 is replaced by the Amazon EC2 assigned IPv6 block for the VPC.
 
 ### Fleet ID ranges
+
+*This section written by Claude*
 
 The fleet WLAN, the fleet VPN and the VirtualFleet WLAN carry the fleet id in a single IPv4 octet, which is what limits how many fleets those schemes can address. Rather than renumber the fleets already using them, the fleet id range is split:
 
@@ -121,6 +125,8 @@ For each VPN class, the Subnet ID is the Fleet ID, so for example, VirtualFleet 
 
 #### Address
 
+*This section written by Claude*
+
 For a given node on the network, the 64-bit interface identifier is given as `::1:hub_id` for hubs, `::2:bot_id` for bots, `::3:customer_id` for various customer machines (desktop / laptop / tablet), `::4:rpicam_id` for rpicams, and `::5:0` for the gateway, which is the Wireguard server on the VPN networks (`.1` on the IPv4 networks). This allows up to 2^16 = 65536 nodes of each type to be assigned per fleet.
 
 Nothing is assigned the gateway address on the fleet WLAN. A node there finds its router by Router Advertisement, and the generated network configuration sets no IPv6 gateway; the address is reserved so that a Wireguard server, which is inside a tunnel where there is no Router Advertisement to answer, has the same identifier on every network.
@@ -135,6 +141,8 @@ Some examples include:
 | Bot         | 6   | 250      | `fd91:5457:1e5c:fa::2:6` | `fd6e:cf0d:aefa:fa::2:6` | `fd0f:77ac:4fdf:fa::2:6` |
 | Hub         | 20 | 10       | `fd91:5457:1e5c:a::1:14` | `fd6e:cf0d:aefa:a::1:14` | `fd0f:77ac:4fdf:a::1:14` |
 | Hub (CloudHub (ch))        | 30 | 15       | `fd91:5457:1e5c:f::1:1e` | `fd6e:cf0d:aefa:f::1:1e` | `fd0f:77ac:4fdf:f::1:1e` |
+
+*This section written by Claude*
 
 Every fleet in the table is an IPv4 fleet, so `jaia ip` gives its fleet VPN address as IPv4 (`jaia ip b5sf4` is `172.23.4.105`); `--ip_version ipv6` asks for the IPv6 address listed here instead. The VirtualFleet and CloudHub VPNs are IPv6 for every fleet, so those need no flag.
 
@@ -171,6 +179,8 @@ jaia ip chf15
 - jaiabot-rootfs-gen_build-date: Fri 08 Dec 2023 02:20:27 UTC
 - jaiabot-rootfs-gen_build-unixtime: 1702002064
 
+*This section written by Claude*
+
 CircleCI builds the AMI in `us-east-1` (and separately in `us-gov-east-1` for GovCloud), then copies it, with these tags, to each region listed in the `ami_copy_regions` parameter of the `aws-sync` job — currently `ca-central-1`. Since lookups are by tag rather than by AMI ID, `create_vpc.sh` and `create-virtualfleet.yml` resolve the image the same way in every region. To add a region, add it to that parameter; AMIs cannot be copied between the commercial and GovCloud partitions, so each partition needs its own build.
 
 ### VPC components (including Instances)
@@ -193,6 +203,8 @@ CUSTOMER_NAME is the fleet config's `customer` (default `jaia`), which `jaia adm
 	+ jaia_node_type: "bot" or "hub"
 
 ## CloudHub settings
+
+*This section written by Claude*
 
 A CloudHub keeps its creation-time settings in `/etc/jaiabot/cloud.env`, written by
 cloud-init on first boot. That file lives on the rootfs, so a major upgrade discards
@@ -263,6 +275,8 @@ There is also a `jaia_support` account, in no groups, which the support page mov
 the web groups when a customer grants Jaia web access.
 
 ## CloudHub SSH key
+
+*This section written by Claude*
 
 A physical hub's SSH key lives on its Yubikey, so the key handle in the fleet config is
 of no use without the hub itself. A CloudHub has no USB port for one, and its key is an
@@ -420,6 +434,8 @@ To upgrade an existing server, the following set of steps is recommended:
 
 ## Cloud Login server (auth.fleetN.jaia.tech / auth.custom_domain)
 
+*This section written by Claude*
+
 Each CloudHub runs its own authentication server, allowing people to access the CloudHub and VirtualFleet securely using 2-factor [2FA] verification for all resources except the REST_API (which allows machines to use one-factor passwords to be used as API tokens).
 
 This provides a more convenient way to access the JCC and other CloudHub applications without requiring that the client machine have the Wireguard VPN installed, and provide more granular permissions.
@@ -437,9 +453,13 @@ This server is implemented using three open source projects:
 
 In short, Authelia manages authentication, Caddy manages the reverse proxy (between the insecure HTTP applications and the authenticated HTTPS connection), and LLDAP manages the user information (user names, group, passwords, etc.).
 
+*This section written by Claude*
+
 An instance of all three of these runs on each CloudHub.
 
 ### Required DNS entries
+
+*This section written by Claude*
 
 Each Cloudhub can be supported from either `jaia.tech` or a custom domain.
 
@@ -459,6 +479,8 @@ jaiaf6      AAAA    2001:db8::42
 ```
 
 ### Required SMTP
+
+*This section written by Claude*
 
 Sending email from the Authelia instance is required for registering new 2FA tokens and password resets. By default these emails are sent from `noreply@auth.jaia.tech` through [Postmark](https://postmarkapp.com/), for every fleet.
 
@@ -487,6 +509,8 @@ cloudhub {
 You can use `https://www.mail-tester.com/` to check the likelihood that your emails will be caught in spam.
 
 ### Available services
+
+*This section written by Claude*
 
 #### jaia.tech Domains
 

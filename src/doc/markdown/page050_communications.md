@@ -193,6 +193,8 @@ Communication between the Cloudhub and iridium.jaia.tech happens within the Clou
 
 ## Fleet DNS
 
+*This section written by Claude*
+
 Every hub runs a DNS server (`dnsmasq`, as the `jaiabot_dns` service) that resolves the names of all the bots and hubs in its fleet, so that neither operators nor tooling need to look up an address from the `jaia ip` scheme:
 
 ```
