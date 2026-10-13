@@ -1,49 +1,56 @@
 from pathlib import Path
 
 
+class RecordNotFound(Exception):
+    pass
+
+
+class InvalidRecordName(Exception):
+    pass
+
+
 class CRUDLRecords:
-    ROOT_DIR: Path = None
+    """Named JSON records (e.g. exclusion zone sets or mission sets), stored one per file."""
 
     def __init__(self, root_dir: str | Path):
-        self.ROOT_DIR = Path(root_dir)
+        self.root_dir = Path(root_dir)
 
 
-    def _item_path(self, name: str) -> Path:
-        """Returns the filesystem path for a named exclusion zone set.
+    def _record_path(self, name: str) -> Path:
+        """Returns the filesystem path for a named record.
 
-        Raises ValueError if the name contains characters that could allow
+        Raises InvalidRecordName if the name contains characters that could allow
         directory traversal or other path manipulation.
         """
         if not name or '/' in name or '\\' in name or name.startswith('.') or '..' in name:
-            raise ValueError(f"Invalid zone set name: {name!r}")
-        return self.ROOT_DIR / f"{name}.json"
+            raise InvalidRecordName(f"Invalid record name: {name!r}")
+        return self.root_dir / f"{name}.json"
 
 
-    def list_zones(self) -> list[str]:
-        """Returns a sorted list of saved exclusion zone set names."""
-        self.ROOT_DIR.mkdir(parents=True, exist_ok=True)
-        return sorted(p.stem for p in self.ROOT_DIR.glob("*.json"))
+    def list(self) -> list[str]:
+        """Returns a sorted list of saved record names."""
+        self.root_dir.mkdir(parents=True, exist_ok=True)
+        return sorted(p.stem for p in self.root_dir.glob("*.json"))
 
 
-    def get_zone(self, name: str) -> str:
-        """Returns the saved exclusion zone set with the given name."""
-        path = self._item_path(name)
+    def get(self, name: str) -> str:
+        """Returns the saved record with the given name."""
+        path = self._record_path(name)
         if not path.exists():
-            raise Exception(f"Zone set not found: {name!r}")
+            raise RecordNotFound(f"Record not found: {name!r}")
         return path.read_text()
 
 
-    def save_zone(self, name: str, content: str):
-        """Saves (or overwrites) a named exclusion zone set."""
-        path = self._item_path(name)
-        self.ROOT_DIR.mkdir(parents=True, exist_ok=True)
+    def save(self, name: str, content: str):
+        """Saves (or overwrites) a named record."""
+        path = self._record_path(name)
+        self.root_dir.mkdir(parents=True, exist_ok=True)
         path.write_text(content)
 
 
-    def delete_zone(self, name: str):
-        """Deletes a named exclusion zone set."""
-        path = self._item_path(name)
+    def delete(self, name: str):
+        """Deletes a named record."""
+        path = self._record_path(name)
         if not path.exists():
-            raise Exception(f"Zone set not found: {name!r}")
+            raise RecordNotFound(f"Record not found: {name!r}")
         path.unlink()
-

@@ -10,11 +10,12 @@ import {
 } from "../zone-storage";
 
 jest.mock("../../../../utils/jaia-rest-api", () => ({
+    ...jest.requireActual("../../../../utils/jaia-rest-api"),
     jaia_rest_api: { request: jest.fn() },
 }));
 
-import { jaia_rest_api } from "../../../../utils/jaia-rest-api";
-import { RecordQuery_RecordType } from "@proto/jaiabot/messages/rest_api";
+import { jaia_rest_api, JaiaRESTAPIError } from "../../../../utils/jaia-rest-api";
+import { APIErrorCode, RecordQuery_RecordType } from "@proto/jaiabot/messages/rest_api";
 
 const mockRequest = jaia_rest_api.request as jest.Mock;
 
@@ -66,9 +67,23 @@ describe("Zone hub storage", () => {
     });
 
     test("loadSnapshotFromHub returns null when the hub has no entry", async () => {
-        mockRequest.mockResolvedValue({ record_query_response: {} });
+        mockRequest.mockRejectedValue(
+            new JaiaRESTAPIError(APIErrorCode.API_ERROR__RECORD_NOT_FOUND, "Record not found"),
+        );
         const result = await loadSnapshotFromHub("nonexistent");
         expect(result).toBeNull();
+    });
+
+    test("loadSnapshotFromHub passes on other API errors", async () => {
+        const error = new JaiaRESTAPIError(APIErrorCode.API_ERROR__INVALID_RECORD_NAME, "Bad name");
+        mockRequest.mockRejectedValue(error);
+        await expect(loadSnapshotFromHub("../escape")).rejects.toBe(error);
+    });
+
+    test("saveToHub waits for the hub to save", async () => {
+        const error = new Error("Hub unreachable");
+        mockRequest.mockRejectedValue(error);
+        await expect(saveToHub("my-zones")).rejects.toBe(error);
     });
 
     test("deleteFromHub calls the API with the correct name", async () => {

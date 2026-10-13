@@ -21,11 +21,12 @@ import {
 import { UNASSIGNED_ID } from "../../../../utils/constants";
 
 jest.mock("../../../../utils/jaia-rest-api", () => ({
+    ...jest.requireActual("../../../../utils/jaia-rest-api"),
     jaia_rest_api: { request: jest.fn() },
 }));
 
-import { jaia_rest_api } from "../../../../utils/jaia-rest-api";
-import { APIRequest } from "@proto/jaiabot/messages/rest_api";
+import { jaia_rest_api, JaiaRESTAPIError } from "../../../../utils/jaia-rest-api";
+import { APIErrorCode, APIRequest } from "@proto/jaiabot/messages/rest_api";
 
 const mockRequest = jaia_rest_api.request as jest.Mock;
 
@@ -38,6 +39,12 @@ describe("Exercise functions to save and load missions from the hub", () => {
         fakeHubStorage = {};
         jest.clearAllMocks();
         mockRequest.mockImplementation(async ({ record_query: query }: APIRequest) => {
+            const missingName = [query?.get_name, query?.delete_name].find(
+                (name) => name !== undefined && !(name in fakeHubStorage),
+            );
+            if (missingName !== undefined) {
+                throw new JaiaRESTAPIError(APIErrorCode.API_ERROR__RECORD_NOT_FOUND, missingName);
+            }
             if (query?.save_name !== undefined) {
                 fakeHubStorage[query.save_name] = JSON.parse(query.save_content ?? "null");
             }
@@ -50,7 +57,7 @@ describe("Exercise functions to save and load missions from the hub", () => {
                         ? Object.keys(fakeHubStorage).sort((a, b) => a.localeCompare(b))
                         : [],
                     content:
-                        query?.get_name !== undefined && query.get_name in fakeHubStorage
+                        query?.get_name !== undefined
                             ? JSON.stringify(fakeHubStorage[query.get_name])
                             : undefined,
                 },
