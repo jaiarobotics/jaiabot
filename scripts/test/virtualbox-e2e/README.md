@@ -67,7 +67,7 @@ a single check repeated (`--stages api,web`) against a fleet that is already up.
 | Stage | What it does |
 |-------|--------------|
 | `download` | Fetches the OVA into `--cache-dir`, resuming a partial file and checking the length against the server's |
-| `import` | Deletes clashing VMs (after asking) and runs `rootfs/scripts/import_vms.sh` |
+| `import` | Deletes clashing VMs (after asking) and runs `rootfs/scripts/import_vms.sh`, passing `--warp` (default 10) as the simulation warp. Use `--warp 1` to test JDV: at 10 the bots' clock reaches the year 2537, whose microsecond timestamps JDV cannot display |
 | `hostonly` | Creates `vboxnet0` if needed, addresses it `192.168.56.1/24`, and moves each hub's NIC 1 to it |
 | `boot` | Waits for the importer to release every disk, starts every VM headless and waits for SSH, for the first-boot reboot onto the overlay root, and for cloud-init to finish, logging its status and any errors it reports. A VM that has not answered SSH after `--boot-reset-after` (default 600 s) is reset once, which clears a VM that hung in its EFI firmware |
 | `network` | Sets `jaia_network_eth_address` in each hub's `/etc/jaiabot/network.env`, runs `jaia-update-network.sh`, reloads networkd, and waits for the hub to answer on its host-only address |
