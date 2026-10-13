@@ -36,6 +36,13 @@ export type RerouteResult =
       }
     | { kind: "overWaypointLimit"; needed: number };
 
+/** Outcome of Mission.restoreOriginalWaypoints, by original waypoint number. */
+export interface RestoreResult {
+    /** Original waypoints that were suppressed and are now back in the path. */
+    restored: number[];
+    detoursRemoved: number;
+}
+
 export default class Mission {
     private missionID: number;
     private waypoints: MissionWaypoint[];
@@ -130,10 +137,21 @@ export default class Mission {
         return { kind: "changed", suppressed, restored, detoursAdded };
     }
 
-    /** Removes every detour and brings back every suppressed waypoint. */
-    restoreOriginalWaypoints() {
-        this.waypoints = this.originalWaypoints();
-        for (const waypoint of this.waypoints) waypoint.setIsSuppressed(false);
+    /**
+     * Removes every detour and brings back every suppressed waypoint.
+     *
+     * @returns {RestoreResult} What the restore changed
+     */
+    restoreOriginalWaypoints(): RestoreResult {
+        const originals = this.originalWaypoints();
+        const detoursRemoved = this.waypoints.length - originals.length;
+        const restored: number[] = [];
+        originals.forEach((waypoint, i) => {
+            if (waypoint.getIsSuppressed()) restored.push(i + 1);
+            waypoint.setIsSuppressed(false);
+        });
+        this.waypoints = originals;
+        return { restored, detoursRemoved };
     }
 
     /** Has detours or suppressed waypoints, so restoring the original waypoints would change it. */

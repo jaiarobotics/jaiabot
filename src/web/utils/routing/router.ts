@@ -10,6 +10,7 @@ import { Clipper, JoinType, EndType, FillRule } from "clipper2-ts";
 import { GeographicCoordinate } from "../../types/protobuf-types";
 import { ExclusionZone } from "../../data/exclusion_zones/exclusion-zone-set";
 import { RerouteStep } from "../../data/mission_set/mission";
+import { RoutingResult } from "../../types/routing-types";
 
 interface XYPt {
     x: number;
@@ -663,13 +664,6 @@ function findBypassPath(A: XYPt, B: XYPt, zoneGeoms: ZoneGeom[], safetyMargin: n
 }
 
 // ── Public API ─────────────────────────────────────────────────────────────────
-
-/** A step for every waypoint, or why the waypoints cannot be routed. */
-export type RoutingResult =
-    | { kind: "routed"; steps: RerouteStep[] }
-    | { kind: "allWaypointsBlocked" }
-    /** No way around the zones on the leg between these two waypoints, numbered from 1. */
-    | { kind: "noRoute"; leg: [number, number] };
 
 /**
  * Routes waypoints around the zones. A waypoint inside a zone or its buffer is suppressed,

@@ -69,6 +69,7 @@ export function makeMutableState(): JaiaContextType {
         visibleDetails: NodeTypes.NONE,
         visiblePanel: ButtonNames.NONE,
         placementError: null,
+        rerouteReport: null,
         visibleWaypointSection: WaypointSections.NONE,
         hubAccordionStates: defaultHubAccordionStates,
         botAccordionStates: defaultBotAccordionStates,

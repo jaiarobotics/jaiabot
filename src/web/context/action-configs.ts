@@ -80,6 +80,7 @@ import {
     handleToggleZoneVertexTapToMove,
     handleChangeExclusionZoneSetName,
 } from "./handlers/exclusion-zone-handlers";
+import { handleRerouteMissions, handleRestoreOriginalWaypoints } from "./handlers/routing-handlers";
 
 // Standard profile for action handling functions
 type HandlerFn = (mutableState: JaiaContextType, action: JaiaAction) => JaiaContextType;
@@ -110,6 +111,11 @@ export const actionConfigs: Map<JaiaActions, ActionConfig> = new Map([
         { handler: handleChangeExclusionZoneSetName, tracked: true },
     ],
     [JaiaActions.LOAD_MISSION_SET, { handler: handleLoadMissionSet, tracked: true }],
+    [JaiaActions.REROUTE_MISSIONS, { handler: handleRerouteMissions, tracked: true }],
+    [
+        JaiaActions.RESTORE_ORIGINAL_WAYPOINTS,
+        { handler: handleRestoreOriginalWaypoints, tracked: true },
+    ],
 
     // Waypoint & Task Actions
     [JaiaActions.ADD_WAYPOINT, { handler: handleAddWaypoint, tracked: true }],

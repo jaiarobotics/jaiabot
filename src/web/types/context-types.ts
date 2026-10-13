@@ -27,6 +27,7 @@ import {
     CoordinateSystem,
 } from "./jaia-system-types";
 import { Speeds, Command, GeographicCoordinate, TaskType } from "./protobuf-types";
+import { RerouteOutcome } from "./routing-types";
 
 // Type used to capture the JCC context
 export interface JaiaContextType {
@@ -45,6 +46,8 @@ export interface JaiaContextType {
     visiblePanel: ButtonNames;
     // Why the last waypoint placement was refused; shown until dismissed or undone
     placementError: string | null;
+    // Outcome of the last reroute or restore
+    rerouteReport: RerouteOutcome[] | null;
     visibleWaypointSection: WaypointSections;
     hubAccordionStates: HubAccordionStates;
     botAccordionStates: BotAccordionStates;
@@ -80,6 +83,7 @@ export interface JaiaAction {
     type: JaiaActions;
     botID?: number;
     missionID?: number;
+    missionIDs?: number[];
     rallyID?: number;
     zoneID?: number;
 
