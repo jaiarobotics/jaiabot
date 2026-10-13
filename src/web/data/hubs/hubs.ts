@@ -97,8 +97,8 @@ export class Hubs {
             hub.setLocation(hubStatus.location);
         }
 
-        if (portalHubStatus.portalStatusAge >= 0) {
-            hub.setStatusAge(portalHubStatus.portalStatusAge);
+        if (portalHubStatus.status_age >= 0) {
+            hub.setStatusAge(portalHubStatus.status_age);
         }
 
         if (hubStatus.linux_hardware_status) {

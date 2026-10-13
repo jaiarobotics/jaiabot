@@ -79,7 +79,7 @@ class JaiaAPI {
                     bots[bot.bot_id] = {
                         ...bot,
                         engineering: portalBotStatus.engineering,
-                        portalStatusAge: portalBotStatus.portalStatusAge,
+                        portalStatusAge: portalBotStatus.status_age,
                     };
                 }
 

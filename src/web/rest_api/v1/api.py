@@ -141,7 +141,7 @@ def task_packets(jaia_request: APIRequest):
     else:
         bot_ids = jaia_request.target.bots
 
-    start_time = jaia_request.task_packets.start_time if jaia_request.task_packets.HasField('start_time') else utc_now_microseconds() - 14 * 60 * 60 * 1000000  # 14 hours ago in microseconds
+    start_time = jaia_request.task_packets.start_time if jaia_request.task_packets.HasField('start_time') else None
     end_time = jaia_request.task_packets.end_time if jaia_request.task_packets.HasField('end_time') else None
     mission_names = list(jaia_request.task_packets.mission_name) or None
 
@@ -296,8 +296,7 @@ def pod_status(jaia_request: APIRequest) -> APIResponse:
     for bot in bots:
         portal_bot_status = PortalBotStatus()
         portal_bot_status.bot_status.CopyFrom(bot)
-        portal_bot_status.last_status_received_time = bot.received_time
-        portal_bot_status.portalStatusAge = utc_now_microseconds() - bot.received_time
+        portal_bot_status.status_age = utc_now_microseconds() - bot.received_time
 
         if bot.bot_id in common.shared_data.data.active_mission_plans:
             portal_bot_status.active_mission_plan.CopyFrom(common.shared_data.data.active_mission_plans[bot.bot_id])
@@ -312,8 +311,7 @@ def pod_status(jaia_request: APIRequest) -> APIResponse:
     for hub in hubs:
         portal_hub_status = PortalHubStatus()
         portal_hub_status.hub_status.CopyFrom(hub)
-        portal_hub_status.last_status_received_time = hub.received_time
-        portal_hub_status.portalStatusAge = utc_now_microseconds() - hub.received_time
+        portal_hub_status.status_age = utc_now_microseconds() - hub.received_time
 
         jaia_response.pod_status.hubs.append(portal_hub_status)
     
