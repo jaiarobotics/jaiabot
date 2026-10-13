@@ -71,29 +71,28 @@ class JaiaAPI {
      * @returns {*}
      */
     getStatus() {
-        return this.request({ target: { all: true }, pod_status: true })
-            .then(({ pod_status }) => {
+        return this.request({ target: { all: true }, status: true })
+            .then(({ status }) => {
+                const hubTime = Number(status.time ?? 0);
+                const engineering = {};
+                for (const engineeringStatus of status.engineering ?? []) {
+                    engineering[engineeringStatus.bot_id] = engineeringStatus;
+                }
+
                 const bots = {};
-                for (const portalBotStatus of pod_status.bots ?? []) {
-                    const bot = portalBotStatus.bot_status;
+                for (const bot of status.bots ?? []) {
                     bots[bot.bot_id] = {
                         ...bot,
-                        engineering: portalBotStatus.engineering,
-                        portalStatusAge: portalBotStatus.status_age,
+                        engineering: engineering[bot.bot_id],
+                        portalStatusAge: hubTime - Number(bot.received_time ?? 0),
                     };
                 }
 
-                const controllingClientId = pod_status.controlling_client_id;
+                const controllingClientId = status.controlling_client_id;
                 this.inControl =
                     controllingClientId == this.clientId || controllingClientId == null;
                 this.setControlBorder();
-                return {
-                    bots,
-                    hubs: (pod_status.hubs ?? []).map(
-                        (portalHubStatus) => portalHubStatus.hub_status,
-                    ),
-                    controllingClientId,
-                };
+                return { bots, hubs: status.hubs ?? [], controllingClientId };
             })
             .catch((e) => {
                 alert(e);

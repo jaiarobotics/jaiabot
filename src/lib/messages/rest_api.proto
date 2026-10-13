@@ -188,6 +188,8 @@ message APIRequest
     reserved 2;
     reserved "api_key";
 
+    reserved 17;
+
     oneof action
     {
         bool status = 11 [(jaia.field).rest_api = {
@@ -239,10 +241,6 @@ message APIRequest
             }
         }];
         // Endpoints for JCC & JED
-        bool pod_status = 17 [(jaia.field).rest_api = {
-            presence: GUARANTEED,
-            doc: "This endpoint is used by JCC to check the overall status of the pod."
-        }];
         bool task_packets_version = 18 [(jaia.field).rest_api = {
             presence: GUARANTEED,
             doc: "Check the version of the task packets."
@@ -299,6 +297,8 @@ message APIRequest
 }
 
 
+// JCC's view of each node, built from a 'status' response rather than sent by the API
+
 message LinkStatusAge {
     required Link link = 1;
     required int32 age = 2;
@@ -318,21 +318,6 @@ message PortalHubStatus {
     optional int32 status_age = 2;
 }
 
-message PodStatus {
-    repeated PortalHubStatus hubs = 1;
-    repeated PortalBotStatus bots = 2;
-    repeated ContactUpdate contacts = 3;
-    optional string controlling_client_id = 4;
-    
-    message Messages {
-        optional string error = 1;
-        optional string info = 2;
-    }
-
-    optional Messages messages = 5;
-
-}
-
 
 message APIResponse
 {
@@ -342,12 +327,35 @@ message APIResponse
         repeated int32 bots = 2 [(jaia.field).rest_api.presence = GUARANTEED];
     }
     optional Nodes target = 1 [(jaia.field).rest_api.presence = GUARANTEED];
+
+    reserved 16;
+
     message Statuses
     {
         repeated BotStatus bots = 1
             [(jaia.field).rest_api.presence = GUARANTEED];
         repeated HubStatus hubs = 2
             [(jaia.field).rest_api.presence = GUARANTEED];
+
+        message BotMissionPlan
+        {
+            required int32 bot_id = 1;
+            required MissionPlan mission_plan = 2;
+        }
+
+        repeated Engineering engineering = 3 [(jaia.field).rest_api = {
+            doc: "Most recent engineering status received from each bot."
+        }];
+        repeated BotMissionPlan active_mission_plans = 4 [(jaia.field).rest_api = {
+            doc: "Mission plan currently active on each bot."
+        }];
+        optional string controlling_client_id = 5 [(jaia.field).rest_api = {
+            doc: "Client ID of the operator currently in control."
+        }];
+        optional uint64 time = 6 [(jaia.field).rest_api = {
+            presence: GUARANTEED,
+            doc: "Hub's current time as a Unix timestamp in microseconds. Subtract received_time from this to get a status age that is independent of the client's clock."
+        }];
     }
 
     message Metadatas
@@ -381,10 +389,6 @@ message APIResponse
         CommandResult command_result = 14 [(jaia.field).rest_api = {
             presence: GUARANTEED,
             doc: "Command result. This is sent in response to a successful Request 'command' or 'command_for_hub' action."
-        }];
-        PodStatus pod_status = 16 [(jaia.field).rest_api = {
-            presence: GUARANTEED,
-            doc: "Overall pod status. This is sent in response to a successful Request 'pod_status' action."
         }];
         TaskPacketsVersionResult task_packets_version = 17 [(jaia.field).rest_api = {
             presence: GUARANTEED,

@@ -3,8 +3,13 @@ import { hubs } from "../data/hubs/hubs";
 import { jaiaGlobal } from "../data/jaia_global/jaia-global";
 import { taskPackets } from "../data/task_packets/task-packets";
 import { taskPacketFilter } from "../data/task_packets/task-packet-filter";
-import { PortalHubStatus } from "@proto/jaiabot/messages/rest_api";
-import { PortalBotStatus } from "@proto/jaiabot/messages/rest_api";
+import {
+    APIResponse_Statuses,
+    LinkStatusAge,
+    PortalBotStatus,
+    PortalHubStatus,
+} from "@proto/jaiabot/messages/rest_api";
+import { BotStatus } from "@proto/jaiabot/messages/jaia_dccl";
 import { botLayer } from "../openlayers/layers/vector/bot-layer";
 import { hubLayer } from "../openlayers/layers/vector/hub-layer";
 import { ghostMissionLayer, missionLayer } from "../openlayers/layers/vector/mission-layer";
@@ -22,7 +27,6 @@ const VERSION_LENGTH = 3;
 
 const CONNECTION_WARNING = "connection-warning";
 const CONGESTION_WARNING = "congestion-warning";
-const HUB_CONNECTION_ERROR = "Connection Dropped To HUB";
 
 const GITHUB_URL = "https://api.github.com/repos/jaiarobotics/jaiabot/releases/latest";
 
@@ -62,25 +66,21 @@ export async function pollStatus() {
             target: {
                 all: true,
             },
-            pod_status: true,
+            status: true,
         });
 
-        const pod_status = rest_response.pod_status;
+        const status = rest_response.status;
 
-        if (pod_status == null) {
-            console.error("Pod status response is null");
+        if (status == null) {
+            console.error("Status response is null");
             return;
         }
 
-        updateBots(pod_status.bots ?? []);
-        updateHubs(pod_status.hubs ?? []);
-        updateJaiaGlobal(pod_status.controlling_client_id ?? null);
+        updateBots(toPortalBotStatuses(status));
+        updateHubs(toPortalHubStatuses(status));
+        updateJaiaGlobal(status.controlling_client_id ?? null);
         updateOpenLayers();
-        if (pod_status.messages?.error && pod_status.messages?.error === HUB_CONNECTION_ERROR) {
-            updateWarning(CONNECTION_WARNING, true);
-        } else {
-            updateWarning(CONNECTION_WARNING, false);
-        }
+        updateWarning(CONNECTION_WARNING, false);
     } catch (error) {
         updateWarning(CONNECTION_WARNING, true);
         console.error(error);
@@ -274,6 +274,66 @@ export async function pollInternet() {
     } catch {
         jaiaGlobal.setIsConnectedToInternet(false);
     }
+}
+
+/**
+ * Combines the per-bot data in a status response into PortalBotStatus objects.
+ * Ages are measured against the hub's clock so they are independent of the client's clock.
+ *
+ * @param {APIResponse_Statuses} status Status response from the hub
+ * @returns {PortalBotStatus[]} Status of each bot
+ */
+function toPortalBotStatuses(status: APIResponse_Statuses): PortalBotStatus[] {
+    const hubTime = Number(status.time ?? 0);
+
+    return (status.bots ?? []).map((botStatus) => ({
+        bot_status: botStatus,
+        active_mission_plan: status.active_mission_plans?.find(
+            (plan) => plan.bot_id === botStatus.bot_id,
+        )?.mission_plan,
+        engineering: status.engineering?.find(
+            (engineering) => engineering.bot_id === botStatus.bot_id,
+        ),
+        active_link_status_age: getActiveLinkStatusAges(botStatus, hubTime),
+        status_age: hubTime - Number(botStatus.received_time ?? 0),
+    }));
+}
+
+/**
+ * Wraps the hub statuses in a status response into PortalHubStatus objects.
+ *
+ * @param {APIResponse_Statuses} status Status response from the hub
+ * @returns {PortalHubStatus[]} Status of each hub
+ */
+function toPortalHubStatuses(status: APIResponse_Statuses): PortalHubStatus[] {
+    const hubTime = Number(status.time ?? 0);
+
+    return (status.hubs ?? []).map((hubStatus) => ({
+        hub_status: hubStatus,
+        status_age: hubTime - Number(hubStatus.received_time ?? 0),
+    }));
+}
+
+/**
+ * Computes how long ago each active link last delivered a status, in real-time microseconds
+ *
+ * @param {BotStatus} botStatus Status containing the per-link last received times
+ * @param {number} hubTime Hub's wall clock time in microseconds
+ * @returns {LinkStatusAge[]} Age of each active link
+ */
+function getActiveLinkStatusAges(botStatus: BotStatus, hubTime: number): LinkStatusAge[] {
+    // last_received_time is stamped with the hub's (possibly warped) simulation clock
+    const metadata = jaiaGlobal.getMetadata();
+    const warpFactor = metadata?.simulation_warp || 1;
+    const referenceTime = Number(metadata?.simulation_reference_time ?? 0);
+    const hubSimTime = referenceTime + (hubTime - referenceTime) * warpFactor;
+
+    return (botStatus.active_links ?? [])
+        .filter((activeLink) => activeLink.last_received_time !== undefined)
+        .map((activeLink) => ({
+            link: activeLink.link,
+            age: Math.trunc((hubSimTime - Number(activeLink.last_received_time)) / warpFactor),
+        }));
 }
 
 /**
