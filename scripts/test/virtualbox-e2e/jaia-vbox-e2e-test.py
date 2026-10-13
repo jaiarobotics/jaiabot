@@ -203,6 +203,14 @@ def natnet_port_forwards(natnet):
 # stages
 # ---------------------------------------------------------------------------
 
+def cached_ova(args):
+    """Where the OVA is on disk: --ova itself, or where the download stage puts --ova-url."""
+    if args.ova:
+        return args.ova
+    name = urllib.parse.unquote(os.path.basename(urllib.parse.urlparse(args.ova_url).path))
+    return os.path.join(args.cache_dir, name)
+
+
 def stage_download(args):
     stage_banner('download')
     if args.ova:
@@ -212,9 +220,8 @@ def stage_download(args):
         return args.ova
 
     url = args.ova_url
-    name = urllib.parse.unquote(os.path.basename(urllib.parse.urlparse(url).path))
     os.makedirs(args.cache_dir, exist_ok=True)
-    dest = os.path.join(args.cache_dir, name)
+    dest = cached_ova(args)
     partial = dest + '.part'
 
     with urllib.request.urlopen(urllib.request.Request(url, method='HEAD')) as resp:
@@ -235,11 +242,30 @@ def stage_download(args):
     return dest
 
 
+def check_fleet_tooling():
+    """Refuse a build tree that has only the jaia binary.
+
+    import_vms.sh generates each node's configuration with `jaia admin fleet`, which
+    execs jaia-fleet-config.py from the same bin directory and reads the fleet config
+    descriptor from share/. A tree where only the jaia target was built passes the
+    commit check, and the nodes are then imported with no fleet version at all.
+    """
+    out = run(['jaia', 'admin', 'fleet', 'version'], check=False).strip()
+    if not out.isdigit():
+        raise TestFailure(
+            '`jaia admin fleet version` did not report a version, so import_vms.sh '
+            'cannot configure the nodes. It needs the whole build tree on PATH '
+            '(jaia-fleet-config.py and share/jaiabot/fleet_config), not only the jaia '
+            'binary: build every target, or install jaiabot-embedded.')
+    log(f'fleet config version {out}')
+
+
 def stage_import(args, ova, nodes):
     stage_banner('import')
     group = group_name(ova)
     log(f'VirtualBox group: {group}')
     check_tools_match_ova(args, ova)
+    check_fleet_tooling()
 
     names = [n.name for n in nodes]
     existing = vms_in_group(group)
@@ -340,6 +366,7 @@ def ensure_hostonly_if(args):
 
 def stage_boot(args, nodes):
     stage_banner('boot')
+    wait_for_importer_release(args)
     for node in nodes:
         state = vm_state(node.uuid)
         if state == 'running':
@@ -349,9 +376,7 @@ def stage_boot(args, nodes):
         start_vm(args, node)
 
     for node in nodes:
-        wait_for(lambda n=node: ssh_ok(args, n), args.boot_timeout,
-                 f'ssh to {node.name} on port {node.ssh_port}',
-                 progress=lambda n=node: n.ssh_error or 'no answer')
+        wait_for_ssh(args, node)
         log(f'{node.name}: ssh up, waiting for first boot to finish')
         wait_for(lambda n=node: booted_since_first_boot(args, n), args.boot_timeout,
                  f'{node.name} to reboot after its first boot')
@@ -393,6 +418,45 @@ def booted_since_first_boot(args, node):
     return subprocess.run(ssh_args(args, node) + [FIRST_BOOT_DONE],
                           stdout=subprocess.DEVNULL,
                           stderr=subprocess.DEVNULL).returncode == 0
+
+
+def importer_holds_a_disk():
+    return subprocess.run(['pgrep', '-f', 'vboximg-mount'],
+                          stdout=subprocess.DEVNULL).returncode == 0
+
+
+def wait_for_importer_release(args):
+    """Wait for import_vms.sh's vboximg-mount processes to exit.
+
+    The importer writes each node's preseed through vboximg-mount and releases it
+    with an unmount that can return first. The medium lock only clears when that
+    process exits, and a VM powered on in between boots from a disk that is still
+    being written and hangs in its firmware.
+    """
+    if importer_holds_a_disk():
+        wait_for(lambda: not importer_holds_a_disk(), args.start_timeout,
+                 'the importer to release the disks', interval=2)
+
+
+def wait_for_ssh(args, node):
+    """Wait for ssh, resetting a VM once if it shows no sign of life.
+
+    A VM can hang in the EFI firmware before it ever loads the kernel, with no
+    console output; a reset gets it booting.
+    """
+    what = f'ssh to {node.name} on port {node.ssh_port}'
+    progress = lambda: node.ssh_error or 'no answer'
+    first = min(args.boot_reset_after, args.boot_timeout)
+    try:
+        wait_for(lambda: ssh_ok(args, node), first, what, progress=progress)
+        return
+    except TestFailure:
+        if first >= args.boot_timeout:
+            raise
+    log(f'{node.name}: nothing on ssh after {first}s, resetting it once')
+    vbm('controlvm', node.uuid, 'reset')
+    wait_for(lambda: ssh_ok(args, node), args.boot_timeout - first, what,
+             progress=progress)
 
 
 def start_vm(args, node):
@@ -719,7 +783,7 @@ def wait_for(predicate, timeout, what, interval=5, progress=None):
 def ssh_args(args, node):
     return [
         'ssh', '-o', 'StrictHostKeyChecking=no', '-o', 'UserKnownHostsFile=/dev/null',
-        '-o', 'LogLevel=ERROR', '-o', 'ConnectTimeout=5',
+        '-o', 'LogLevel=ERROR', '-o', 'ConnectTimeout=15',
         '-o', 'BatchMode=yes', '-i', args.ssh_key,
         '-p', str(node.ssh_port), 'jaia@127.0.0.1',
     ]
@@ -865,6 +929,9 @@ def parse_args(argv):
                         'different commit than the OVA')
     p.add_argument('--start-timeout', type=int, default=120)
     p.add_argument('--boot-timeout', type=int, default=1800)
+    p.add_argument('--boot-reset-after', type=int, default=600,
+                   help='reset a VM once if ssh has not answered after this many '
+                        'seconds (default: %(default)s)')
     p.add_argument('--network-timeout', type=int, default=300)
     p.add_argument('--api-timeout', type=int, default=900)
     p.add_argument('--mission-timeout', type=int, default=2400)
@@ -915,9 +982,7 @@ def main(argv):
     log(f'fleet {args.fleet}: ' + ' '.join(n.name for n in nodes))
     log(f'fleet WLAN network: {jaia_ip("--query_type", "net", "--ip_net", "wlan", "--fleet_id", str(args.fleet))}')
 
-    ova = stage_download(args) if 'download' in args.stages else (
-        args.ova or os.path.join(args.cache_dir, os.path.basename(
-            urllib.parse.urlparse(args.ova_url).path)))
+    ova = stage_download(args) if 'download' in args.stages else cached_ova(args)
 
     if 'import' in args.stages:
         stage_import(args, ova, nodes)
