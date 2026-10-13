@@ -4,6 +4,7 @@ import { userEvent } from "@testing-library/user-event";
 import ActivateAllButton from "../ActivateAllButton";
 
 import { bots } from "../../../../data/bots/bots";
+import { jaia_rest_api } from "../../../../utils/jaia-rest-api";
 
 import { PortalBotStatus } from "@proto/jaiabot/messages/rest_api";
 import { MissionState } from "@proto/jaiabot/messages/mission";
@@ -56,11 +57,9 @@ const botStatusMock6: PortalBotStatus = {
     portalStatusAge: 40_000_000, // microseconds
 };
 
-// Mock Jaia API
-const originalModule = jest.requireActual("../../../../utils/jaia-api");
-originalModule.jaiaAPI.hit = jest
-    .fn()
-    .mockResolvedValue({ code: 200, msg: "Mocked Success", bots: [], hubs: [] });
+jest.spyOn(jaia_rest_api, "request").mockResolvedValue({
+    command_result: { command_sent: true },
+});
 
 // Place user in control by default
 jest.mock("../../../../utils/commands", () => {

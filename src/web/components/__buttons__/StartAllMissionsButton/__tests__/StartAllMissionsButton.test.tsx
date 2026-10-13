@@ -6,6 +6,7 @@ import { JaiaContextProvider } from "../../../../context/JaiaContext";
 
 import Mission from "../../../../data/mission_set/mission";
 import { bots } from "../../../../data/bots/bots";
+import { jaia_rest_api } from "../../../../utils/jaia-rest-api";
 import { missionSet } from "../../../../data/mission_set/mission-set";
 
 import { PortalBotStatus } from "@proto/jaiabot/messages/rest_api";
@@ -91,11 +92,9 @@ const missionID3 = missionSet.addMission(new Mission());
 missionsManager.assign(1, missionID1);
 missionsManager.assign(5, missionID2);
 
-// Mock Jaia API
-const originalModule = jest.requireActual("../../../../utils/jaia-api");
-originalModule.jaiaAPI.hit = jest
-    .fn()
-    .mockResolvedValue({ code: 200, msg: "Mocked Success", bots: [], hubs: [] });
+jest.spyOn(jaia_rest_api, "request").mockResolvedValue({
+    command_result: { command_sent: true },
+});
 
 test("0 Bots ready to start a mission", async () => {
     render(

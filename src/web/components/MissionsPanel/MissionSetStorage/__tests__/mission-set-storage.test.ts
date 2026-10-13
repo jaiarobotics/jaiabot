@@ -20,18 +20,14 @@ import {
 } from "../mission-set-storage";
 import { UNASSIGNED_ID } from "../../../../utils/constants";
 
-jest.mock("../../../../utils/jaia-api", () => ({
-    jaiaAPI: {
-        listMissionSets: jest.fn(),
-        saveMissionSet: jest.fn(),
-        loadMissionSet: jest.fn(),
-        deleteMissionSet: jest.fn(),
-    },
+jest.mock("../../../../utils/jaia-rest-api", () => ({
+    jaia_rest_api: { request: jest.fn() },
 }));
 
-import { jaiaAPI } from "../../../../utils/jaia-api";
+import { jaia_rest_api } from "../../../../utils/jaia-rest-api";
+import { APIRequest } from "@proto/jaiabot/messages/rest_api";
 
-const mockJaiaAPI = jaiaAPI as jest.Mocked<typeof jaiaAPI>;
+const mockRequest = jaia_rest_api.request as jest.Mock;
 
 describe("Exercise functions to save and load missions from the hub", () => {
     // In memory fake hub storage to test against
@@ -41,17 +37,24 @@ describe("Exercise functions to save and load missions from the hub", () => {
         missionSet.deleteAllMissions();
         fakeHubStorage = {};
         jest.clearAllMocks();
-        mockJaiaAPI.listMissionSets.mockImplementation(async () =>
-            Object.keys(fakeHubStorage).sort((a, b) => a.localeCompare(b)),
-        );
-        mockJaiaAPI.saveMissionSet.mockImplementation(async (name: string, snapshot: any) => {
-            fakeHubStorage[name] = snapshot;
-        });
-        mockJaiaAPI.loadMissionSet.mockImplementation(
-            async (name: string) => fakeHubStorage[name] ?? null,
-        );
-        mockJaiaAPI.deleteMissionSet.mockImplementation(async (name: string) => {
-            delete fakeHubStorage[name];
+        mockRequest.mockImplementation(async ({ record_query: query }: APIRequest) => {
+            if (query?.save_name !== undefined) {
+                fakeHubStorage[query.save_name] = JSON.parse(query.save_content ?? "null");
+            }
+            if (query?.delete_name !== undefined) {
+                delete fakeHubStorage[query.delete_name];
+            }
+            return {
+                record_query_response: {
+                    names: query?.list
+                        ? Object.keys(fakeHubStorage).sort((a, b) => a.localeCompare(b))
+                        : [],
+                    content:
+                        query?.get_name !== undefined && query.get_name in fakeHubStorage
+                            ? JSON.stringify(fakeHubStorage[query.get_name])
+                            : undefined,
+                },
+            };
         });
     });
 
