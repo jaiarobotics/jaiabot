@@ -161,7 +161,8 @@ def generate_request_section(action: str):
 
     section = Section(title=f"{action} (request)", content=content)
     section.add_subsections(generate_parameter_section(action, section.title))
-    section.add_subsections(generate_simple_variant(action, section.title))
+    if field.type in (google.protobuf.descriptor.FieldDescriptor.TYPE_BOOL, google.protobuf.descriptor.FieldDescriptor.TYPE_MESSAGE):
+        section.add_subsections(generate_simple_variant(action, section.title))
     section.add_subsections(generate_full_variant(action, section.title))
 
     return section

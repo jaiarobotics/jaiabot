@@ -131,6 +131,9 @@ def jaia_api_long(version, action, target_str):
             # auto fill boolean actions
             setattr(jaia_request, action_field_desc.name, True)
 
+        elif action_field_desc.type != google.protobuf.descriptor.FieldDescriptor.TYPE_MESSAGE:
+            raise APIException(jaiabot.messages.rest_api_pb2.API_ERROR__ACTION_REQUIRES_JSON_POST_DATA, "Action '" + action + "' takes a value, so it is only supported by POSTing a full APIRequest to /jaia/v" + str(version))
+
         else:
             jaia_request_action = getattr(jaia_request, action_field_desc.name)
             # set to empty action message so we can catch uninitialized child fields
