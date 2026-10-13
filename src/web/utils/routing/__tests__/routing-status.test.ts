@@ -1,7 +1,7 @@
 import Mission from "../../../data/mission_set/mission";
 import { ExclusionZone } from "../../../data/exclusion_zones/exclusion-zone-set";
 import { GeographicCoordinate } from "../../../types/protobuf-types";
-import { autoRoute } from "../router";
+import { autoRoute, buildZoneGeometry } from "../router";
 import { getRoutingStatus } from "../routing-status";
 
 function coord(lat: number, lon: number): GeographicCoordinate {
@@ -44,7 +44,7 @@ function plainMission(...locations: GeographicCoordinate[]): Mission {
 function reroute(mission: Mission, zones: ReadonlyMap<number, ExclusionZone>): Mission {
     const routing = autoRoute(
         mission.getOriginalWaypoints().map((waypoint) => waypoint.getLocation()),
-        zones,
+        buildZoneGeometry(zones),
     );
     if (routing.kind !== "routed") throw new Error(`expected a route, got ${routing.kind}`);
     expect(mission.reroute(routing.steps).kind).toBe("changed");

@@ -682,7 +682,13 @@ In progress. Decided and known items:
   `Mission`'s reroute method takes; the current interface is not a constraint. It has no
   operator-facing choices, so it was settled in step 3: `autoRoute` returns a step per
   original waypoint, or "all waypoints blocked", or "no route" on a leg named by original waypoint
-  numbers. It projects legs from the first kept waypoint, the same origin the status check uses.
+  numbers.
+- **One projection: Web Mercator (EPSG:3857), the map's own.** Every zone test (placement,
+  suppression, routing status, routing and the drawn buffer ring) uses the same projected,
+  buffered shape per zone, built once by `buildZoneGeometry`. Mercator needs no origin, so there
+  is nothing to store. Lengths set in metres (the safety margin, the A\* grid cell and clearances)
+  are converted at the local latitude, where one unit covers cos(latitude) metres. Buffers are
+  built with Clipper2's decimal functions; the integer ones rounded them to whole metres.
 - The reroute report dialog: layout, and how a reroute of all missions is summarised.
 - **A reroute or restore records exactly one undo entry**, including one of the whole mission
   set, so one Undo backs it out. Each is a **single tracked action**: one dispatch, carrying the
@@ -734,6 +740,14 @@ changes.
 - **Step 4:** `getRoutingStatus` rebuilds and buffers every zone for each mission. When the icon
   shows status for every mission, share the zone geometry across missions or recompute only when
   the zones change.
+- **Decide:** `expandPolygon` simplifies each buffer with a tolerance of a quarter of the margin,
+  which cuts across the rounded corners: there the buffer is 3.75 m from the zone, not 5 m (real
+  Clipper2, measured 2026-10-13). Without the simplification it stays at 4.98 m or more, with about
+  six times the vertices, which slows the A\* grid marking.
+- **Later:** Jest maps `clipper2-ts` to a mock, so no test runs the real buffering. A test against
+  the real library would have caught the whole-metre rounding.
+- **Later:** a zone or leg across ±180° longitude projects to a shape spanning the globe; it is
+  reported as no route. Not a current operating area.
 - **Separate task:** router performance (Finding 12). A fixed 5 m A\* grid makes cost grow with
   the area searched. Candidate fix: scale the cell size with the search area, paired with an exact
   check of the final path against every zone, so a thin zone cannot slip between cell centres.

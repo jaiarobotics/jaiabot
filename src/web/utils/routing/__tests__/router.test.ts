@@ -4,7 +4,7 @@ import { RerouteStep } from "../../../data/mission_set/mission";
 import {
     autoRoute,
     getZoneBufferVertices,
-    buildZoneBufferCache,
+    buildZoneGeometry,
     getBlockingZoneIDs,
     isLocationBlockedByZone,
     routeNeedsBypass,
@@ -19,7 +19,10 @@ function coord(lat: number, lon: number): GeographicCoordinate {
 
 /** Routes the waypoints, failing the test unless a route is found. */
 function routedSteps(waypoints: GeographicCoordinate[], safetyMargin?: number): RerouteStep[] {
-    const routing = autoRoute(waypoints, exclusionZoneSet.getZones(), safetyMargin);
+    const routing = autoRoute(
+        waypoints,
+        buildZoneGeometry(exclusionZoneSet.getZones(), safetyMargin),
+    );
     if (routing.kind !== "routed") throw new Error(`expected a route, got ${routing.kind}`);
     return routing.steps;
 }
@@ -279,7 +282,7 @@ describe("getBlockingZoneIDs", () => {
 
         const ids = getBlockingZoneIDs(
             coord(41.0, -72.0),
-            buildZoneBufferCache(exclusionZoneSet.getZones()),
+            buildZoneGeometry(exclusionZoneSet.getZones()),
         );
         expect(ids).toContain(id1);
         expect(ids).toContain(id2);
@@ -289,19 +292,13 @@ describe("getBlockingZoneIDs", () => {
     test("returns empty array when no zones block the point", () => {
         exclusionZoneSet.addZone(squareZone(41.0, -72.0));
         expect(
-            getBlockingZoneIDs(
-                coord(42.0, -73.0),
-                buildZoneBufferCache(exclusionZoneSet.getZones()),
-            ),
+            getBlockingZoneIDs(coord(42.0, -73.0), buildZoneGeometry(exclusionZoneSet.getZones())),
         ).toEqual([]);
     });
 
     test("returns empty array when no zones exist", () => {
         expect(
-            getBlockingZoneIDs(
-                coord(41.0, -72.0),
-                buildZoneBufferCache(exclusionZoneSet.getZones()),
-            ),
+            getBlockingZoneIDs(coord(41.0, -72.0), buildZoneGeometry(exclusionZoneSet.getZones())),
         ).toEqual([]);
     });
 });
@@ -463,7 +460,7 @@ describe("autoRoute", () => {
         exclusionZoneSet.addZone(squareZone(41.0, -72.0, 0.001));
         const routing = autoRoute(
             [coord(41.0, -72.0002), coord(41.0, -71.9998)],
-            exclusionZoneSet.getZones(),
+            buildZoneGeometry(exclusionZoneSet.getZones()),
         );
         expect(routing).toEqual({ kind: "allWaypointsBlocked" });
     });
@@ -478,7 +475,7 @@ describe("routeNeedsBypass", () => {
         expect(
             routeNeedsBypass(
                 [coord(41.0, -72.005), coord(41.0, -71.995)],
-                exclusionZoneSet.getZones(),
+                buildZoneGeometry(exclusionZoneSet.getZones()),
             ),
         ).toBe(false);
     });
@@ -486,8 +483,10 @@ describe("routeNeedsBypass", () => {
     test("returns false for a route of fewer than two points", () => {
         exclusionZoneSet.addZone(squareZone(41.0, -72.0, 0.0005));
 
-        expect(routeNeedsBypass([], exclusionZoneSet.getZones())).toBe(false);
-        expect(routeNeedsBypass([coord(41.0, -72.0)], exclusionZoneSet.getZones())).toBe(false);
+        expect(routeNeedsBypass([], buildZoneGeometry(exclusionZoneSet.getZones()))).toBe(false);
+        expect(
+            routeNeedsBypass([coord(41.0, -72.0)], buildZoneGeometry(exclusionZoneSet.getZones())),
+        ).toBe(false);
     });
 
     test("returns false for a route clear of every zone", () => {
@@ -496,7 +495,7 @@ describe("routeNeedsBypass", () => {
         expect(
             routeNeedsBypass(
                 [coord(41.0, -72.005), coord(41.0, -71.995)],
-                exclusionZoneSet.getZones(),
+                buildZoneGeometry(exclusionZoneSet.getZones()),
             ),
         ).toBe(false);
     });
@@ -507,7 +506,7 @@ describe("routeNeedsBypass", () => {
         expect(
             routeNeedsBypass(
                 [coord(41.0, -72.005), coord(41.0, -71.995)],
-                exclusionZoneSet.getZones(),
+                buildZoneGeometry(exclusionZoneSet.getZones()),
             ),
         ).toBe(true);
     });
@@ -518,7 +517,7 @@ describe("routeNeedsBypass", () => {
         expect(
             routeNeedsBypass(
                 [coord(41.0, -72.005), coord(41.0, -71.995), coord(41.0, -71.985)],
-                exclusionZoneSet.getZones(),
+                buildZoneGeometry(exclusionZoneSet.getZones()),
             ),
         ).toBe(true);
     });
@@ -533,7 +532,7 @@ describe("routeNeedsBypass", () => {
         expect(
             routeNeedsBypass(
                 [coord(justOutside, -72.005), coord(justOutside, -71.995)],
-                exclusionZoneSet.getZones(),
+                buildZoneGeometry(exclusionZoneSet.getZones()),
             ),
         ).toBe(true);
     });
@@ -546,7 +545,7 @@ describe("routeNeedsBypass", () => {
         expect(
             routeNeedsBypass(
                 [coord(41.0, -72.0), coord(41.0, -71.99)],
-                exclusionZoneSet.getZones(),
+                buildZoneGeometry(exclusionZoneSet.getZones()),
             ),
         ).toBe(false);
     });
@@ -558,9 +557,11 @@ describe("routeNeedsBypass", () => {
             [coord(41.0, -72.005), coord(41.0, -71.995)],
             [coord(41.01, -72.005), coord(41.01, -71.995)],
         ]) {
-            const routing = autoRoute(route, exclusionZoneSet.getZones());
+            const routing = autoRoute(route, buildZoneGeometry(exclusionZoneSet.getZones()));
             const needsDetour = routing.kind !== "routed" || detourCount(routing.steps) > 0;
-            expect(routeNeedsBypass(route, exclusionZoneSet.getZones())).toBe(needsDetour);
+            expect(routeNeedsBypass(route, buildZoneGeometry(exclusionZoneSet.getZones()))).toBe(
+                needsDetour,
+            );
         }
     });
 });
@@ -625,7 +626,7 @@ describe("bypass grid bounding", () => {
 
         const routing = autoRoute(
             [coord(41.0, -72.5), coord(41.0, -71.5)],
-            exclusionZoneSet.getZones(),
+            buildZoneGeometry(exclusionZoneSet.getZones()),
         );
 
         expect(routing).toEqual({ kind: "noRoute", leg: [1, 2] });
@@ -638,10 +639,54 @@ describe("bypass grid bounding", () => {
 
         const routing = autoRoute(
             [coord(41.0, -72.5), coord(41.0, -72.0), coord(41.0, -71.5)],
-            exclusionZoneSet.getZones(),
+            buildZoneGeometry(exclusionZoneSet.getZones()),
         );
 
         expect(routing).toEqual({ kind: "noRoute", leg: [1, 3] });
+    });
+});
+
+describe("one zone geometry for every test", () => {
+    // Points 1 cm inside and outside each corner of the buffer ring drawn on the map, nudged
+    // along the line from the ring's centre through the corner.
+    function nudgedCorners(ring: GeographicCoordinate[], metres: number) {
+        const centre = {
+            lat: ring.reduce((sum, p) => sum + p.lat!, 0) / ring.length,
+            lon: ring.reduce((sum, p) => sum + p.lon!, 0) / ring.length,
+        };
+        return ring.map((corner) => {
+            const fraction = metres / approxDistMetres(centre, corner);
+            const at = (f: number) =>
+                coord(
+                    corner.lat! + (corner.lat! - centre.lat) * f,
+                    corner.lon! + (corner.lon! - centre.lon) * f,
+                );
+            return { inside: at(-fraction), outside: at(fraction), farOut: at(400) };
+        });
+    }
+
+    test("the buffer drawn on the map is the boundary the blocked test uses", () => {
+        const zone = squareZone(41.0, -72.0, 0.0005);
+        const zones = new Map([[1, zone]]);
+
+        for (const { inside, outside } of nudgedCorners(getZoneBufferVertices(zone), 0.01)) {
+            expect(isLocationBlockedByZone(inside, zones)).toBe(true);
+            expect(isLocationBlockedByZone(outside, zones)).toBe(false);
+        }
+    });
+
+    test("a leg's test agrees with the point test at the ring, however far away it starts", () => {
+        // Each leg comes straight in from ~30 km out, so only its end can touch the buffer.
+        const zone = squareZone(41.0, -72.0, 0.0005);
+        const geometry = buildZoneGeometry(new Map([[1, zone]]));
+
+        for (const { inside, outside, farOut } of nudgedCorners(
+            getZoneBufferVertices(zone),
+            0.01,
+        )) {
+            expect(routeNeedsBypass([farOut, inside], geometry)).toBe(true);
+            expect(routeNeedsBypass([farOut, outside], geometry)).toBe(false);
+        }
     });
 });
 
@@ -652,7 +697,12 @@ describe("zones passed in", () => {
         const zones = new Map([[1, squareZone(41.0, -72.0)]]);
 
         expect(isLocationBlockedByZone(coord(41.0, -72.0), zones)).toBe(true);
-        expect(routeNeedsBypass([coord(41.0, -72.005), coord(41.0, -71.995)], zones)).toBe(true);
+        expect(
+            routeNeedsBypass(
+                [coord(41.0, -72.005), coord(41.0, -71.995)],
+                buildZoneGeometry(zones),
+            ),
+        ).toBe(true);
         expect(isLocationBlockedByZone(coord(41.0, -72.0), new Map())).toBe(false);
     });
 });

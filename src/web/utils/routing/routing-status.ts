@@ -1,7 +1,7 @@
 import Mission from "../../data/mission_set/mission";
 import { ExclusionZone } from "../../data/exclusion_zones/exclusion-zone-set";
 import { GeographicCoordinate } from "../../types/protobuf-types";
-import { buildZoneBufferCache, getBlockingZoneIDs, routeNeedsBypass } from "./router";
+import { buildZoneGeometry, getBlockingZoneIDs, routeNeedsBypass } from "./router";
 
 /** How a mission's route stands against the zones. Several statuses can hold at once. */
 export interface RoutingStatus {
@@ -23,9 +23,9 @@ export function getRoutingStatus(
     mission: Mission,
     zones: ReadonlyMap<number, ExclusionZone>,
 ): RoutingStatus {
-    const zoneBufferCache = buildZoneBufferCache(zones);
+    const geometry = buildZoneGeometry(zones);
     const isBlocked = (location: GeographicCoordinate) =>
-        getBlockingZoneIDs(location, zoneBufferCache).length > 0;
+        getBlockingZoneIDs(location, geometry).length > 0;
 
     const route = mission.getWaypoints().map((waypoint) => waypoint.getLocation());
     const clearSuppressed: number[] = [];
@@ -38,7 +38,7 @@ export function getRoutingStatus(
     // A waypoint inside a zone is tested on its own: routing treats a leg touching it as
     // unroutable rather than blocked, so the leg test alone misses it.
     return {
-        isConflicted: route.some(isBlocked) || routeNeedsBypass(route, zones),
+        isConflicted: route.some(isBlocked) || routeNeedsBypass(route, geometry),
         clearSuppressed,
     };
 }

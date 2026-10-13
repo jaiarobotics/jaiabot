@@ -8,7 +8,6 @@
 
 import { Clipper, JoinType, EndType, FillRule } from "clipper2-ts";
 import { GeographicCoordinate } from "../../types/protobuf-types";
-import { METERS_PER_DEG } from "../constants";
 import { ExclusionZone } from "../../data/exclusion_zones/exclusion-zone-set";
 import { RerouteStep } from "../../data/mission_set/mission";
 
@@ -17,39 +16,47 @@ interface XYPt {
     y: number;
 }
 
+/** Radius of the sphere Web Mercator (EPSG:3857) projects from, in metres. */
+const MERCATOR_RADIUS = 6378137;
+
 /**
- * Projects a geographic coordinate to a local XY plane relative to an origin.
- * Uses equirectangular projection, accurate to <0.1% for distances up to ~50 km.
+ * Projects a geographic coordinate to Web Mercator (EPSG:3857), the projection the map
+ * draws in. One unit is a metre of ground only at the equator: at latitude φ it covers
+ * cos φ metres, so lengths in metres are converted with `unitsPerMetre`.
  *
- * @param {GeographicCoordinate} origin Reference point defining the XY origin
- * @param {GeographicCoordinate} coord Point to project into local XY space
- * @returns {XYPt} Projected point in metres relative to origin
+ * @param {GeographicCoordinate} coord Point to project
+ * @returns {XYPt} Projected point in Mercator units
  */
-function toXY(origin: GeographicCoordinate, coord: GeographicCoordinate): XYPt {
-    const lat0 = origin.lat ?? 0;
-    const lon0 = origin.lon ?? 0;
-    const cosLat = Math.cos((lat0 * Math.PI) / 180);
+function toXY(coord: GeographicCoordinate): XYPt {
+    const lat = ((coord.lat ?? 0) * Math.PI) / 180;
+    const lon = ((coord.lon ?? 0) * Math.PI) / 180;
     return {
-        x: ((coord.lon ?? 0) - lon0) * cosLat * METERS_PER_DEG,
-        y: ((coord.lat ?? 0) - lat0) * METERS_PER_DEG,
+        x: MERCATOR_RADIUS * lon,
+        y: MERCATOR_RADIUS * Math.log(Math.tan(Math.PI / 4 + lat / 2)),
     };
 }
 
 /**
- * Converts a local XY point back to geographic coordinates using the given origin.
+ * Converts a Web Mercator point back to geographic coordinates.
  *
- * @param {GeographicCoordinate} origin Reference point used when the XY coordinates were projected
- * @param {XYPt} pt Local XY point in metres to convert back to lat/lon
- * @returns {GeographicCoordinate} Geographic coordinate corresponding to the XY point
+ * @param {XYPt} pt Point in Mercator units
+ * @returns {GeographicCoordinate} The geographic coordinate it projects from
  */
-function toLatLon(origin: GeographicCoordinate, pt: XYPt): GeographicCoordinate {
-    const lat0 = origin.lat ?? 0;
-    const lon0 = origin.lon ?? 0;
-    const cosLat = Math.cos((lat0 * Math.PI) / 180);
+function toLatLon(pt: XYPt): GeographicCoordinate {
     return {
-        lat: lat0 + pt.y / METERS_PER_DEG,
-        lon: lon0 + pt.x / (cosLat * METERS_PER_DEG),
+        lat: ((2 * Math.atan(Math.exp(pt.y / MERCATOR_RADIUS)) - Math.PI / 2) * 180) / Math.PI,
+        lon: ((pt.x / MERCATOR_RADIUS) * 180) / Math.PI,
     };
+}
+
+/**
+ * Mercator units per metre of ground at a projected y: 1 / cos φ, which is cosh(y / R).
+ *
+ * @param {number} y Projected y in Mercator units
+ * @returns {number} Mercator units covering one metre of ground there
+ */
+function unitsPerMetre(y: number): number {
+    return Math.cosh(y / MERCATOR_RADIUS);
 }
 
 /**
@@ -158,7 +165,7 @@ interface Bounds {
  * Bounding box of the given points, expanded by `padding` on every side.
  *
  * @param {XYPt[]} pts Points to bound
- * @param {number} padding Metres to expand the box by on each side
+ * @param {number} padding Distance to expand the box by on each side, in the points' units
  * @returns {Bounds} The padded bounding box
  */
 function boundsOf(pts: XYPt[], padding: number): Bounds {
@@ -194,7 +201,7 @@ function polygonOverlapsBounds(poly: XYPt[], bounds: Bounds): boolean {
  *
  * @param {XYPt} A First point
  * @param {XYPt} B Second point
- * @returns {number} Squared distance in metres²
+ * @returns {number} Squared distance, in the points' units
  */
 function distSq(A: XYPt, B: XYPt): number {
     return (A.x - B.x) ** 2 + (A.y - B.y) ** 2;
@@ -205,7 +212,7 @@ function distSq(A: XYPt, B: XYPt): number {
  *
  * @param {XYPt} A First point
  * @param {XYPt} B Second point
- * @returns {number} Distance in metres
+ * @returns {number} Distance, in the points' units
  */
 function dist(A: XYPt, B: XYPt): number {
     return Math.sqrt(distSq(A, B));
@@ -214,25 +221,25 @@ function dist(A: XYPt, B: XYPt): number {
 // ── Buffer expansion ───────────────────────────────────────────────────────────
 
 /**
- * Expands a polygon outward by `margin` metres using Clipper2's inflatePaths.
+ * Expands a polygon outward by `margin` using Clipper2's inflatePathsD.
  * Returns a single expanded polygon with consistent winding (centroid inside).
  *
  * @param {XYPt[]} poly Polygon vertices to expand
- * @param {number} margin Outward expansion distance in metres
+ * @param {number} margin Outward expansion distance, in the polygon's units
  * @returns {XYPt[]} Expanded polygon vertices
  */
 function expandPolygon(poly: XYPt[], margin: number): XYPt[] {
     const input = [poly.map((p) => ({ x: p.x, y: p.y }))];
-    const cleaned = Clipper.union(input, [], FillRule.NonZero);
+    const cleaned = Clipper.unionD(input, FillRule.NonZero);
     const subject = cleaned.length > 0 ? cleaned : input;
 
-    const result = Clipper.inflatePaths(subject, margin, JoinType.Round, EndType.Polygon);
+    const result = Clipper.inflatePathsD(subject, margin, JoinType.Round, EndType.Polygon);
     if (!result || result.length === 0 || result[0].length === 0) return poly;
 
-    const merged = Clipper.union(result, [], FillRule.NonZero);
+    const merged = Clipper.unionD(result, FillRule.NonZero);
     if (!merged || merged.length === 0) return poly;
 
-    const simplified = Clipper.ramerDouglasPeuckerPaths(merged, margin * 0.25);
+    const simplified = Clipper.ramerDouglasPeuckerPathsD(merged, margin * 0.25);
     const output = simplified.length > 0 ? simplified[0] : merged[0];
     const pts = output.map((p: { x: number; y: number }) => ({ x: p.x, y: p.y }));
 
@@ -252,10 +259,20 @@ function expandPolygon(poly: XYPt[], margin: number): XYPt[] {
 // ── Zone geometry ──────────────────────────────────────────────────────────────
 
 interface ZoneGeom {
+    zoneID: number;
     /** Raw user-drawn vertices (possibly concave). */
     raw: XYPt[];
     /** Expanded safety buffer polygon. */
     expanded: XYPt[];
+}
+
+/**
+ * Every zone projected and buffered once, so every test about a zone uses the same shape.
+ */
+export interface ZoneGeometry {
+    /** Safety buffer distance in metres the zones were buffered by. */
+    safetyMargin: number;
+    zones: ZoneGeom[];
 }
 
 /**
@@ -265,14 +282,10 @@ interface ZoneGeom {
  *
  * @param {XYPt} A Start of the segment
  * @param {XYPt} B End of the segment
- * @param {Array<ZoneGeom & { zoneID: number }>} zoneGeoms Projected zone geometry to test against
- * @returns {Array<ZoneGeom & { zoneID: number }>} Zones blocking the segment
+ * @param {ZoneGeom[]} zoneGeoms Projected zone geometry to test against
+ * @returns {ZoneGeom[]} Zones blocking the segment
  */
-function zonesBlockingSegment(
-    A: XYPt,
-    B: XYPt,
-    zoneGeoms: Array<ZoneGeom & { zoneID: number }>,
-): Array<ZoneGeom & { zoneID: number }> {
+function zonesBlockingSegment(A: XYPt, B: XYPt, zoneGeoms: ZoneGeom[]): ZoneGeom[] {
     return zoneGeoms.filter(
         (zg) =>
             !pointInPolygon(A, zg.raw) &&
@@ -284,26 +297,26 @@ function zonesBlockingSegment(
 }
 
 /**
- * Projects and buffers every exclusion zone relative to a single origin.
+ * Projects and buffers every exclusion zone. Each zone's margin is converted to Mercator
+ * units at the zone's own latitude. Build it once per zone set and pass it to every test.
  *
  * @param {ReadonlyMap<number, ExclusionZone>} zones Exclusion zones to project, keyed by zone ID
- * @param {GeographicCoordinate} origin Shared projection origin for every zone
- * @param {number} safetyMargin Safety buffer distance in metres around each zone
- * @returns {Array<ZoneGeom & { zoneID: number }>} Projected, buffered geometry for every valid zone
+ * @param {number} [safetyMargin] Safety buffer distance in metres around each zone
+ * @returns {ZoneGeometry} Projected, buffered geometry for every valid zone
  */
-function buildZoneGeoms(
+export function buildZoneGeometry(
     zones: ReadonlyMap<number, ExclusionZone>,
-    origin: GeographicCoordinate,
-    safetyMargin: number,
-): Array<ZoneGeom & { zoneID: number }> {
-    const zoneGeoms: Array<ZoneGeom & { zoneID: number }> = [];
+    safetyMargin = DEFAULT_SAFETY_MARGIN_METERS,
+): ZoneGeometry {
+    const zoneGeoms: ZoneGeom[] = [];
     for (const [zoneID, zone] of zones) {
         if (!zone.vertices || zone.vertices.length < 3) continue;
-        const raw = zone.vertices.map((v) => toXY(origin, v));
-        if (raw.length < 3) continue;
-        zoneGeoms.push({ zoneID, raw, expanded: expandPolygon(raw, safetyMargin) });
+        const raw = zone.vertices.map(toXY);
+        const meanY = raw.reduce((sum, p) => sum + p.y, 0) / raw.length;
+        const expanded = expandPolygon(raw, safetyMargin * unitsPerMetre(meanY));
+        zoneGeoms.push({ zoneID, raw, expanded });
     }
-    return zoneGeoms;
+    return { safetyMargin, zones: zoneGeoms };
 }
 
 // ── A* grid pathfinding ────────────────────────────────────────────────────────
@@ -391,8 +404,14 @@ class MinHeap {
  * @returns {XYPt[]} Intermediate bypass waypoints between A and B, or empty array if no bypass is needed
  */
 function findBypassPath(A: XYPt, B: XYPt, zoneGeoms: ZoneGeom[], safetyMargin: number): XYPt[] {
+    // Grid sizes and tolerances are set in metres and converted at the leg's latitude.
+    const scale = unitsPerMetre((A.y + B.y) / 2);
+    const cellSize = GRID_CELL_SIZE * scale;
+    const minBypassSpacing = MIN_BYPASS_SPACING * scale;
+    const backtrackTolerance = BACKTRACK_TOLERANCE * scale;
+
     const tryFindBypass = (planningClearance: number): XYPt[] => {
-        const GRID_PADDING = safetyMargin;
+        const GRID_PADDING = safetyMargin * scale;
         const collisionPolys =
             planningClearance > 0
                 ? zoneGeoms.map((zg) => expandPolygon(zg.expanded, planningClearance))
@@ -417,8 +436,8 @@ function findBypassPath(A: XYPt, B: XYPt, zoneGeoms: ZoneGeom[], safetyMargin: n
         // produce a grid of tens of millions of cells for a detour around either one.
         const { minX, minY, maxX, maxY } = boundsOf([A, B, ...blockingPolys.flat()], GRID_PADDING);
 
-        const cols = Math.ceil((maxX - minX) / GRID_CELL_SIZE) + 1;
-        const rows = Math.ceil((maxY - minY) / GRID_CELL_SIZE) + 1;
+        const cols = Math.ceil((maxX - minX) / cellSize) + 1;
+        const rows = Math.ceil((maxY - minY) / cellSize) + 1;
         if (cols * rows > MAX_GRID_CELLS) return [];
 
         // Every zone reaching into the grid still blocks cells, not just the ones
@@ -432,8 +451,8 @@ function findBypassPath(A: XYPt, B: XYPt, zoneGeoms: ZoneGeom[], safetyMargin: n
         const blocked = new Uint8Array(cols * rows);
         for (let row = 0; row < rows; row++) {
             for (let col = 0; col < cols; col++) {
-                const cx = minX + col * GRID_CELL_SIZE;
-                const cy = minY + row * GRID_CELL_SIZE;
+                const cx = minX + col * cellSize;
+                const cy = minY + row * cellSize;
                 if (gridPolys.some((poly) => pointInPolygon({ x: cx, y: cy }, poly))) {
                     blocked[row * cols + col] = 1;
                 }
@@ -441,8 +460,8 @@ function findBypassPath(A: XYPt, B: XYPt, zoneGeoms: ZoneGeom[], safetyMargin: n
         }
 
         const ptToCell = (p: XYPt): { col: number; row: number } => ({
-            col: Math.round((p.x - minX) / GRID_CELL_SIZE),
-            row: Math.round((p.y - minY) / GRID_CELL_SIZE),
+            col: Math.round((p.x - minX) / cellSize),
+            row: Math.round((p.y - minY) / cellSize),
         });
 
         const cellToIdx = (col: number, row: number): number => row * cols + col;
@@ -553,8 +572,8 @@ function findBypassPath(A: XYPt, B: XYPt, zoneGeoms: ZoneGeom[], safetyMargin: n
             const col = cur % cols;
             const row = Math.floor(cur / cols);
             gridPath.unshift({
-                x: minX + col * GRID_CELL_SIZE,
-                y: minY + row * GRID_CELL_SIZE,
+                x: minX + col * cellSize,
+                y: minY + row * cellSize,
             });
             cur = n.parent;
         }
@@ -589,7 +608,7 @@ function findBypassPath(A: XYPt, B: XYPt, zoneGeoms: ZoneGeom[], safetyMargin: n
             const prev = compact[compact.length - 1];
             const curr = simplified[k];
             const next = simplified[k + 1];
-            const closeToPrev = dist(prev, curr) < MIN_BYPASS_SPACING;
+            const closeToPrev = dist(prev, curr) < minBypassSpacing;
             const canSkip = !collisionPolys.some(
                 (poly) =>
                     segmentIntersectsPolygon(prev, next, poly) ||
@@ -609,7 +628,7 @@ function findBypassPath(A: XYPt, B: XYPt, zoneGeoms: ZoneGeom[], safetyMargin: n
             const prev = progressSmoothed[progressSmoothed.length - 1];
             const curr = compact[k];
             const next = compact[k + 1];
-            const isBacktrack = dist(curr, B) > dist(prev, B) + BACKTRACK_TOLERANCE;
+            const isBacktrack = dist(curr, B) > dist(prev, B) + backtrackTolerance;
             const canSkip = !collisionPolys.some(
                 (poly) =>
                     segmentIntersectsPolygon(prev, next, poly) ||
@@ -626,7 +645,7 @@ function findBypassPath(A: XYPt, B: XYPt, zoneGeoms: ZoneGeom[], safetyMargin: n
     };
 
     // First pass: small adaptive epsilon to avoid discretization edge clipping.
-    const adaptiveClearance = Math.max(1, GRID_CELL_SIZE * 0.5);
+    const adaptiveClearance = Math.max(1, GRID_CELL_SIZE * 0.5) * scale;
     const firstPass = tryFindBypass(adaptiveClearance);
     if (firstPass.length > 0) return firstPass;
 
@@ -649,49 +668,39 @@ export type RoutingResult =
  * and each leg between kept waypoints that crosses a zone gets the detour points A* finds
  * around every zone. Waypoints are numbered from 1, in the order given.
  *
- * Legs are projected from the first kept waypoint, the origin `routeNeedsBypass` uses for a
- * route that starts there.
- *
  * @param {readonly GeographicCoordinate[]} waypoints Locations of the waypoints to route, in order
- * @param {ReadonlyMap<number, ExclusionZone>} zones Exclusion zones to route around, keyed by zone ID
- * @param {number} [safetyMargin] Safety buffer distance in metres around each zone
+ * @param {ZoneGeometry} geometry Zones to route around, from `buildZoneGeometry`
  * @returns {RoutingResult} One step per waypoint, or why there is none
  */
 export function autoRoute(
     waypoints: readonly GeographicCoordinate[],
-    zones: ReadonlyMap<number, ExclusionZone>,
-    safetyMargin = DEFAULT_SAFETY_MARGIN_METERS,
+    geometry: ZoneGeometry,
 ): RoutingResult {
-    const zoneBufferCache = buildZoneBufferCache(zones, safetyMargin);
     const steps = waypoints.map(
         (waypoint): RerouteStep => ({
-            suppress: getBlockingZoneIDs(waypoint, zoneBufferCache).length > 0,
+            suppress: getBlockingZoneIDs(waypoint, geometry).length > 0,
             detoursAfter: [],
         }),
     );
     const kept = steps.flatMap((step, i) => (step.suppress ? [] : [i]));
     if (waypoints.length > 0 && kept.length === 0) return { kind: "allWaypointsBlocked" };
-    if (kept.length < 2) return { kind: "routed", steps };
 
-    const origin = waypoints[kept[0]];
-    const zoneGeoms = buildZoneGeoms(zones, origin, safetyMargin);
     for (let k = 0; k < kept.length - 1; k++) {
         const from = kept[k];
         const to = kept[k + 1];
-        const A = toXY(origin, waypoints[from]);
-        const B = toXY(origin, waypoints[to]);
-        if (zonesBlockingSegment(A, B, zoneGeoms).length === 0) continue;
+        const A = toXY(waypoints[from]);
+        const B = toXY(waypoints[to]);
+        if (zonesBlockingSegment(A, B, geometry.zones).length === 0) continue;
 
-        const detour = findBypassPath(A, B, zoneGeoms, safetyMargin);
+        const detour = findBypassPath(A, B, geometry.zones, geometry.safetyMargin);
         if (detour.length === 0) return { kind: "noRoute", leg: [from + 1, to + 1] };
-        steps[from].detoursAfter = detour.map((pt) => toLatLon(origin, pt));
+        steps[from].detoursAfter = detour.map(toLatLon);
     }
     return { kind: "routed", steps };
 }
 
 /**
  * Returns the safety-buffer polygon vertices (in lat/lon) for a single zone.
- * Used to render the buffer ring on the map and to check placement validity.
  *
  * @param {ExclusionZone} zone Zone whose buffer vertices are needed
  * @param {number} [safetyMargin] Safety buffer distance in metres around the zone
@@ -701,82 +710,40 @@ export function getZoneBufferVertices(
     zone: ExclusionZone,
     safetyMargin = DEFAULT_SAFETY_MARGIN_METERS,
 ): GeographicCoordinate[] {
-    if (!zone.vertices || zone.vertices.length < 3) return [];
-    const origin = zone.vertices[0];
-    const raw = zone.vertices.map((v) => toXY(origin, v));
-    if (raw.length < 3) return [];
-    return expandPolygon(raw, safetyMargin).map((p) => toLatLon(origin, p));
-}
-
-/** Per-zone buffer geometry, each relative to its own zone's first vertex as origin. */
-type ZoneBufferCache = Map<number, { origin: GeographicCoordinate; expanded: XYPt[] }>;
-
-/**
- * Projects and buffers every exclusion zone, each relative to its own first
- * vertex as origin, for `getBlockingZoneIDs`. Build it once per zone set and
- * reuse it when testing many locations.
- *
- * @param {ReadonlyMap<number, ExclusionZone>} zones Exclusion zones to buffer, keyed by zone ID
- * @param {number} safetyMargin Safety buffer distance in metres around each zone
- * @returns {ZoneBufferCache} Buffer geometry for every valid zone, keyed by zone ID
- */
-export function buildZoneBufferCache(
-    zones: ReadonlyMap<number, ExclusionZone>,
-    safetyMargin = DEFAULT_SAFETY_MARGIN_METERS,
-): ZoneBufferCache {
-    const cache: ZoneBufferCache = new Map();
-    for (const [zoneID, zone] of zones) {
-        if (!zone.vertices || zone.vertices.length < 3) continue;
-        const origin = zone.vertices[0];
-        const raw = zone.vertices.map((v) => toXY(origin, v));
-        cache.set(zoneID, { origin, expanded: expandPolygon(raw, safetyMargin) });
-    }
-    return cache;
+    const [zoneGeom] = buildZoneGeometry(new Map([[0, zone]]), safetyMargin).zones;
+    return zoneGeom ? zoneGeom.expanded.map(toLatLon) : [];
 }
 
 /**
  * Returns the IDs of every zone whose safety-margin buffer contains the given location.
  *
  * @param {GeographicCoordinate} location Geographic point to test against all zone buffers
- * @param {ZoneBufferCache} zoneBufferCache Buffer geometry from `buildZoneBufferCache`
+ * @param {ZoneGeometry} geometry Zones to test against, from `buildZoneGeometry`
  * @returns {number[]} IDs of zones whose buffer contains the location
  */
 export function getBlockingZoneIDs(
     location: GeographicCoordinate,
-    zoneBufferCache: ZoneBufferCache,
+    geometry: ZoneGeometry,
 ): number[] {
-    const ids: number[] = [];
-    for (const [zoneID, { origin, expanded }] of zoneBufferCache) {
-        if (pointInPolygon(toXY(origin, location), expanded)) ids.push(zoneID);
-    }
-    return ids;
+    const point = toXY(location);
+    return geometry.zones
+        .filter((zoneGeom) => pointInPolygon(point, zoneGeom.expanded))
+        .map((zoneGeom) => zoneGeom.zoneID);
 }
 
 /**
- * Reports whether a route still requires a detour around the given zones,
- * without computing the detour itself. Uses the same blocking test as
- * `autoRoute`, projected from the route's first point, so the two
+ * Reports whether a route still requires a detour around the given zones, without
+ * computing the detour itself. Uses the same blocking test as `autoRoute`, so the two
  * cannot disagree; it skips the A* search.
  *
  * @param {GeographicCoordinate[]} route Ordered locations of the route's waypoints
- * @param {ReadonlyMap<number, ExclusionZone>} zones Exclusion zones to test against, keyed by zone ID
- * @param {number} [safetyMargin] Safety buffer distance in metres around each zone
+ * @param {ZoneGeometry} geometry Zones to test against, from `buildZoneGeometry`
  * @returns {boolean} Whether any leg of the route is blocked by a zone
  */
-export function routeNeedsBypass(
-    route: GeographicCoordinate[],
-    zones: ReadonlyMap<number, ExclusionZone>,
-    safetyMargin = DEFAULT_SAFETY_MARGIN_METERS,
-): boolean {
-    if (route.length < 2) return false;
-
-    const origin = route[0];
-    const zoneGeoms = buildZoneGeoms(zones, origin, safetyMargin);
-    if (zoneGeoms.length === 0) return false;
-
-    const xy = route.map((location) => toXY(origin, location));
+export function routeNeedsBypass(route: GeographicCoordinate[], geometry: ZoneGeometry): boolean {
+    const xy = route.map(toXY);
     for (let i = 0; i < xy.length - 1; i++) {
-        if (zonesBlockingSegment(xy[i], xy[i + 1], zoneGeoms).length > 0) return true;
+        if (zonesBlockingSegment(xy[i], xy[i + 1], geometry.zones).length > 0) return true;
     }
     return false;
 }
@@ -795,5 +762,5 @@ export function isLocationBlockedByZone(
     zones: ReadonlyMap<number, ExclusionZone>,
     safetyMargin = DEFAULT_SAFETY_MARGIN_METERS,
 ): boolean {
-    return getBlockingZoneIDs(location, buildZoneBufferCache(zones, safetyMargin)).length > 0;
+    return getBlockingZoneIDs(location, buildZoneGeometry(zones, safetyMargin)).length > 0;
 }
