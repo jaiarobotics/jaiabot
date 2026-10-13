@@ -294,6 +294,7 @@ filter-template-docker-sim-builds: &filter-template-docker-sim-builds
     branches:
       only:
         - "3.y"
+        - "task/3.y/rest-api-v1-conditional-task-packets/SW-2370"
 
 ## Begin actual config
 version: 2.1
