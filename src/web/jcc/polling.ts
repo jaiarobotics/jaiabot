@@ -74,7 +74,7 @@ export async function pollStatus() {
 
         updateBots(pod_status.bots ?? []);
         updateHubs(pod_status.hubs ?? []);
-        updateJaiaGlobal(pod_status.controlling_client_id ?? "");
+        updateJaiaGlobal(pod_status.controlling_client_id ?? null);
         updateOpenLayers();
         if (pod_status.messages?.error && pod_status.messages?.error === HUB_CONNECTION_ERROR) {
             updateWarning(CONNECTION_WARNING, true);
@@ -308,10 +308,10 @@ function updateHubs(hubStatuses: PortalHubStatus[]) {
 /**
  * Move the controlling client ID from the server to the client-side data model
  *
- * @param {string} controllingClientID ID from the server
+ * @param {string | null} controllingClientID ID from the server, or null if no client has taken control
  * @returns {void}
  */
-function updateJaiaGlobal(controllingClientID: string) {
+function updateJaiaGlobal(controllingClientID: string | null) {
     jaiaGlobal.setControllingClientID(controllingClientID);
 }
 

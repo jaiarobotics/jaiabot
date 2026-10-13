@@ -54,7 +54,8 @@ class Data:
     task_packet_files_path = "/var/log/jaiabot/bot_offload"
     task_packet_loaded_filenames: Set[str] = set()
 
-    controlling_client_id = "NONE"
+    # The operator client that last took control; None until one does
+    controlling_client_id: Optional[str] = None
 
     exclusion_zones = CRUDLRecords(_LOG_DIR / 'exclusion-zones')
     mission_sets = CRUDLRecords(_LOG_DIR / 'mission-sets')
@@ -104,9 +105,5 @@ def create_queues(streaming_endpoints):
         # thread safe queue for outbound messages
         to_portal_queue[ep.hub_id] = Queue()
 
-def get_queue(hub_id=None):
-    if hub_id:
-        return to_portal_queue[hub_id]
-    else:
-        # return the first available queue if no hub_id is specified
-        return to_portal_queue[list(to_portal_queue.keys())[0]]
+def get_queue(hub_id):
+    return to_portal_queue[hub_id]
