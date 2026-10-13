@@ -20,6 +20,27 @@ class JaiaAPI {
     }
 
     /**
+     * Send a request to the REST API
+     *
+     * @param {*} apiRequest APIRequest message
+     * @returns {Promise<*>} APIResponse message
+     */
+    request(apiRequest) {
+        return fetch("/jaia/v1", {
+            method: "POST",
+            headers: this.headers,
+            body: JSON.stringify(apiRequest),
+        })
+            .then((response) => response.json())
+            .then((response) => {
+                if (response.error) {
+                    throw new Error(response.error.details ?? response.error.code);
+                }
+                return response;
+            });
+    }
+
+    /**
      * Send an engineering command
      *
      * @param {*} command
@@ -36,33 +57,43 @@ class JaiaAPI {
 
         this.apiThrottleEndTime = Date.now() + 1000;
 
-        return fetch("/jaia/v0/engineering-command", {
-            method: "POST",
-            headers: this.headers,
-            body: JSON.stringify(command),
-        })
-            .then((response) => response.json())
-            .then((response) => {
-                if (response.status != "ok") {
-                    alert(response.message);
-                }
-            });
+        return this.request({
+            target: { bots: [Number(command.bot_id ?? command.botId)] },
+            engineering_command: command,
+        }).catch((e) => {
+            alert(e.message);
+        });
     }
 
     /**
-     * Return status of the fleet
+     * Return status of the fleet, with each bot's engineering status and status age
      *
      * @returns {*}
      */
     getStatus() {
-        return fetch("/jaia/v0/status", { headers: this.headers })
-            .then((response) => response.json())
-            .then((status) => {
+        return this.request({ target: { all: true }, pod_status: true })
+            .then(({ pod_status }) => {
+                const bots = {};
+                for (const portalBotStatus of pod_status.bots ?? []) {
+                    const bot = portalBotStatus.bot_status;
+                    bots[bot.bot_id] = {
+                        ...bot,
+                        engineering: portalBotStatus.engineering,
+                        portalStatusAge: portalBotStatus.portalStatusAge,
+                    };
+                }
+
+                const controllingClientId = pod_status.controlling_client_id;
                 this.inControl =
-                    status.controllingClientId == this.clientId ||
-                    status.controllingClientId == null;
+                    controllingClientId == this.clientId || controllingClientId == null;
                 this.setControlBorder();
-                return status;
+                return {
+                    bots,
+                    hubs: (pod_status.hubs ?? []).map(
+                        (portalHubStatus) => portalHubStatus.hub_status,
+                    ),
+                    controllingClientId,
+                };
             })
             .catch((e) => {
                 alert(e);
@@ -70,10 +101,7 @@ class JaiaAPI {
     }
 
     takeControl() {
-        return fetch("/jaia/v0/take-control", {
-            method: "POST",
-            headers: this.headers,
-        }).then((response) => response.json());
+        return this.request({ target: { all: true }, take_control: this.clientId });
     }
 
     setControlBorder() {
