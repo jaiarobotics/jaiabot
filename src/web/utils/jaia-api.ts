@@ -1,5 +1,3 @@
-import { randomBase57 } from "../shared/Utilities";
-
 export interface Tileset {
     name: string;
     size: number;
@@ -13,28 +11,17 @@ export interface MapsDirectory {
 }
 
 export class JaiaAPI {
-    clientId: string;
     url: string;
-    debug: boolean;
     headers: { [key: string]: string };
 
-    constructor(clientId: string, url = "http://192.168.42.1:5000", debug = true) {
-        this.clientId = clientId;
-        console.debug(`JaiaAPI clientId = ${clientId}`);
+    constructor(url: string) {
         this.url = url;
-
-        this.debug = debug;
         this.headers = {
             "Content-Type": "application/json; charset=utf-8",
-            clientId: this.clientId,
         };
     }
 
     hit(method: string, endpoint: string, requestBody?: any) {
-        if (this.debug) {
-            console.log(`Request endpoint: ${method} ${this.url}${endpoint}`);
-            console.log(`Request body: ${JSON.stringify(requestBody)}`);
-        }
         return fetch(`${this.url}${endpoint}`, {
             method,
             headers: this.headers,
@@ -51,11 +38,6 @@ export class JaiaAPI {
                             return response.text();
                         }
                     }
-                    if (this.debug) {
-                        console.error(
-                            `Error from ${method} to JaiaAPI: ${response.status} ${response.statusText}`,
-                        );
-                    }
                     return Promise.reject(
                         new Error(
                             `Error from ${method} to JaiaAPI: ${response.status} ${response.statusText}`,
@@ -70,10 +52,7 @@ export class JaiaAPI {
                 },
             )
             .then(
-                (res) => {
-                    if (this.debug) console.log(`JaiaAPI Response: ${res.code} ${res.msg}`);
-                    return res;
-                },
+                (res) => res,
                 (reason) => reason,
             );
     }
@@ -88,15 +67,6 @@ export class JaiaAPI {
 
     delete(endpoint: string) {
         return this.hit("DELETE", endpoint);
-    }
-
-    /**
-     * Gets clientID provided by the server for the web session
-     *
-     * @returns {string} clientID provided by the server
-     */
-    getClientId() {
-        return this.clientId;
     }
 
     async getOfflineMaps() {
@@ -133,4 +103,4 @@ export class JaiaAPI {
     }
 }
 
-export const jaiaAPI = new JaiaAPI(randomBase57(22), "/", false);
+export const jaiaAPI = new JaiaAPI("/");

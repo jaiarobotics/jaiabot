@@ -278,7 +278,7 @@ def generate_simple_variant(action, parent):
 
     enums=dict()
     
-    if action_field_desc.type != google.protobuf.descriptor.FieldDescriptor.TYPE_BOOL:
+    if action_field_desc.type == google.protobuf.descriptor.FieldDescriptor.TYPE_MESSAGE:
         jaia_request_action = getattr(jaia_request, action_field_desc.name)
         for field in jaia_request_action.DESCRIPTOR.fields:
             presence = field.GetOptions().Extensions[jaiabot.messages.option_extensions_pb2.field].rest_api.presence

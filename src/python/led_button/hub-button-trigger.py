@@ -73,10 +73,9 @@ def led_init():
 
     led_off()
 
-# defining the api-endpoint 
-API_ENDPOINT = "http://localhost/jaia/allStop"
-# define the headers for the request
-headers = {'clientid': 'hub-button-all-stop'}
+API_ENDPOINT = "http://localhost/jaia/v1"
+STOP_ALL_REQUEST = {"target": {"all": True}, "command": {"type": "STOP"}}
+headers = {'clientId': 'hub-button-all-stop'}
 
 Button.pressed_time = datetime.now()
 requests.adapters.DEFAULT_RETRIES = 5 # increase retries number
@@ -102,7 +101,8 @@ def held(btn):
         try:
             log.debug("Stopping Bots")
             # sending post request and saving response as response object
-            r = requests.post(url = API_ENDPOINT, headers=headers)
+            r = requests.post(url = API_ENDPOINT, headers=headers, json=STOP_ALL_REQUEST)
+            log.debug(r.text)
 
             led_init()
             
