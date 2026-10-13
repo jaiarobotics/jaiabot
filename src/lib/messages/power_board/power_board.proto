@@ -22,6 +22,8 @@ enum PowerBoardStatusCode
     POWER_BOARD_CRC_ERROR = 5;
     POWER_BOARD_DECODE_ERROR = 6;
     POWER_BOARD_LOW_POWER_ACK = 7;
+    // battery is low; external power will be cut shortly
+    POWER_BOARD_LOW_BATTERY_SHUTDOWN = 8;
 }
 
 message LowPowerRequest
