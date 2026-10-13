@@ -179,8 +179,8 @@ def task_packets(jaia_request: APIRequest):
 
     with common.shared_data.data_lock:
         task_packet_database = common.shared_data.data.task_packet_database
-        # So the version counts packets that are waiting in the offload directory
-        task_packet_database.add_task_packets_from_files()
+        # Offloaded task packets are loaded when a hub reports a successful offload, not on every
+        # poll: scanning the offload directory here ran once a second per JCC, under data_lock
         version = task_packet_database.task_packets_version
 
         if is_json and jaia_request.task_packets.HasField('known_version') and jaia_request.task_packets.known_version == version:
