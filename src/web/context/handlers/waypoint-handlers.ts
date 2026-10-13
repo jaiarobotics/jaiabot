@@ -12,7 +12,7 @@ import {
     TaskPacketVisibility,
 } from "../../types/context-types";
 import { MapModes } from "../../types/openlayers-types";
-import { jaiaAPI } from "../../utils/jaia-api";
+import { jaia_rest_api } from "../../utils/jaia-rest-api";
 import { refreshTaskPacketsForWindow } from "../../jcc/polling";
 import { MAX_WAYPOINTS, UNASSIGNED_ID } from "../../utils/constants";
 import { isLocationBlockedByZone } from "../../data/exclusion_zones/exclusion-zone-router";
@@ -315,9 +315,18 @@ export function handleChangeTaskPacketVisibility(
     action: JaiaAction,
 ) {
     const include = action.taskPacketVisibility === TaskPacketVisibility.INCLUDE;
-    jaiaAPI.postTaskPacketInclude(action.taskPacketID, include).then(() => {
-        refreshTaskPacketsForWindow().catch((error) => console.error(error));
-    });
+    jaia_rest_api
+        .request({
+            target: {
+                all: true,
+            },
+            task_packet_include: {
+                task_packet_id: action.taskPacketID,
+                include: include,
+            },
+        })
+        .then(() => refreshTaskPacketsForWindow())
+        .catch((error) => console.error(error));
     return mutableState;
 }
 

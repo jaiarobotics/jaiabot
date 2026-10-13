@@ -7,15 +7,17 @@ import { JaiaContextProvider } from "../../../../context/JaiaContext";
 import { bots } from "../../../../data/bots/bots";
 import { missionSet } from "../../../../data/mission_set/mission-set";
 
-import { PortalBotStatus } from "../../../../shared/PortalStatus";
+import { PortalBotStatus } from "@proto/jaiabot/messages/rest_api";
 import { MissionState } from "@proto/jaiabot/messages/mission";
 import Mission from "../../../../data/mission_set/mission";
 import { messages } from "../delete-mission-messages";
 import { DisabledCodes } from "../../disabled-codes";
 
 const botStatusMock: PortalBotStatus = {
-    bot_id: 1,
-    mission_state: MissionState.IN_MISSION__UNDERWAY__MOVEMENT__TRANSIT,
+    bot_status: {
+        bot_id: 1,
+        mission_state: MissionState.IN_MISSION__UNDERWAY__MOVEMENT__TRANSIT,
+    },
 };
 
 bots.setBot(botStatusMock);

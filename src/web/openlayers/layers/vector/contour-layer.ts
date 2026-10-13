@@ -1,10 +1,10 @@
 import JaiaVectorLayer from "./jaia-vector-layer";
 import { LayerTitles } from "../../../types/openlayers-types";
 import { layersZIndexes } from "../zindex";
-import { jaiaAPI } from "../../../utils/jaia-api";
 import { taskPackets } from "../../../data/task_packets/task-packets";
 import { taskPacketFilter } from "../../../data/task_packets/task-packet-filter";
 import { generateContourFeatures } from "../../features/contour-feature";
+import { jaia_rest_api } from "../../../utils/jaia-rest-api";
 
 // Minimum bottom dives the backend needs to generate contours (pyjaia/contours.py)
 const MIN_BOTTOM_DIVES = 3;
@@ -27,24 +27,28 @@ class ContourLayer extends JaiaVectorLayer {
         ).length;
         if (bottomDiveCount < MIN_BOTTOM_DIVES) {
             this.latestRequest += 1;
-            this.getVectorLayer().getSource().clear();
+            this.getVectorLayer().getSource()?.clear();
             return;
         }
         // Contour only the packets shown on the map.
-        this.renderContours(jaiaAPI.getDepthContoursForTaskPackets(includedTaskPackets));
-    }
-
-    private renderContours(contours: ReturnType<typeof jaiaAPI.getDepthContoursForTaskPackets>) {
         const requestID = ++this.latestRequest;
-        contours
+        jaia_rest_api
+            .geojson_request({
+                target: {
+                    all: true,
+                },
+                depth_contours: {
+                    packets: includedTaskPackets,
+                },
+            })
             .then((geoJSON) => {
                 if (requestID !== this.latestRequest) {
                     return;
                 }
                 const features = generateContourFeatures(geoJSON);
                 const source = this.getVectorLayer().getSource();
-                source.clear();
-                source.addFeatures(features);
+                source?.clear();
+                source?.addFeatures(features);
             })
             .catch((error) => {
                 console.error(error);

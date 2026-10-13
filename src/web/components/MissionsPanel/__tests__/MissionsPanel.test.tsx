@@ -8,16 +8,20 @@ import { JaiaContextProvider } from "../../../context/JaiaContext";
 import { missionSet } from "../../../data/mission_set/mission-set";
 import { missionsManager } from "../../../data/missions_manager/missions-manager";
 import { bots } from "../../../data/bots/bots";
-import { PortalBotStatus } from "../../../shared/PortalStatus";
+import { PortalBotStatus } from "@proto/jaiabot/messages/rest_api";
 import { ButtonListTypes } from "../../../types/jaia-system-types";
 
 const botStatusMock1: PortalBotStatus = {
-    bot_id: 1,
+    bot_status: {
+        bot_id: 1,
+    },
     portalStatusAge: 1,
 };
 
 const botStatusMock2: PortalBotStatus = {
-    bot_id: 2,
+    bot_status: {
+        bot_id: 2,
+    },
     portalStatusAge: 1,
 };
 

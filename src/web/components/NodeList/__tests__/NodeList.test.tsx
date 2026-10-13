@@ -4,32 +4,39 @@ import { userEvent } from "@testing-library/user-event";
 import NodeList from "../NodeList";
 import { JaiaContextProvider } from "../../../context/JaiaContext";
 
-import { PortalBotStatus } from "../../../shared/PortalStatus";
-import { PortalHubStatus } from "../../../shared/PortalStatus";
+import { PortalBotStatus, PortalHubStatus } from "@proto/jaiabot/messages/rest_api";
 
 import { bots } from "../../../data/bots/bots";
 import { HealthState } from "@proto/goby/middleware/protobuf/coroner";
 import { hubs } from "../../../data/hubs/hubs";
 
 const mockBotStatus1: PortalBotStatus = {
-    bot_id: 1,
-    health_state: HealthState.HEALTH__OK,
+    bot_status: {
+        bot_id: 1,
+        health_state: HealthState.HEALTH__OK,
+    },
 };
 
 const mockBotStatus2: PortalBotStatus = {
-    bot_id: 2,
-    health_state: HealthState.HEALTH__DEGRADED,
+    bot_status: {
+        bot_id: 2,
+        health_state: HealthState.HEALTH__DEGRADED,
+    },
 };
 
 const mockBotStatus5: PortalBotStatus = {
-    bot_id: 5,
-    health_state: HealthState.HEALTH__FAILED,
+    bot_status: {
+        bot_id: 5,
+        health_state: HealthState.HEALTH__FAILED,
+    },
     portalStatusAge: 40_000_000,
 };
 
 const mockHubStatus1: PortalHubStatus = {
-    hub_id: 1,
-    health_state: HealthState.HEALTH__OK,
+    hub_status: {
+        hub_id: 1,
+        health_state: HealthState.HEALTH__OK,
+    },
     portalStatusAge: 0,
 };
 

@@ -2,10 +2,13 @@ import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 
 import StopAllBotsButton from "../StopAllBotsButton";
+import { JaiaDispatchContext } from "../../../../context/JaiaContext";
+import { JaiaActions } from "../../../../context/jaia-actions";
 
 import { bots } from "../../../../data/bots/bots";
+import { jaia_rest_api } from "../../../../utils/jaia-rest-api";
 
-import { PortalBotStatus } from "../../../../shared/PortalStatus";
+import { PortalBotStatus } from "@proto/jaiabot/messages/rest_api";
 import { MissionState } from "@proto/jaiabot/messages/mission";
 
 // Place user in control by default
@@ -19,41 +22,47 @@ jest.mock("../../../../utils/commands", () => {
 
 // Ready
 const botStatusMock1: PortalBotStatus = {
-    bot_id: 1,
-    mission_state: MissionState.IN_MISSION__UNDERWAY__MOVEMENT__TRANSIT,
+    bot_status: {
+        bot_id: 1,
+        mission_state: MissionState.IN_MISSION__UNDERWAY__MOVEMENT__TRANSIT,
+        battery_percent: 75,
+    },
     portalStatusAge: 1_000_000, // microseconds
-    battery_percent: 75,
 };
 
 // Status age error
 const botStatusMock2: PortalBotStatus = {
-    bot_id: 2,
-    mission_state: MissionState.PRE_DEPLOYMENT__WAIT_FOR_MISSION_PLAN,
+    bot_status: {
+        bot_id: 2,
+        mission_state: MissionState.PRE_DEPLOYMENT__WAIT_FOR_MISSION_PLAN,
+    },
     portalStatusAge: 40_000_000, // microseconds
 };
 
 // Mission state error
 const botStatusMock3: PortalBotStatus = {
-    bot_id: 3,
-    mission_state: MissionState.PRE_DEPLOYMENT__IDLE,
+    bot_status: {
+        bot_id: 3,
+        mission_state: MissionState.PRE_DEPLOYMENT__IDLE,
+    },
     portalStatusAge: 1_000_000, // microseconds
 };
 
 const botStatusMock4: PortalBotStatus = {
-    bot_id: 4,
-    mission_state: MissionState.IN_MISSION__UNDERWAY__TASK__DIVE__DIVE_PREP,
+    bot_status: {
+        bot_id: 4,
+        mission_state: MissionState.IN_MISSION__UNDERWAY__TASK__DIVE__DIVE_PREP,
+        battery_percent: 75,
+    },
     portalStatusAge: 1_000_000, // microseconds
-    battery_percent: 75,
 };
 
 bots.setBot(botStatusMock2);
 bots.setBot(botStatusMock3);
 
-// Mock Jaia API
-const originalModule = jest.requireActual("../../../../utils/jaia-api");
-originalModule.jaiaAPI.hit = jest
-    .fn()
-    .mockResolvedValue({ code: 200, msg: "Mocked Success", bots: [], hubs: [] });
+jest.spyOn(jaia_rest_api, "request").mockResolvedValue({
+    command_result: { command_sent: true },
+});
 
 test("0 Bots accepting stop commands", async () => {
     render(<StopAllBotsButton bots={bots.getBots()} />);
@@ -99,8 +108,13 @@ test("1 Bot accepting stop commands", async () => {
 
 test("2 Bots accepting stop commands", async () => {
     bots.setBot(botStatusMock4);
+    const jaiaDispatch = jest.fn();
 
-    render(<StopAllBotsButton bots={bots.getBots()} />);
+    render(
+        <JaiaDispatchContext.Provider value={jaiaDispatch}>
+            <StopAllBotsButton bots={bots.getBots()} />
+        </JaiaDispatchContext.Provider>,
+    );
     const button = screen.getByRole("button", { name: "stop-all-bots" });
     await userEvent.click(button);
 
@@ -118,6 +132,10 @@ test("2 Bots accepting stop commands", async () => {
     const stopButton = screen.getByText("Stop Bots");
     await userEvent.click(stopButton);
     expect(screen.queryByText("Confirm")).toBeNull();
+    expect(jaiaDispatch).toHaveBeenCalledTimes(2);
+    expect(jaiaDispatch).toHaveBeenCalledWith(
+        expect.objectContaining({ type: JaiaActions.SENT_COMMAND }),
+    );
 });
 
 test("All Bots accepting stop commands", async () => {

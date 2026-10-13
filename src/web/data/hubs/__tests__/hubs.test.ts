@@ -1,18 +1,24 @@
-import { PortalHubStatus } from "../../../shared/PortalStatus";
+import { PortalHubStatus } from "@proto/jaiabot/messages/rest_api";
 import { hubs } from "../../../data/hubs/hubs";
 
 const mockHubStatus1: PortalHubStatus = {
-    hub_id: 1,
+    hub_status: {
+        hub_id: 1,
+    },
     portalStatusAge: 11,
 };
 
 const mockHubStatus2: PortalHubStatus = {
-    hub_id: 2,
+    hub_status: {
+        hub_id: 2,
+    },
     portalStatusAge: 22,
 };
 
 const mockHubStatus5: PortalHubStatus = {
-    hub_id: 5,
+    hub_status: {
+        hub_id: 5,
+    },
     portalStatusAge: 55,
 };
 

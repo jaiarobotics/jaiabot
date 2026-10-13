@@ -3,7 +3,7 @@ import { Map } from "ol";
 import { toLonLat } from "ol/proj";
 import { createMissionFeatures } from "../MissionFeatures";
 import { MissionPlan, MissionTask_TaskType } from "@proto/jaiabot/messages/mission";
-import { PortalBotStatus } from "../PortalStatus";
+import { PortalBotStatus } from "@proto/jaiabot/messages/rest_api";
 
 const map = {
     getView: () => ({
@@ -12,7 +12,9 @@ const map = {
 } as unknown as Map;
 
 const bot: PortalBotStatus = {
-    bot_id: 1,
+    bot_status: {
+        bot_id: 1,
+    },
 };
 
 function getConstantHeadingFeature(features: any[]) {

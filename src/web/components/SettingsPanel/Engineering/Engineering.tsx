@@ -1,6 +1,7 @@
 import { useContext, useState } from "react";
 import { FormControl, MenuItem, Select, SelectChangeEvent } from "@mui/material";
 import { JaiaContext } from "../../../context/JaiaContext";
+import { jaia_rest_api } from "../../../utils/jaia-rest-api";
 import { jaiaAPI } from "../../../utils/jaia-api";
 import { success } from "../../../utils/notifications";
 import {
@@ -62,19 +63,20 @@ export default function Engineering() {
      * @returns {void}
      */
     const handleQuerySelectedStatusClick = async (botID: number) => {
-        const takeControl = await jaiaAPI.takeControl();
-        if (!takeControl) {
-            return;
-        }
-
-        const engineeringCommand: Engineering = {
-            bot_id: botID,
-            query_engineering_status: true,
-        };
-
-        const res = await jaiaAPI.postEngineering(engineeringCommand);
-        if (res && res.status === "ok") {
+        try {
+            await jaia_rest_api.takeControl(); // Will throw if request fails
+            await jaia_rest_api.request({
+                target: {
+                    bots: [botID],
+                },
+                engineering_command: {
+                    bot_id: botID,
+                    query_engineering_status: true,
+                },
+            });
             success(`Querying status for Bot ${botID}`);
+        } catch (error) {
+            console.error("Error querying status for Bot:", error);
         }
     };
 
@@ -125,12 +127,17 @@ export default function Engineering() {
             pid_control: packagePIDValues(),
         };
 
-        const takeControlRes = await jaiaAPI.takeControl();
-        if (takeControlRes && takeControlRes.status === "ok") {
-            const commandRes = await jaiaAPI.postEngineeringPanel(engineeringUpdate);
-            if (commandRes && commandRes.status === "ok") {
-                success(`Submitted update for Bot ${botID}`);
-            }
+        try {
+            await jaia_rest_api.takeControl(); // Will throw if request fails
+            const commandRes = await jaia_rest_api.request({
+                target: {
+                    bots: [botID],
+                },
+                engineering_command: engineeringUpdate,
+            });
+            success(`Submitted update for Bot ${botID}`);
+        } catch (error) {
+            console.error("Error updating Bot:", error);
         }
     };
 

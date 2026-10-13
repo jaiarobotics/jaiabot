@@ -92,7 +92,7 @@ export default function StopButton(props: Props) {
                 type: Command_CommandType.STOP,
             };
             const response = await sendBotCommand(stopCommand);
-            if (response && response.status === "ok") {
+            if (!response.error) {
                 jaiaDispatch({
                     type: JaiaActions.SENT_COMMAND,
                     botID: props.bot.getBotID(),
