@@ -167,8 +167,7 @@ waypoints change:
 Status does not report detours that are no longer needed. Only a reroute can tell whether a
 simpler route exists, and a cheaper test misses cases (a deleted zone's detours stay unflagged
 while another suppressed waypoint is still blocked). Stale detours still give a clear route. To
-drop them, the operator restores the original waypoints and, if the mission then crosses a zone,
-reroutes it.
+drop them, the operator reroutes the mission, which is always available.
 
 Fixing any of these is the operator's choice. If a zone is deleted and later restored, the
 operator reroutes, or uses undo; nothing comes back on its own.
@@ -667,14 +666,14 @@ In progress. Decided and known items:
       dialog shows the report only after its own Reroute or Restore tap, tracked with a local flag,
       so a reopened dialog never shows an old report and closing needs no dispatch. The report is
       kept out of undo snapshots, and Undo cannot be tapped while a dialog is open.
-    - **Which missions an action takes: only those it would change.** It follows from
-      `getRoutingStatus`:
-        - _Reroute_ takes a mission that is conflicted (`isConflicted`) or has suppressed
-          waypoints that are now clear (`clearSuppressed`). A mission that was rerouted and is
-          still clear is left alone: rerouting it again would usually give the same detours.
-        - _Restore_ takes a mission that has detours or suppressed waypoints.
-        - Reroute all and Restore all send every mission that qualifies; the report lists only
-          those. In either dialog, a button with no qualifying mission is disabled.
+    - **Which missions an action takes:**
+        - _Reroute_ takes any mission with waypoints. Status cannot tell when detours are no
+          longer needed, so Reroute is always available: it routes from the original waypoints
+          against the current zones, which also drops stale detours.
+        - _Restore_ takes a mission that has detours or suppressed waypoints:
+          `Mission.isRerouted()`.
+        - Reroute all and Restore all send every mission that qualifies; the report lists those
+          missions. In either dialog, a button with no qualifying mission is disabled.
     - Opening the dialog is the operator's choice, so it does not interrupt an edit (principle 2).
       It shows the current status, not a computed reroute, so it is not a proposal waiting to be
       accepted (principle 4): the reroute runs only when its button is pressed.

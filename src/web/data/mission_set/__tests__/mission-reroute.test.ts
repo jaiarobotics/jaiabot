@@ -108,6 +108,37 @@ describe("restoreOriginalWaypoints", () => {
     });
 });
 
+describe("isRerouted", () => {
+    test("is false for a mission never rerouted", () => {
+        expect(missionOf(3).isRerouted()).toBe(false);
+    });
+
+    test("is true for a mission with detours only", () => {
+        const mission = missionOf(2);
+        mission.reroute([keep(1.5), keep()]);
+
+        expect(mission.getSuppressedWaypoints()).toHaveLength(0);
+        expect(mission.isRerouted()).toBe(true);
+    });
+
+    test("is true for a mission with suppressed waypoints only", () => {
+        const mission = missionOf(3);
+        mission.reroute([keep(), suppress, keep()]);
+
+        expect(lats(mission.getWaypoints())).toEqual([1, 3]);
+        expect(mission.isRerouted()).toBe(true);
+    });
+
+    test("is false after restoring the original waypoints", () => {
+        const mission = missionOf(3);
+        mission.reroute([keep(1.5), suppress, keep()]);
+
+        mission.restoreOriginalWaypoints();
+
+        expect(mission.isRerouted()).toBe(false);
+    });
+});
+
 describe("markers and detours", () => {
     test("deleting a waypoint followed by a detour moves its marker past the detour", () => {
         const mission = Mission.fromJSON({

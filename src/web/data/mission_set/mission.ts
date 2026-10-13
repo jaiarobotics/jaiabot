@@ -136,6 +136,13 @@ export default class Mission {
         for (const waypoint of this.waypoints) waypoint.setIsSuppressed(false);
     }
 
+    /** Has detours or suppressed waypoints, so restoring the original waypoints would change it. */
+    isRerouted(): boolean {
+        return this.waypoints.some(
+            (waypoint) => waypoint.getIsDetour() || waypoint.getIsSuppressed(),
+        );
+    }
+
     getTransitSpeed(): number {
         return this.firstSegment.speed ?? DEFAULT_SPEED;
     }
