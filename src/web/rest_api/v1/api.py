@@ -131,8 +131,15 @@ def task_packets(jaia_request: APIRequest):
     end_time = jaia_request.task_packets.end_time if jaia_request.task_packets.HasField('end_time') else None
     mission_names = list(jaia_request.task_packets.mission_name) or None
 
+    if jaia_request.task_packets.excluded_only:
+        included = False
+    elif jaia_request.task_packets.included_only:
+        included = True
+    else:
+        included = None
+
     with common.shared_data.data_lock:
-        task_packets = common.shared_data.data.task_packet_database.query_task_packets(bot_ids, start_time, end_time, included=jaia_request.task_packets.included_only or None, mission_names=mission_names)
+        task_packets = common.shared_data.data.task_packet_database.query_task_packets(bot_ids, start_time, end_time, included=included, mission_names=mission_names)
 
     if jaia_request.task_packets.format == TaskPacketQuery.JSON:
         jaia_response = APIResponse()
