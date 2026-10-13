@@ -279,6 +279,9 @@ def command_for_hub(jaia_request: APIRequest) -> APIResponse:
     return jaia_response
 
 
+# status_age is int32 microseconds, which a node silent for about 36 minutes would overflow
+MAX_STATUS_AGE = 2**31 - 1
+
 def pod_status(jaia_request: APIRequest) -> APIResponse:
     jaia_response = APIResponse()
 
@@ -296,7 +299,7 @@ def pod_status(jaia_request: APIRequest) -> APIResponse:
     for bot in bots:
         portal_bot_status = PortalBotStatus()
         portal_bot_status.bot_status.CopyFrom(bot)
-        portal_bot_status.status_age = utc_now_microseconds() - bot.received_time
+        portal_bot_status.status_age = min(utc_now_microseconds() - bot.received_time, MAX_STATUS_AGE)
 
         if bot.bot_id in common.shared_data.data.active_mission_plans:
             portal_bot_status.active_mission_plan.CopyFrom(common.shared_data.data.active_mission_plans[bot.bot_id])
@@ -311,7 +314,7 @@ def pod_status(jaia_request: APIRequest) -> APIResponse:
     for hub in hubs:
         portal_hub_status = PortalHubStatus()
         portal_hub_status.hub_status.CopyFrom(hub)
-        portal_hub_status.status_age = utc_now_microseconds() - hub.received_time
+        portal_hub_status.status_age = min(utc_now_microseconds() - hub.received_time, MAX_STATUS_AGE)
 
         jaia_response.pod_status.hubs.append(portal_hub_status)
     
