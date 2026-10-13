@@ -61,7 +61,8 @@ extern "C"
         REED_WAIT_STATE,
         INIT_STATE,
         BROADCAST_STATE,
-        SLEEP_STATE
+        SLEEP_STATE,
+        LOW_BATTERY_LOCKOUT_STATE
     };
     /* USER CODE END ET */
 

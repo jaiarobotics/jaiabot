@@ -74,6 +74,20 @@ static volatile uint8_t reed_wake_flag = 0;
 #define DEFAULT_SLEEP_INTERVAL_MS 10000U
 #define LPTIM_MAX_CHUNK_MS 10000U
 
+// 6S2P pack: lock out at 3.1 V/cell. Only measured while external power is on.
+// The lockout lasts until the board loses power, which also re-arms the reed switch.
+// Uses VCC_V_SENSE: it saturates near 20.6 V, but that's above the lockout voltage.
+#define BATTERY_LOCKOUT_VOLTS 18.6f
+#define BATTERY_SAMPLES 8U
+#define BATTERY_CHECK_INTERVAL_MS 1000U
+#define BATTERY_LOW_CHECKS_TO_LOCKOUT 10U // consecutive, so motor sag doesn't trip it
+#define LOW_BATTERY_SHUTDOWN_GRACE_MS 30000U
+// Kept in an RTC backup register so a reset can't power the host back on.
+#define LOCKOUT_BKP_MAGIC 0x4C4F434BU
+
+// Keeps SWD usable in STOP2 for bench work; costs current, set to 0 before deploying.
+#define DEBUG_IN_STOP_MODE 1
+
 uint8_t bits_in_byte = 8;
 bool usb_tx_busy = false;
 enum power_board_state current_state = REED_WAIT_STATE;
@@ -430,6 +444,83 @@ static void power_board_deinit_runtime_peripherals(void)
     HAL_ADC_DeInit(&hadc1);
 }
 
+static void lockout_flag_access(void)
+{
+    __HAL_RCC_PWR_CLK_ENABLE();
+    HAL_PWR_EnableBkUpAccess();
+    __HAL_RCC_RTCAPB_CLK_ENABLE();
+}
+
+static bool lockout_flag_get(void)
+{
+    lockout_flag_access();
+    return RTC->BKP0R == LOCKOUT_BKP_MAGIC;
+}
+
+static void lockout_flag_set(void)
+{
+    lockout_flag_access();
+    RTC->BKP0R = LOCKOUT_BKP_MAGIC;
+}
+
+// Mean of several VCC_V_SENSE readings; needs the ADC initialized and VS_VBATT_EN set.
+static bool battery_read_volts(float* volts)
+{
+    uint32_t sum = 0U;
+    uint32_t count = 0U;
+    for (uint32_t i = 0U; i < BATTERY_SAMPLES; ++i)
+    {
+        uint32_t raw = 0U;
+        if (adc_read_channel(&hadc1, ADC_CHANNEL_1, &raw))
+        {
+            sum += raw;
+            ++count;
+        }
+    }
+
+    if (count == 0U)
+    {
+        return false;
+    }
+    *volts = ADC_TO_BATTERY_VOLTS((float)sum / (float)count);
+    return true;
+}
+
+// Called while awake; true once the battery has stayed below the lockout voltage.
+static bool battery_lockout_due(void)
+{
+    static uint32_t last_check_ms = 0U;
+    static uint32_t low_checks = 0U;
+
+    if ((HAL_GetTick() - last_check_ms) < BATTERY_CHECK_INTERVAL_MS)
+    {
+        return false;
+    }
+    last_check_ms = HAL_GetTick();
+
+    float volts = 0.0f;
+    if (!battery_read_volts(&volts))
+    {
+        return false;
+    }
+
+    low_checks = (volts < BATTERY_LOCKOUT_VOLTS) ? low_checks + 1U : 0U;
+    if (low_checks >= BATTERY_LOW_CHECKS_TO_LOCKOUT)
+    {
+        low_checks = 0U;
+        return true;
+    }
+    return false;
+}
+
+// External power and runtime peripherals must already be off.
+static void enter_low_battery_lockout(void)
+{
+    take_low_power_request_ms(); // drop any sleep request from before the lockout
+    lockout_flag_set();
+    current_state = LOW_BATTERY_LOCKOUT_STATE;
+}
+
 // Host-requested sleep between missions. Powers down like REED_WAIT_STATE
 // and sleeps the full duration; the reed switch does not wake it.
 static void power_board_sleep_between_missions(uint32_t duration_ms)
@@ -478,6 +569,9 @@ int main(void)
     MX_IWDG_Init();
     MX_LPTIM1_Init();
     /* USER CODE BEGIN 2 */
+#if DEBUG_IN_STOP_MODE
+    HAL_DBGMCU_EnableDBGStopMode();
+#endif
 
     /* Hold NINA-B112 in reset during sleep */
     HAL_GPIO_WritePin(BLE_RSTn_GPIO_Port, BLE_RSTn_Pin, GPIO_PIN_RESET);
@@ -499,8 +593,8 @@ int main(void)
 
         HAL_IWDG_Refresh(&hiwdg);
 
-        // Runtime peripherals aren't initialized while waiting on the reed switch.
-        if (current_state != REED_WAIT_STATE)
+        // Runtime peripherals aren't initialized while waiting on the reed switch or locked out.
+        if (current_state != REED_WAIT_STATE && current_state != LOW_BATTERY_LOCKOUT_STATE)
         {
             // Dispatch complete USB commands while the board is awake.
             power_board_command_process();
@@ -526,9 +620,18 @@ int main(void)
                     ++reed_active_samples;
                     if (reed_active_samples >= 3U)
                     {
-                        power_board_init_runtime_peripherals();
-                        power_board_enable_external_power();
-                        current_state = INIT_STATE;
+                        reed_active_samples = 0U;
+                        // a lockout survives resets, so don't power the host back on
+                        if (!lockout_flag_get())
+                        {
+                            power_board_init_runtime_peripherals();
+                            power_board_enable_external_power();
+                            current_state = INIT_STATE;
+                        }
+                        else
+                        {
+                            enter_low_battery_lockout();
+                        }
                     }
                 }
                 else
@@ -577,6 +680,17 @@ int main(void)
                     usb_transmit(&telemetry_response);
                 }
 
+                if (battery_lockout_due())
+                {
+                    power_board_send_status(
+                        jaiabot_protobuf_PowerBoardStatusCode_POWER_BOARD_LOW_BATTERY_SHUTDOWN);
+                    // give the host a chance to shut down before its power is cut
+                    service_host_commands(LOW_BATTERY_SHUTDOWN_GRACE_MS);
+                    power_board_disable_external_power();
+                    power_board_deinit_runtime_peripherals();
+                    enter_low_battery_lockout();
+                }
+
                 break;
 
             case SLEEP_STATE:
@@ -591,6 +705,11 @@ int main(void)
                     power_board_sleep_between_missions(sleep_duration_ms);
                     current_state = INIT_STATE;
                 }
+                break;
+
+            case LOW_BATTERY_LOCKOUT_STATE:
+                // Stays powered down until the board loses power.
+                stop2_sleep(DEFAULT_SLEEP_INTERVAL_MS, false);
                 break;
 
             default: current_state = INIT_STATE;
