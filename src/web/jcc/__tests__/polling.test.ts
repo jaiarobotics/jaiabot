@@ -272,4 +272,20 @@ describe("pollStatus", () => {
         expect(bots.getBot(7)?.getEngineering()).toEqual(engineering);
         expect(bots.getBot(7)?.getStatusAge()).toBe(2000);
     });
+
+    test("keeps polling after a response without a status", async () => {
+        let statusBody: APIResponse = {};
+        global.fetch = jest.fn((_url: string, init: RequestInit) => {
+            const request: APIRequest = JSON.parse(init.body as string);
+            const body: APIResponse = request.engineering_status ? {} : statusBody;
+            return Promise.resolve({ ok: true, json: () => Promise.resolve(body) });
+        }) as unknown as typeof fetch;
+
+        await pollStatus();
+
+        statusBody = { status: { bots: [{ bot_id: 8, received_time: "1000" }], time: "1500" } };
+        await pollStatus();
+
+        expect(bots.getBot(8)?.getStatusAge()).toBe(500);
+    });
 });

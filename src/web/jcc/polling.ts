@@ -81,8 +81,7 @@ export async function pollStatus() {
         const status = rest_response.status;
 
         if (status == null) {
-            console.error("Status response is null");
-            return;
+            throw new Error("Status response is null");
         }
 
         updateBots(
