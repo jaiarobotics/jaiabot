@@ -521,22 +521,37 @@ The data formats and code layout that support the Phase 1 workflow.
     The router deals only in locations: it never sees a `Waypoint` or a flag. How it provides the
     blocked test and the leg routes is Phase 3.
 
-- **The reroute report carries one outcome per mission.** `Mission.reroute` reports in
-  data-model terms; the reroute handler adds the two failures found before `Mission` is called,
-  and the report dialog reads the result:
+- **The reroute report carries one outcome per mission.** `Mission.reroute` and
+  `Mission.restoreOriginalWaypoints` report in data-model terms; the reroute handler adds the two
+  failures found before `Mission` is called, and the report dialog reads the result. Reroute and
+  restore share the report:
 
     ```ts
     // mission.ts, beside RerouteStep
     type RerouteResult =
         | { kind: "changed"; suppressed: number[]; restored: number[]; detoursAdded: number }
         | { kind: "overWaypointLimit"; needed: number }; // against MAX_WAYPOINTS
+    interface RestoreResult {
+        restored: number[];
+        detoursRemoved: number;
+    }
 
-    // types/context-types.ts
-    type RerouteOutcome =
-        | RerouteResult
+    // types/routing-types.ts, beside the router's RoutingResult
+    type RoutingResult =
+        | { kind: "routed"; steps: RerouteStep[] }
         | { kind: "allWaypointsBlocked" }
         | { kind: "noRoute"; leg: [number, number] }; // the leg with no way around
+    type RerouteOutcome = { missionID: number } & (
+        | RerouteResult
+        | Exclude<RoutingResult, { kind: "routed" }>
+        | ({ kind: "restored" } & RestoreResult)
+    );
     ```
+
+    - Both live in `types/` so that `types/context-types.ts` does not depend on `utils/routing/`;
+      `router.ts` imports `RoutingResult` from there.
+    - A reroute that finds the same route reports `changed` with nothing suppressed or restored
+      and the mission's current detour count.
 
     - "No route" and "over the limit" stay separate because the operator fixes them differently:
       by moving waypoints or zones around the named leg, or by shortening the mission by the
@@ -573,13 +588,13 @@ The data formats and code layout that support the Phase 1 workflow.
       protobuf geometry types.
     - `src/web/utils/routing/routing-status.ts`: `RoutingStatus` and `getRoutingStatus`, replacing
       `exclusion-zone-detection.ts`.
-    - `Mission` defines `RerouteStep` and `RerouteResult` and imports nothing from routing.
+    - `Mission` defines `RerouteStep`, `RerouteResult` and `RestoreResult` and imports nothing
+      from routing.
     - The reroute report is screen state, not data model, so it moves into
       `JaiaContextType` beside `visiblePanel` (the context's UI fields, not the data model in
       `src/web/data`), and `RerouteOutcome` is defined in
-      `types/context-types.ts`. `captureContextData` lists the fields it saves, so the report stays
-      out of undo snapshots; the undo handler clears it, as `history-handlers.ts:32` clears
-      `pendingChange` today.
+      `types/routing-types.ts`. `captureContextData` lists the fields it saves, so the report stays
+      out of undo snapshots; the undo handler clears it.
     - `ObstacleAvoidanceData` is then a wrapper around the zone set alone, so it is removed. The
       zone set returns to `src/web/data/exclusion_zones/exclusion-zone-set.ts`, with its own
       singleton, and the `obstacleAvoidanceData` context field becomes the zone set.
@@ -588,8 +603,8 @@ The data formats and code layout that support the Phase 1 workflow.
     | Layer                                               | Depends on                                                          |
     | --------------------------------------------------- | ------------------------------------------------------------------- |
     | `data/` (mission, waypoint, zone set)               | `types/protobuf-types`, `utils/constants`; nothing in routing       |
-    | `utils/routing/` (`router.ts`, `routing-status.ts`) | parameter types from `data/`; no global objects                     |
-    | `types/context-types.ts`                            | `data/`, as today, plus `RerouteResult`                             |
+    | `utils/routing/` (`router.ts`, `routing-status.ts`) | parameter types from `data/` and `types/`; no global objects        |
+    | `types/` (`context-types.ts`, `routing-types.ts`)   | `data/`, as today, plus `RerouteResult` and `RestoreResult`         |
     | `context/handlers/`                                 | all of the above: reads the globals, calls the router and `Mission` |
     | `components/`                                       | context, and `routing-status.ts` for the status icon                |
 
