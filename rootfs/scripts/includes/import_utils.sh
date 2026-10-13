@@ -43,9 +43,18 @@ function write_preseed()
     
     sudo umount /mnt/dev
     sudo umount /mnt/proc
-    sudo umount /mnt    
-    
-    sudo umount -l "${VBOX_MOUNT_PATH}"
+    sudo umount /mnt
+
+    # vboximg-mount holds the disk's write lock until it exits, and a lazy unmount
+    # returns before that; a VM started meanwhile boots from a half-written disk
+    sudo umount "${VBOX_MOUNT_PATH}" || sudo umount -l "${VBOX_MOUNT_PATH}"
+    for i in $(seq 1 60); do
+        pgrep -f "vboximg-mount -i ${DISKUUID}" > /dev/null || break
+        sleep 1
+    done
+    if pgrep -f "vboximg-mount -i ${DISKUUID}" > /dev/null; then
+        echo "WARNING: vboximg-mount is still holding disk ${DISKUUID}"
+    fi
 }
 
 
