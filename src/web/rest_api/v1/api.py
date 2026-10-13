@@ -2,8 +2,7 @@ import google.protobuf.json_format
 import jaiabot.messages.rest_api_pb2 as rest_api
 from jaiabot.messages.rest_api_pb2 import TaskPacketQuery, APIRequest, APIResponse, RecordQuery
 import jaiabot.messages.portal_pb2
-from jaiabot.messages.jaia_dccl_pb2 import BotStatus
-from jaiabot.messages.mission_pb2 import MissionPlan
+from jaiabot.messages.jaia_dccl_pb2 import BotStatus, Command
 from jaiabot.messages.hub_pb2 import HubStatus
 from jaiabot.messages.rest_api_pb2 import PodStatus, PortalBotStatus, PortalHubStatus
 
@@ -12,6 +11,7 @@ from pyjaia.csv import task_packets_to_csv
 from pyjaia.contours import task_packets_to_geojson
 
 import common.shared_data
+from common.crudl_records import RecordNotFound, InvalidRecordName
 from common.time import utc_now_microseconds
 from common.api_exception import APIException
 
@@ -21,7 +21,7 @@ import io
 import zipfile
 import shutil
 from http import HTTPStatus
-from flask import Response, send_file
+from flask import Response, request, send_file
 
 
 l = logging.getLogger(__name__)
@@ -57,14 +57,28 @@ def process_request(jaia_request: APIRequest) -> APIResponse:
         raise APIException(rest_api.API_ERROR__NOT_IMPLEMENTED, "Action '" + action + "' has not yet been implemented in the REST API")
 
 def send_client_to_portal_message(hub_id, msg):
-    """Send a client-to-portal message.  If no hub_id is specified, it will default to the first one.
+    client_id = requesting_client_id()
+    if client_id is not None:
+        msg.client_id = client_id
 
-    Args:
-        hub_id (int, optional): The ID of the hub to send the message to. Defaults to None, which will use the first available hub.
-        msg (ClientToPortalMessage): The client-to-portal message to be sent.
-    """
     # queue.Queue is threadsafe
     common.shared_data.get_queue(hub_id).put(msg)
+
+
+def requesting_client_id():
+    """The operator client (JCC or JED) that sent the request, or None for other API users."""
+    return request.headers.get('clientId')
+
+
+def take_control_for_requesting_client():
+    """Makes the requesting client the controlling client, as JCC expects when it sends a command.
+
+    WARNING:
+        This function is not thread safe and should only be called within a `with common.shared_data.data_lock:` block.
+    """
+    client_id = requesting_client_id()
+    if client_id is not None:
+        common.shared_data.data.controlling_client_id = client_id
 
 def status(jaia_request: APIRequest) -> APIResponse:
     jaia_response = APIResponse()
@@ -127,12 +141,19 @@ def task_packets(jaia_request: APIRequest):
     else:
         bot_ids = jaia_request.target.bots
 
-    start_time = jaia_request.task_packets.start_time if jaia_request.task_packets.HasField('start_time') else utc_now_microseconds() - 14 * 60 * 60 * 1000000  # 14 hours ago in microseconds
+    start_time = jaia_request.task_packets.start_time if jaia_request.task_packets.HasField('start_time') else None
     end_time = jaia_request.task_packets.end_time if jaia_request.task_packets.HasField('end_time') else None
     mission_names = list(jaia_request.task_packets.mission_name) or None
 
+    if jaia_request.task_packets.excluded_only:
+        included = False
+    elif jaia_request.task_packets.included_only:
+        included = True
+    else:
+        included = None
+
     with common.shared_data.data_lock:
-        task_packets = common.shared_data.data.task_packet_database.query_task_packets(bot_ids, start_time, end_time, included=jaia_request.task_packets.included_only or None, mission_names=mission_names)
+        task_packets = common.shared_data.data.task_packet_database.query_task_packets(bot_ids, start_time, end_time, included=included, mission_names=mission_names)
 
     if jaia_request.task_packets.format == TaskPacketQuery.JSON:
         jaia_response = APIResponse()
@@ -196,22 +217,31 @@ def command(jaia_request: APIRequest) -> APIResponse:
             # don't bother to send commands via hubs we haven't heard from
             hubs = [value for value in jaia_request.target.hubs if value in common.shared_data.data.hubs.keys()] 
 
+        command = jaia_request.command
+        command.time = utc_now_microseconds()
+
         for bot_id in bots:
             jaia_response.target.bots.append(bot_id)
 
         for hub_id in hubs:
             jaia_response.target.hubs.append(hub_id)
             for bot_id in bots:
-                command = jaia_request.command
                 command.bot_id = bot_id
-                command.time = utc_now_microseconds()
-                
+
                 client_to_portal_msg = jaiabot.messages.portal_pb2.ClientToPortalMessage()
                 client_to_portal_msg.command.CopyFrom(command)
                 
                 send_client_to_portal_message(hub_id, client_to_portal_msg)
 
-    jaia_response.command_result.command_sent = (len(hubs) > 0 and len(bots) > 0)
+        jaia_response.command_result.command_sent = (len(hubs) > 0 and len(bots) > 0)
+
+        if jaia_response.command_result.command_sent:
+            take_control_for_requesting_client()
+
+            # Lets task packets be grouped by the mission that produced them
+            if command.type == Command.MISSION_PLAN and command.plan.HasField('mission_name'):
+                for bot_id in bots:
+                    common.shared_data.data.task_packet_database.add_mission_command(command.plan.mission_name, bot_id, command.time)
     
     return jaia_response
 
@@ -242,8 +272,15 @@ def command_for_hub(jaia_request: APIRequest) -> APIResponse:
 
     jaia_response.command_result.command_sent = len(hubs) > 0
 
+    if jaia_response.command_result.command_sent:
+        with common.shared_data.data_lock:
+            take_control_for_requesting_client()
+
     return jaia_response
 
+
+# status_age is int32 microseconds, which a node silent for about 36 minutes would overflow
+MAX_STATUS_AGE = 2**31 - 1
 
 def pod_status(jaia_request: APIRequest) -> APIResponse:
     jaia_response = APIResponse()
@@ -254,15 +291,15 @@ def pod_status(jaia_request: APIRequest) -> APIResponse:
     with common.shared_data.data_lock:
         bots, hubs = get_bots_and_hubs(jaia_request.target)
 
-        jaia_response.pod_status.controlling_client_id = common.shared_data.data.controlling_client_id
+        if common.shared_data.data.controlling_client_id is not None:
+            jaia_response.pod_status.controlling_client_id = common.shared_data.data.controlling_client_id
 
     jaia_response.target.bots.extend([bot.bot_id for bot in bots])
 
     for bot in bots:
         portal_bot_status = PortalBotStatus()
         portal_bot_status.bot_status.CopyFrom(bot)
-        portal_bot_status.last_status_received_time = bot.received_time
-        portal_bot_status.portalStatusAge = utc_now_microseconds() - bot.received_time
+        portal_bot_status.status_age = min(utc_now_microseconds() - bot.received_time, MAX_STATUS_AGE)
 
         if bot.bot_id in common.shared_data.data.active_mission_plans:
             portal_bot_status.active_mission_plan.CopyFrom(common.shared_data.data.active_mission_plans[bot.bot_id])
@@ -277,8 +314,7 @@ def pod_status(jaia_request: APIRequest) -> APIResponse:
     for hub in hubs:
         portal_hub_status = PortalHubStatus()
         portal_hub_status.hub_status.CopyFrom(hub)
-        portal_hub_status.last_status_received_time = hub.received_time
-        portal_hub_status.portalStatusAge = utc_now_microseconds() - hub.received_time
+        portal_hub_status.status_age = min(utc_now_microseconds() - hub.received_time, MAX_STATUS_AGE)
 
         jaia_response.pod_status.hubs.append(portal_hub_status)
     
@@ -303,20 +339,33 @@ def take_control(jaia_request: APIRequest) -> APIResponse:
 def engineering_command(jaia_request: APIRequest) -> APIResponse:
     jaia_response = APIResponse()
     with common.shared_data.data_lock:
+        client_id = requesting_client_id()
+        controlling_client_id = common.shared_data.data.controlling_client_id
+        # Engineering changes from a second operator would fight the one in control
+        if client_id is not None and controlling_client_id is not None and client_id != controlling_client_id:
+            raise APIException(rest_api.API_ERROR__NOT_IN_CONTROL, f"Client {client_id} is not in control. Take control before sending engineering commands.")
+
         bots, _ = get_bots_and_hubs(jaia_request.target)
+        hubs = list(common.shared_data.data.hubs.keys())
 
         engineering_command = jaia_request.engineering_command
+        engineering_command.time = utc_now_microseconds()
 
-        for bot in bots:
-            engineering_command.bot_id = bot.bot_id
-            engineering_command.time = utc_now_microseconds()
+        for hub_id in hubs:
+            for bot in bots:
+                engineering_command.bot_id = bot.bot_id
 
-            client_to_portal_msg = jaiabot.messages.portal_pb2.ClientToPortalMessage()
-            client_to_portal_msg.engineering_command.CopyFrom(engineering_command)
+                client_to_portal_msg = jaiabot.messages.portal_pb2.ClientToPortalMessage()
+                client_to_portal_msg.engineering_command.CopyFrom(engineering_command)
 
-            send_client_to_portal_message(hub_id=None, msg=client_to_portal_msg)
+                send_client_to_portal_message(hub_id, client_to_portal_msg)
 
-    jaia_response.engineering_command_result.command_sent = True
+        jaia_response.target.bots.extend(bot.bot_id for bot in bots)
+        jaia_response.target.hubs.extend(hubs)
+        jaia_response.engineering_command_result.command_sent = len(hubs) > 0 and len(bots) > 0
+
+        if jaia_response.engineering_command_result.command_sent:
+            take_control_for_requesting_client()
 
     return jaia_response
 
@@ -387,30 +436,26 @@ def download_ctd_profiles(_: APIRequest) -> Response:
 
 def record_query(jaia_request: APIRequest) -> APIResponse:
     jaia_response = APIResponse()
+    records_request = jaia_request.record_query
+
+    if records_request.type == RecordQuery.RecordType.EXCLUSION_ZONE:
+        records = common.shared_data.data.exclusion_zones
+    else:
+        records = common.shared_data.data.mission_sets
 
     try:
         with common.shared_data.data_lock:
-            records_request = jaia_request.record_query
-
-            if records_request.type == RecordQuery.RecordType.EXCLUSION_ZONE:
-                records_handler = common.shared_data.data.exclusion_zones
-            elif records_request.type == RecordQuery.RecordType.MISSION_SET:
-                records_handler = common.shared_data.data.mission_sets
-            else:
-                raise ValueError("Invalid record type")
-
             if records_request.HasField("list"):
-                jaia_response.record_query_response.names.extend(records_handler.list_zones())
+                jaia_response.record_query_response.names.extend(records.list())
             if records_request.HasField("get_name"):
-                jaia_response.record_query_response.content = records_handler.get_zone(records_request.get_name)
+                jaia_response.record_query_response.content = records.get(records_request.get_name)
             if records_request.HasField("delete_name"):
-                records_handler.delete_zone(records_request.delete_name)
+                records.delete(records_request.delete_name)
             if records_request.HasField("save_name"):
-                records_handler.save_zone(records_request.save_name, records_request.save_content)
+                records.save(records_request.save_name, records_request.save_content)
+    except RecordNotFound as e:
+        raise APIException(rest_api.API_ERROR__RECORD_NOT_FOUND, str(e))
+    except InvalidRecordName as e:
+        raise APIException(rest_api.API_ERROR__INVALID_RECORD_NAME, str(e))
 
-        return jaia_response
-    except Exception as e:
-        print(f"Error processing records request: {e}")
-        jaia_response.error.code = 1
-        jaia_response.error.details = str(e)
-        return jaia_response
+    return jaia_response

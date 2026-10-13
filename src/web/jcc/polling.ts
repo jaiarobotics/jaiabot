@@ -74,7 +74,7 @@ export async function pollStatus() {
 
         updateBots(pod_status.bots ?? []);
         updateHubs(pod_status.hubs ?? []);
-        updateJaiaGlobal(pod_status.controlling_client_id ?? "");
+        updateJaiaGlobal(pod_status.controlling_client_id ?? null);
         updateOpenLayers();
         if (pod_status.messages?.error && pod_status.messages?.error === HUB_CONNECTION_ERROR) {
             updateWarning(CONNECTION_WARNING, true);
@@ -172,7 +172,7 @@ export async function refreshTaskPacketsForWindow() {
  * JCC always sends the window rather than relying on the server's default.
  */
 async function fetchTaskPacketsForWindow() {
-    const query = (included_only: boolean) =>
+    const query = (inclusion: { included_only: boolean } | { excluded_only: boolean }) =>
         jaia_rest_api
             .request({
                 target: {
@@ -181,12 +181,15 @@ async function fetchTaskPacketsForWindow() {
                 task_packets: {
                     start_time: String(taskPacketFilter.getStartDate().getTime() * 1000),
                     end_time: String(taskPacketFilter.getEndDate().getTime() * 1000),
-                    included_only,
+                    ...inclusion,
                 },
             })
             .then((response) => response.task_packets?.packets ?? []);
 
-    const [included, excluded] = await Promise.all([query(true), query(false)]);
+    const [included, excluded] = await Promise.all([
+        query({ included_only: true }),
+        query({ excluded_only: true }),
+    ]);
     return { included, excluded };
 }
 
@@ -284,8 +287,8 @@ function updateBots(botStatuses: PortalBotStatus[]) {
         const numericBotID = botStatus.bot_status?.bot_id ?? -1;
         const wasCommsDropped = bots.getBot(numericBotID)?.isCommsDropped() ?? false;
         bots.setBot(botStatus);
-        botStatus.isDisconnected = bots.getBot(numericBotID)?.isCommsDropped() ?? false;
-        handleBotSoundEffects(wasCommsDropped, botStatus.isDisconnected);
+        botStatus.is_disconnected = bots.getBot(numericBotID)?.isCommsDropped() ?? false;
+        handleBotSoundEffects(wasCommsDropped, botStatus.is_disconnected);
     }
     bots.setTick(bots.getTick() + 1);
 }
@@ -305,10 +308,10 @@ function updateHubs(hubStatuses: PortalHubStatus[]) {
 /**
  * Move the controlling client ID from the server to the client-side data model
  *
- * @param {string} controllingClientID ID from the server
+ * @param {string | null} controllingClientID ID from the server, or null if no client has taken control
  * @returns {void}
  */
-function updateJaiaGlobal(controllingClientID: string) {
+function updateJaiaGlobal(controllingClientID: string | null) {
     jaiaGlobal.setControllingClientID(controllingClientID);
 }
 

@@ -20,9 +20,6 @@ message RestAPI
         required string response = 2;
     }
     optional Example example = 3;
-
-    // used by APIConfig permissions to map permission onto allowed actions
-    repeated string permitted_action = 4;
 }
 
 // How a NodeSettings field is asked by debconf. debian/jaiabot-embedded.templates and

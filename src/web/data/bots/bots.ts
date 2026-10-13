@@ -116,8 +116,8 @@ export class Bots {
             bot.setWifiLinkQuality(botStatus.wifi_link_quality_percentage);
         }
 
-        if (portalBotStatus.portalStatusAge) {
-            bot.setStatusAge(portalBotStatus.portalStatusAge);
+        if (portalBotStatus.status_age) {
+            bot.setStatusAge(portalBotStatus.status_age);
         }
 
         if (botStatus.link) {

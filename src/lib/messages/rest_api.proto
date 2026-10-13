@@ -29,6 +29,11 @@ message TaskPacketQuery
             presence: GUARANTEED,
             doc: "Whether to only return included (non-excluded) task packets."
         }];
+    optional bool excluded_only = 5
+        [default = false, (jaia.field).rest_api = {
+            presence: GUARANTEED,
+            doc: "Whether to only return excluded task packets. Takes precedence over included_only."
+        }];
     
     enum Format {
         JSON = 0 [(jaia.ev).rest_api = { presence: GUARANTEED }];
@@ -154,6 +159,11 @@ enum APIErrorCode
 
     // Unimplemented
     API_ERROR__NOT_IMPLEMENTED = 20;
+
+    // Refused requests
+    API_ERROR__NOT_IN_CONTROL = 30 [(jaia.ev).rest_api.presence = GUARANTEED];
+    API_ERROR__RECORD_NOT_FOUND = 31 [(jaia.ev).rest_api.presence = GUARANTEED];
+    API_ERROR__INVALID_RECORD_NAME = 32 [(jaia.ev).rest_api.presence = GUARANTEED];
 }
 
 message APIError
@@ -240,26 +250,50 @@ message APIRequest
         string take_control = 19 [(jaia.field).rest_api = {
             presence: GUARANTEED,
             doc: "The client ID of the operator who wants to take control. Expect a response of type 'controlling_client_id'."
+            example {
+                request: '{"target": {"all": true}, "take_control": "6CaPKsnbVhkLzq3jNXpgSU"}'
+                response: '{"controlling_client_id": "6CaPKsnbVhkLzq3jNXpgSU", "request": {"target": {"all": true}, "take_control": "6CaPKsnbVhkLzq3jNXpgSU"}}'
+            }
         }];
         Engineering engineering_command = 20 [(jaia.field).rest_api = {
             presence: GUARANTEED,
             doc: "Send an engineering command to bot(s). Expect a response of type 'engineering_command_result'."
+            example {
+                request: '{"target": {"bots": [1]}, "engineering_command": {"bot_id": 1, "query_engineering_status": true}}'
+                response: '{"target": {"hubs": [1, 2], "bots": [1]}, "engineering_command_result": {"command_sent": true}, "request": {"target": {"bots": [1]}, "engineering_command": {"bot_id": 1, "time": "1722895468966813", "query_engineering_status": true}}}'
+            }
         }];
         TaskPacketInclude task_packet_include = 21 [(jaia.field).rest_api = {
             presence: GUARANTEED,
             doc: "Include or exclude a task packet. Expect a response of type 'task_packet_include_response'."
+            example {
+                request: '{"target": {"all": true}, "task_packet_include": {"task_packet_id": "1_1722895664", "include": false}}'
+                response: '{"request": {"target": {"all": true}, "task_packet_include": {"task_packet_id": "1_1722895664", "include": false}}, "task_packet_include_response": {"success": true}}'
+            }
         }];
         bool download_ctd_profiles = 22 [(jaia.field).rest_api = {
             presence: GUARANTEED,
-            doc: "Indicates whether to download CTD profiles."
+            doc: "Download the CTD profiles not yet downloaded from the hub as a zip file rather than an APIResponse. Responds with 204 No Content when there are none."
+            example {
+                request: '{"target": {"all": true}, "download_ctd_profiles": true}'
+                response: 'jaia-ctd.zip (application/zip) containing the not yet downloaded *.unb files from /var/log/jaiabot/bot_offload'
+            }
         }];
         RecordQuery record_query = 23 [(jaia.field).rest_api = {
             presence: GUARANTEED,
-            doc: "Request related to exclusion zones and mission sets."
+            doc: "List, get, save or delete the exclusion zones and mission sets stored on the hub. Expect a response of type 'record_query_response'."
+            example {
+                request: '{"target": {"all": true}, "record_query": {"type": "EXCLUSION_ZONE", "list": true}}'
+                response: '{"request": {"target": {"all": true}, "record_query": {"list": true, "type": "EXCLUSION_ZONE"}}, "record_query_response": {"names": ["harbor-entrance", "north-pier"]}}'
+            }
         }];
         DepthContoursQuery depth_contours = 24 [(jaia.field).rest_api = {
             presence: GUARANTEED,
             doc: "Generate depth contours from the given task packets. Responds with GeoJSON rather than an APIResponse."
+            example {
+                request: '{"target": {"all": true}, "depth_contours": {"packets": [{"bot_id": 1, "start_time": "1722895664000000", "end_time": "1722895700000000", "type": "DIVE", "dive": {"bottom_dive": true, "depth_achieved": 4.2, "start_location": {"lat": 41.658, "lon": -71.276}, "dive_rate": 0.5, "duration_to_acquire_gps": 8.0}}, {"bot_id": 1, "start_time": "1722895724000000", "end_time": "1722895760000000", "type": "DIVE", "dive": {"bottom_dive": true, "depth_achieved": 6.8, "start_location": {"lat": 41.6585, "lon": -71.275}, "dive_rate": 0.5, "duration_to_acquire_gps": 8.0}}, {"bot_id": 1, "start_time": "1722895784000000", "end_time": "1722895820000000", "type": "DIVE", "dive": {"bottom_dive": true, "depth_achieved": 9.5, "start_location": {"lat": 41.659, "lon": -71.2762}, "dive_rate": 0.5, "duration_to_acquire_gps": 8.0}}]}}'
+                response: '{"type": "FeatureCollection", "crs": {"type": "name", "properties": {"name": "EPSG:4326"}}, "features": [{"type": "Feature", "properties": {"type": "depth-contour", "value": 4.73, "fill": "#c9ebb1", "stroke-width": 0}, "geometry": {"type": "Polygon", "coordinates": [[[-71.276, 41.658], [-71.27602, 41.6581], [-71.275796, 41.658102], [-71.276, 41.658], [-71.276, 41.658]]]}}, {"type": "Feature", "properties": {"type": "depth-contour", "value": 4.73, "fill": "#c9ebb1", "stroke-width": 0}, "geometry": {"type": "Polygon", "coordinates": [[[-71.27602, 41.6581], [-71.27602, 41.6581], [-71.275796, 41.658102], [-71.275796, 41.658102], [-71.27602, 41.6581]]]}}]}'
+            }
         }];
     }
 }
@@ -274,16 +308,14 @@ message PortalBotStatus {
     optional BotStatus bot_status = 1;
     optional MissionPlan active_mission_plan = 2;
     repeated LinkStatusAge active_link_status_age = 3;
-    optional int32 portalStatusAge = 4;
-    optional bool isDisconnected = 5;
+    optional int32 status_age = 4;
+    optional bool is_disconnected = 5;
     optional Engineering engineering = 6;
-    optional int64 last_status_received_time = 7;
 }
 
 message PortalHubStatus {
     optional HubStatus hub_status = 1;
-    optional int32 portalStatusAge = 2;
-    optional int64 last_status_received_time = 3;
+    optional int32 status_age = 2;
 }
 
 message PodStatus {

@@ -15,14 +15,14 @@ const botStatusMock1: PortalBotStatus = {
     bot_status: {
         bot_id: 1,
     },
-    portalStatusAge: 1,
+    status_age: 1,
 };
 
 const botStatusMock2: PortalBotStatus = {
     bot_status: {
         bot_id: 2,
     },
-    portalStatusAge: 1,
+    status_age: 1,
 };
 
 bots.setBot(botStatusMock1);

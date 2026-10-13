@@ -1,21 +1,3 @@
-import { GeoJSON } from "ol/format";
-import { Engineering } from "@proto/jaiabot/messages/engineering";
-import { Command, CommandForHub, TaskPacket } from "@proto/jaiabot/messages/jaia_dccl";
-import { randomBase57, convertHTMLStrDateToISO } from "../shared/Utilities";
-import { FeatureCollection, Geometry } from "geojson";
-
-export interface JaiaError {
-    code?: number;
-    message?: string;
-}
-
-export type TaskPackets = { included: TaskPacket[]; excluded: TaskPacket[] };
-
-export interface JaiaResponse<T> {
-    error?: JaiaError;
-    result?: T;
-}
-
 export interface Tileset {
     name: string;
     size: number;
@@ -29,28 +11,17 @@ export interface MapsDirectory {
 }
 
 export class JaiaAPI {
-    clientId: string;
     url: string;
-    debug: boolean;
     headers: { [key: string]: string };
 
-    constructor(clientId: string, url = "http://192.168.42.1:5000", debug = true) {
-        this.clientId = clientId;
-        console.debug(`JaiaAPI clientId = ${clientId}`);
+    constructor(url: string) {
         this.url = url;
-
-        this.debug = debug;
         this.headers = {
             "Content-Type": "application/json; charset=utf-8",
-            clientId: this.clientId,
         };
     }
 
     hit(method: string, endpoint: string, requestBody?: any) {
-        if (this.debug) {
-            console.log(`Request endpoint: ${method} ${this.url}${endpoint}`);
-            console.log(`Request body: ${JSON.stringify(requestBody)}`);
-        }
         return fetch(`${this.url}${endpoint}`, {
             method,
             headers: this.headers,
@@ -67,11 +38,6 @@ export class JaiaAPI {
                             return response.text();
                         }
                     }
-                    if (this.debug) {
-                        console.error(
-                            `Error from ${method} to JaiaAPI: ${response.status} ${response.statusText}`,
-                        );
-                    }
                     return Promise.reject(
                         new Error(
                             `Error from ${method} to JaiaAPI: ${response.status} ${response.statusText}`,
@@ -86,10 +52,7 @@ export class JaiaAPI {
                 },
             )
             .then(
-                (res) => {
-                    if (this.debug) console.log(`JaiaAPI Response: ${res.code} ${res.msg}`);
-                    return res;
-                },
+                (res) => res,
                 (reason) => reason,
             );
     }
@@ -104,15 +67,6 @@ export class JaiaAPI {
 
     delete(endpoint: string) {
         return this.hit("DELETE", endpoint);
-    }
-
-    /**
-     * Gets clientID provided by the server for the web session
-     *
-     * @returns {string} clientID provided by the server
-     */
-    getClientId() {
-        return this.clientId;
     }
 
     async getOfflineMaps() {
@@ -147,54 +101,6 @@ export class JaiaAPI {
             method: "DELETE",
         });
     }
-
-    // ── Exclusion zone hub storage ──────────────────────────────────────────
-    // TODO:  Port the tests to REST API v1, and remove these
-
-    async listExclusionZones(): Promise<string[]> {
-        const response = await this.get("jaia/v0/exclusion-zones");
-        return response?.result ?? [];
-    }
-
-    async saveExclusionZone(name: string, snapshot: any): Promise<void> {
-        await this.post(`jaia/v0/exclusion-zones/${encodeURIComponent(name)}`, snapshot);
-    }
-
-    async loadExclusionZone(name: string): Promise<any | null> {
-        try {
-            return await this.get(`jaia/v0/exclusion-zones/${encodeURIComponent(name)}`);
-        } catch {
-            return null;
-        }
-    }
-
-    async deleteExclusionZone(name: string): Promise<void> {
-        await this.delete(`jaia/v0/exclusion-zones/${encodeURIComponent(name)}`);
-    }
-
-    // ── Mission set hub storage ─────────────────────────────────────────────
-    // TODO:  Port the tests to REST API v1, and remove these
-
-    async listMissionSets(): Promise<string[]> {
-        const response = await this.get("jaia/v0/mission-sets");
-        return response?.result ?? [];
-    }
-
-    async saveMissionSet(name: string, snapshot: any): Promise<void> {
-        await this.post(`jaia/v0/mission-sets/${encodeURIComponent(name)}`, snapshot);
-    }
-
-    async loadMissionSet(name: string): Promise<any | null> {
-        try {
-            return await this.get(`jaia/v0/mission-sets/${encodeURIComponent(name)}`);
-        } catch {
-            return null;
-        }
-    }
-
-    async deleteMissionSet(name: string): Promise<void> {
-        await this.delete(`jaia/v0/mission-sets/${encodeURIComponent(name)}`);
-    }
 }
 
-export const jaiaAPI = new JaiaAPI(randomBase57(22), "/", false);
+export const jaiaAPI = new JaiaAPI("/");
