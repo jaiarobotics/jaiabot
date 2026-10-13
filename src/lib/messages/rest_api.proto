@@ -159,6 +159,9 @@ enum APIErrorCode
 
     // Unimplemented
     API_ERROR__NOT_IMPLEMENTED = 20;
+
+    // Refused requests
+    API_ERROR__NOT_IN_CONTROL = 30 [(jaia.ev).rest_api.presence = GUARANTEED];
 }
 
 message APIError
