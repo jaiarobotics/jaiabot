@@ -4,29 +4,33 @@ import Icon from "@mdi/react";
 import { mdiArrowRight, mdiArrowUp, mdiArrowDown, mdiDelete } from "@mdi/js";
 import { Button } from "@mui/material";
 
-import { JCC_CONTAINER, MAX_WAYPOINTS } from "../../../utils/constants";
+import { JCC_CONTAINER, MAX_SEGMENTS, MAX_WAYPOINTS } from "../../../utils/constants";
 import {
     listSavedMissionSetsFromHub,
     loadSnapshotFromHub,
 } from "../MissionSetStorage/mission-set-storage";
 import { MissionSetSnapshot } from "../../../data/mission_set/mission-set";
-import { getMaxWaypointsPerOutputMission } from "./mission-set-editor";
+import {
+    getMaxSegmentsPerOutputMission,
+    getMaxWaypointsPerOutputMission,
+} from "./mission-set-editor";
 import SaveAndLoadButton from "./SaveAndLoadButton/SaveAndLoadButton";
 
 import "./MissionSetEditor.less";
 
-interface WaypointWarningProps {
+interface LimitWarningProps {
+    message: string;
     onClose: () => void;
 }
 
 /**
- * Alert overlay shown when adding a mission set would exceed MAX_WAYPOINTS.
+ * Alert overlay shown when adding a mission set would exceed a per-mission limit.
  */
-function WaypointWarning({ onClose }: WaypointWarningProps) {
+function LimitWarning({ message, onClose }: LimitWarningProps) {
     return (
         <div className="secondary-dialog alert">
             <h1>Alert</h1>
-            <p>{`Adding this mission set would exceed the maximum of ${MAX_WAYPOINTS} waypoints per mission.`}</p>
+            <p>{message}</p>
             <button onClick={onClose}>Close</button>
         </div>
     );
@@ -61,7 +65,7 @@ export function MissionSetEditorDialog(props: DialogProps) {
     const [combinedList, setCombinedList] = useState<string[]>([]);
     const [selectedSavedIndex, setSelectedSavedIndex] = useState<number | null>(null);
     const [selectedCombinedIndex, setSelectedCombinedIndex] = useState<number | null>(null);
-    const [isWaypointWarningVisible, setIsWaypointWarningVisible] = useState(false);
+    const [limitWarning, setLimitWarning] = useState<string | null>(null);
     const missionSetSnapshotCache = useRef<Map<string, MissionSetSnapshot>>(new Map());
     const [savedMissionSets, setSavedMissionSets] = useState<string[]>([]);
 
@@ -129,7 +133,20 @@ export function MissionSetEditorDialog(props: DialogProps) {
             getMaxWaypointsPerOutputMission(projectedList, missionSetSnapshotCache.current) >
             MAX_WAYPOINTS
         ) {
-            setIsWaypointWarningVisible(true);
+            setLimitWarning(
+                `Adding this mission set would exceed the maximum of ${MAX_WAYPOINTS} waypoints per mission.`,
+            );
+            return;
+        }
+
+        if (
+            getMaxSegmentsPerOutputMission(projectedList, missionSetSnapshotCache.current) >
+            MAX_SEGMENTS
+        ) {
+            setLimitWarning(
+                `Adding this mission set would exceed the maximum of ${MAX_SEGMENTS} segments per mission. ` +
+                    `A mission set that was itself combined uses more than one segment.`,
+            );
             return;
         }
 
@@ -253,8 +270,11 @@ export function MissionSetEditorDialog(props: DialogProps) {
                             </button>
                         </div>
                     </div>
-                    {isWaypointWarningVisible && (
-                        <WaypointWarning onClose={() => setIsWaypointWarningVisible(false)} />
+                    {limitWarning && (
+                        <LimitWarning
+                            message={limitWarning}
+                            onClose={() => setLimitWarning(null)}
+                        />
                     )}
                     <div className="editor-button-row">
                         <SaveAndLoadButton

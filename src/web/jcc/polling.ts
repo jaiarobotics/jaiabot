@@ -2,6 +2,7 @@ import { bots } from "../data/bots/bots";
 import { hubs } from "../data/hubs/hubs";
 import { jaiaGlobal } from "../data/jaia_global/jaia-global";
 import { taskPackets } from "../data/task_packets/task-packets";
+import { taskPacketFilter } from "../data/task_packets/task-packet-filter";
 import { PortalHubStatus } from "@proto/jaiabot/messages/rest_api";
 import { PortalBotStatus } from "@proto/jaiabot/messages/rest_api";
 import { botLayer } from "../openlayers/layers/vector/bot-layer";
@@ -28,6 +29,13 @@ const GITHUB_URL = "https://api.github.com/repos/jaiarobotics/jaiabot/releases/l
 let statusRequestInFlight = false;
 let taskPacketRequestInFlight = false;
 let metadataRequestInFlight = false;
+
+// Date window last fetched; lets the poll force a refetch when the filter window changes
+let lastFetchedWindowKey = "";
+
+// Increments per task packet fetch so a slower, superseded response
+// can't overwrite newer task packets in the data model.
+let latestTaskPacketRequest = 0;
 
 let statusRequestStartTime = new Date().getTime();
 
@@ -109,38 +117,77 @@ export async function pollTaskPackets() {
 
         const version = task_packets_version_response.task_packets_version?.version ?? 0;
 
-        if (version !== taskPackets.getVersion()) {
-            const included_task_packets = await jaia_rest_api
-                .request({
-                    target: {
-                        all: true,
-                    },
-                    task_packets: {
-                        included_only: true,
-                    },
-                })
-                .then((response) => response.task_packets?.packets ?? []);
-
-            const excluded_task_packets = await jaia_rest_api
-                .request({
-                    target: {
-                        all: true,
-                    },
-                    task_packets: {
-                        included_only: false,
-                    },
-                })
-                .then((response) => response.task_packets?.packets ?? []);
-
-            taskPackets.setIncludedTaskPackets(included_task_packets);
-            taskPackets.setExcludedTaskPackets(excluded_task_packets);
-            updateTaskLayers();
+        // Refetch when the filter window changes, even if the server version is unchanged.
+        const forceFetch = getTaskPacketWindowKey() !== lastFetchedWindowKey;
+        // A superseded fetch records nothing, so the next poll fetches again.
+        if (
+            (forceFetch || version !== taskPackets.getVersion()) &&
+            (await refreshTaskPacketsForWindow())
+        ) {
             taskPackets.setVersion(version);
         }
     } catch (error) {
         console.error(error);
     }
     taskPacketRequestInFlight = false;
+}
+
+/**
+ * Returns a key identifying the requested task packet window.
+ *
+ * @returns {string} Window identity key
+ */
+function getTaskPacketWindowKey() {
+    return `${taskPacketFilter.getStartDate().getTime()}|${taskPacketFilter.getEndDate().getTime()}`;
+}
+
+/**
+ * Fetches task packets for the current window and loads them into the data model, unless a newer
+ * fetch or filter search has started since. Every refetch of the task packets goes through here.
+ * Records the window it applied so the poll doesn't fetch the same window again.
+ *
+ * @returns {Promise<boolean>} True if the response was applied, false if it was superseded
+ */
+export async function refreshTaskPacketsForWindow() {
+    const requestID = ++latestTaskPacketRequest;
+    // Taken before the fetch reads the filter, so the key matches the window fetched.
+    const windowKey = getTaskPacketWindowKey();
+    const { included, excluded } = await fetchTaskPacketsForWindow();
+    if (requestID !== latestTaskPacketRequest) {
+        return false;
+    }
+    taskPackets.setIncludedTaskPackets(included);
+    taskPackets.setExcludedTaskPackets(excluded);
+    lastFetchedWindowKey = windowKey;
+    updateTaskLayers();
+    return true;
+}
+
+/**
+ * Fetches task packets for the filter's window.
+ *
+ * @returns {Promise<{ included: TaskPacket[]; excluded: TaskPacket[] }>} Task packets in the window
+ *
+ * @notes
+ * JCC always sends the window rather than relying on the server's default.
+ */
+async function fetchTaskPacketsForWindow() {
+    const query = (included_only: boolean) =>
+        jaia_rest_api
+            .request({
+                target: {
+                    all: true,
+                },
+                task_packets: {
+                    start_time: String(taskPacketFilter.getStartDate().getTime() * 1000),
+                    end_time: String(taskPacketFilter.getEndDate().getTime() * 1000),
+                    included_only,
+                },
+            })
+            .then((response) => response.task_packets?.packets ?? []);
+
+    const [included, excluded] = await Promise.all([query(true), query(false)]);
+    return { included, excluded };
 }
 
 /**

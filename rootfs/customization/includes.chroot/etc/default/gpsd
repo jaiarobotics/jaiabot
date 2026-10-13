@@ -1,7 +1,13 @@
 # Devices gpsd should collect to at boot time.
 # They need to be read/writeable, either by user gpsd or the group dialout.
-DEVICES="/dev/gps0 udp://0.0.0.0:33001 udp://0.0.0.0:33002 udp://0.0.0.0:33003"
+#
+# The GPS feed must stay first: gpsd hands out NTP shared-memory units in this
+# order, and chrony reads unit 0 (see /etc/chrony/conf.d/jaiabot-gps.conf). The
+# GPS driver sends to this port; the rest are contacts forwarded by
+# jaiabot_hub_manager.
+DEVICES="udp://127.0.0.1:32100 udp://0.0.0.0:33001 udp://0.0.0.0:33002 udp://0.0.0.0:33003"
 
 # Other options you want to pass to gpsd
-GPSD_OPTIONS="-b"
-
+# -n: read the GPS without waiting for a client, so time is available to chrony
+#     before the Jaia apps start
+GPSD_OPTIONS="-b -n"

@@ -57,6 +57,8 @@ The components of the VPC include:
 
 ## Network addresses
 
+*This section written by Copilot*
+
 The use of the `jaia ip` tool (or, in scripts, the standalone `jaia_ip` binary that it wraps) is recommended for determining IP addresses for a given node, id, fleet, etc.
 
 The network address assignment for the Jaia Cloud is intended to complement the existing fleet specific [VPN](page055_vpn.md). This means that a given fleet may have up to three VPN subnets assigned:
@@ -77,6 +79,8 @@ Additionally, each VPC has two subnets assigned as previously mentioned:
 2. VirtualFleet WLAN Subnet: 10.23.{flt}.0/24 (10.23.253.0/24 for a fleet above 250, see below) and 2001:db8:0:**2**::/64 where 2001:db8::/56 is replaced by the Amazon EC2 assigned IPv6 block for the VPC.
 
 ### Fleet ID ranges
+
+*This section written by Claude*
 
 The fleet WLAN, the fleet VPN and the VirtualFleet WLAN carry the fleet id in a single IPv4 octet, which is what limits how many fleets those schemes can address. Rather than renumber the fleets already using them, the fleet id range is split:
 
@@ -121,6 +125,8 @@ For each VPN class, the Subnet ID is the Fleet ID, so for example, VirtualFleet 
 
 #### Address
 
+*This section written by Claude*
+
 For a given node on the network, the 64-bit interface identifier is given as `::1:hub_id` for hubs, `::2:bot_id` for bots, `::3:customer_id` for various customer machines (desktop / laptop / tablet), `::4:rpicam_id` for rpicams, and `::5:0` for the gateway, which is the Wireguard server on the VPN networks (`.1` on the IPv4 networks). This allows up to 2^16 = 65536 nodes of each type to be assigned per fleet.
 
 Nothing is assigned the gateway address on the fleet WLAN. A node there finds its router by Router Advertisement, and the generated network configuration sets no IPv6 gateway; the address is reserved so that a Wireguard server, which is inside a tunnel where there is no Router Advertisement to answer, has the same identifier on every network.
@@ -135,6 +141,8 @@ Some examples include:
 | Bot         | 6   | 250      | `fd91:5457:1e5c:fa::2:6` | `fd6e:cf0d:aefa:fa::2:6` | `fd0f:77ac:4fdf:fa::2:6` |
 | Hub         | 20 | 10       | `fd91:5457:1e5c:a::1:14` | `fd6e:cf0d:aefa:a::1:14` | `fd0f:77ac:4fdf:a::1:14` |
 | Hub (CloudHub (ch))        | 30 | 15       | `fd91:5457:1e5c:f::1:1e` | `fd6e:cf0d:aefa:f::1:1e` | `fd0f:77ac:4fdf:f::1:1e` |
+
+*This section written by Claude*
 
 Every fleet in the table is an IPv4 fleet, so `jaia ip` gives its fleet VPN address as IPv4 (`jaia ip b5sf4` is `172.23.4.105`); `--ip_version ipv6` asks for the IPv6 address listed here instead. The VirtualFleet and CloudHub VPNs are IPv6 for every fleet, so those need no flag.
 
@@ -171,6 +179,8 @@ jaia ip chf15
 - jaiabot-rootfs-gen_build-date: Fri 08 Dec 2023 02:20:27 UTC
 - jaiabot-rootfs-gen_build-unixtime: 1702002064
 
+*This section written by Claude*
+
 CircleCI builds the AMI in `us-east-1` (and separately in `us-gov-east-1` for GovCloud), then copies it, with these tags, to each region listed in the `ami_copy_regions` parameter of the `aws-sync` job — currently `ca-central-1`. Since lookups are by tag rather than by AMI ID, `create_vpc.sh` and `create-virtualfleet.yml` resolve the image the same way in every region. To add a region, add it to that parameter; AMIs cannot be copied between the commercial and GovCloud partitions, so each partition needs its own build.
 
 ### VPC components (including Instances)
@@ -179,6 +189,8 @@ CircleCI builds the AMI in `us-east-1` (and separately in `us-gov-east-1` for Go
 - jaiabot-rootfs-gen_repository: same as AMI
 - jaiabot-rootfs-gen_repository_version: same as AMI.
 - jaia_fleet: Fleet ID
+
+CUSTOMER_NAME is the fleet config's `customer` (default `jaia`), which `jaia admin fleet create` and `edit` ask for when the fleet has a CloudHub.
 
 
 ### VM Instances
@@ -190,7 +202,122 @@ CircleCI builds the AMI in `us-east-1` (and separately in `us-gov-east-1` for Go
 	+ jaia_node_id: Bot ID or Hub ID
 	+ jaia_node_type: "bot" or "hub"
 
+## CloudHub settings
+
+*This section written by Claude*
+
+A CloudHub keeps its creation-time settings in `/etc/jaiabot/cloud.env`, written by
+cloud-init on first boot. That file lives on the rootfs, so a major upgrade discards
+it along with everything else outside the reuse set. Rather than carry it across, the
+settings are split by where they can be obtained again:
+
+**In the fleet config**, because AWS cannot be asked for them:
+
+| Field | Default |
+|---|---|
+| `includes_cloudhub` (top level) | `true` — answer no to the CloudHub question in `jaia admin fleet create`/`edit` for a fleet sold without one |
+| `customer` (top level) | `jaia` — the value of the `jaia_customer` tag on every AWS resource the fleet owns |
+| `cloudhub.base_uri` | required — the name the authentication front end is served under |
+| `cloudhub.admin_email` | required — address of the `fleet_admin` user created on first boot |
+| `cloudhub.smtp_address` | required — the relay Authelia sends enrolment and reset mail through |
+| `cloudhub.data_bucket` | `jaia--cloudhub-data--fleet<fleet>` — the bucket mounted at the bot offload directory |
+| `cloudhub.smtp_sender` | `noreply@auth.jaia.tech` — the From address, verified with the SMTP provider |
+| `cloudhub.smtp_credentials_ssm_parameter` | `/jaia/cloudhub/smtp_credentials` — the SSM SecureString holding the SMTP login (see "Required SMTP" below) |
+
+`customer` is a property of the fleet rather than of its CloudHub, so it sits at the top
+level; the rest are meaningless without hub 30 and `validate` requires the `cloudhub`
+message exactly when hub 30 is in the fleet.
+
+Most fleets have a CloudHub and that is what the questions propose, but a fleet can be
+built without one. It has to say so — `includes_cloudhub: false` — rather than simply
+omitting hub 30, because a fleet that never had one and a fleet that lost it by mistake
+would otherwise look identical, and only the first should validate. `jaia admin fleet
+has_cloudhub fleetN.cfg` prints `yes` or `no`, which is what the major upgrade compares
+against the `has_cloudhub` answer the operator gives it. `jaia admin fleet cloudhub create` renders
+them into `vpc.conf` for `create_vpc.sh`. CI gives each run its own customer name by
+writing it into the fleet config it generates.
+
+**Discoverable from AWS**, so deliberately not stored: the region, VPC, subnets,
+security groups, account ID and Elastic IP. Each is available from instance metadata
+or from a tag lookup within the fleet's VPC.
+
+**Carried across the upgrade**: `/etc/wireguard`. The CloudHub's VPN private key cannot
+be regenerated without every client peer, including the login server, having to be
+reissued. The same goes for its SSH key, `/home/jaia/.ssh/hub30_fleetN`, which no fleet
+config holds (see below).
+
+## Accounts and commissioning
+
+*This section written by Claude*
+
+A new CloudHub's directory has two accounts, neither with a password: set one with
+**Reset password?** on the login page, which emails the address shown.
+
+| Account | Whose | Groups | Email |
+| --- | --- | --- | --- |
+| `jaia_bootstrap` | Jaia's, for commissioning | `super_admin`, `lldap_admin` | `create_cloudhub --bootstrap-email` |
+| `fleet_admin` | the customer's | `super_admin`, `lldap_admin` | `cloudhub.admin_email` |
+
+Commissioning, signed in as `jaia_bootstrap`:
+
+1. Test the CloudHub's sites.
+2. In the CloudHub's JCU (`https://run.<base uri>/jcu`), **Open Fleet Pairing**.
+3. From a hub on site, **Pair Fleet to CloudHub**, and check every bot and hub reports it
+   is paired.
+4. **Close Fleet Pairing**.
+5. Before the CloudHub is shipped, delete `jaia_bootstrap` at `https://users.<base uri>`.
+
+`jaia_bootstrap` is created the first time the CloudHub's directory is set up and never
+again. `--bootstrap-email` is required, and cannot be `support@jaia.tech`, which `jaia_support`
+already has. A CloudHub made without it, such as one upgraded from 2.y, gets no `jaia_bootstrap`. A major upgrade sets the directory up a second time, so a marker in the persistent
+`/var/log/jaiabot/auth` records that the account has had its turn; deleting it is final.
+There is also a `jaia_support` account, in no groups, which the support page moves into
+the web groups when a customer grants Jaia web access.
+
+## CloudHub SSH key
+
+*This section written by Claude*
+
+A physical hub's SSH key lives on its Yubikey, so the key handle in the fleet config is
+of no use without the hub itself. A CloudHub has no USB port for one, and its key is an
+ordinary file instead, so it is made on the CloudHub and never leaves it:
+
+1. `jaia admin fleet create` writes no key for hub 30.
+2. On first boot the CloudHub finds no key in its preseed and generates
+   `/home/jaia/.ssh/hub30_fleetN`, nothing secret having been put in its EC2 user data.
+3. `create_cloudhub` copies the public half back and records it in the fleet config it
+   was given (`jaia admin fleet cloudhub set_key fleetN.cfg hub30_fleetN.pub`), with an
+   empty `private_key`.
+
+Create the CloudHub before generating the boot files of the other nodes. A node
+configured from a fleet config without the key prints a warning and does not accept the
+CloudHub until it is paired again (the "Pair new hub" playbook) with the updated config.
+The same applies to a CloudHub that is deleted and created again, since the new one has
+a new key.
+
+Every node's `/etc/jaiabot/ssh/hub_authorized_keys` accepts the CloudHub's key only from
+its address on the CloudHub VPN (`from="fd0f:77ac:4fdf:N::1:1e"`, where N is the fleet
+in hex), so a copy of the key is of no use without also being the CloudHub on that VPN.
+
+**Neither stored nor carried**: which repository the VirtualFleet AMI comes from, and its
+version. `create_cloudhub --repo` picks the repository at creation, defaulting to
+`release`, and the JCU's "Change JaiaBot repository and update all packages" playbook
+changes it afterwards. The version is the release branch of whatever jaiabot is
+installed, read from `common-versions.env`, so a VirtualFleet raised after a major
+upgrade matches the upgraded CloudHub rather than the release it came from.
+
 ## Usage
+
+*This section written by Claude*
+
+The CloudHub's sites (JCC, JDV, JCU and the rest, see "Cloud Login server" below) are
+reached through its login page, with no VPN. A tunnel of your own is for CI and
+development: `jaia admin fleet cloudhub create --client-vpn` makes the machine running
+it a peer (`desktop1`) of the CloudHub's VPNs, installs `wg_jaia_ch<fleet>`, and adds
+`cloudhub-fleet<fleet>` to its `/etc/hosts`. It is off by default because the peer stays
+on the CloudHub for as long as it runs, which is a standing way in that a customer's
+CloudHub should not ship with. In `vpc.conf` the same switches are `ENABLE_CLIENT_VPN`
+and `UPDATE_CLIENT_ETC_HOSTS`.
 
 Once connected to the appropriate VPN and hosts are configured in `/etc/hosts`, one can open a web-browser as usual to JCC, etc.
 
@@ -305,12 +432,16 @@ To upgrade an existing server, the following set of steps is recommended:
 6. Power down (stop) the old server.
 7. After some period (e.g., 1-2 weeks or so) of the new server functioning correctly,  disable termination protection for the old server and enable termination protection for the new server (if not already set) under (in the AWS console) `Actions->Instance Settings->Change termination protection`. Terminate (delete) the old instance.
 
-## Cloud Login server (*.cloud.jaia.tech)
+## Cloud Login server (auth.fleetN.jaia.tech / auth.custom_domain)
 
+*This section written by Claude*
+
+Each CloudHub runs its own authentication server, allowing people to access the CloudHub and VirtualFleet securely using 2-factor [2FA] verification for all resources except the REST_API (which allows machines to use one-factor passwords to be used as API tokens).
+
+This provides a more convenient way to access the JCC and other CloudHub applications without requiring that the client machine have the Wireguard VPN installed, and provide more granular permissions.
 
 ![cloud server](../figures/cloudhub-login-reverse-proxy.png)
 
-The Cloud Login Server (*.cloud.jaia.tech) manages user authentication (with 2-factor [2FA] verification) for access to CloudHub resources. This provides a more convenient way to access the JCC and other CloudHub applications without requiring that the client machine have the Wireguard VPN installed.
 
 ### Implementation
 
@@ -322,15 +453,100 @@ This server is implemented using three open source projects:
 
 In short, Authelia manages authentication, Caddy manages the reverse proxy (between the insecure HTTP applications and the authenticated HTTPS connection), and LLDAP manages the user information (user names, group, passwords, etc.).
 
-These all run on a single machine, cloud.jaia.tech.
+*This section written by Claude*
+
+An instance of all three of these runs on each CloudHub.
+
+### Required DNS entries
+
+*This section written by Claude*
+
+Each Cloudhub can be supported from either `jaia.tech` or a custom domain.
+
+For fleet6, assuming the IPv4 address for CloudHub is 203.0.113.42 and the IvP6 address is 2001:db8::42, enter the following in the DNS configuration for `jaia.tech`:
+```
+fleet6      A       203.0.113.42
+fleet6      AAAA    2001:db8::42
+*.fleet6    CNAME   fleet6.jaia.tech.
+```
+
+If using a custom domain, you would change `jaia.tech` to your domain, and optionally `fleet6` to your desired subdomain. For example, to use `jaiaf6.gobysoft.org`, you would add the DNS entries for `gobysoft.org`:
+
+```
+jaiaf6      A       203.0.113.42
+jaiaf6      AAAA    2001:db8::42
+*.jaiaf6    CNAME   jaiaf6.gobysoft.org.
+```
+
+### Required SMTP
+
+*This section written by Claude*
+
+Sending email from the Authelia instance is required for registering new 2FA tokens and password resets. By default these emails are sent from `noreply@auth.jaia.tech` through [Postmark](https://postmarkapp.com/), for every fleet.
+
+The relevant `cloudhub` fields of the fleet configuration are:
+
+| Field | Default | Meaning |
+|---|---|---|
+| `smtp_address` | (required) | SMTP server Authelia sends through: `submission://smtp.postmarkapp.com:587` for Postmark |
+| `smtp_sender` | `noreply@auth.jaia.tech` | From address. It must be verified with the SMTP provider |
+| `smtp_credentials_ssm_parameter` | `/jaia/cloudhub/smtp_credentials` | AWS SSM Parameter Store SecureString holding the SMTP login as `{"username": "...", "password": "..."}`. A plain name is looked up in the CloudHub's own account and region; a full ARN can point anywhere the CloudHub's role is allowed to read |
+
+For example, a client that hosts their CloudHub in their own AWS account and sends from their own domain:
+
+```
+cloudhub {
+  base_uri: "jaia.clientdomain.com"
+  admin_email: "admin@clientdomain.com"
+  smtp_address: "submission://smtp.postmarkapp.com:587"
+  smtp_sender: "noreply@auth.clientdomain.com"
+  smtp_credentials_ssm_parameter: "/client/jaia/smtp_credentials"
+}
+```
+
+`create_vpc.sh` grants the CloudHub's IAM role `ssm:GetParameter` on this parameter (and `kms:Decrypt` through SSM, for parameters encrypted with a customer managed key), and `jaia_configure_authelia.sh` reads it at configuration time. If the parameter cannot be read, Authelia is configured to send without authenticating, which only works with a relay that allowlists the CloudHub's IP addresses (e.g. Google Workspace SMTP Relay). Postmark will refuse it, and Authelia will not start.
+
+You can use `https://www.mail-tester.com/` to check the likelihood that your emails will be caught in spam.
 
 ### Available services
 
-CloudHub access:
-- https://fN.cloud.jaia.tech: JCC for Fleet N (e.g., https://f1.cloud.jaia.tech for fleet 1).
-- https://fN.cloud.jaia.tech/jcu: JCU for Fleet N.
-- https://fN.cloud.jaia.tech/jdv: JDV for Fleet N.
+*This section written by Claude*
+
+#### jaia.tech Domains
+
+CloudHub access (https://fleetN.jaia.tech):
+
+- https://fleetN.jaia.tech: Landing page listing the sites below that the signed-in user can open, with a link to log out.
+	+ Groups: any signed-in user
+- https://run.fleetN.jaia.tech: JCC for Fleet N (e.g., https://run.fleet1.jaia.tech for fleet 1).
+	+ Groups: 'run'
+- https://run.fleetN.jaia.tech/jcu: JCU for Fleet N.
+ 	+ Groups: 'jcu_user', 'jcu_advanced', 'jcu_developer' (correspond to JCU roles: USER, ADVANCED, DEVELOPER)
+- https://run.fleetN.jaia.tech/jdv: JDV for Fleet N.
+ 	+ Groups: 'jdv'
+- https://run.fleetN.jaia.tech/jaia: REST API for Fleet N.
+	+ Groups: 'rest_api_read' (read-only), 'rest_api_all' (all access).
+	+ `curl -u "user:password" 'https://run.fleetN.jaia.tech/jaia/v1/status/all'`
+
+VirtualFleet access (https://sim.fleetN.jaia.tech):
+
+- https://sim.fleetN.jaia.tech: All resources for VirtualFleet Hub
+	+ Groups: 'sim'
+
+The group `super_admin` gives the same access as `run`, `sim`, `jdv`, and `jcu_developer`. Note that this group does not automatically have `lldap_admin` privileges (as this is a special group within LLDAP).
 
 Supporting web pages:
-- https://auth.cloud.jaia.tech: Authelia authentication website. Typically the user doesn't need to access this directly unless they want to change their user settings.
-- https://lldap.cloud.jaia.tech: User management by Jaia administrators. Add new users, add users to fleet access, and remove old users.
+
+- https://users.fleetN.jaia.tech: User management by fleet administrators. Add new users, add users to fleet access, and remove old users.
+ 	+ Groups: 'lldap_admin'
+- https://auth.fleetN.jaia.tech: Authelia authentication website. Typically the user doesn't need to access this directly unless they want to change their user settings.
+
+#### Custom Domains
+
+Replace `.fleetN.jaia.tech` with your custom domain in the examples above, where your custom domain might be `jaiafleet6.mybusiness.com` or `jaiaf3.university.edu`, as you prefer.
+
+#### Navigation menu
+
+Every page on these sites shows a floating Jaia button in the bottom left corner with the fleet number and the login name of the signed-in user. It opens a menu linking to the landing page, Run (JCC, JCU, JDV), Sim (JCC, JCU, JDV), Users and Account, showing only the sites the user's groups allow, plus a Log out button. Sim is shown as "Not running" until the VirtualFleet has been started from JCU, and the sim site itself says so instead of a blank error while it is down.
+
+Caddy injects the menu into every HTML page, including the third-party Authelia and LLDAP pages, using the [replace-response](https://github.com/caddyserver/replace-response) plugin. Ubuntu's `caddy` package doesn't include it, so `jaia_configure_authelia.sh` downloads a build with the plugin from the Caddy download service, installs it as `/usr/bin/caddy.custom` and selects it with `dpkg-divert` and `update-alternatives` (the apt binary becomes `/usr/bin/caddy.default`), so package upgrades don't undo it. The plugin version is pinned in `common-versions.env` (`jaia_version_caddy_replace_response`). The menu (`/_jaia/nav.js`, `/_jaia/nav.css`) and the landing page are static files from `src/web/cloud`, installed by `jaiabot-web` to `/usr/share/jaiabot/web/cloud`; the menu learns who is signed in from `/_jaia/whoami`, which Caddy answers from the headers Authelia returns.

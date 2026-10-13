@@ -19,14 +19,14 @@ def set_pythonpath():
 
 set_pythonpath()
 
-import json
-from google.protobuf import text_format, json_format
+from google.protobuf import text_format
 from jaiabot.messages.fleet_config_pb2 import FleetConfig
 import subprocess
 import argparse
 import logging
 import pathlib
 import random
+import re
 
 LOG_LEVELS = {
     'critical': logging.CRITICAL,
@@ -106,11 +106,15 @@ def choose_availability_zone(region, profile, instance_types, logger):
     return random.choice(sorted(zones))
 
 
+def default_data_bucket(fleet_id):
+    return f"jaia--cloudhub-data--fleet{fleet_id}"
+
+
 def read_fleet_from_textproto(file_path):
     fleet_cfg = FleetConfig()
     with open(file_path, "r") as f:
         text_format.Parse(f.read(), fleet_cfg)
-    return json.loads(json_format.MessageToJson(fleet_cfg))
+    return fleet_cfg
 
 
 def is_git_repo_subprocess(path):
@@ -153,10 +157,22 @@ def resolve_jaiabot_dir(args, script_dir, logger):
     return jaiabot_dir
 
 
+# jaia_support already has this one, and LLDAP holds every email unique
+SUPPORT_EMAIL = "support@jaia.tech"
+EMAIL_RE = re.compile(r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$")
+
+
+def bootstrap_email(value):
+    if not EMAIL_RE.match(value):
+        raise argparse.ArgumentTypeError(f"'{value}' is not an email address")
+    if value.lower() == SUPPORT_EMAIL:
+        raise argparse.ArgumentTypeError(f"{SUPPORT_EMAIL} belongs to jaia_support; use another address")
+    return value
+
+
 def main():
     parser = argparse.ArgumentParser(description="Jaia Fleet CloudHub creation (including VPC)")
     parser.add_argument('fleetcfg',  help="Path to fleet configuration file (protobuf TextFormat version of FleetConfig)")
-    parser.add_argument('customer', help="Customer name for AWS tagging")
     parser.add_argument('--quiet', '-q',  help="Do not output debugging information", action="store_true")
     parser.add_argument("--loglevel", help="Set logging level", choices=LOG_LEVELS.keys(), default='info')
     parser.add_argument('--binary', type=str, help="Name of binary")
@@ -171,8 +187,10 @@ def main():
     parser.add_argument('--govcloud', help=f"Shorthand for --region {GOVCLOUD_REGION}", action="store_true")
     parser.add_argument('--repo', help="Jaiabot Repo", default="release", choices=["release", "beta", "continuous", "test"])
     parser.add_argument('--disk-size-gb', help="CloudHub disk size in GB", default=32, type=int)
-    parser.add_argument('--no-enable-client-vpn', help="If set, do not create a client vpn configuration on this machine", action="store_true")
-    parser.add_argument('--no-update-client-etc-hosts', help="If set, do not add a local entry for the new CloudHub in this machine's /etc/hosts", action="store_true")    
+    parser.add_argument('--bootstrap-email', type=bootstrap_email, required=True,
+                        help="Email of the jaia_bootstrap account, Jaia's for commissioning this CloudHub; its password is set through the reset link sent here")
+    parser.add_argument('--client-vpn', help="Make this machine a peer of the CloudHub's VPNs and add the CloudHub to its /etc/hosts. For CI and development: the peer stays on the CloudHub for as long as it runs", action="store_true")
+    parser.add_argument('--no-update-client-etc-hosts', help="With --client-vpn, do not add a local entry for the new CloudHub in this machine's /etc/hosts", action="store_true")
     args = parser.parse_args()
     
     loglevel = args.loglevel
@@ -195,13 +213,17 @@ def main():
 
     cloudhub_id = int(subprocess.run(['jaia_bounds', '--cloudhub_id'],
                                      capture_output=True, text=True, check=True).stdout)
-    fleet_id=fleet_cfg["fleet"]
-    hubs=fleet_cfg["hubs"]
+    fleet_id=fleet_cfg.fleet
+    hubs=fleet_cfg.hubs
     if not cloudhub_id in hubs:
         logger.error(f"ERROR: Fleet config must contain hub {cloudhub_id}")
         exit(1)
     
     logger.info(f"Creating CloudHub (Hub {cloudhub_id}) for Fleet {fleet_id}")
+
+    customer = fleet_cfg.customer
+    data_bucket = fleet_cfg.cloudhub.data_bucket or default_data_bucket(fleet_id)
+    logger.info(f"Customer {customer}, data bucket {data_bucket}")
 
     vpc_conffile = aws_cloud_script_dir / f'vpc.conf.fleet{fleet_id}'
     logger.info(f"Generating config file for create_vpc.sh: {vpc_conffile}")
@@ -218,26 +240,20 @@ def main():
 
         fleet_cfg_full_path=pathlib.Path(args.fleetcfg).resolve()
         f.write(f"DEBUG={debug}\n")
-        f.write(f"JAIA_CUSTOMER_NAME={args.customer}\n")
+        f.write(f"JAIA_CUSTOMER_NAME={customer}\n")
         f.write(f'INSTANCE_TYPE="{args.instance_type}"\n')
         f.write(f'FLEET_ID={fleet_id}\n')
         f.write(f'REGION={region}\n')
         f.write(f'AVAILABILITY_ZONE={a_zone}\n')
         f.write(f'REPO={args.repo}\n')
         f.write(f'DISK_SIZE_GB={args.disk_size_gb}\n')
-        f.write('CLOUDHUB_DATA_BUCKET="jaia--cloudhub-data--fleet${FLEET_ID}"\n')
-        f.write(f'JCC_HUB_ID={cloudhub_id}\n')
+        f.write(f'CLOUDHUB_DATA_BUCKET="{data_bucket}"\n')
         f.write(f'FLEET_CONFIG={fleet_cfg_full_path}\n')
+        f.write(f'BOOTSTRAP_EMAIL={args.bootstrap_email}\n')
 
-        enable_client_vpn='true'
-        if args.no_enable_client_vpn:
-            enable_client_vpn='false'
-        f.write(f'ENABLE_CLIENT_VPN={enable_client_vpn}\n')
-            
-        update_client_etc_hosts='true'
-        if args.no_update_client_etc_hosts:
-            update_client_etc_hosts='false'                
-        f.write(f'UPDATE_CLIENT_ETC_HOSTS={update_client_etc_hosts}\n')
+        f.write(f'ENABLE_CLIENT_VPN={str(args.client_vpn).lower()}\n')
+        update_client_etc_hosts = args.client_vpn and not args.no_update_client_etc_hosts
+        f.write(f'UPDATE_CLIENT_ETC_HOSTS={str(update_client_etc_hosts).lower()}\n')
 
         if args.output_json:
             f.write(f'OUTPUT_JSON={pathlib.Path(args.output_json).resolve()}\n')

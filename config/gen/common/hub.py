@@ -6,7 +6,10 @@ def gpsd_device():
     if is_simulation():
         return '/dev/null'
     else:
-        return '/dev/gps0'
+        # imported here because both reach common.comms, which imports this module
+        import common.comms
+        import common.udp
+        return "udp://127.0.0.1:" + str(common.udp.gpsd_udp_port(common.comms.hub_node_id))
 
 def gpsd_port(hub_id):
     if is_simulation():

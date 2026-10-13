@@ -1,0 +1,36 @@
+# Wherever the CloudHub can be reached over its VPN: on the CloudHub itself, and on a
+# hub already paired with it. The first pairing of a fleet is opened from the
+# CloudHub's own JCU, since no hub on site can reach it yet.
+ansible_playbook {
+    file: "open-fleet-pairing.yml"
+    name: "Open Fleet Pairing (opens the CloudHub's SSH port to every address until it closes)"
+    section: "Fleet Changes"
+    role: ADVANCED
+    input_var {
+        name: "duration"
+        display_name: "Open For"
+        value: "1_hour"
+        value: "8_hours"
+        value: "1_day"
+        value: "3_days"
+        value: "1_week"
+        value: "2_weeks"
+    }
+    output_var {
+        name: "fleet_pairing"
+        display_name: "Fleet Pairing"
+    }
+    limit: "$this_hub"
+}
+
+ansible_playbook {
+    file: "close-fleet-pairing.yml"
+    name: "Close Fleet Pairing"
+    section: "Fleet Changes"
+    role: ADVANCED
+    output_var {
+        name: "fleet_pairing"
+        display_name: "Fleet Pairing"
+    }
+    limit: "$this_hub"
+}

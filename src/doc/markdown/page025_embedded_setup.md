@@ -12,14 +12,13 @@ Flash this to as many SD cards as you have bots plus hubs:
 gunzip -c jaiabot__rootfs-jammy-v1.16.0__code-v1.16.0.img.gz | sudo dd of=/dev/sdd bs=1M status=progress
 ```
 
-Create a fleet, authorize the fleet to self-configure the service VPN (vpn.jaia.tech), generate first-boot configurations, and boot:
+*This section written by Claude*
+
+Create a fleet, generate first-boot configurations, and boot:
 
 ```
 # Create the Fleet
 jaia admin fleet create private_jaia/fleet_config/fleet5.cfg
-
-# Authorize temporary key on vpn.jaia.tech
-jaia admin fleet vpn_authorize private_jaia/fleet_config/fleet5.cfg
 
 # insert flashed SD card for Hub 1
 jaia admin fleet generate private_jaia/fleet_config/fleet5.cfg hub 1
@@ -31,9 +30,6 @@ jaia admin fleet generate private_jaia/fleet_config/fleet5.cfg bot 1
 jaia admin fleet generate private_jaia/fleet_config/fleet5.cfg bot 2
 
 # Insert all the SD cards and boot all the bots and hubs and allow to fully first boot configure
-
-# Optionally deauthorize temp VPN key
-jaia admin fleet vpn_authorize private_jaia/fleet_config/fleet5.cfg --rm
 ```
 
 
@@ -48,9 +44,11 @@ The simplest way to create a new fleet is to use the `jaia` tool (e.g. for fleet
 jaia admin fleet create fleet5.cfg
 ```
 
+*This section written by Claude*
+
 This will prompt you using a whiptail UI to set the various fleet related settings, and write the contents to `fleet5.cfg`. The bot/hub settings it asks for are the same questions, in the same order, as `jaiabot-embedded` asks on a node (both come from `fleet_config.proto`), first for the whole fleet and then, optionally, for sets of bots or hubs whose answers differ. Every dialog has a **Back** button that returns to the previous question; going back past the first one leaves without writing anything.
 
-This tool will also create the hub keys (with a Yubikey per hub, or a file key for the CloudHub), VPN temporary keys as necessary and include those in the fleet configuration file. It needs `ssh-keygen`, `ykman` (yubikey-manager) and `whiptail` on the machine running it.
+This tool will also create the hub keys (with a Yubikey per physical hub; the CloudHub makes its own key, see [CloudHub SSH key](page056_cloud.md#cloudhub-ssh-key)), VPN temporary keys as necessary and include those in the fleet configuration file. It needs `ssh-keygen`, `ykman` (yubikey-manager) and `whiptail` on the machine running it.
 
 The bot/hub settings are stored as typed fields of the `settings { }` block (with per-node `override { }` blocks), and the file records the fleet config version it was written for. `jaia admin fleet validate fleet5.cfg` checks a file, and `jaia admin fleet migrate` rewrites an older file at the current version; see [Fleet configuration versioning](page091_major_upgrade.md#fleet-configuration-versioning).
 
@@ -113,12 +111,20 @@ cd /path/to/boot/jaiabot/init
 HUB=1; FLEET=5; ssh-keygen -f hub${HUB}_fleet${FLEET} -t ed25519 -N "" -C "hub${HUB}_fleet${FLEET}"
 ```
 
-- For Wireguard setup: A key called `id_vpn_tmp` (private) / `id_vpn_tmp.pub` (public) can be provided. This key must first be added to `vpn.jaia.tech` as a temporary access key (e.g. for 1 day of validity) using `jaia admin ssh add`. It will then be used by the first-boot setup to configure both the server and client sides of the service (fleet) VPN. This key can be generated and provisioned using:
+- For Wireguard setup: A key called `id_vpn_tmp` (private) / `id_vpn_tmp.pub` (public) can be provided. `jaia admin fleet create` generates it, and `jaia admin fleet cloudhub create` gives the public half to the fleet's CloudHub, where during fleet pairing it may do nothing but enroll one node on the CloudHub VPN (see [VPN](page055_vpn.md)). A node spends it once it has enrolled. To make one by hand:
 ```
 cd /path/to/boot/jaiabot/init
 ssh-keygen -f id_vpn_tmp -t ed25519 -N "" -C "id_vpn_tmp"
-jaia admin ssh add --user=ubuntu vpn.jaia.tech "$(cat id_vpn_tmp.pub)" 1d
 ```
+
+  *This section written by Claude*
+
+  A CloudHub starts with **fleet pairing closed**, and admits no node until it is opened. To join bots and hubs to it, from the Upgrade GUI (JCU) under **Fleet Changes**:
+
+  1. **Open Fleet Pairing**, choosing how long (1 hour to 2 weeks). For a fleet's first pairing do this from the CloudHub's own JCU, at `https://run.<base uri>/jcu`, since no hub on site can reach the CloudHub yet; once a hub is paired, its own JCU offers it too. While pairing is open the CloudHub's SSH port is open to every address, which also lets Jaia's root keys reach it, and the support page says so.
+  2. **Pair Fleet to CloudHub**, from a hub on site. It runs enrollment on every bot and hub over the fleet WLAN. A node already paired is left as it is, so this is safe to run on a fleet that is partly paired, or to pick up a node that missed an earlier attempt.
+
+  Pairing closes by itself when its time runs out, and **Close Fleet Pairing** ends it sooner. A node switched on while pairing is open enrolls at its first boot without needing step 2.
 
 
 The template of the text file `first-boot.preseed.yml` is provided on the image as `/boot/firmware/jaiabot/init/first-boot.preseed.yml.j2` (This is a jinja2 template file used by `jaia fleet admin generate`).
@@ -147,6 +153,8 @@ Each application has a service definition, and they are all set to `BindTo` the 
 
 When using the `jaiabot-embedded` Debian package, the systemd services are automatically installed to `/etc/systemd/system` and enabled. No further action is required in this case.
 
+*This section written by Claude*
+
 All bot/hub configuration is read from the `jaiabot-embedded` debconf database, so there are no configuration flags to pass. To change any of it, run `sudo dpkg-reconfigure jaiabot-embedded`, or use [`jaia admin debconf`](page005_jaia_tool.md) to `list`, `get` and `set` individual values without stepping through the menus.
 
 When using a built-from-source version of jaiabot, ensure that the local bin directory is on your `$PATH` (e.g., check that `which jaiabot_mission_manager` returns the correct binary), then run:
@@ -155,6 +163,8 @@ When using a built-from-source version of jaiabot, ensure that the local bin dir
 cd jaiabot/config/gen
 ./systemd-local.sh --enable
 ```
+
+*This section written by Claude*
 
 If the machine has no `jaiabot-embedded` debconf database — or you want to generate services for a configuration other than the local one — write the answers to a file in `debconf-set-selections` format and point at it instead:
 
@@ -175,17 +185,21 @@ Then, `jaiabot_gobyd` and `jaiabot_moosdb` are bound to `jaiabot` and start thei
 
 ![](../figures/systemd.png)
 
-The `jaiabot.service` waits for the system clock to be synchronized via NTP (via the GPS using `gpsd`) or until 120 seconds has elapsed.
+The `jaiabot.service` waits for the system clock to be synchronized by `chrony` (from the GPS via `gpsd`) or until 120 seconds has elapsed.
 
 ### Generation
 
 The systemd service files are generated via templates much like the application configuration.
+
+*This section written by Claude*
 
 The generation script lives in: `jaiabot/config/gen/systemd.py` and is run by the `jaiabot-embedded` postinst, or by hand for a locally built copy of jaiabot. It reads the bot/hub configuration from debconf and takes only the deployment layout (where the binaries and services live) on the command line.
 
 The generated units carry their configuration in `Environment=` lines, which the configuration Generators (`gen/bot.py`, `gen/hub.py`) read when systemd starts them as children.
 
 To see all the options for configuring this script, run `systemd.py --help`
+
+*This section written by Claude*
 
 For a locally built copy, you can use the `systemd-local.sh` shell script (a thin wrapper around `systemd.py` that runs it under `sudo` while preserving the current `$PATH`).
 

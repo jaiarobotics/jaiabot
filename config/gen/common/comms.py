@@ -195,21 +195,24 @@ def has_cloudhub_vpn(fleet_id):
             return True
     return False
 
-def hub2hub_ip_addr(this_hub_id, hub_id, fleet_id):
-    hub2hub_ip = runtime_hub2hub_ip_addr(hub_id, fleet_id)
-    if is_simulation():
-        # use localhost (for standard single machine sim)
+def hub2hub_single_machine_sim(this_hub_id, fleet_id):
+    # each hub of a VirtualBox fleet holds its own CloudHub VPN address, and the CloudHub runs in runtime mode
+    return is_simulation() and runtime_hub2hub_ip_addr(this_hub_id, fleet_id) not in all_local_ip_addresses
+
+def hub2hub_ip_addr(hub_id, fleet_id, single_machine_sim):
+    if single_machine_sim:
         return "::1"
     else:
-        return hub2hub_ip
-    
+        return runtime_hub2hub_ip_addr(hub_id, fleet_id)
+
 def hub2hub_remotes(this_hub_id, fleet_id):
     remotes=''
     first_hub_id=0
-    
+    single_machine_sim = hub2hub_single_machine_sim(this_hub_id, fleet_id)
+
     for hub_id in range(first_hub_id, number_of_hubs_max):
         if this_hub_id != hub_id:
-            remotes+='remote { modem_id: ' + str(hub_id + 1) + ' ip: "' + hub2hub_ip_addr(this_hub_id, hub_id, fleet_id)  + '" port: ' + str(udp.hub2hub_udp_port(hub_id)) + ' } \n'
+            remotes+='remote { modem_id: ' + str(hub_id + 1) + ' ip: "' + hub2hub_ip_addr(hub_id, fleet_id, single_machine_sim)  + '" port: ' + str(udp.hub2hub_udp_port(hub_id, single_machine_sim)) + ' } \n'
     return remotes
 
 def hub2hub_mac_slots(hub_id):

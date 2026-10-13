@@ -3,7 +3,8 @@
 # Writes a fleet config for a CI fleet, with SSH keys generated fresh for this run.
 #
 # `jaia admin fleet create` is interactive, and a checked-in config would mean checked-in
-# private keys, so CI generates both here and throws them away with the fleet.
+# private keys, so CI generates both here and throws them away with the fleet. The CloudHub's
+# key is not among them: it makes its own and create_cloudhub adds the public half.
 
 usage() {
     cat <<EOF
@@ -12,6 +13,7 @@ Usage: $0 [options] <output path>
   --fleet <n>           Fleet ID (default: 9)
   --bots <n>            Number of bots (default: 2)
   --warp <n>            Simulator warp (default: 5)
+  --customer <s>        jaia_customer tag for the fleet's AWS resources (default: the fleet config's)
   --authorized-key <s>  Public key to install on every node; repeatable. Defaults to
                         ~/.ssh/id_ed25519.pub, generating it if it does not exist.
   --base-uri <s>        CloudHub auth base URI (default: fleet<n>.ci.invalid)
@@ -26,6 +28,7 @@ set -u -e
 FLEET=9
 BOTS=2
 WARP=5
+CUSTOMER=""
 AUTHORIZED_KEYS=()
 OUTPUT=""
 BASE_URI=""
@@ -37,6 +40,7 @@ while (( $# > 0 )); do
         --fleet) FLEET="${2:-}"; shift 2 ;;
         --bots) BOTS="${2:-}"; shift 2 ;;
         --warp) WARP="${2:-}"; shift 2 ;;
+        --customer) CUSTOMER="${2:-}"; shift 2 ;;
         --authorized-key) AUTHORIZED_KEYS+=("${2:-}"); shift 2 ;;
         --base-uri) BASE_URI="${2:-}"; shift 2 ;;
         --admin-email) ADMIN_EMAIL="${2:-}"; shift 2 ;;
@@ -78,31 +82,31 @@ function escaped_private_key() {
 }
 
 generate_key "hub${VIRTUALHUB_ID}"
-generate_key "hub${CLOUDHUB_ID}"
 generate_key "vpn_tmp"
 
 {
     echo "version: 2"
     echo "fleet: ${FLEET}"
+    if [[ -n "$CUSTOMER" ]]; then
+        echo "customer: \"${CUSTOMER}\""
+    fi
     echo "hubs: [${VIRTUALHUB_ID}, ${CLOUDHUB_ID}]"
     echo "bots: [$(seq -s', ' 1 "${BOTS}")]"
     echo "ssh {"
     for key in "${AUTHORIZED_KEYS[@]}"; do
         echo "  permanent_authorized_keys: \"${key}\""
     done
-    for id in "${VIRTUALHUB_ID}" "${CLOUDHUB_ID}"; do
-        echo "  hub {"
-        echo "    id: ${id}"
-        echo "    private_key: \"$(escaped_private_key "hub${id}")\""
-        echo "    public_key: \"$(cat "${KEYDIR}/hub${id}.pub")\""
-        echo "  }"
-    done
+    echo "  hub {"
+    echo "    id: ${VIRTUALHUB_ID}"
+    echo "    private_key: \"$(escaped_private_key "hub${VIRTUALHUB_ID}")\""
+    echo "    public_key: \"$(cat "${KEYDIR}/hub${VIRTUALHUB_ID}.pub")\""
+    echo "  }"
     echo "  vpn_tmp {"
     echo "    private_key: \"$(escaped_private_key vpn_tmp)\""
     echo "    public_key: \"$(cat "${KEYDIR}/vpn_tmp.pub")\""
     echo "  }"
     echo "}"
-    echo "cloudhub_auth {"
+    echo "cloudhub {"
     echo "  base_uri: \"${BASE_URI}\""
     echo "  admin_email: \"${ADMIN_EMAIL}\""
     echo "  smtp_address: \"${SMTP_ADDRESS}\""

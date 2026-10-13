@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 #
 # Installs the tools required to build this source tree: apt build dependencies (including the
-# ninja and clang cross-compilers), arduino-cli (for compiling .ino sketches), and
-# nvm/node/npm/webpack (for the web frontend). Requires root or sudo.
+# ninja and clang cross-compilers), arduino-cli (for compiling .ino sketches), the ARM GCC
+# toolchain and HAL drivers (for the STM32 firmware), and nvm/node/npm/webpack (for the web
+# frontend). Requires root or sudo.
 #
 # Prints only a high-level status line per step; each step's full output is captured and only
 # shown (then this script exits) if that step fails.
@@ -87,6 +88,14 @@ install_arduino_cli() {
     arduino-cli core install arduino:avr
 }
 
+install_stm32_toolchain() {
+    apt_get install gcc-arm-none-eabi binutils-arm-none-eabi libnewlib-arm-none-eabi openocd stlink-tools
+}
+
+install_stm32_drivers() {
+    bash ${script_dir}/../hardware/stm32/fetch-drivers.sh
+}
+
 install_node_toolchain() {
     curl https://raw.githubusercontent.com/creationix/nvm/${jaia_version_nvm}/install.sh | bash
 
@@ -132,6 +141,8 @@ step "Installing the packages.jaia.tech / packages.gobysoft.org apt signing keys
 step "Adding the packages.jaia.tech / packages.gobysoft.org apt mirror" add_apt_sources
 step "Installing apt build dependencies (this can take a while)" install_build_deps
 step "Installing arduino-cli" install_arduino_cli
+step "Installing the STM32 ARM GCC toolchain and flashing tools" install_stm32_toolchain
+step "Fetching the STM32 HAL/CMSIS drivers" install_stm32_drivers
 step "Installing nvm, node, npm and webpack" install_node_toolchain
 step "Installing the clang-format pre-commit hook" install_precommit_hook
 

@@ -1,0 +1,20 @@
+---
+# Joins every bot and hub to this fleet's CloudHub VPN, over the fleet WLAN from the
+# hub this runs on. Open fleet pairing first - from the CloudHub's own JCU if no hub
+# is on the VPN yet - or the CloudHub will turn the nodes away.
+#
+# Safe to run on a fleet that is already paired: a node that is pairs nothing again,
+# and only makes sure its tunnel is up. A node switched off is reported and skipped.
+- name: Pair fleet to CloudHub
+  hosts: "bots:hubs:!hub30-*"
+  become: yes
+  gather_facts: no
+  ignore_unreachable: yes
+  tasks:
+    - name: Pair this node with the CloudHub
+      shell: /etc/jaiabot/init/pair-with-cloudhub.sh
+      register: pairing
+
+    - name: Display the result
+      debug:
+        msg: "{{ pairing.stdout_lines | last | default('') }}"
