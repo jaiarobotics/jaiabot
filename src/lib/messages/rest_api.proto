@@ -188,8 +188,6 @@ message APIRequest
     reserved 2;
     reserved "api_key";
 
-    reserved 17;
-
     oneof action
     {
         bool status = 11 [(jaia.field).rest_api = {
@@ -327,9 +325,6 @@ message APIResponse
         repeated int32 bots = 2 [(jaia.field).rest_api.presence = GUARANTEED];
     }
     optional Nodes target = 1 [(jaia.field).rest_api.presence = GUARANTEED];
-
-    reserved 16;
-
     message Statuses
     {
         repeated BotStatus bots = 1
