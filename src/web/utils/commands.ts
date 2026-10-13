@@ -1,5 +1,7 @@
-import { jaia_rest_api } from "./jaia-rest-api";
+import { jaia_rest_api, JaiaRESTAPIError } from "./jaia-rest-api";
+import { error } from "./notifications";
 import { Engineering } from "@proto/jaiabot/messages/engineering";
+import { APIRequest, APIResponse } from "@proto/jaiabot/messages/rest_api";
 import { Command, CommandForHub, Command_CommandType } from "@proto/jaiabot/messages/jaia_dccl";
 import { MissionState } from "@proto/jaiabot/messages/mission";
 import { jaiaGlobal } from "../data/jaia_global/jaia-global";
@@ -58,35 +60,76 @@ export function isCommandAvailable(commandType: Command_CommandType, missionStat
     return false;
 }
 
+export interface SendOptions {
+    /** Show an error notification if the command could not be sent (default true) */
+    notifyOnError?: boolean;
+}
+
+/**
+ * Sends a request to the REST API, resolving with the error rather than rejecting, so that a
+ * caller sending to several Bots in turn carries on after one of them fails
+ *
+ * @param {APIRequest} request Request to send
+ * @param {string} description What is being sent and to whom, for the error notification
+ * @param {SendOptions} options Whether to notify the operator on failure
+ * @returns {Promise<APIResponse>} The response, or one with only error set if the request failed
+ */
+async function sendRequest(
+    request: APIRequest,
+    description: string,
+    options: SendOptions = {},
+): Promise<APIResponse> {
+    try {
+        return await jaia_rest_api.request(request);
+    } catch (e) {
+        const apiError = e instanceof JaiaRESTAPIError ? e : undefined;
+        const details = String((e as Error)?.message ?? e);
+        if (options.notifyOnError ?? true) {
+            error(`Could not send ${description}: ${details}`);
+        }
+        return { error: { code: apiError?.code, details } };
+    }
+}
+
 /**
  * Passes a command message for a Bot to the REST API
  * so it can reach the Hub for distribution
  *
  * @param {Command} command Command message to be sent to Bot
- * @returns {Promise} Response from sending command
+ * @param {SendOptions} options Whether to notify the operator on failure
+ * @returns {Promise<APIResponse>} Response from sending command, with error set if it was not sent
  */
-export function sendBotCommand(command: Command) {
-    return jaia_rest_api.request({
-        target: {
-            bots: [command.bot_id ?? 0],
+export function sendBotCommand(command: Command, options?: SendOptions) {
+    return sendRequest(
+        {
+            target: {
+                bots: [command.bot_id ?? 0],
+            },
+            command: command,
         },
-        command: command,
-    });
+        `${command.type} to Bot ${command.bot_id}`,
+        options,
+    );
 }
 
 /**
  * Passes a command message for a Hub to the REST API so it can reach the Hub
  *
  * @param {Command} command Command message to be sent to Hub
- * @returns {Promise} Response from sending command
+ * @param {SendOptions} options Whether to notify the operator on failure
+ * @returns {Promise<APIResponse>} Response from sending command, with error set if it was not sent
  */
-export function sendHubCommand(command: CommandForHub) {
-    return jaia_rest_api.request({
-        target: {
-            hubs: [command.hub_id ?? 0],
+export function sendHubCommand(command: CommandForHub, options?: SendOptions) {
+    return sendRequest(
+        {
+            target: {
+                hubs: [command.hub_id ?? 0],
+            },
+            command_for_hub: command,
         },
-        command_for_hub: command,
-    });
+        `${command.type} to Hub ${command.hub_id}`,
+        options,
+    );
 }
 
 /**
@@ -94,15 +137,20 @@ export function sendHubCommand(command: CommandForHub) {
  * so it can reach the Hub for distribution
  *
  * @param {Engineering} command Engineering command message to be sent to Bot
- * @returns {Promise} Response from sending command
+ * @param {SendOptions} options Whether to notify the operator on failure
+ * @returns {Promise<APIResponse>} Response from sending command, with error set if it was not sent
  */
-export function sendEngineeringCommand(command: Engineering) {
-    return jaia_rest_api.request({
-        target: {
-            bots: [command.bot_id ?? 0],
+export function sendEngineeringCommand(command: Engineering, options?: SendOptions) {
+    return sendRequest(
+        {
+            target: {
+                bots: [command.bot_id ?? 0],
+            },
+            engineering_command: command,
         },
-        engineering_command: command,
-    });
+        `engineering command to Bot ${command.bot_id}`,
+        options,
+    );
 }
 
 /*

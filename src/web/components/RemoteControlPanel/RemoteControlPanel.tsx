@@ -285,9 +285,9 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
                 surface_drift: driftParameters,
             },
         };
-        const res = await sendBotCommand(rcDiveCommand);
+        const res = await sendBotCommand(rcDiveCommand, { notifyOnError: false });
         if (res.error) {
-            error("Unable to send RC dive command");
+            error(`Unable to send RC dive command: ${res.error.details}`);
         } else {
             success("Beginning RC dive");
         }
