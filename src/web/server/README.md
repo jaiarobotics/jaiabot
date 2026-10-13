@@ -1,6 +1,8 @@
 # Jaia Web Interface
 
-This is the Flask server (`app.py`) that serves the Jaia Command and Control (JCC) and Jaia Engineering and Debugging (JED) clients, and bridges them to `jaiabot_web_portal` over UDP.
+This is the Flask server (`app.py`) that serves the Jaia Command and Control (JCC) and Jaia Engineering and Debugging (JED) clients and the offline map tiles. The clients talk to the hub through the REST API (`../rest_api`) at `/jaia/v1` on the same origin.
+
+On a hub, Apache routes `/jaia` to the REST API. In the simulator and when running this server directly, `app.py` forwards `/jaia/v1` requests to the REST API server given by `-R`.
 
 ## Requirements
 
@@ -14,22 +16,21 @@ The usual way to run the server (and build/watch the clients) is from `src/web`:
 ./run.sh [hub_hostname]
 ```
 
+With no _hub_hostname_, requests go to a REST API on `localhost:9092`, as the simulator runs it. Given a _hub_hostname_, they go to that hub's REST API at `http://hub_hostname`.
+
 To run just the server directly:
 
 ```
-./app.py [hub_hostname]
+./app.py
 ```
-
-where _hub_hostname_ is the name of the machine running `jaiabot_web_portal` (this can be `localhost`, or a remote machine). If omitted, the `JCC_HUB_IP` environmental variable is used, falling back to `localhost`.
 
 Useful options (see `./app.py --help` for the full list):
 
-- `-p`: UDP port used to talk to `jaiabot_web_portal` (default 40000)
 - `-P`: HTTP port for web browser connections (default 40001)
 - `-a`: root directory from which to serve the built client apps
-- `-r`: start a read-only client that cannot send commands
+- `-R`: REST API server to forward `/jaia/v1` requests to (default `http://localhost:9092`)
 
-Note that `run.sh` derives both ports from `jaia_hub_id` (`portal_port = 40001 - hub_id`, `web_port = 40000 + hub_id`).
+Note that `run.sh` derives the HTTP port from `jaia_hub_id` (`web_port = 40000 + hub_id`).
 
 ## Browsing to the server
 

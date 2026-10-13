@@ -1,59 +1,33 @@
 #!/usr/bin/env python3
 
 import argparse
+import urllib.error
+import urllib.request
 from flask import Flask, send_from_directory, Response, request
 from flask_compress import Compress
 import json
 import logging
 import os
-import io
-import zipfile
-import shutil
-from datetime import *
-from pathlib import Path
 from http import HTTPStatus
-from flask import Flask, send_from_directory, Response, request, send_file
 
 # Internal Imports
-import jaia_portal
-import missions
 from map_tile_server import MapTileServer
 from map_tile_server.mime_types import *
-
-def parseDate(date):
-    if date is None or date == '':
-        return None
-    
-    try:
-        date_str = str(date).split(".")[0]
-        date_format = "%Y-%m-%d %H:%M:%S"
-        return datetime.strptime(date_str, date_format)
-    except:
-        logging.warning(f'Could not parse date: {date}')
-        return None
 
 
 # Arguments
 parser = argparse.ArgumentParser()
-parser.add_argument("hostname", type=str, nargs="?", default=os.environ.get("JCC_HUB_IP"), help="goby hostname to send and receive protobuf messages")
-parser.add_argument("-r", dest='read_only', action='store_true', help="start a read-only client that cannot send commands")
-parser.add_argument("-p", dest='portal_port', type=int, default=40000, help="port to send and receive protobuf messages with jaiabot_web_portal")
 parser.add_argument("-P", dest='web_port', type=int, default=40001, help="HTTP port for web browser connection")
 parser.add_argument("-l", dest='logLevel', type=str, default='WARNING', help="Logging level (CRITICAL, ERROR, WARNING, INFO, DEBUG)")
 parser.add_argument("-a", dest='appRoot', type=str, default='../', help="Root directory from which to serve the client apps")
 parser.add_argument("-m", dest='mapDirectory', type=str, default='~/maps/', help="Directory to find offline map sets")
+parser.add_argument("-R", dest='restApiURL', type=str, default='http://localhost:9092', help="REST API server to forward /jaia/v1 requests to, when no web server in front routes them")
 args = parser.parse_args()
 
 # Setup logging module
 logLevel = getattr(logging, args.logLevel.upper())
 logging.getLogger().setLevel(logLevel)
 logging.getLogger('werkzeug').setLevel('WARN')
-
-if args.hostname is None:
-    logging.warning('no ip specified, using localhost')    
-    args.hostname = "localhost"
-
-jaia_interface = jaia_portal.Interface(goby_host=(args.hostname, args.portal_port), read_only=args.read_only)
 
 app = Flask(__name__)
 app.config['COMPRESS_MIMETYPES'] = [
@@ -73,14 +47,6 @@ def getStaticFile(path: str):
 @app.route('/', methods=['GET'])
 def getRoot():
     return getStaticFile('index.html')
-
-####### API endpoints
-
-def JSONResponse(obj: any=None, string: str=None):
-    if obj is not None:
-        return Response(json.dumps(obj), mimetype='application/json')
-    if string is not None:
-        return Response(string, mimetype='application/json')
 
 
 def ErrorResponse(status: int, error_message: str, error_code: int=None):
@@ -103,82 +69,41 @@ def ErrorResponse(status: int, error_message: str, error_code: int=None):
     return Response(json.dumps(responseObject), status=status, mimetype='application/json')
 
 
-def JaiaResponse(result: any):
-    """Returns a response with result.
+######## REST API
 
-    Args:
-        result (any): The result.
+FORWARDED_REQUEST_HEADERS = ['Content-Type', 'clientId']
+FORWARDED_RESPONSE_HEADERS = ['Content-Type', 'Content-Disposition']
 
-    Returns:
-        Response: The Flask response object.
+@app.route('/jaia/v1', methods=['POST'])
+@app.route('/jaia/v1/<path:path>', methods=['GET', 'POST'])
+def forward_to_rest_api(path: str = None):
+    """Forwards REST API requests so JCC can reach the API on its own origin.
+
+    On a hub, Apache routes /jaia to the REST API before requests get here; this covers the
+    simulator and the development server, where the REST API runs on its own port.
     """
-    responseObject = {
-        'result': result
-    }
-    return Response(json.dumps(responseObject), mimetype='application/json')
+    url = f'{args.restApiURL}/jaia/v1' + (f'/{path}' if path else '')
+    if request.query_string:
+        url += '?' + request.query_string.decode()
 
+    headers = {name: request.headers[name] for name in FORWARDED_REQUEST_HEADERS if name in request.headers}
+    rest_request = urllib.request.Request(url, data=request.get_data() or None, headers=headers, method=request.method)
 
-######## Mission sets
-
-# Respect jaia_log_dir so simulation and runtime each store in their own directory.
-_LOG_DIR = Path(os.environ.get('jaia_log_dir', '/var/log/jaiabot'))
-MISSION_SETS_DIR = _LOG_DIR / 'mission-sets'
-
-
-def _mission_set_path(name: str) -> Path:
-    """Returns the filesystem path for a named mission set.
-
-    Raises ValueError if the name contains characters that could allow
-    directory traversal or other path manipulation.
-    """
-    if not name or '/' in name or '\\' in name or name.startswith('.') or '..' in name:
-        raise ValueError(f"Invalid mission set name: {name!r}")
-    return MISSION_SETS_DIR / f"{name}.json"
-
-
-@app.route('/jaia/v0/mission-sets', methods=['GET'])
-def list_mission_sets():
-    """Returns a sorted list of saved mission set names."""
-    MISSION_SETS_DIR.mkdir(parents=True, exist_ok=True)
-    names = sorted(p.stem for p in MISSION_SETS_DIR.glob("*.json"))
-    return JaiaResponse(names)
-
-
-@app.route('/jaia/v0/mission-sets/<name>', methods=['GET'])
-def get_mission_set(name: str):
-    """Returns the saved mission set with the given name."""
     try:
-        path = _mission_set_path(name)
-    except ValueError as e:
-        return ErrorResponse(HTTPStatus.BAD_REQUEST, str(e))
-    if not path.exists():
-        return ErrorResponse(HTTPStatus.NOT_FOUND, f"Mission set not found: {name!r}")
-    return JSONResponse(string=path.read_text())
+        rest_response = urllib.request.urlopen(rest_request)
+    except urllib.error.HTTPError as e:
+        rest_response = e
+    except urllib.error.URLError as e:
+        # Shaped like an APIResponse error so REST API clients can report it
+        details = f'Could not reach the REST API at {args.restApiURL}: {e.reason}'
+        return Response(json.dumps({'error': {'details': details}}), status=HTTPStatus.BAD_GATEWAY, mimetype='application/json')
 
-
-@app.route('/jaia/v0/mission-sets/<name>', methods=['POST'])
-def save_mission_set(name: str):
-    """Saves (or overwrites) a named mission set."""
-    try:
-        path = _mission_set_path(name)
-    except ValueError as e:
-        return ErrorResponse(HTTPStatus.BAD_REQUEST, str(e))
-    MISSION_SETS_DIR.mkdir(parents=True, exist_ok=True)
-    path.write_text(request.get_data(as_text=True))
-    return JSONResponse({"status": "ok"})
-
-
-@app.route('/jaia/v0/mission-sets/<name>', methods=['DELETE'])
-def delete_mission_set(name: str):
-    """Deletes a named mission set."""
-    try:
-        path = _mission_set_path(name)
-    except ValueError as e:
-        return ErrorResponse(HTTPStatus.BAD_REQUEST, str(e))
-    if not path.exists():
-        return ErrorResponse(HTTPStatus.NOT_FOUND, f"Mission set not found: {name!r}")
-    path.unlink()
-    return JSONResponse({"status": "ok"})
+    with rest_response:
+        return Response(
+            rest_response.read(),
+            status=rest_response.status,
+            headers={name: rest_response.headers[name] for name in FORWARDED_RESPONSE_HEADERS if name in rest_response.headers},
+        )
 
 
 ######## Jaiabot Engineer & Debug
