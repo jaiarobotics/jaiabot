@@ -410,10 +410,14 @@ def generate_full_variant(action, parent):
 {json.dumps(json.loads(ex_req), indent=2)}
 ```
 """))
-        example_section.add_subsections(Section(title=f'Response JSON [{example_section.title}]',
+        try:
+            ex_resp_title, ex_resp_text = 'Response JSON', json.dumps(json.loads(ex_resp), indent=2)
+        except json.JSONDecodeError:
+            ex_resp_title, ex_resp_text = 'Response', ex_resp
+        example_section.add_subsections(Section(title=f'{ex_resp_title} [{example_section.title}]',
                                                    content=f"""
 ```
-{json.dumps(json.loads(ex_resp), indent=2)}
+{ex_resp_text}
 ```
 """))
         
