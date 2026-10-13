@@ -172,7 +172,7 @@ export async function refreshTaskPacketsForWindow() {
  * JCC always sends the window rather than relying on the server's default.
  */
 async function fetchTaskPacketsForWindow() {
-    const query = (included_only: boolean) =>
+    const query = (inclusion: { included_only: boolean } | { excluded_only: boolean }) =>
         jaia_rest_api
             .request({
                 target: {
@@ -181,12 +181,15 @@ async function fetchTaskPacketsForWindow() {
                 task_packets: {
                     start_time: String(taskPacketFilter.getStartDate().getTime() * 1000),
                     end_time: String(taskPacketFilter.getEndDate().getTime() * 1000),
-                    included_only,
+                    ...inclusion,
                 },
             })
             .then((response) => response.task_packets?.packets ?? []);
 
-    const [included, excluded] = await Promise.all([query(true), query(false)]);
+    const [included, excluded] = await Promise.all([
+        query({ included_only: true }),
+        query({ excluded_only: true }),
+    ]);
     return { included, excluded };
 }
 
