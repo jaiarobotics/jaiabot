@@ -3,8 +3,7 @@ export jaia_fleet_id=$JAIA_SIM_FLEET
 source /usr/share/jaiabot/python/venv/bin/activate
 cd /usr/share/jaiabot/web/server
 ./app.py &
-cd /usr/share/jaiabot/web/rest_api/
-./app.py &
+# The REST API is started by hub.launch, which all.launch runs below
 cd /usr/share/jaiabot/web/jdv/server
 python3 jaiabot_data_vision.py -d /var/log/jaiabot/bot_offload -a /usr/share/jaiabot/web/jdv/client/dist/ -p 40011 &
 cd /usr/share/jaiabot/config/launch/simulation
