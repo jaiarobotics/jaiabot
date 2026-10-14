@@ -31,30 +31,50 @@ function missionOf(count: number): Mission {
 }
 
 const ALLOWED = { kind: "allowed" };
+const confirm = (message: string) => ({ kind: "confirm", message });
 const refused = (message: RegExp) => ({ kind: "refused", message: expect.stringMatching(message) });
+const INSIDE_MESSAGE = "This point is inside an exclusion zone or its safety margin.";
+const WAYPOINT_INSIDE_MESSAGE = `${INSIDE_MESSAGE} A reroute will take it out of the path.`;
 
 describe("checkPlacement", () => {
     test("allows a location clear of every zone", () => {
-        expect(checkPlacement(CLEAR, ZONES)).toEqual(ALLOWED);
+        expect(checkPlacement(CLEAR, ZONES, "waypoint")).toEqual(ALLOWED);
     });
 
-    test("refuses a location inside a zone", () => {
-        expect(checkPlacement(INSIDE, ZONES)).toEqual(refused(/exclusion zone/));
+    test("asks to confirm a waypoint inside a zone, saying a reroute takes it out", () => {
+        expect(checkPlacement(INSIDE, ZONES, "waypoint")).toEqual(confirm(WAYPOINT_INSIDE_MESSAGE));
     });
 
-    test("refuses a location in a zone's safety buffer", () => {
-        // 2 m east of the zone's east edge, inside the 5 m buffer
-        expect(checkPlacement(coord(41.0, -71.9995 + 0.000024), ZONES)).toEqual(
-            refused(/exclusion zone/),
+    test.each(["rallyPoint", "surveyCorner"] as const)(
+        "asks to confirm a %s inside a zone, without the reroute sentence",
+        (point) => {
+            expect(checkPlacement(INSIDE, ZONES, point)).toEqual(confirm(INSIDE_MESSAGE));
+        },
+    );
+
+    test("asks to confirm a location in a zone's safety margin", () => {
+        // 2 m east of the zone's east edge, inside the 5 m margin
+        expect(checkPlacement(coord(41.0, -71.9995 + 0.000024), ZONES, "waypoint")).toEqual(
+            confirm(WAYPOINT_INSIDE_MESSAGE),
         );
     });
 
     test("refuses appending to a mission at the waypoint limit", () => {
-        expect(checkPlacement(CLEAR, ZONES, missionOf(MAX_WAYPOINTS))).toEqual(refused(/maximum/));
+        expect(checkPlacement(CLEAR, ZONES, "waypoint", missionOf(MAX_WAYPOINTS))).toEqual(
+            refused(/maximum/),
+        );
+    });
+
+    test("refuses at the waypoint limit even inside a zone", () => {
+        expect(checkPlacement(INSIDE, ZONES, "waypoint", missionOf(MAX_WAYPOINTS))).toEqual(
+            refused(/maximum/),
+        );
     });
 
     test("allows appending to a mission below the limit", () => {
-        expect(checkPlacement(CLEAR, ZONES, missionOf(MAX_WAYPOINTS - 1))).toEqual(ALLOWED);
+        expect(checkPlacement(CLEAR, ZONES, "waypoint", missionOf(MAX_WAYPOINTS - 1))).toEqual(
+            ALLOWED,
+        );
     });
 
     test("does not count suppressed waypoints toward the limit", () => {
@@ -65,6 +85,6 @@ describe("checkPlacement", () => {
             })),
         } as any);
 
-        expect(checkPlacement(CLEAR, ZONES, mission)).toEqual(ALLOWED);
+        expect(checkPlacement(CLEAR, ZONES, "waypoint", mission)).toEqual(ALLOWED);
     });
 });

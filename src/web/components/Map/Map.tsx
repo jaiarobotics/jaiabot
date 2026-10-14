@@ -1,4 +1,4 @@
-import { useEffect, useContext, useState } from "react";
+import { useEffect, useContext } from "react";
 import { JaiaDispatchContext } from "../../context/JaiaContext";
 import { JaiaActions } from "../../context/jaia-actions";
 
@@ -20,17 +20,13 @@ import { generateSurveyEndpoint } from "../../openlayers/features/survey/survey-
 import { NodeTypes, TaskParameterKeys } from "../../types/jaia-system-types";
 import { ButtonNames, ButtonTypes, JaiaAction } from "../../types/context-types";
 import { MapFeatureTypes, MapModes, SurveyEndpoints } from "../../types/openlayers-types";
-import { GeographicCoordinate } from "../../types/protobuf-types";
 import { MAP_FEATURE_HIT_TOLERANCE, UNASSIGNED_ID } from "../../utils/constants";
 import { locationToConstantHeadingParams } from "../../utils/conversions";
 
-import Mission from "../../data/mission_set/mission";
 import { missionSet } from "../../data/mission_set/mission-set";
 import { gridPlan, GridPlanningStates } from "../../data/survey_planner/grid-plan";
-import { exclusionZoneSet } from "../../data/exclusion_zones/exclusion-zone-set";
-import { checkPlacement } from "../../utils/routing/placement";
 
-import PlacementErrorDialog from "../ObstacleAvoidanceDialogs/PlacementErrorDialog/PlacementErrorDialog";
+import { usePlacementCheck } from "../PlacementDialog/PlacementDialog";
 
 import "./Map.less";
 
@@ -41,21 +37,7 @@ import "./Map.less";
  */
 export default function Map() {
     const jaiaDispatch = useContext(JaiaDispatchContext);
-    const [placementError, setPlacementError] = useState<string | null>(null);
-
-    /**
-     * Shows why a point may not be placed at a location, if it may not
-     *
-     * @param {GeographicCoordinate} location Where the point would go
-     * @param {Mission} [appendingTo] Mission the point is appended to as a new waypoint
-     * @returns {boolean} True if the placement was refused
-     */
-    const refusePlacement = (location: GeographicCoordinate, appendingTo?: Mission) => {
-        const placement = checkPlacement(location, exclusionZoneSet.getZones(), appendingTo);
-        if (placement.kind === "allowed") return false;
-        setPlacementError(placement.message);
-        return true;
-    };
+    const { checkAndPlace, placementDialog } = usePlacementCheck();
 
     useEffect(() => {
         map.setTarget("map");
@@ -181,8 +163,9 @@ export default function Map() {
     const handleAddRallyPoint = (coordinate: Coordinate) => {
         const lonLat = toLonLat(coordinate, view.getProjection());
         const location = { lon: lonLat[0], lat: lonLat[1] };
-        if (refusePlacement(location)) return;
-        jaiaDispatch({ type: JaiaActions.ADD_RALLY_POINT, location });
+        checkAndPlace(location, "rallyPoint", () =>
+            jaiaDispatch({ type: JaiaActions.ADD_RALLY_POINT, location }),
+        );
     };
 
     /**
@@ -194,40 +177,31 @@ export default function Map() {
     const handleSurveyPlanningClick = (coordinate: Coordinate) => {
         const lonLat = toLonLat(coordinate, view.getProjection());
         const location = { lon: lonLat[0], lat: lonLat[1] };
-        let nextState = gridPlan.getState();
+        const changeState = (gridPlanningState: GridPlanningStates) =>
+            jaiaDispatch({ type: JaiaActions.SURVEY_CHANGE_PLANNING_STATE, gridPlanningState });
 
         switch (gridPlan.getState()) {
             case GridPlanningStates.ACCEPTING_MISSION_START_LOCATION:
-                if (refusePlacement(location)) return;
-                gridPlan.setMissionStart(location);
-                gridLayer
-                    .getVectorLayer()
-                    .getSource()
-                    .addFeature(generateSurveyEndpoint(location, SurveyEndpoints.START));
-                nextState = GridPlanningStates.ACCEPTING_MISSION_END_LOCATION;
-                break;
+                checkAndPlace(location, "surveyCorner", () => {
+                    gridPlan.setMissionStart(location);
+                    gridLayer
+                        .getVectorLayer()
+                        .getSource()
+                        .addFeature(generateSurveyEndpoint(location, SurveyEndpoints.START));
+                    changeState(GridPlanningStates.ACCEPTING_MISSION_END_LOCATION);
+                });
+                return;
             case GridPlanningStates.ACCEPTING_MISSION_END_LOCATION:
-                if (refusePlacement(location)) return;
-                gridPlan.setMissionEnd(location);
-                gridLayer
-                    .getVectorLayer()
-                    .getSource()
-                    .addFeature(generateSurveyEndpoint(location, SurveyEndpoints.END));
-                nextState = GridPlanningStates.ACCEPTING_GRID_DRAWING;
-                break;
-            case GridPlanningStates.ACCEPTING_GRID_DRAWING:
-                return;
-            case GridPlanningStates.ACCEPTING_TASK:
-                return;
-            case GridPlanningStates.ACCEPTING_START_TASK:
-                return;
-            case GridPlanningStates.ACCEPTING_END_TASK:
+                checkAndPlace(location, "surveyCorner", () => {
+                    gridPlan.setMissionEnd(location);
+                    gridLayer
+                        .getVectorLayer()
+                        .getSource()
+                        .addFeature(generateSurveyEndpoint(location, SurveyEndpoints.END));
+                    changeState(GridPlanningStates.ACCEPTING_GRID_DRAWING);
+                });
                 return;
         }
-        jaiaDispatch({
-            type: JaiaActions.SURVEY_CHANGE_PLANNING_STATE,
-            gridPlanningState: nextState,
-        });
     };
 
     /**
@@ -400,8 +374,9 @@ export default function Map() {
     const handleMoveWaypointClick = (coordinate: Coordinate) => {
         const lonLat = toLonLat(coordinate, view.getProjection());
         const location = { lon: lonLat[0], lat: lonLat[1] };
-        if (refusePlacement(location)) return;
-        jaiaDispatch({ type: JaiaActions.MOVE_WAYPOINT, location });
+        checkAndPlace(location, "waypoint", () =>
+            jaiaDispatch({ type: JaiaActions.MOVE_WAYPOINT, location }),
+        );
     };
 
     /**
@@ -457,8 +432,12 @@ export default function Map() {
         const lonLat = toLonLat(coordinate, view.getProjection());
         const location = { lon: lonLat[0], lat: lonLat[1] };
         const mission = missionSet.getMission(missionSet.getMissionIDInEditMode());
-        if (refusePlacement(location, mission)) return;
-        jaiaDispatch({ type: JaiaActions.ADD_WAYPOINT, location });
+        checkAndPlace(
+            location,
+            "waypoint",
+            () => jaiaDispatch({ type: JaiaActions.ADD_WAYPOINT, location }),
+            { appendingTo: mission },
+        );
     };
 
     /**
@@ -482,12 +461,7 @@ export default function Map() {
         <div>
             <div id="map" data-testid="map"></div>
 
-            {placementError && (
-                <PlacementErrorDialog
-                    message={placementError}
-                    onDismiss={() => setPlacementError(null)}
-                />
-            )}
+            {placementDialog}
         </div>
     );
 }

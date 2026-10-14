@@ -15,14 +15,17 @@ import { missionSet } from "../../../data/mission_set/mission-set";
 import { jaiaGlobal } from "../../../data/jaia_global/jaia-global";
 import { missionsManager } from "../../../data/missions_manager/missions-manager";
 import { exclusionZoneSet } from "../../../data/exclusion_zones/exclusion-zone-set";
+import { rallyPoints } from "../../../data/rally_points/rally-points";
+import { gridPlan, GridPlanningStates } from "../../../data/survey_planner/grid-plan";
 
 import { toLonLat } from "ol/proj";
 
 import { map } from "../../../openlayers/maps/map";
 import { missionLayer } from "../../../openlayers/layers/vector/mission-layer";
+import { gridLayer } from "../../../openlayers/layers/vector/grid-layer";
 
 import { NodeTypes } from "../../../types/jaia-system-types";
-import { MapFeatureTypes } from "../../../types/openlayers-types";
+import { MapFeatureTypes, MapModes } from "../../../types/openlayers-types";
 import { MAX_WAYPOINTS, UNASSIGNED_ID } from "../../../utils/constants";
 import { PortalBotStatus, PortalHubStatus } from "../../../shared/PortalStatus";
 
@@ -49,6 +52,10 @@ const hubStatusMock1: PortalHubStatus = {
 
 afterEach(() => {
     exclusionZoneSet.clearZones();
+    rallyPoints.getRallyPoints().clear();
+    gridPlan.reset();
+    gridLayer.getVectorLayer().getSource().clear();
+    jaiaGlobal.setMapMode(MapModes.DEFAULT);
     missionSet.deleteAllMissions();
     missionsManager.clear();
     missionLayer.getVectorLayer().getSource().clear();
@@ -152,20 +159,41 @@ test("Click on map with Bot selected and not assigned to a mission", () => {
     jaiaGlobal.setSelectedNode({ type: NodeTypes.NONE, id: UNASSIGNED_ID });
 });
 
-test("Click inside an exclusion zone with mission in edit mode is refused before dispatch", () => {
-    addZoneUnderClick();
-    const missionID = missionSet.addMission(new Mission());
-    expect(missionSet.getMissionIDInEditMode()).toBe(missionID);
+describe("a click inside an exclusion zone with a mission in edit mode", () => {
+    function clickInsideZone() {
+        addZoneUnderClick();
+        const missionID = missionSet.addMission(new Mission());
+        expect(missionSet.getMissionIDInEditMode()).toBe(missionID);
+        act(() => {
+            map.dispatchEvent(mapBrowserEventMock);
+        });
+        return missionSet.getMission(missionID);
+    }
 
-    act(() => {
-        map.dispatchEvent(mapBrowserEventMock);
+    test("asks to confirm before dispatch, saying a reroute takes the waypoint out", () => {
+        const mission = clickInsideZone();
+
+        expect(mission.getWaypoints()).toHaveLength(0);
+        expect(screen.getByText(/A reroute will take it out of the path/)).toBeTruthy();
     });
 
-    expect(missionSet.getMission(missionID).getWaypoints()).toHaveLength(0);
-    expect(screen.getByText(/inside an exclusion zone/)).toBeTruthy();
+    test("adds the waypoint on Place anyway", () => {
+        const mission = clickInsideZone();
 
-    fireEvent.click(screen.getByText("OK"));
-    expect(screen.queryByText(/inside an exclusion zone/)).toBeNull();
+        fireEvent.click(screen.getByText("Place anyway"));
+
+        expect(mission.getWaypoints()).toHaveLength(1);
+        expect(screen.queryByText(/inside an exclusion zone/)).toBeNull();
+    });
+
+    test("adds nothing on Cancel", () => {
+        const mission = clickInsideZone();
+
+        fireEvent.click(screen.getByText("Cancel"));
+
+        expect(mission.getWaypoints()).toHaveLength(0);
+        expect(screen.queryByText(/inside an exclusion zone/)).toBeNull();
+    });
 });
 
 /** A zone centred on the location the mocked click resolves to. */
@@ -182,7 +210,7 @@ function addZoneUnderClick() {
     });
 }
 
-test("Tap to move into an exclusion zone is refused before dispatch", () => {
+test("Tap to move into an exclusion zone asks to confirm before dispatch", () => {
     addZoneUnderClick();
     const mission = new Mission();
     mission.addWaypoint({ lat: 41.0, lon: -72.0 });
@@ -195,6 +223,9 @@ test("Tap to move into an exclusion zone is refused before dispatch", () => {
 
     expect(mission.getWaypoint(1)!.getLocation()).toEqual({ lat: 41.0, lon: -72.0 });
     expect(screen.getByText(/inside an exclusion zone/)).toBeTruthy();
+
+    fireEvent.click(screen.getByText("Place anyway"));
+    expect(mission.getWaypoint(1)!.getLocation()).not.toEqual({ lat: 41.0, lon: -72.0 });
 
     jaiaGlobal.resetSelectedWaypoint();
 });
@@ -211,4 +242,43 @@ test("Click with the mission at the waypoint limit is refused before dispatch", 
 
     expect(mission.getWaypoints()).toHaveLength(MAX_WAYPOINTS);
     expect(screen.getByText(/maximum of/)).toBeTruthy();
+    expect(screen.queryByText("Place anyway")).toBeNull();
+});
+
+test("A rally point inside an exclusion zone asks to confirm, without the reroute sentence", () => {
+    addZoneUnderClick();
+    jaiaGlobal.setMapMode(MapModes.RALLY);
+    const before = rallyPoints.getRallyPoints().size;
+
+    act(() => {
+        map.dispatchEvent(mapBrowserEventMock);
+    });
+
+    expect(rallyPoints.getRallyPoints().size).toBe(before);
+    expect(
+        screen.getByText("This point is inside an exclusion zone or its safety margin."),
+    ).toBeTruthy();
+
+    fireEvent.click(screen.getByText("Place anyway"));
+    expect(rallyPoints.getRallyPoints().size).toBe(before + 1);
+});
+
+test("A survey corner inside an exclusion zone asks to confirm", () => {
+    addZoneUnderClick();
+    jaiaGlobal.setMapMode(MapModes.SURVEY_PLANNING);
+    gridPlan.setState(GridPlanningStates.ACCEPTING_MISSION_START_LOCATION);
+
+    act(() => {
+        map.dispatchEvent(mapBrowserEventMock);
+    });
+
+    expect(gridPlan.getState()).toBe(GridPlanningStates.ACCEPTING_MISSION_START_LOCATION);
+    expect(
+        screen.getByText("This point is inside an exclusion zone or its safety margin."),
+    ).toBeTruthy();
+
+    fireEvent.click(screen.getByText("Place anyway"));
+    expect(gridPlan.getMissionStart()).toEqual(
+        expect.objectContaining({ lat: expect.any(Number) }),
+    );
 });

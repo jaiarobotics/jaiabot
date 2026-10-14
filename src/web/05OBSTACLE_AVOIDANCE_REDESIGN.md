@@ -659,21 +659,24 @@ In progress. Decided and known items:
     - Nothing is dispatched until the operator agrees, so a refusal or a Cancel records no undo
       entry (this fixes Parked defect b). After a cancelled or refused typed move, the panel's
       inputs return to the waypoint's location.
-    - `checkPlacement(location, zones, appendingTo?)` in `utils/routing/placement.ts` returns
-      `{ kind: "allowed" }`, `{ kind: "confirm"; message }` or `{ kind: "refused"; message }`. The
-      waypoint limit is checked only when appending to a mission. Every caller uses it, so the
-      message text has one copy, and it is unit tested directly.
+    - `checkPlacement(location, zones, point, appendingTo?)` in `utils/routing/placement.ts`
+      returns `{ kind: "allowed" }`, `{ kind: "confirm"; message }` or
+      `{ kind: "refused"; message }`. `point` (`"waypoint"`, `"rallyPoint"` or `"surveyCorner"`) picks the wording. The waypoint
+      limit is checked only when appending to a mission. Every caller uses it, so the message text
+      has one copy, and it is unit tested directly.
     - The handlers keep the waypoint-limit check as a safety net. They do not check zones, since
       the operator may confirm a point inside one.
-    - The latitude and longitude fields commit a typed coordinate on Enter or when the field
-      loses focus; the MGRS fields keep their submit button. A partly typed coordinate never moves
-      the waypoint or asks for confirmation.
+    - The latitude and longitude fields commit a typed coordinate on Enter, or when focus leaves
+      both fields (moving from one to the other does not commit); the MGRS fields keep their submit
+      button. A partly typed coordinate never moves the waypoint or asks for confirmation, and an
+      empty or non-numeric value puts the waypoint's location back.
     - Wording. Confirm: "This point is inside an exclusion zone or its safety margin. A reroute
       will take it out of the path.", with Place anyway and Cancel; for rally points and survey
       corners the second sentence is left out. Refusal at the waypoint limit: the current
       message, with OK.
     - The dialog is `components/PlacementDialog/PlacementDialog.tsx`, with
-      `ObstacleAvoidanceBaseDialog` folded into it.
+      `ObstacleAvoidanceBaseDialog` folded into it. The same file has `usePlacementCheck`, a hook
+      that every caller uses to check a placement, show the dialog and place once confirmed.
     - `placementError` leaves `JaiaContextType`: the field, the
       `CLEAR_PLACEMENT_ERROR` action and handler, the `ObstacleAvoidanceDialog` host and the line
       in `handleClickedUndo` that clears it.
@@ -842,9 +845,6 @@ changes.
 - **Step 4:** `getRoutingStatus` rebuilds and buffers every zone for each mission. When the icon
   shows status for every mission, share the zone geometry across missions or recompute only when
   the zones change.
-- **Step 4:** `PlacementErrorDialog` and `ObstacleAvoidanceBaseDialog` are shown by `Map.tsx` and
-  the waypoint panel, so they leave `components/ObstacleAvoidanceDialogs/` when the old dialogs
-  are deleted.
 - **Later:** Jest maps `clipper2-ts` to a mock, so no test runs the real buffering. A test against
   the real library would have caught the whole-metre rounding and the corners that came within
   3.75 m of a zone.

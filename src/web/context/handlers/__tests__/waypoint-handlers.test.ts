@@ -19,7 +19,7 @@ function addEditedMission(locations = [CLEAR]): Mission {
     return mission;
 }
 
-describe("placement refusals in the handlers", () => {
+describe("placement in the handlers", () => {
     beforeEach(() => {
         resetHandlerSingletons();
         exclusionZoneSet.addZone(squareZone(ZONE_CENTER.lat, ZONE_CENTER.lon));
@@ -36,7 +36,7 @@ describe("placement refusals in the handlers", () => {
         expect(mission.getWaypoints().length).toBe(2);
     });
 
-    test("adding a waypoint inside a zone leaves the mission unchanged", () => {
+    test("a waypoint added inside a zone is appended, since the operator confirmed it", () => {
         const mission = addEditedMission();
 
         handleAddWaypoint(makeMutableState(), {
@@ -44,7 +44,7 @@ describe("placement refusals in the handlers", () => {
             location: ZONE_CENTER,
         });
 
-        expect(mission.getWaypoints().length).toBe(1);
+        expect(mission.getWaypoints().length).toBe(2);
     });
 
     test("adding a waypoint past the limit leaves the mission unchanged", () => {
@@ -55,7 +55,7 @@ describe("placement refusals in the handlers", () => {
         expect(mission.getWaypoints().length).toBe(MAX_WAYPOINTS);
     });
 
-    test("moving a waypoint into a zone leaves it where it was", () => {
+    test("a waypoint moved into a zone is moved, since the operator confirmed it", () => {
         const mission = addEditedMission();
 
         handleMoveWaypoint(makeMutableState(), {
@@ -63,6 +63,6 @@ describe("placement refusals in the handlers", () => {
             location: ZONE_CENTER,
         });
 
-        expect(mission.getWaypoint(1)!.getLocation()).toEqual(CLEAR);
+        expect(mission.getWaypoint(1)!.getLocation()).toEqual(ZONE_CENTER);
     });
 });

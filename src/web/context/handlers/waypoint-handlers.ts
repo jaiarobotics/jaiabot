@@ -1,7 +1,6 @@
 import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 import { missionSet } from "../../data/mission_set/mission-set";
 import { GridPlanningStates } from "../../data/survey_planner/grid-plan";
-import { exclusionZoneSet } from "../../data/exclusion_zones/exclusion-zone-set";
 import { gridLayer } from "../../openlayers/layers/vector/grid-layer";
 import { missionLayer } from "../../openlayers/layers/vector/mission-layer";
 import { handleMapModeChange } from "../../openlayers/maps/map";
@@ -16,7 +15,7 @@ import { MapModes } from "../../types/openlayers-types";
 import { jaiaAPI } from "../../utils/jaia-api";
 import { refreshTaskPacketsForWindow } from "../../jcc/polling";
 import { UNASSIGNED_ID } from "../../utils/constants";
-import { checkPlacement } from "../../utils/routing/placement";
+import { isAtWaypointLimit } from "../../utils/routing/placement";
 import { syncTaskLayers } from "./handler-utils";
 
 /**
@@ -31,13 +30,8 @@ export function handleAddWaypoint(mutableState: JaiaContextType, action: JaiaAct
 
     if (missionIDInEditMode !== UNASSIGNED_ID) {
         const mission = missionSet.getMission(missionIDInEditMode);
-        // A refused placement is normally caught before dispatch
-        if (
-            !action.location ||
-            checkPlacement(action.location, exclusionZoneSet.getZones(), mission).kind === "refused"
-        ) {
-            return mutableState;
-        }
+        // The limit is normally checked before dispatch
+        if (!action.location || isAtWaypointLimit(mission)) return mutableState;
         mission.addWaypoint(action.location);
     }
 
@@ -76,13 +70,7 @@ export function handleDeleteWaypoint(mutableState: JaiaContextType) {
  * @returns {JaiaContextType} Updated mutable state object
  */
 export function handleMoveWaypoint(mutableState: JaiaContextType, action: JaiaAction) {
-    // A refused placement is normally caught before dispatch
-    if (
-        !action.location ||
-        checkPlacement(action.location, exclusionZoneSet.getZones()).kind === "refused"
-    ) {
-        return mutableState;
-    }
+    if (!action.location) return mutableState;
 
     const selectedWaypoint = jaiaGlobal.getSelectedWaypoint();
     const mission = missionSet.getMission(selectedWaypoint.missionID);
