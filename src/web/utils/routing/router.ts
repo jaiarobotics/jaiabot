@@ -352,10 +352,9 @@ interface GridNode {
 }
 
 /**
- * Minimal binary min-heap keyed on `f`, used as the A* open set. Callers use
- * lazy deletion: push a new entry every time a node's `f` improves rather
- * than trying to update an already-inserted entry in place, and discard a
- * popped entry whose `f` no longer matches the caller's current best for
+ * Minimal binary min-heap keyed on `f`. Entries cannot be updated in place,
+ * so deletion is lazy: push a new entry every time a node's `f` improves, and
+ * discard a popped entry whose `f` no longer matches the current best for
  * that node.
  */
 class MinHeap {

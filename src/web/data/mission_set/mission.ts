@@ -233,8 +233,8 @@ export default class Mission {
 
     /**
      * Visible number of a waypoint this mission holds, or undefined if it is suppressed or
-     * not in this mission. Waypoint objects persist through an operation, so a caller can
-     * renumber a selection after the operation renumbers the mission.
+     * not in this mission. Waypoint objects persist through an operation, so this finds the
+     * same waypoint's number afterwards.
      *
      * @param {Waypoint} waypoint Waypoint previously returned by this mission
      * @returns {number | undefined} 1-based visible waypoint number
