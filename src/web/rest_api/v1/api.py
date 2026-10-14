@@ -26,11 +26,6 @@ from flask import Response, request, send_file
 l = logging.getLogger(__name__)
 
 
-def get_sim_now():
-    WARP = 5
-    return utc_now_microseconds() * WARP
-
-
 def get_bots_and_hubs(target: APIRequest.Nodes):
     """Gets lists of the bots and hubs corresponding to a REST Nodes object.
 
