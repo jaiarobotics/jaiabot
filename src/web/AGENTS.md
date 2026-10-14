@@ -16,6 +16,7 @@ Guidance for AI coding agents working on the JCC web code in `src/web`. It adds 
 - Nothing public that doesn't need to be. Public API with no caller yet is fine when a later step of the same work uses it, but not at the end of the work.
 - Component folders mirror the UI: a component lives in the folder of the panel or component that contains it on screen.
 - Use `let` and `const`. `jdv/` is older code that still uses `var`; don't copy its style or convert it.
+- JSDoc follows the root comment rules: a description or `@param` says what the function does or what the value is, never who calls it, where an argument comes from, or how a caller uses it, even when that is always true today.
 
 ## Intentional choices
 
