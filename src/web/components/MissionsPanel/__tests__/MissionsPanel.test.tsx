@@ -3,10 +3,22 @@ import { userEvent } from "@testing-library/user-event";
 
 import MissionsPanel from "../MissionsPanel";
 import ButtonList from "../../../components/ButtonList/ButtonList";
-import { JaiaContextProvider } from "../../../context/JaiaContext";
+import {
+    JaiaContext,
+    JaiaContextProvider,
+    JaiaDispatchContext,
+} from "../../../context/JaiaContext";
+import {
+    coord,
+    makeMutableState,
+    resetHandlerSingletons,
+    squareZone,
+} from "../../../context/handlers/__tests__/handler-test-utils";
 
 import { missionSet } from "../../../data/mission_set/mission-set";
 import { missionsManager } from "../../../data/missions_manager/missions-manager";
+import { exclusionZoneSet } from "../../../data/exclusion_zones/exclusion-zone-set";
+import Mission from "../../../data/mission_set/mission";
 import { bots } from "../../../data/bots/bots";
 import { PortalBotStatus } from "../../../shared/PortalStatus";
 import { ButtonListTypes } from "../../../types/jaia-system-types";
@@ -317,4 +329,35 @@ test.skip("Exercise Mission Edit Toggles", async () => {
     });
     expect(mission1EditToggle).not.toBeChecked();
     expect(mission3EditToggle).not.toBeChecked();
+});
+
+test("routing status icons show each mission's level and the set's most urgent", () => {
+    resetHandlerSingletons();
+    exclusionZoneSet.addZone(squareZone(41.0, -72.0));
+    for (const route of [
+        [coord(41.0, -72.005), coord(41.0, -71.995)],
+        [coord(41.01, -72.005), coord(41.01, -71.995)],
+        [],
+    ]) {
+        const mission = new Mission();
+        route.forEach((location) => mission.addWaypoint(location));
+        missionSet.addMission(mission);
+    }
+    render(
+        <JaiaContext.Provider value={makeMutableState()}>
+            <JaiaDispatchContext.Provider value={jest.fn()}>
+                <MissionsPanel />
+            </JaiaDispatchContext.Provider>
+        </JaiaContext.Provider>,
+    );
+
+    expect(screen.getByRole("button", { name: /^Mission set routing status/ })).toHaveClass(
+        "error",
+    );
+    const missionIcons = screen.getAllByRole("button", { name: /^Routing status/ });
+    expect(missionIcons.map((icon) => icon.getAttribute("aria-label"))).toEqual([
+        "Routing status: the route crosses an exclusion zone",
+        "Routing status: nothing to do",
+        "Routing status: no waypoints",
+    ]);
 });

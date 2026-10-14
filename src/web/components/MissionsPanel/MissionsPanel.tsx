@@ -7,10 +7,13 @@ import DeleteMissionButton from "../../components/__buttons__/DeleteMissionButto
 import MissionSpeedSliders from "./MissionSpeedSliders/MissionSpeedSliders";
 import MissionSetStorageButton from "./MissionSetStorage/MissionSetStorageButton";
 import MissionSetEditorButton from "./MissionSetEditor/MissionSetEditorButton";
+import MissionSetRoutingButton from "./MissionSetRoutingButton/MissionSetRoutingButton";
 import { JaiaContext, JaiaDispatchContext } from "../../context/JaiaContext";
 import { JaiaActions } from "../../context/jaia-actions";
 import { MDI_BUTTON_SIZE } from "../../utils/constants";
 import { scrollMissionsList } from "../../utils/style";
+import { buildZoneGeometry } from "../../utils/routing/router";
+import { getRoutingLevel } from "../../utils/routing/routing-status";
 
 // MUI | MDI
 import Button from "@mui/material/Button";
@@ -64,9 +67,20 @@ export default function MissionsPanel() {
         });
     };
 
+    const geometry = buildZoneGeometry(jaiaContext.exclusionZoneSet.getZones());
+    const routingLevels = new Map(
+        Array.from(jaiaContext.missionSet.getMissions().values(), (mission) => [
+            mission.getMissionID(),
+            getRoutingLevel(mission, geometry),
+        ]),
+    );
+
     return (
         <div className="jaia-panel missions-panel">
-            <div className="jaia-panel-title">Mission Set</div>
+            <div className="missions-panel-title">
+                <div className="jaia-panel-title">Mission Set</div>
+                <MissionSetRoutingButton routingLevels={routingLevels} />
+            </div>
             <MissionSpeedSliders />
             <div className="jaia-button-row">
                 <Button
@@ -92,7 +106,7 @@ export default function MissionsPanel() {
                 numOfMissions={jaiaContext.missionSet.getMissions().size}
                 handleNameChange={handleNameChange}
             />
-            <MissionsList />
+            <MissionsList routingLevels={routingLevels} />
         </div>
     );
 }

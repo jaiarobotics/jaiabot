@@ -2,7 +2,14 @@ import Mission from "../../../data/mission_set/mission";
 import { ExclusionZone } from "../../../data/exclusion_zones/exclusion-zone-set";
 import { GeographicCoordinate } from "../../../types/protobuf-types";
 import { autoRoute, buildZoneGeometry, ZoneGeometry } from "../router";
-import { getRouteWarnings, getRoutingStatus, RouteWarning } from "../routing-status";
+import {
+    getRouteWarnings,
+    getRoutingLevel,
+    getRoutingStatus,
+    getWorstRoutingLevel,
+    RouteWarning,
+    RoutingLevel,
+} from "../routing-status";
 
 function coord(lat: number, lon: number): GeographicCoordinate {
     return { lat, lon };
@@ -115,6 +122,57 @@ describe("one geometry shared by several missions", () => {
         expect(getRoutingStatus(crossing, ZONE_GEOMETRY).isConflicted).toBe(true);
         expect(getRoutingStatus(clear, ZONE_GEOMETRY).isConflicted).toBe(false);
         expect(getRoutingStatus(crossing, ZONE_GEOMETRY).isConflicted).toBe(true);
+    });
+});
+
+describe("getRoutingLevel", () => {
+    const NORTH = coord(41.01, -72.0);
+
+    test("is undefined for a mission with no waypoints", () => {
+        expect(getRoutingLevel(new Mission(), ZONE_GEOMETRY)).toBeUndefined();
+    });
+
+    test("is CROSSES_ZONE when the route crosses a zone, even with suppressed waypoints", () => {
+        const mission = loadMission([
+            { location: WEST },
+            { location: NORTH, isSuppressed: true },
+            { location: EAST },
+        ]);
+
+        expect(getRoutingLevel(mission, ZONE_GEOMETRY)).toBe(RoutingLevel.CROSSES_ZONE);
+    });
+
+    test("is HAS_SUPPRESSED for a clear route with suppressed waypoints", () => {
+        const mission = loadMission([{ location: WEST }, { location: NORTH, isSuppressed: true }]);
+
+        expect(getRoutingLevel(mission, ZONE_GEOMETRY)).toBe(RoutingLevel.HAS_SUPPRESSED);
+    });
+
+    test("is HAS_SUPPRESSED when every waypoint is suppressed", () => {
+        const mission = loadMission([{ location: NORTH, isSuppressed: true }]);
+
+        expect(getRoutingLevel(mission, ZONE_GEOMETRY)).toBe(RoutingLevel.HAS_SUPPRESSED);
+    });
+
+    test("is CLEAR for a clear route with nothing suppressed", () => {
+        expect(getRoutingLevel(plainMission(WEST, NORTH), ZONE_GEOMETRY)).toBe(RoutingLevel.CLEAR);
+    });
+});
+
+describe("getWorstRoutingLevel", () => {
+    const { CROSSES_ZONE, HAS_SUPPRESSED, CLEAR } = RoutingLevel;
+
+    test("is undefined when every level is undefined, or there are none", () => {
+        expect(getWorstRoutingLevel([undefined, undefined])).toBeUndefined();
+        expect(getWorstRoutingLevel([])).toBeUndefined();
+    });
+
+    test("is the most urgent defined level", () => {
+        expect(getWorstRoutingLevel([CLEAR, undefined])).toBe(CLEAR);
+        expect(getWorstRoutingLevel([CLEAR, HAS_SUPPRESSED, CLEAR])).toBe(HAS_SUPPRESSED);
+        expect(getWorstRoutingLevel([undefined, CLEAR, CROSSES_ZONE, HAS_SUPPRESSED])).toBe(
+            CROSSES_ZONE,
+        );
     });
 });
 

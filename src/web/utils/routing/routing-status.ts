@@ -28,6 +28,48 @@ export function getRoutingStatus(mission: Mission, geometry: ZoneGeometry): Rout
     return { isConflicted: isRouteConflicted(mission, geometry), clearSuppressed };
 }
 
+/** A mission's routing status at a glance, most urgent first. */
+export enum RoutingLevel {
+    CROSSES_ZONE,
+    HAS_SUPPRESSED,
+    CLEAR,
+}
+
+/**
+ * Gives the most urgent of a mission's routing statuses: its route crosses a zone, some of its
+ * waypoints are suppressed, or neither.
+ *
+ * @param {Mission} mission Mission whose route is tested
+ * @param {ZoneGeometry} geometry Zones to test against
+ * @returns {RoutingLevel | undefined} The level, or undefined when the mission has no waypoints
+ */
+export function getRoutingLevel(
+    mission: Mission,
+    geometry: ZoneGeometry,
+): RoutingLevel | undefined {
+    if (mission.getOriginalWaypoints().length === 0) return undefined;
+    if (isRouteConflicted(mission, geometry)) return RoutingLevel.CROSSES_ZONE;
+    if (mission.getSuppressedWaypoints().length > 0) return RoutingLevel.HAS_SUPPRESSED;
+    return RoutingLevel.CLEAR;
+}
+
+/**
+ * Gives the most urgent of several routing levels.
+ *
+ * @param {Iterable<RoutingLevel | undefined>} levels Levels to compare; undefined stands for a
+ *     mission with no waypoints
+ * @returns {RoutingLevel | undefined} The most urgent level, or undefined when none is defined
+ */
+export function getWorstRoutingLevel(
+    levels: Iterable<RoutingLevel | undefined>,
+): RoutingLevel | undefined {
+    let worst: RoutingLevel | undefined;
+    for (const level of levels) {
+        if (level !== undefined && (worst === undefined || level < worst)) worst = level;
+    }
+    return worst;
+}
+
 /** A way a run of a mission would enter an exclusion zone. */
 export enum RouteWarning {
     ROUTE_CROSSES_ZONE,
