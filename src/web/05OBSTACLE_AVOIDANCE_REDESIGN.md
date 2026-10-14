@@ -154,8 +154,8 @@ dialogs carry:
 - failures: every waypoint inside a zone, no way around the zones, or over the waypoint limit, with
   the mission left unchanged
 
-The dialog reports; it does not ask. How the operator backs out a reroute from it is pending (see
-Phase 3); either way it uses the normal Undo. Undo backs out a reroute,
+The dialog reports; it does not ask. The report has an "Undo reroute" button that runs the
+normal Undo (see Phase 3). Undo backs out a reroute,
 not restore: if the mission had already been rerouted, restore would drop the earlier detours too,
 whereas undo returns exactly the state before this reroute.
 
@@ -208,8 +208,9 @@ undone action. Nothing is rerouted; status is recomputed when the screen draws.
 
 ### What is new for the operator
 
-- Blocked waypoints drawn in red. Legs that cross a zone are not marked; that is reassessed once
-  the waypoint colour is in use.
+- Blocked waypoints drawn in red, detours included; in a mission being edited the edit-mode
+  yellow wins. A running mission's faded copy is not coloured. Legs that cross a zone are not
+  marked; that is reassessed once the waypoint colour is in use.
 - A routing-status icon in each mission's accordion header
 - Reroute actions, in a per-mission variant and an all-missions variant. They will likely appear in
   more than one component.
@@ -713,19 +714,16 @@ In progress. Decided and known items:
       actions, rather than opening a second dialog. To switch from one to the other, the operator
       taps the other action: both start from the original waypoints, so neither depends on the
       other, and no undo is needed.
-    - **Pending (Jeff is consulting a coworker): how the operator backs out a reroute or restore
-      from the report.** A JCC dialog covers the screen with a transparent layer that catches every
-      tap, so the toolbar Undo stays visible but does not respond while the dialog is open.
-        - _Option 1:_ no Undo in the dialog; the toolbar Undo is the only one. The report has a
-          Close button and the line "Close this, then tap Undo to back out the reroute" (or
-          restore). Costs the operator a step.
-        - _Option 2:_ an "Undo reroute" (or "Undo restore") button in the dialog that dispatches
-          the same `CLICKED_UNDO` as the toolbar. No guard: every load that records an undo entry
-          starts inside a storage or editor dialog that blocks the screen until the load is
-          applied. The only way for a load to land while the routing dialog is open is to close
-          the storage dialog during the hub fetch and reroute before the hub answers; the button
-          would then undo the load, and the reroute can be run again. Accepted as a known edge
-          case if this option is chosen.
+    - **Backing out from the report:** the report has an "Undo reroute" (or "Undo restore")
+      button that dispatches the same `CLICKED_UNDO` as the toolbar. It is needed because a JCC
+      dialog covers the screen with a transparent layer that catches every tap, so the toolbar
+      Undo stays visible but does not respond while the dialog is open. Undo clears
+      `rerouteReport`, so the report and its button go away and the dialog shows the status and
+      both actions again. No guard: every load that records an undo entry starts inside a storage
+      or editor dialog that blocks the screen until the load is applied. The only way for a load
+      to land while the routing dialog is open is to close the storage dialog during the hub
+      fetch and reroute before the hub answers; the button would then undo the load, and the
+      reroute can be run again. Accepted as a known edge case.
     - **Structure, following Run and Run all** (`StartMissionButton` and `StartAllMissionsButton`):
       two button components, each owning its dialog and its open state in a local `useState`,
       with no action for opening or closing. The two dialogs share the Reroute and Restore
@@ -848,8 +846,9 @@ changes.
   a tracked action, unlike Save, so undoing the next edit reverts the name. (b) A placement
   refused inside a zone still records an empty undo entry; fixed by checking before dispatch
   (Phase 3).
-- **Performance, when a profile shows it:** the missions panel rebuilds the zone geometry and
-  tests every mission's route on each render, up to twice a second. Caching needs a zone-set
+- **Performance, near the end of this PR:** the missions panel and the mission layer each
+  rebuild the zone geometry on every redraw, up to twice a second; the panel tests every
+  mission's route and the layer tests every waypoint. Caching the geometry needs a zone-set
   revision, since the zone set is changed in place.
 - **Later:** Jest maps `clipper2-ts` to a mock, so no test runs the real buffering. A test against
   the real library would have caught the whole-metre rounding and the corners that came within
