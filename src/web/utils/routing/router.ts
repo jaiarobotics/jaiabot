@@ -671,7 +671,7 @@ function findBypassPath(A: XYPt, B: XYPt, zoneGeoms: ZoneGeom[], safetyMargin: n
  * around every zone. Waypoints are numbered from 1, in the order given.
  *
  * @param {readonly GeographicCoordinate[]} waypoints Locations of the waypoints to route, in order
- * @param {ZoneGeometry} geometry Zones to route around, from `buildZoneGeometry`
+ * @param {ZoneGeometry} geometry Zones to route around
  * @returns {RoutingResult} One step per waypoint, or why there is none
  */
 export function autoRoute(
@@ -720,7 +720,7 @@ export function getZoneBufferVertices(
  * Returns the IDs of every zone whose safety-margin buffer contains the given location.
  *
  * @param {GeographicCoordinate} location Geographic point to test against all zone buffers
- * @param {ZoneGeometry} geometry Zones to test against, from `buildZoneGeometry`
+ * @param {ZoneGeometry} geometry Zones to test against
  * @returns {number[]} IDs of zones whose buffer contains the location
  */
 export function getBlockingZoneIDs(
@@ -739,7 +739,7 @@ export function getBlockingZoneIDs(
  * cannot disagree; it skips the A* search.
  *
  * @param {GeographicCoordinate[]} route Ordered locations of the route's waypoints
- * @param {ZoneGeometry} geometry Zones to test against, from `buildZoneGeometry`
+ * @param {ZoneGeometry} geometry Zones to test against
  * @returns {boolean} Whether any leg of the route is blocked by a zone
  */
 export function routeNeedsBypass(route: GeographicCoordinate[], geometry: ZoneGeometry): boolean {

@@ -1,7 +1,6 @@
 import Mission from "../../data/mission_set/mission";
-import { ExclusionZone } from "../../data/exclusion_zones/exclusion-zone-set";
 import { GeographicCoordinate } from "../../types/protobuf-types";
-import { buildZoneGeometry, getBlockingZoneIDs, routeNeedsBypass } from "./router";
+import { getBlockingZoneIDs, routeNeedsBypass, ZoneGeometry } from "./router";
 
 /** How a mission's route stands against the zones. Several statuses can hold at once. */
 export interface RoutingStatus {
@@ -16,14 +15,10 @@ export interface RoutingStatus {
  * status changes whenever the mission or the zones do.
  *
  * @param {Mission} mission Mission whose route is tested
- * @param {ReadonlyMap<number, ExclusionZone>} zones Exclusion zones to test against, keyed by zone ID
+ * @param {ZoneGeometry} geometry Zones to test against
  * @returns {RoutingStatus} The mission's routing status
  */
-export function getRoutingStatus(
-    mission: Mission,
-    zones: ReadonlyMap<number, ExclusionZone>,
-): RoutingStatus {
-    const geometry = buildZoneGeometry(zones);
+export function getRoutingStatus(mission: Mission, geometry: ZoneGeometry): RoutingStatus {
     const isBlocked = (location: GeographicCoordinate) =>
         getBlockingZoneIDs(location, geometry).length > 0;
 
