@@ -6,8 +6,10 @@ import { getBlockingZoneIDs, routeNeedsBypass, ZoneGeometry } from "./router";
 export interface RoutingStatus {
     /** The visible route, detours included, crosses a zone. */
     isConflicted: boolean;
-    /** Original numbers of suppressed waypoints that are no longer blocked. */
-    clearSuppressed: number[];
+    /** How many waypoints are suppressed. */
+    suppressed: number;
+    /** How many suppressed waypoints are no longer blocked. */
+    clearSuppressed: number;
 }
 
 /**
@@ -19,13 +21,14 @@ export interface RoutingStatus {
  * @returns {RoutingStatus} The mission's routing status
  */
 export function getRoutingStatus(mission: Mission, geometry: ZoneGeometry): RoutingStatus {
-    const clearSuppressed: number[] = [];
-    mission.getOriginalWaypoints().forEach((waypoint, index) => {
-        if (waypoint.getIsSuppressed() && !isBlocked(waypoint.getLocation(), geometry)) {
-            clearSuppressed.push(index + 1);
-        }
-    });
-    return { isConflicted: isRouteConflicted(mission, geometry), clearSuppressed };
+    const suppressed = mission.getSuppressedWaypoints();
+    return {
+        isConflicted: isRouteConflicted(mission, geometry),
+        suppressed: suppressed.length,
+        clearSuppressed: suppressed.filter(
+            (waypoint) => !isBlocked(waypoint.getLocation(), geometry),
+        ).length,
+    };
 }
 
 /** A mission's routing status at a glance, most urgent first. */

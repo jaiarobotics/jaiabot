@@ -146,6 +146,7 @@ export default function MissionsList(props: MissionsListProps) {
                                 {/* Laid over the summary, not inside it, since it is a button itself */}
                                 <span className="mission-status-icons">
                                     <MissionRoutingButton
+                                        mission={mission}
                                         routingLevel={props.routingLevels.get(
                                             mission.getMissionID(),
                                         )}

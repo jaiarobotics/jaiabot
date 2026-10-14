@@ -21,25 +21,22 @@ export interface RerouteStep {
     detoursAfter: GeographicCoordinate[];
 }
 
-/**
- * Outcome of Mission.reroute. Waypoints are identified by original waypoint number: their
- * position among the original waypoints, which reroute and restore never change.
- */
+/** Outcome of Mission.reroute. */
 export type RerouteResult =
     | {
           kind: "changed";
-          /** Every original waypoint suppressed after the reroute. */
-          suppressed: number[];
-          /** Original waypoints that were suppressed and are now back in the path. */
-          restored: number[];
+          /** How many original waypoints are suppressed after the reroute. */
+          suppressed: number;
+          /** How many original waypoints were suppressed and are now back in the path. */
+          restored: number;
           detoursAdded: number;
       }
-    | { kind: "overWaypointLimit"; needed: number };
+    | { kind: "overWaypointLimit" };
 
-/** Outcome of Mission.restoreOriginalWaypoints, by original waypoint number. */
+/** Outcome of Mission.restoreOriginalWaypoints. */
 export interface RestoreResult {
-    /** Original waypoints that were suppressed and are now back in the path. */
-    restored: number[];
+    /** How many original waypoints were suppressed and are now back in the path. */
+    restored: number;
     detoursRemoved: number;
 }
 
@@ -114,16 +111,16 @@ export default class Mission {
             (count, step) => count + (step.suppress ? 0 : 1) + step.detoursAfter.length,
             0,
         );
-        if (needed > MAX_WAYPOINTS) return { kind: "overWaypointLimit", needed };
+        if (needed > MAX_WAYPOINTS) return { kind: "overWaypointLimit" };
 
-        const suppressed: number[] = [];
-        const restored: number[] = [];
+        let suppressed = 0;
+        let restored = 0;
         let detoursAdded = 0;
         const rerouted: MissionWaypoint[] = [];
         originals.forEach((waypoint, i) => {
             const step = steps[i];
-            if (step.suppress) suppressed.push(i + 1);
-            else if (waypoint.getIsSuppressed()) restored.push(i + 1);
+            if (step.suppress) suppressed++;
+            else if (waypoint.getIsSuppressed()) restored++;
             waypoint.setIsSuppressed(step.suppress);
             rerouted.push(waypoint);
             for (const location of step.detoursAfter) {
@@ -145,9 +142,9 @@ export default class Mission {
     restoreOriginalWaypoints(): RestoreResult {
         const originals = this.originalWaypoints();
         const detoursRemoved = this.waypoints.length - originals.length;
-        const restored: number[] = [];
-        originals.forEach((waypoint, i) => {
-            if (waypoint.getIsSuppressed()) restored.push(i + 1);
+        let restored = 0;
+        originals.forEach((waypoint) => {
+            if (waypoint.getIsSuppressed()) restored++;
             waypoint.setIsSuppressed(false);
         });
         this.waypoints = originals;

@@ -20,6 +20,12 @@ const HUGE_ZONE: ExclusionZone = {
     vertices: [coord(40.8, -72.2), coord(40.8, -71.8), coord(41.2, -71.8), coord(41.2, -72.2)],
 };
 
+/** A zone ~40 km across, east of the others, crossing the line of latitude 41. */
+const HUGE_EAST_ZONE: ExclusionZone = {
+    vertices: [coord(40.8, -71.2), coord(40.8, -70.8), coord(41.2, -70.8), coord(41.2, -71.2)],
+};
+const BEYOND_EAST = coord(41.0, -70.5);
+
 function addMission(...locations: GeographicCoordinate[]): number {
     const mission = new Mission();
     locations.forEach((location) => mission.addWaypoint(location));
@@ -55,7 +61,7 @@ describe("handleRerouteMissions", () => {
         const detours = waypointCount(missionID) - 2;
         expect(detours).toBeGreaterThan(0);
         expect(state.rerouteReport).toEqual([
-            { missionID, kind: "changed", suppressed: [], restored: [], detoursAdded: detours },
+            { missionID, kind: "changed", suppressed: 0, restored: 0, detoursAdded: detours },
         ]);
     });
 
@@ -64,7 +70,7 @@ describe("handleRerouteMissions", () => {
 
         const state = reroute(makeMutableState(), missionID);
 
-        expect(state.rerouteReport![0]).toMatchObject({ kind: "changed", suppressed: [2] });
+        expect(state.rerouteReport![0]).toMatchObject({ kind: "changed", suppressed: 1 });
         expect(missionSet.getMission(missionID)!.getSuppressedWaypoints()).toHaveLength(1);
     });
 
@@ -87,6 +93,32 @@ describe("handleRerouteMissions", () => {
         expect(missionSet.getMission(missionID)!.isRerouted()).toBe(false);
     });
 
+    test("names a no-route leg by the waypoint numbers the mission shows", () => {
+        const missionID = addMission(WEST, EAST, coord(41.0, -71.5), BEYOND_EAST);
+        const state = reroute(makeMutableState(), missionID);
+        const detours = waypointCount(missionID) - 4;
+        expect(detours).toBeGreaterThan(0);
+        exclusionZoneSet.addZone(HUGE_EAST_ZONE);
+
+        reroute(state, missionID);
+
+        expect(state.rerouteReport).toEqual([
+            { missionID, kind: "noRoute", leg: [3 + detours, 4 + detours] },
+        ]);
+    });
+
+    test("leaves out a no-route leg's numbers when an end is suppressed", () => {
+        const missionID = addMission(NORTH, INSIDE, BEYOND_EAST);
+        const state = reroute(makeMutableState(), missionID);
+        expect(missionSet.getMission(missionID)!.getSuppressedWaypoints()).toHaveLength(1);
+        exclusionZoneSet.clearZones();
+        exclusionZoneSet.addZone(HUGE_EAST_ZONE);
+
+        reroute(state, missionID);
+
+        expect(state.rerouteReport).toEqual([{ missionID, kind: "noRoute", leg: undefined }]);
+    });
+
     test("reports a reroute over the waypoint limit and leaves the mission unchanged", () => {
         const far = Array.from({ length: MAX_WAYPOINTS - 2 }, (_, i) =>
             coord(41.02 + i / 1000, -72.0),
@@ -105,7 +137,7 @@ describe("handleRerouteMissions", () => {
         const state = reroute(makeMutableState(), missionID);
 
         expect(state.rerouteReport).toEqual([
-            { missionID, kind: "changed", suppressed: [], restored: [], detoursAdded: 0 },
+            { missionID, kind: "changed", suppressed: 0, restored: 0, detoursAdded: 0 },
         ]);
     });
 
@@ -134,7 +166,7 @@ describe("handleRestoreOriginalWaypoints", () => {
 
         expect(waypointCount(missionID)).toBe(3);
         expect(state.rerouteReport).toEqual([
-            { missionID, kind: "restored", restored: [2], detoursRemoved: detours },
+            { missionID, kind: "restored", restored: 1, detoursRemoved: detours },
         ]);
     });
 });
@@ -209,5 +241,45 @@ describe("undo", () => {
         expect(missionSet.getMission(first)!.isRerouted()).toBe(false);
         expect(missionSet.getMission(second)!.isRerouted()).toBe(false);
         expect(state.rerouteReport).toBeNull();
+    });
+
+    describe("after an edit in another panel", () => {
+        function rerouteFromMissionsPanel() {
+            const missionID = addMission(WEST, EAST);
+            const state = makeMutableState();
+            state.visiblePanel = ButtonNames.EXCLUSION_ZONES_PANEL;
+            jaiaGlobal.setZoneInEditMode(1);
+            jaiaGlobal.setSelectedZoneVertex({ zoneID: 1, vertexIndex: 0, isMoveable: false });
+            saveHistory(state, JaiaActions.MOVE_ZONE_VERTEX);
+            // Switching panels is untracked and leaves zone editing
+            state.visiblePanel = ButtonNames.MISSIONS_PANEL;
+            jaiaGlobal.setZoneInEditMode(UNASSIGNED_ID);
+            jaiaGlobal.resetSelectedZoneVertex();
+            reroute(state, missionID);
+            saveHistory(state, JaiaActions.REROUTE_MISSIONS);
+            return { state, missionID };
+        }
+
+        test("returns to that panel", () => {
+            const { state } = rerouteFromMissionsPanel();
+
+            const undone = handleClickedUndo(state, { type: JaiaActions.CLICKED_UNDO });
+
+            expect(undone.visiblePanel).toBe(ButtonNames.EXCLUSION_ZONES_PANEL);
+        });
+
+        test("keeps the visible panel and leaves zone editing off when asked, and still backs out the reroute", () => {
+            const { state, missionID } = rerouteFromMissionsPanel();
+
+            const undone = handleClickedUndo(state, {
+                type: JaiaActions.CLICKED_UNDO,
+                keepPanelState: true,
+            });
+
+            expect(undone.visiblePanel).toBe(ButtonNames.MISSIONS_PANEL);
+            expect(jaiaGlobal.getZoneInEditMode()).toBe(UNASSIGNED_ID);
+            expect(jaiaGlobal.getSelectedZoneVertex().zoneID).toBe(UNASSIGNED_ID);
+            expect(missionSet.getMission(missionID)!.isRerouted()).toBe(false);
+        });
     });
 });

@@ -53,10 +53,15 @@ function rerouteMission(
     missionID: number,
     geometry: ZoneGeometry,
 ): RerouteOutcome {
+    const originals = mission.getOriginalWaypoints();
     const routing = autoRoute(
-        mission.getOriginalWaypoints().map((waypoint) => waypoint.getLocation()),
+        originals.map((waypoint) => waypoint.getLocation()),
         geometry,
     );
+    if (routing.kind === "noRoute") {
+        const [from, to] = routing.leg.map((num) => mission.getWaypointNum(originals[num - 1]));
+        return { missionID, kind: "noRoute", leg: from && to ? [from, to] : undefined };
+    }
     if (routing.kind !== "routed") return { missionID, ...routing };
     return { missionID, ...mission.reroute(routing.steps) };
 }

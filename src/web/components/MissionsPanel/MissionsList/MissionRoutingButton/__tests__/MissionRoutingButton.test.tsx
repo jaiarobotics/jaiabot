@@ -2,10 +2,11 @@ import { render, screen } from "@testing-library/react";
 
 import MissionRoutingButton from "../MissionRoutingButton";
 
+import Mission from "../../../../../data/mission_set/mission";
 import { RoutingLevel } from "../../../../../utils/routing/routing-status";
 
 function renderButton(routingLevel: RoutingLevel | undefined) {
-    render(<MissionRoutingButton routingLevel={routingLevel} />);
+    render(<MissionRoutingButton mission={new Mission()} routingLevel={routingLevel} />);
     return screen.getByRole("button", { name: /^Routing status: / });
 }
 

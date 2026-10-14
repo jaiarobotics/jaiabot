@@ -29,7 +29,7 @@ describe("reroute", () => {
         expect(lats(mission.getWaypoints())).toEqual([1, 1.5, 3]);
         expect(mission.getWaypoint(2)!.getIsDetour()).toBe(true);
         expect(lats(mission.getSuppressedWaypoints())).toEqual([2]);
-        expect(result).toEqual({ kind: "changed", suppressed: [2], restored: [], detoursAdded: 1 });
+        expect(result).toEqual({ kind: "changed", suppressed: 1, restored: 0, detoursAdded: 1 });
     });
 
     test("always starts from the original waypoints, replacing earlier detours", () => {
@@ -40,7 +40,7 @@ describe("reroute", () => {
 
         expect(lats(mission.getWaypoints())).toEqual([1, 2, 2.5, 3]);
         expect(lats(mission.getOriginalWaypoints())).toEqual([1, 2, 3]);
-        expect(result).toEqual({ kind: "changed", suppressed: [], restored: [2], detoursAdded: 1 });
+        expect(result).toEqual({ kind: "changed", suppressed: 0, restored: 1, detoursAdded: 1 });
     });
 
     test("leaves the mission unchanged when the result would exceed the waypoint limit", () => {
@@ -49,7 +49,7 @@ describe("reroute", () => {
 
         const result = mission.reroute([keep(...detours), keep()]);
 
-        expect(result).toEqual({ kind: "overWaypointLimit", needed: MAX_WAYPOINTS + 2 });
+        expect(result).toEqual({ kind: "overWaypointLimit" });
         expect(lats(mission.getWaypoints())).toEqual([1, 2]);
     });
 

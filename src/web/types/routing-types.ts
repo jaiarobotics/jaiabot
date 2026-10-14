@@ -4,12 +4,17 @@ import { RerouteResult, RerouteStep, RestoreResult } from "../data/mission_set/m
 export type RoutingResult =
     | { kind: "routed"; steps: RerouteStep[] }
     | { kind: "allWaypointsBlocked" }
-    /** No way around the zones on the leg between these two waypoints, numbered from 1. */
+    /** No way around the zones on the leg between these two original waypoint numbers. */
     | { kind: "noRoute"; leg: [number, number] };
 
 /** What a reroute or restore did to one mission, for the report. */
 export type RerouteOutcome = { missionID: number } & (
     | RerouteResult
-    | Exclude<RoutingResult, { kind: "routed" }>
+    | { kind: "allWaypointsBlocked" }
+    /**
+     * No way around the zones on the leg between these waypoint numbers, as the mission shows
+     * them; no leg when either end is suppressed.
+     */
+    | { kind: "noRoute"; leg?: [number, number] }
     | ({ kind: "restored" } & RestoreResult)
 );

@@ -1,7 +1,12 @@
 import { cloneDeep } from "lodash";
 import { JaiaActions } from "../jaia-actions";
 import { syncOpenLayers } from "./handler-utils";
-import { JaiaContextType, JaiaSnapshot, JaiaContextDataSnapshot } from "../../types/context-types";
+import {
+    JaiaAction,
+    JaiaContextType,
+    JaiaSnapshot,
+    JaiaContextDataSnapshot,
+} from "../../types/context-types";
 import { historyManager } from "../../data/history/histroy-manager";
 import { missionSet } from "../../data/mission_set/mission-set";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
@@ -15,9 +20,11 @@ import { handleMapModeChange } from "../../openlayers/maps/map";
  * Pulls previous state from history and updates current state and data model
  *
  * @param {JaiaContextType} mutableState Current state to be updated
+ * @param {JaiaAction} [action] including keepPanelState, to leave the visible panel, zone
+ *     editing and map mode as they are
  * @returns {JaiaContextType} Updated mutable state object
  */
-export function handleClickedUndo(mutableState: JaiaContextType) {
+export function handleClickedUndo(mutableState: JaiaContextType, action?: JaiaAction) {
     // Get the previous snapshot from history
     const snapshot = historyManager.undo();
     if (!snapshot) {
@@ -26,7 +33,19 @@ export function handleClickedUndo(mutableState: JaiaContextType) {
     }
 
     // Restore snapshot into mutableState and update data model
+    const panelState = {
+        visiblePanel: mutableState.visiblePanel,
+        zoneInEditMode: jaiaGlobal.getZoneInEditMode(),
+        selectedZoneVertex: jaiaGlobal.getSelectedZoneVertex(),
+        mapMode: jaiaGlobal.getMapMode(),
+    };
     mutableState = restoreSnapshot(mutableState, snapshot);
+    if (action?.keepPanelState) {
+        mutableState.visiblePanel = panelState.visiblePanel;
+        jaiaGlobal.setZoneInEditMode(panelState.zoneInEditMode);
+        jaiaGlobal.setSelectedZoneVertex(panelState.selectedZoneVertex);
+        jaiaGlobal.setMapMode(panelState.mapMode);
+    }
 
     // The reroute report belongs to the state being undone.
     mutableState.rerouteReport = null;

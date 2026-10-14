@@ -176,14 +176,17 @@ describe("getWorstRoutingLevel", () => {
     });
 });
 
-describe("clearSuppressed", () => {
-    test("is empty while the suppressed waypoint is still blocked", () => {
+describe("suppressed and clearSuppressed", () => {
+    test("count a suppressed waypoint that is still blocked as not clear", () => {
         const mission = loadMission([{ location: WEST }, { location: INSIDE, isSuppressed: true }]);
 
-        expect(getRoutingStatus(mission, ZONE_GEOMETRY).clearSuppressed).toEqual([]);
+        expect(getRoutingStatus(mission, ZONE_GEOMETRY)).toMatchObject({
+            suppressed: 1,
+            clearSuppressed: 0,
+        });
     });
 
-    test("lists suppressed waypoints no longer blocked, by original number", () => {
+    test("count suppressed waypoints no longer blocked", () => {
         const mission = loadMission([
             { location: WEST },
             { location: coord(41.001, -72.003), isDetour: true },
@@ -192,7 +195,10 @@ describe("clearSuppressed", () => {
             { location: coord(41.02, -72.0), isSuppressed: true },
         ]);
 
-        expect(getRoutingStatus(mission, NO_ZONE_GEOMETRY).clearSuppressed).toEqual([2, 4]);
+        expect(getRoutingStatus(mission, NO_ZONE_GEOMETRY)).toMatchObject({
+            suppressed: 2,
+            clearSuppressed: 2,
+        });
     });
 });
 
@@ -241,7 +247,8 @@ describe("a freshly rerouted mission", () => {
 
         expect(getRoutingStatus(mission, geometry)).toEqual({
             isConflicted: false,
-            clearSuppressed: [],
+            suppressed: 0,
+            clearSuppressed: 0,
         });
     });
 

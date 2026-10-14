@@ -109,6 +109,11 @@ export interface JaiaAction {
     botAccordionName?: BotAccordionNames;
     mapLayerAccordionName?: MapLayerAccordionNames;
     panelAction?: PanelActions;
+    /**
+     * Undo leaves the visible panel, and the zone editing and map mode that go with it, as they
+     * are instead of restoring the snapshot's.
+     */
+    keepPanelState?: boolean;
     buttonType?: ButtonTypes;
     buttonName?: ButtonNames;
     isMissionAccordionExpanded?: boolean;
