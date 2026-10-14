@@ -45,7 +45,7 @@ const hubStatusMock1: PortalHubStatus = {
     hub_status: {
         hub_id: 1,
     },
-    portalStatusAge: 1,
+    status_age: 1,
 };
 
 beforeEach(() => {

@@ -189,6 +189,22 @@ describe("pollTaskPackets", () => {
         );
     });
 
+    test("queries the included and the excluded packets separately", async () => {
+        const poll = pollTaskPackets();
+        await flushPromises();
+        pendingResponses[0].resolve({ included: [], excluded: [] });
+        await poll;
+
+        const inclusions = (global.fetch as jest.Mock).mock.calls
+            .map(([, init]) => (JSON.parse(init.body) as APIRequest).task_packets)
+            .filter((query) => query !== undefined)
+            .map(({ included_only, excluded_only }) => ({ included_only, excluded_only }));
+        expect(inclusions).toEqual([
+            { included_only: true, excluded_only: undefined },
+            { included_only: undefined, excluded_only: true },
+        ]);
+    });
+
     test("skips the fetch when neither the window nor the version has changed", async () => {
         taskPacketFilter.setSearchWindow(
             new Date("2026-06-02T00:00"),

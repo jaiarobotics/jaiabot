@@ -131,6 +131,9 @@ def jaia_api_long(version, action, target_str):
             # auto fill boolean actions
             setattr(jaia_request, action_field_desc.name, True)
 
+        elif action_field_desc.type != google.protobuf.descriptor.FieldDescriptor.TYPE_MESSAGE:
+            raise APIException(jaiabot.messages.rest_api_pb2.API_ERROR__ACTION_REQUIRES_JSON_POST_DATA, "Action '" + action + "' takes a value, so it is only supported by POSTing a full APIRequest to /jaia/v" + str(version))
+
         else:
             jaia_request_action = getattr(jaia_request, action_field_desc.name)
             # set to empty action message so we can catch uninitialized child fields
@@ -251,14 +254,6 @@ streaming_thread=dict()
 for ep in cfg.streaming_endpoint:
     streaming_thread[ep.hub_id] = threading.Thread(target=streaming_client.start_streaming, args=(ep.hub_id, (ep.hostname, ep.port)))
     streaming_thread[ep.hub_id].start()
-
-@app.after_request
-def add_headers(response):
-    # We need to allow cross-origin requests for the REST API
-    response.headers["Access-Control-Allow-Origin"] = "*"
-    response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
-    response.headers["Access-Control-Allow-Headers"] = "clientid, Content-Type, Authorization"
-    return response
 
 def main():
     app.run(host='0.0.0.0', port=cfg.flask_bind_port, debug=False)

@@ -2,8 +2,7 @@ import { useContext, useState } from "react";
 import { FormControl, MenuItem, Select, SelectChangeEvent } from "@mui/material";
 import { JaiaContext } from "../../../context/JaiaContext";
 import { jaia_rest_api } from "../../../utils/jaia-rest-api";
-import { jaiaAPI } from "../../../utils/jaia-api";
-import { success } from "../../../utils/notifications";
+import { error, success } from "../../../utils/notifications";
 import {
     BotStatusRate,
     Engineering,
@@ -75,8 +74,8 @@ export default function Engineering() {
                 },
             });
             success(`Querying status for Bot ${botID}`);
-        } catch (error) {
-            console.error("Error querying status for Bot:", error);
+        } catch (e) {
+            error(`Could not query status for Bot ${botID}: ${(e as Error)?.message ?? e}`);
         }
     };
 
@@ -136,8 +135,8 @@ export default function Engineering() {
                 engineering_command: engineeringUpdate,
             });
             success(`Submitted update for Bot ${botID}`);
-        } catch (error) {
-            console.error("Error updating Bot:", error);
+        } catch (e) {
+            error(`Could not update Bot ${botID}: ${(e as Error)?.message ?? e}`);
         }
     };
 

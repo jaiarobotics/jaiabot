@@ -29,7 +29,7 @@ const mockBotStatus5: PortalBotStatus = {
         bot_id: 5,
         health_state: HealthState.HEALTH__FAILED,
     },
-    portalStatusAge: 40_000_000,
+    status_age: 40_000_000,
 };
 
 const mockHubStatus1: PortalHubStatus = {
@@ -37,7 +37,7 @@ const mockHubStatus1: PortalHubStatus = {
         hub_id: 1,
         health_state: HealthState.HEALTH__OK,
     },
-    portalStatusAge: 0,
+    status_age: 0,
 };
 
 // Add Bots in non-numerical order to verify sorting
