@@ -1,10 +1,9 @@
-import google.protobuf.json_format
 import jaiabot.messages.rest_api_pb2 as rest_api
-from jaiabot.messages.rest_api_pb2 import TaskPacketQuery, APIRequest, APIResponse, RecordQuery
+from jaiabot.messages.rest_api_pb2 import TaskPacketQuery, APIRequest, APIResponse, RecordQuery, LinkStatusAge
 import jaiabot.messages.portal_pb2
 from jaiabot.messages.jaia_dccl_pb2 import BotStatus, Command
 from jaiabot.messages.hub_pb2 import HubStatus
-from jaiabot.messages.rest_api_pb2 import PodStatus, PortalBotStatus, PortalHubStatus
+from jaiabot.messages.rest_api_pb2 import PortalBotStatus, PortalHubStatus
 
 from pyjaia.kmz import getKMZ
 from pyjaia.csv import task_packets_to_csv
@@ -25,6 +24,11 @@ from flask import Response, request, send_file
 
 
 l = logging.getLogger(__name__)
+
+
+def get_sim_now():
+    WARP = 5
+    return utc_now_microseconds() * WARP
 
 
 def get_bots_and_hubs(target: APIRequest.Nodes):
@@ -290,16 +294,19 @@ def pod_status(jaia_request: APIRequest) -> APIResponse:
 
     with common.shared_data.data_lock:
         bots, hubs = get_bots_and_hubs(jaia_request.target)
+        sim_now = common.shared_data.data.sim_now()
 
         if common.shared_data.data.controlling_client_id is not None:
             jaia_response.pod_status.controlling_client_id = common.shared_data.data.controlling_client_id
 
     jaia_response.target.bots.extend([bot.bot_id for bot in bots])
 
+    now = utc_now_microseconds()
+
     for bot in bots:
         portal_bot_status = PortalBotStatus()
         portal_bot_status.bot_status.CopyFrom(bot)
-        portal_bot_status.status_age = min(utc_now_microseconds() - bot.received_time, MAX_STATUS_AGE)
+        portal_bot_status.status_age = (now - bot.received_time) % MAX_STATUS_AGE # Use modulus, to ensure status_age does not overflow int32 positive OR negative bounds
 
         if bot.bot_id in common.shared_data.data.active_mission_plans:
             portal_bot_status.active_mission_plan.CopyFrom(common.shared_data.data.active_mission_plans[bot.bot_id])
@@ -307,14 +314,14 @@ def pod_status(jaia_request: APIRequest) -> APIResponse:
         if bot.bot_id in common.shared_data.data.bots_engineering:
             portal_bot_status.engineering.CopyFrom(common.shared_data.data.bots_engineering[bot.bot_id])
 
-        # TODO: portal_bot_status.active_link_status_age
+        portal_bot_status.active_link_status_age.extend([ LinkStatusAge(link=active_link.link, age=(sim_now - active_link.last_received_time) % MAX_STATUS_AGE) for active_link in bot.active_links ])
 
         jaia_response.pod_status.bots.append(portal_bot_status)
 
     for hub in hubs:
         portal_hub_status = PortalHubStatus()
         portal_hub_status.hub_status.CopyFrom(hub)
-        portal_hub_status.status_age = min(utc_now_microseconds() - hub.received_time, MAX_STATUS_AGE)
+        portal_hub_status.status_age = (now - hub.received_time) % MAX_STATUS_AGE
 
         jaia_response.pod_status.hubs.append(portal_hub_status)
     
