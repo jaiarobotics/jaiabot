@@ -641,6 +641,11 @@ In progress. Decided and known items:
     Status is in the colour only, so the dialog states it in words and the button's label names
     it.
 
+    Every mission shows the button; it is disabled (greyed) while the mission has no waypoints.
+    The header reads: the title on two lines (mission name, then the bot or "Unassigned"), then
+    the status icons, then the expand chevron. The panel keeps its width, with room for a second
+    status icon (battery).
+
     PR #1554 (predicted battery, Joey) still tints the header, and its review asked for an icon.
     This work will likely land first, so the header-icon design is built here and offered to
     #1554; the two PRs coordinate. Battery prediction is stored because it comes from an async
@@ -693,7 +698,8 @@ In progress. Decided and known items:
     - _One mission:_ tapping the mission's routing-status icon opens a dialog with its status
       details (whether its route crosses a zone, which suppressed waypoints are clear) and its
       actions: reroute, and restore original waypoints.
-    - _Mission set:_ an icon at the top of the missions list shows the status of the whole set and
+    - _Mission set:_ an icon beside the panel's "Mission Set" title, in line with the missions'
+      icons, shows the status of the whole set (disabled while no mission has waypoints) and
       opens a short dialog: one line counting the missions that cross a zone ("3 of 18 missions
       cross a zone", or "No missions cross a zone"), followed, only when some exist, by "2 missions
       have suppressed waypoints." (adding "1 is clear again." when it applies), so an amber set
@@ -842,9 +848,9 @@ changes.
   a tracked action, unlike Save, so undoing the next edit reverts the name. (b) A placement
   refused inside a zone still records an empty undo entry; fixed by checking before dispatch
   (Phase 3).
-- **Step 4:** `getRoutingStatus` rebuilds and buffers every zone for each mission. When the icon
-  shows status for every mission, share the zone geometry across missions or recompute only when
-  the zones change.
+- **Performance, when a profile shows it:** the missions panel rebuilds the zone geometry and
+  tests every mission's route on each render, up to twice a second. Caching needs a zone-set
+  revision, since the zone set is changed in place.
 - **Later:** Jest maps `clipper2-ts` to a mock, so no test runs the real buffering. A test against
   the real library would have caught the whole-metre rounding and the corners that came within
   3.75 m of a zone.
