@@ -532,10 +532,10 @@ The data formats and code layout that support the Phase 1 workflow.
     ```ts
     // mission.ts, beside RerouteStep
     type RerouteResult =
-        | { kind: "changed"; suppressed: number[]; restored: number[]; detoursAdded: number }
+        | { kind: "changed"; suppressed: number; restored: number; detoursAdded: number }
         | { kind: "overWaypointLimit" }; // against MAX_WAYPOINTS
     interface RestoreResult {
-        restored: number[];
+        restored: number;
         detoursRemoved: number;
     }
 
@@ -543,10 +543,11 @@ The data formats and code layout that support the Phase 1 workflow.
     type RoutingResult =
         | { kind: "routed"; steps: RerouteStep[] }
         | { kind: "allWaypointsBlocked" }
-        | { kind: "noRoute"; leg: [number, number] }; // the leg with no way around
+        | { kind: "noRoute"; leg: [number, number] }; // by original waypoint numbers
     type RerouteOutcome = { missionID: number } & (
         | RerouteResult
-        | Exclude<RoutingResult, { kind: "routed" }>
+        | { kind: "allWaypointsBlocked" }
+        | { kind: "noRoute"; leg?: [number, number] } // as the mission shows them; none if an end is suppressed
         | ({ kind: "restored" } & RestoreResult)
     );
     ```
@@ -575,14 +576,14 @@ The data formats and code layout that support the Phase 1 workflow.
     ```ts
     interface RoutingStatus {
         isConflicted: boolean; // the visible route, detours included, crosses a zone
-        clearSuppressed: number[]; // original numbers of suppressed waypoints no longer blocked
+        suppressed: number; // how many waypoints are suppressed
+        clearSuppressed: number; // how many of them are no longer blocked
     }
     ```
 
     `getRoutingStatus(mission, zones)` computes it from `Mission`'s accessors and the blocked and
     route tests; `isConflicted` is today's `getMissionsInConflict` test. The status icon shows the
-    most urgent status, and the status dialog gives the details; it shows `clearSuppressed` as a
-    count.
+    most urgent status, and the status dialog gives the details.
 
 - **Where the code lives: one-way dependencies.** `data/` holds only the data model.
   Derived logic takes its data as parameters instead of reading global objects, and only the
@@ -697,8 +698,8 @@ In progress. Decided and known items:
 - **Two dialogs, one per status icon, sharing their content.** The status icons are the only
   way into rerouting and restoring; no separate Reroute or Restore buttons exist.
     - _One mission:_ tapping the mission's routing-status icon opens a dialog with its status
-      details (whether its route crosses a zone, which suppressed waypoints are clear) and its
-      actions: reroute, and restore original waypoints.
+      details (whether its route crosses a zone, how many suppressed waypoints are clear again)
+      and its actions: reroute, and restore original waypoints.
     - _Mission set:_ an icon beside the panel's "Mission Set" title, in line with the missions'
       icons, shows the status of the whole set (disabled while no mission has waypoints) and
       opens a short dialog: one line counting the missions that cross a zone ("3 of 18 missions
@@ -714,16 +715,20 @@ In progress. Decided and known items:
       actions, rather than opening a second dialog. To switch from one to the other, the operator
       taps the other action: both start from the original waypoints, so neither depends on the
       other, and no undo is needed.
-    - **Backing out from the report:** the report has an "Undo reroute" (or "Undo restore")
-      button that dispatches the same `CLICKED_UNDO` as the toolbar. It is needed because a JCC
-      dialog covers the screen with a transparent layer that catches every tap, so the toolbar
-      Undo stays visible but does not respond while the dialog is open. Undo clears
-      `rerouteReport`, so the report and its button go away and the dialog shows the status and
-      both actions again. No guard: every load that records an undo entry starts inside a storage
-      or editor dialog that blocks the screen until the load is applied. The only way for a load
-      to land while the routing dialog is open is to close the storage dialog during the hub
-      fetch and reroute before the hub answers; the button would then undo the load, and the
-      reroute can be run again. Accepted as a known edge case.
+    - **Backing out from the report:** the report has an "Undo reroute" (or "Undo restore") button
+      that dispatches the same `CLICKED_UNDO` as the toolbar. It is shown only when the action
+      changed the mission, not for the "Not rerouted" outcomes. It is needed because a JCC dialog
+      covers the screen with a transparent layer that catches every tap, so the toolbar Undo stays
+      visible but does not respond while the dialog is open. Undo clears `rerouteReport`, so the
+      report and its button go away and the dialog shows the status and both actions again. This
+      Undo keeps the visible panel, with the zone editing and map mode that go with it
+      (`keepPanelState` on the action): an ordinary Undo restores the panel of the previous edit,
+      which would close the dialog when that edit was made in another panel, such as drawing a zone
+      before rerouting. No guard: every load that records an undo entry starts inside a storage or
+      editor dialog that blocks the screen until the load is applied. The only way for a load to
+      land while the routing dialog is open is to close the storage dialog during the hub fetch and
+      reroute before the hub answers; the button would then undo the load, and the reroute can be
+      run again. Accepted as a known edge case.
     - **Structure, following Run and Run all** (`StartMissionButton` and `StartAllMissionsButton`):
       two button components, each owning its dialog and its open state in a local `useState`,
       with no action for opening or closing. The two dialogs share the Reroute and Restore
@@ -782,14 +787,19 @@ In progress. Decided and known items:
   the margin plus that tolerance, so it is never closer to the zone than the margin and at most a
   tenth further (5–5.5 m for a 5 m margin).
 - **The mission dialog**, top to bottom: a title ("Mission 3 · Bot 3"); the status in words ("The
-  route crosses an exclusion zone." / "3 waypoints are suppressed and will not run.", adding "1 of
-  them is clear again; Reroute brings it back." / "The route is clear."); the report,
+  route crosses an exclusion zone." / "3 waypoints are suppressed and will not be included in
+  run.", adding "1 of them is clear again; Reroute brings it back.", or for a single one "It is
+  clear again; Reroute brings it back." / "The route is clear."); the report,
   after this dialog's own Reroute or Restore; then Reroute, Restore original waypoints and Close.
   The status updates as soon as the action runs, so the report says only what the action did:
-    - Rerouted: "Rerouted: 4 detour waypoints.", adding "3 waypoints suppressed." and "2 waypoints
-      back in the route." when they apply, or "Rerouted: no detours needed." A reroute
+    - Rerouted: "Rerouted: 4 detour waypoints.", adding "2 waypoints back in the route." when it
+      applies, or "Rerouted: no detours needed." Suppressed waypoints are left to the status
+      line, which shows the same count straight above. A reroute
       that finds the same route reads the same way; the data does not tell the two apart.
     - No way around: "Not rerouted: no way around the zones between waypoints 2 and 3. Move those
+      waypoints or the zone."
+    - No way around, on a leg to a suppressed waypoint: "Not rerouted: no way around the zones on a
+      leg to a suppressed waypoint. Restore the original waypoints to see it, then move those
       waypoints or the zone."
     - Every waypoint blocked: "Not rerouted: every waypoint is inside an exclusion zone."
     - Over the limit: "Not rerouted: the new route exceeds the waypoint limit."
@@ -850,6 +860,22 @@ changes.
   rebuild the zone geometry on every redraw, up to twice a second; the panel tests every
   mission's route and the layer tests every waypoint. Caching the geometry needs a zone-set
   revision, since the zone set is changed in place.
+- **Undo and the visible panel, for the team:** an ordinary Undo restores the panel that was open
+  at the previous edit, because switching panels is not tracked. Only the routing dialogs' Undo
+  keeps the current panel. Restoring the panel also keeps selection-based panels (waypoint, zone
+  vertex) from showing a point that Undo removed, so a general change needs a guard for those.
+- **Undo entries that change nothing:** the reducer saves history for every tracked action, so a
+  reroute that leaves the mission unchanged ("Not rerouted", or "no detours needed") still
+  records an undo entry. The dialog offers no Undo for "Not rerouted", but after the dialog
+  closes, one toolbar Undo backs out that empty entry and appears to do nothing (it can still
+  switch to the panel of the previous edit); the next Undo backs out the edit before it.
+  Accepted for now; fixing it means letting a handler skip saving history.
+- **Undo only reaches the dialog's last action:** after Reroute, Restore and "Undo restore", the
+  routing dialog offers no Undo for the reroute, since Undo clears the report. Restore gives the
+  same waypoints, and the toolbar Undo backs out the reroute once the dialog is closed. Option
+  if it draws comments: the shared routing hook keeps the dialog's own actions and their report
+  lines, so each Undo shows the one before with its own Undo. Safe because the dialog blocks the
+  screen, so its actions are the newest undo entries (except the accepted in-flight load case).
 - **Later:** Jest maps `clipper2-ts` to a mock, so no test runs the real buffering. A test against
   the real library would have caught the whole-metre rounding and the corners that came within
   3.75 m of a zone.
