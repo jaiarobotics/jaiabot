@@ -2,7 +2,7 @@ import Mission from "../../../data/mission_set/mission";
 import { ExclusionZone } from "../../../data/exclusion_zones/exclusion-zone-set";
 import { GeographicCoordinate } from "../../../types/protobuf-types";
 import { autoRoute, buildZoneGeometry, ZoneGeometry } from "../router";
-import { getRoutingStatus } from "../routing-status";
+import { getRouteWarnings, getRoutingStatus, RouteWarning } from "../routing-status";
 
 function coord(lat: number, lon: number): GeographicCoordinate {
     return { lat, lon };
@@ -194,5 +194,74 @@ describe("a freshly rerouted mission", () => {
 
         expect(mission.getWaypoints()[0].getLocation()).toEqual(WEST);
         expect(getRoutingStatus(mission, ZONE_GEOMETRY).isConflicted).toBe(false);
+    });
+});
+
+describe("getRouteWarnings", () => {
+    const NORTH_WEST = coord(41.01, -72.005);
+    const NORTH_EAST = coord(41.01, -71.995);
+    // Just north of ZONE's edge: outside the zone, inside its safety margin
+    const IN_MARGIN = coord(41.0005 + 2 / 111_320, -72.0);
+    const { ROUTE_CROSSES_ZONE, APPROACH_CROSSES_ZONE, START_INSIDE_ZONE } = RouteWarning;
+
+    test("is empty for a clear route and a clear path to it", () => {
+        expect(getRouteWarnings(plainMission(NORTH_EAST), NORTH_WEST, ZONE_GEOMETRY)).toEqual([]);
+    });
+
+    test("warns when the route crosses a zone", () => {
+        expect(getRouteWarnings(plainMission(WEST, EAST), undefined, ZONE_GEOMETRY)).toEqual([
+            ROUTE_CROSSES_ZONE,
+        ]);
+    });
+
+    test("warns when the path from the start to the first waypoint crosses a zone", () => {
+        expect(getRouteWarnings(plainMission(EAST), WEST, ZONE_GEOMETRY)).toEqual([
+            APPROACH_CROSSES_ZONE,
+        ]);
+    });
+
+    test("warns when the start is inside a zone", () => {
+        expect(getRouteWarnings(plainMission(EAST), INSIDE, ZONE_GEOMETRY)).toEqual([
+            START_INSIDE_ZONE,
+        ]);
+    });
+
+    test("tests only the route without a start position", () => {
+        expect(getRouteWarnings(plainMission(EAST), undefined, ZONE_GEOMETRY)).toEqual([]);
+    });
+
+    test("ends the path at the first visible waypoint, not a suppressed one", () => {
+        const mission = loadMission([
+            { location: EAST, isSuppressed: true },
+            { location: NORTH_EAST },
+        ]);
+
+        expect(getRouteWarnings(plainMission(EAST), WEST, ZONE_GEOMETRY)).toEqual([
+            APPROACH_CROSSES_ZONE,
+        ]);
+        expect(getRouteWarnings(mission, WEST, ZONE_GEOMETRY)).toEqual([]);
+    });
+
+    test.each([
+        ["inside a zone", INSIDE],
+        ["inside a zone's safety margin", IN_MARGIN],
+    ])("leaves a first waypoint %s to the route warning", (_name, first) => {
+        expect(getRouteWarnings(plainMission(first), undefined, ZONE_GEOMETRY)).toEqual([
+            ROUTE_CROSSES_ZONE,
+        ]);
+        expect(getRouteWarnings(plainMission(first), WEST, ZONE_GEOMETRY)).toEqual([
+            ROUTE_CROSSES_ZONE,
+        ]);
+    });
+
+    test("still warns about the path when it crosses another zone", () => {
+        const zones = new Map(ZONE);
+        zones.set(2, squareZone(41.0, -72.003));
+        const geometry = buildZoneGeometry(zones);
+
+        expect(getRouteWarnings(plainMission(INSIDE), WEST, geometry)).toEqual([
+            ROUTE_CROSSES_ZONE,
+            APPROACH_CROSSES_ZONE,
+        ]);
     });
 });

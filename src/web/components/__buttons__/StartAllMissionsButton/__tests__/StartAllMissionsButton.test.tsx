@@ -11,6 +11,7 @@ import { missionSet } from "../../../../data/mission_set/mission-set";
 import { PortalBotStatus } from "../../../../shared/PortalStatus";
 import { MissionState } from "../../../../types/protobuf-types";
 import { missionsManager } from "../../../../data/missions_manager/missions-manager";
+import { exclusionZoneSet } from "../../../../data/exclusion_zones/exclusion-zone-set";
 
 // Place user in control by default
 jest.mock("../../../../utils/commands", () => {
@@ -245,4 +246,66 @@ test("All Bots ready to start missions", async () => {
     ).toBeNull();
     expect(screen.getByText("Start Missions")).toBeInTheDocument();
     expect(screen.getByText("Cancel")).toBeInTheDocument();
+});
+
+describe("route warnings", () => {
+    const WEST = { lat: 41.0, lon: -72.005 };
+    const EAST = { lat: 41.0, lon: -71.995 };
+
+    beforeEach(() =>
+        exclusionZoneSet.addZone({
+            vertices: [
+                { lat: 40.9995, lon: -72.0005 },
+                { lat: 40.9995, lon: -71.9995 },
+                { lat: 41.0005, lon: -71.9995 },
+                { lat: 41.0005, lon: -72.0005 },
+            ],
+        }),
+    );
+    afterEach(() => exclusionZoneSet.clearZones());
+
+    test("list the Bots each warning applies to", async () => {
+        bots.getBots().clear();
+        missionsManager.clear();
+
+        // Bots 1 and 6 run routes across the zone; Bot 7's path to its first waypoint crosses it
+        const crossing = (): Mission => {
+            const mission = new Mission();
+            mission.addWaypoint(WEST);
+            mission.addWaypoint(EAST);
+            return mission;
+        };
+        const beyond = new Mission();
+        beyond.addWaypoint(EAST);
+        for (const [botID, mission] of [
+            [1, crossing()],
+            [6, crossing()],
+            [7, beyond],
+        ] as [number, Mission][]) {
+            bots.setBot({ ...botStatusMock1, bot_id: botID, location: WEST });
+            missionsManager.assign(botID, missionSet.addMission(mission));
+        }
+
+        render(
+            <JaiaContextProvider>
+                <StartAllMissionsButton
+                    bots={bots.getBots()}
+                    missions={missionSet.getMissions()}
+                    missionSetName="Mission Set"
+                />
+            </JaiaContextProvider>,
+        );
+        await userEvent.click(screen.getByRole("button", { name: "start-all-missions" }));
+
+        expect(screen.getByText("Send missions to Bots: 1, 6, 7")).toBeInTheDocument();
+        expect(
+            screen.getByText("Mission routes cross an exclusion zone for Bots: 1, 6."),
+        ).toBeInTheDocument();
+        expect(
+            screen.getByText(
+                /^The path to the first waypoint crosses an exclusion zone for Bot: 7\./,
+            ),
+        ).toBeInTheDocument();
+        expect(screen.getByText("Start Missions")).toBeInTheDocument();
+    });
 });

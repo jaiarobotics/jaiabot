@@ -1,10 +1,11 @@
-import { useContext, useState } from "react";
+import { useContext, useMemo, useState } from "react";
 import { JaiaDispatchContext } from "../../../context/JaiaContext";
 import { JaiaActions } from "../../../context/jaia-actions";
 
 import TakeControlDialog from "../TakeControl/TakeControlDialog/TakeControlDialog";
 import { StartMissionDialog } from "./StartMissionDialog";
 import { DisabledCodes } from "../disabled-codes";
+import { describeRouteWarning } from "../route-warnings";
 
 import { Icon } from "@mdi/react";
 import { Button } from "@mui/material";
@@ -18,6 +19,9 @@ import { isCommandAvailable, isControllingClient, sendBotCommand } from "../../.
 
 import { mdiPlay } from "@mdi/js";
 import { missionsManager } from "../../../data/missions_manager/missions-manager";
+import { exclusionZoneSet } from "../../../data/exclusion_zones/exclusion-zone-set";
+import { buildZoneGeometry } from "../../../utils/routing/router";
+import { getRouteWarnings } from "../../../utils/routing/routing-status";
 import { MDI_BUTTON_SIZE, MIN_BATTERY_PERCENT, UNASSIGNED_ID } from "../../../utils/constants";
 
 interface Props {
@@ -82,6 +86,21 @@ export default function StartMissionButton(props: Props) {
         return DisabledCodes.NONE;
     };
 
+    // Tested when the dialog opens, not on every Bot status update while it is open
+    const routeWarnings = useMemo(() => {
+        const code = getDisabledCode();
+        if (
+            !isDialogVisible ||
+            (code !== DisabledCodes.NONE && code !== DisabledCodes.LOW_BATTERY)
+        ) {
+            return [];
+        }
+        const geometry = buildZoneGeometry(exclusionZoneSet.getZones());
+        return getRouteWarnings(props.mission, props.bot.getLocation(), geometry).map((warning) =>
+            describeRouteWarning(warning, props.bot.getBotID(), props.mission.getMissionID()),
+        );
+    }, [isDialogVisible, props.bot, props.mission]);
+
     /**
      * Determines what dialog to display on click (take control or activate)
      *
@@ -140,6 +159,7 @@ export default function StartMissionButton(props: Props) {
             <StartMissionDialog
                 isVisible={isDialogVisible}
                 disabledCode={getDisabledCode()}
+                routeWarnings={routeWarnings}
                 onClose={onDialogClose}
             />
             <TakeControlDialog
