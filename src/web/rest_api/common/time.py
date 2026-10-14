@@ -3,7 +3,8 @@
 ##
 
 
-import datetime
+import time
 
 def utc_now_microseconds():
-    return int(datetime.datetime.utcnow().timestamp() * 1e6)
+    return int(time.time() * 1e6)
+
