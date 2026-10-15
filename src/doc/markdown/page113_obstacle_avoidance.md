@@ -286,6 +286,11 @@ The repeat leg (last waypoint back to waypoint 1) and the leg to a rally point a
 targeting an edge on a tablet is unreliable. Appending far from the closing edge makes a
 bow-tie. The router handles it, but the area excluded is not the one the operator meant.
 
+**A reroute that changes nothing still records an undo entry.** The reducer saves history for
+every tracked action, so after a reroute that leaves the missions as they were ("no detours
+needed", or "Not rerouted"), the next toolbar Undo appears to do nothing. Skipping it needs a way
+for a handler to tell the reducer not to save history.
+
 **Zones across ±180° longitude** project to a shape spanning the globe in their latitude band,
 so waypoints anywhere in that band count as blocked.
 
