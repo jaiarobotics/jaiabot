@@ -24,23 +24,39 @@ describe("describeRoutingStatus", () => {
         ]);
     });
 
-    test("says how many suppressed waypoints are clear again", () => {
+    test("says what Reroute and Restore bring back when some suppressed waypoints are clear", () => {
         expect(
             describeRoutingStatus({ isConflicted: false, suppressed: 3, clearSuppressed: 1 }),
         ).toEqual([
-            "3 waypoints are suppressed and will not be included in run. 1 of them is clear again; " +
-                "Reroute brings it back.",
+            "3 waypoints are suppressed and will not be included in run. 1 of them is clear again: " +
+                "Reroute brings back only the clear one; Restore brings back all of them.",
         ]);
+        expect(
+            describeRoutingStatus({ isConflicted: false, suppressed: 5, clearSuppressed: 3 }),
+        ).toEqual([
+            "5 waypoints are suppressed and will not be included in run. 3 of them are clear again: " +
+                "Reroute brings back only the clear ones; Restore brings back all of them.",
+        ]);
+    });
+
+    test("names both actions when every suppressed waypoint is clear", () => {
         expect(
             describeRoutingStatus({ isConflicted: false, suppressed: 1, clearSuppressed: 1 }),
         ).toEqual([
-            "1 waypoint is suppressed and will not be included in run. It is clear again; Reroute brings it back.",
+            "1 waypoint is suppressed and will not be included in run. It is clear again: " +
+                "Reroute or Restore brings it back.",
         ]);
         expect(
             describeRoutingStatus({ isConflicted: false, suppressed: 2, clearSuppressed: 2 }),
         ).toEqual([
-            "2 waypoints are suppressed and will not be included in run. 2 of them are clear again; " +
-                "Reroute brings them back.",
+            "2 waypoints are suppressed and will not be included in run. Both are clear again: " +
+                "Reroute or Restore brings them back.",
+        ]);
+        expect(
+            describeRoutingStatus({ isConflicted: false, suppressed: 4, clearSuppressed: 4 }),
+        ).toEqual([
+            "4 waypoints are suppressed and will not be included in run. All of them are clear " +
+                "again: Reroute or Restore brings them back.",
         ]);
     });
 });
@@ -130,14 +146,16 @@ describe("describeMissionSetStatus", () => {
     test("counts the missions with waypoints clear again, not those still blocked", () => {
         expect(describeMissionSetStatus([crossing, suppressed, clearAgain], 3)).toEqual([
             "1 of 3 missions crosses a zone.",
-            "1 mission has suppressed waypoints that are clear again; Reroute all brings them back.",
+            "1 mission has suppressed waypoints that are clear again. Reroute all brings back only " +
+                "the clear ones; Restore all brings back every suppressed waypoint.",
         ]);
         expect(describeMissionSetStatus([suppressed, clear], 2)).toEqual([
             "No missions cross a zone.",
         ]);
         expect(describeMissionSetStatus([clearAgain, clearAgain], 2)).toEqual([
             "No missions cross a zone.",
-            "2 missions have suppressed waypoints that are clear again; Reroute all brings them back.",
+            "2 missions have suppressed waypoints that are clear again. Reroute all brings back only " +
+                "the clear ones; Restore all brings back every suppressed waypoint.",
         ]);
     });
 });

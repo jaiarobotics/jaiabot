@@ -21,15 +21,17 @@ function countOf(count: number, noun: string) {
 export function describeRoutingStatus(status: RoutingStatus): string[] {
     const lines: string[] = [];
     if (status.isConflicted) lines.push("The route crosses an exclusion zone.");
-    if (status.suppressed > 0) {
-        const verb = status.suppressed === 1 ? "is" : "are";
-        let line = `${countOf(status.suppressed, "waypoint")} ${verb} suppressed and will not be included in run.`;
-        if (status.suppressed === 1 && status.clearSuppressed === 1) {
-            line += " It is clear again; Reroute brings it back.";
-        } else if (status.clearSuppressed > 0) {
-            const one = status.clearSuppressed === 1;
-            line += ` ${status.clearSuppressed} of them ${one ? "is" : "are"} clear again;`;
-            line += ` Reroute brings ${one ? "it" : "them"} back.`;
+    const { suppressed, clearSuppressed } = status;
+    if (suppressed > 0) {
+        const one = suppressed === 1;
+        let line = `${countOf(suppressed, "waypoint")} ${one ? "is" : "are"} suppressed and will not be included in run.`;
+        if (clearSuppressed === suppressed) {
+            const all = one ? "It is" : suppressed === 2 ? "Both are" : "All of them are";
+            line += ` ${all} clear again: Reroute or Restore brings ${one ? "it" : "them"} back.`;
+        } else if (clearSuppressed > 0) {
+            const oneClear = clearSuppressed === 1;
+            line += ` ${clearSuppressed} of them ${oneClear ? "is" : "are"} clear again: Reroute brings`;
+            line += ` back only the clear ${oneClear ? "one" : "ones"}; Restore brings back all of them.`;
         }
         lines.push(line);
     }
@@ -60,7 +62,8 @@ export function describeMissionSetStatus(
     if (clear > 0) {
         lines.push(
             `${countOf(clear, "mission")} ${clear === 1 ? "has" : "have"} suppressed waypoints that are ` +
-                "clear again; Reroute all brings them back.",
+                "clear again. Reroute all brings back only the clear ones; Restore all brings back " +
+                "every suppressed waypoint.",
         );
     }
     return lines;
