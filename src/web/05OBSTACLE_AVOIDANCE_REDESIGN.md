@@ -706,8 +706,8 @@ In progress. Decided and known items:
       icons, shows the status of the whole set (disabled while no mission has waypoints) and
       opens a short dialog: one line counting the missions that cross a zone ("3 of 18 missions
       cross a zone", or "No missions cross a zone"), followed, only when some exist, by "1 mission
-      has suppressed waypoints that are clear again; Reroute all brings them back.", so an amber
-      set icon is explained; then
+      has suppressed waypoints that are clear again. Reroute all brings back only the clear ones;
+      Restore all brings back every suppressed waypoint.", so an amber set icon is explained; then
       Reroute all and Restore all. It lists no missions; each mission's own icon shows which ones
       conflict. After Reroute all or Restore all, the report states the result: "All missions
       rerouted.", or "2 missions could not be rerouted:" followed by only those missions, each
@@ -794,8 +794,10 @@ In progress. Decided and known items:
   tenth further (5–5.5 m for a 5 m margin).
 - **The mission dialog**, top to bottom: a title ("Mission 3 · Bot 3"); the status in words ("The
   route crosses an exclusion zone." / "3 waypoints are suppressed and will not be included in
-  run.", adding "1 of them is clear again; Reroute brings it back.", or for a single one "It is
-  clear again; Reroute brings it back." / "The route is clear."); the report,
+  run.", adding "1 of them is clear again: Reroute brings back only the clear one; Restore brings
+  back all of them.", or, when every suppressed waypoint is clear, "Both are clear again: Reroute
+  or Restore brings them back." ("It is …" for one, "All of them are …" for three or more) /
+  "The route is clear."); the report,
   after this dialog's own Reroute or Restore; then Reroute, Restore original waypoints and Close.
   The status updates as soon as the action runs, so the report says only what the action did:
     - Rerouted: "Rerouted: 4 detour waypoints.", adding "2 waypoints back in the route." when it
