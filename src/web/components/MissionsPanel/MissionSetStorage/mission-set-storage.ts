@@ -116,16 +116,14 @@ export async function listSavedMissionSetsFromHub(): Promise<string[]> {
 }
 
 /**
- * Exports the current mission set to a JSON file
+ * Exports the current mission set to a JSON file, under the given name
  *
- * @param {string} name Name to use for mission set and file
+ * @param {string} name Name of the exported mission set and its file
  * @returns {void}
  */
 export function exportMissionSetToFile(name: string) {
-    missionSet.setName(name);
-
     // Capture mission set snapshot and version
-    const snapshot = missionSet.captureSnapshot();
+    const snapshot = { ...missionSet.captureSnapshot(), name };
     const data = JSON.stringify({
         version: MISSION_SET_VERSION,
         snapshot: snapshot,

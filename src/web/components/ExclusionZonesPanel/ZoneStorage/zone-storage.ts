@@ -83,16 +83,15 @@ export async function deleteFromHub(name: string): Promise<void> {
 // ── File export / import ────────────────────────────────────────────────────
 
 /**
- * Exports the current zone set to a JSON file download
+ * Exports the current zone set to a JSON file download, under the given name
  *
- * @param {string} name Filename (without extension) for the downloaded JSON file
+ * @param {string} name Name of the exported zone set and its file (without extension)
  * @returns {void}
  */
 export function exportZonesToFile(name: string) {
-    exclusionZoneSet.setName(name);
     const data = JSON.stringify({
         version: EXCLUSION_ZONE_SET_VERSION,
-        snapshot: exclusionZoneSet.captureSnapshot(),
+        snapshot: { ...exclusionZoneSet.captureSnapshot(), name },
     } as ExclusionZoneFile);
 
     const blob = new Blob([data], { type: "application/json" });

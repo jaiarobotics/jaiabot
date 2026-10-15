@@ -1,5 +1,6 @@
 import { useContext, useState } from "react";
-import { JaiaContext } from "../../../../context/JaiaContext";
+import { JaiaContext, JaiaDispatchContext } from "../../../../context/JaiaContext";
+import { JaiaActions } from "../../../../context/jaia-actions";
 import { DialogActions } from "../../../../types/context-types";
 import { exportZonesToFile } from "../zone-storage";
 import { DisabledCodes } from "./export-messages";
@@ -15,6 +16,7 @@ interface Props {
  */
 export default function ExportZoneButton(props: Props) {
     const jaiaContext = useContext(JaiaContext);
+    const jaiaDispatch = useContext(JaiaDispatchContext);
     const [isDialogVisible, setIsDialogVisible] = useState(false);
 
     /**
@@ -50,7 +52,14 @@ export default function ExportZoneButton(props: Props) {
     const onDialogClose = (dialogAction: DialogActions) => {
         setIsDialogVisible(false);
         if (dialogAction === DialogActions.CONFIRMED) {
-            exportZonesToFile(props.saveName.trim());
+            const name = props.saveName.trim();
+            exportZonesToFile(name);
+            if (name !== jaiaContext.exclusionZoneSet.getName()) {
+                jaiaDispatch({
+                    type: JaiaActions.CHANGE_EXCLUSION_ZONE_SET_NAME,
+                    exclusionZoneSetName: name,
+                });
+            }
         }
     };
 
