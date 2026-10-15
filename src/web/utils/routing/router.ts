@@ -122,10 +122,10 @@ function segmentsIntersect(A: XYPt, B: XYPt, C: XYPt, D: XYPt): boolean {
  * Tests whether point P is inside a polygon using the ray-casting algorithm.
  *
  * @param {XYPt} P Point to test
- * @param {XYPt[]} poly Polygon vertices in order
+ * @param {readonly XYPt[]} poly Polygon vertices in order
  * @returns {boolean} Whether P is inside the polygon
  */
-function pointInPolygon(P: XYPt, poly: XYPt[]): boolean {
+function pointInPolygon(P: XYPt, poly: readonly XYPt[]): boolean {
     let inside = false;
     const n = poly.length;
     for (let i = 0, j = n - 1; i < n; j = i++) {
@@ -144,10 +144,10 @@ function pointInPolygon(P: XYPt, poly: XYPt[]): boolean {
  *
  * @param {XYPt} A Start of the segment
  * @param {XYPt} B End of the segment
- * @param {XYPt[]} poly Polygon vertices in order
+ * @param {readonly XYPt[]} poly Polygon vertices in order
  * @returns {boolean} Whether AB intersects any polygon edge
  */
-function segmentIntersectsPolygon(A: XYPt, B: XYPt, poly: XYPt[]): boolean {
+function segmentIntersectsPolygon(A: XYPt, B: XYPt, poly: readonly XYPt[]): boolean {
     const n = poly.length;
     for (let i = 0; i < n; i++) {
         if (segmentsIntersect(A, B, poly[i], poly[(i + 1) % n])) return true;
@@ -165,11 +165,11 @@ interface Bounds {
 /**
  * Bounding box of the given points, expanded by `padding` on every side.
  *
- * @param {XYPt[]} pts Points to bound
+ * @param {readonly XYPt[]} pts Points to bound
  * @param {number} padding Distance to expand the box by on each side, in the points' units
  * @returns {Bounds} The padded bounding box
  */
-function boundsOf(pts: XYPt[], padding: number): Bounds {
+function boundsOf(pts: readonly XYPt[], padding: number): Bounds {
     return {
         minX: Math.min(...pts.map((p) => p.x)) - padding,
         minY: Math.min(...pts.map((p) => p.y)) - padding,
@@ -183,11 +183,11 @@ function boundsOf(pts: XYPt[], padding: number): Bounds {
  * Conservative: a polygon whose box overlaps but whose shape does not is kept, which
  * costs a little work and can never drop a polygon that matters.
  *
- * @param {XYPt[]} poly Polygon to test
+ * @param {readonly XYPt[]} poly Polygon to test
  * @param {Bounds} bounds Region to test against
  * @returns {boolean} Whether the polygon could intersect the region
  */
-function polygonOverlapsBounds(poly: XYPt[], bounds: Bounds): boolean {
+function polygonOverlapsBounds(poly: readonly XYPt[], bounds: Bounds): boolean {
     const box = boundsOf(poly, 0);
     return (
         box.minX <= bounds.maxX &&
@@ -225,11 +225,11 @@ function dist(A: XYPt, B: XYPt): number {
  * Expands a polygon outward by `margin` using Clipper2's inflatePathsD.
  * Returns a single expanded polygon with consistent winding (centroid inside).
  *
- * @param {XYPt[]} poly Polygon vertices to expand
+ * @param {readonly XYPt[]} poly Polygon vertices to expand
  * @param {number} margin Outward expansion distance, in the polygon's units
- * @returns {XYPt[]} Expanded polygon vertices
+ * @returns {readonly XYPt[]} Expanded polygon vertices
  */
-function expandPolygon(poly: XYPt[], margin: number): XYPt[] {
+function expandPolygon(poly: readonly XYPt[], margin: number): readonly XYPt[] {
     const input = [poly.map((p) => ({ x: p.x, y: p.y }))];
     const cleaned = Clipper.unionD(input, FillRule.NonZero);
     const subject = cleaned.length > 0 ? cleaned : input;
@@ -267,13 +267,24 @@ function expandPolygon(poly: XYPt[], margin: number): XYPt[] {
 
 // ── Zone geometry ──────────────────────────────────────────────────────────────
 
-interface ZoneGeom {
-    zoneID: number;
+/** A zone's projected and buffered shape. */
+interface ZoneShape {
     /** Raw user-drawn vertices (possibly concave). */
-    raw: XYPt[];
+    raw: readonly XYPt[];
     /** Expanded safety buffer polygon. */
-    expanded: XYPt[];
+    expanded: readonly XYPt[];
 }
+
+interface ZoneGeom extends ZoneShape {
+    zoneID: number;
+}
+
+/**
+ * Each zone's shape and the margin it was buffered by, keyed by the zone object. Zones are
+ * never changed in place, so a zone object always has the same shape; an entry is freed with
+ * its zone.
+ */
+const zoneShapes = new WeakMap<ExclusionZone, { safetyMargin: number; shape: ZoneShape }>();
 
 /**
  * Every zone projected and buffered once, so every test about a zone uses the same shape.
@@ -307,7 +318,8 @@ function zonesBlockingSegment(A: XYPt, B: XYPt, zoneGeoms: ZoneGeom[]): ZoneGeom
 
 /**
  * Projects and buffers every exclusion zone. Each zone's margin is converted to Mercator
- * units at the zone's own latitude. Build it once per zone set and pass it to every test.
+ * units at the zone's own latitude. A zone's shape is built once and reused until the zone
+ * is replaced.
  *
  * @param {ReadonlyMap<number, ExclusionZone>} zones Exclusion zones to project, keyed by zone ID
  * @param {number} [safetyMargin] Safety buffer distance in metres around each zone
@@ -320,10 +332,15 @@ export function buildZoneGeometry(
     const zoneGeoms: ZoneGeom[] = [];
     for (const [zoneID, zone] of zones) {
         if (!zone.vertices || zone.vertices.length < 3) continue;
-        const raw = zone.vertices.map(toXY);
-        const meanY = raw.reduce((sum, p) => sum + p.y, 0) / raw.length;
-        const expanded = expandPolygon(raw, safetyMargin * unitsPerMetre(meanY));
-        zoneGeoms.push({ zoneID, raw, expanded });
+        let cached = zoneShapes.get(zone);
+        if (cached?.safetyMargin !== safetyMargin) {
+            const raw = zone.vertices.map(toXY);
+            const meanY = raw.reduce((sum, p) => sum + p.y, 0) / raw.length;
+            const expanded = expandPolygon(raw, safetyMargin * unitsPerMetre(meanY));
+            cached = { safetyMargin, shape: { raw, expanded } };
+            zoneShapes.set(zone, cached);
+        }
+        zoneGeoms.push({ zoneID, ...cached.shape });
     }
     return { safetyMargin, zones: zoneGeoms };
 }

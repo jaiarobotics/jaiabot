@@ -10,6 +10,7 @@ import {
     routeNeedsBypass,
 } from "../router";
 import { METERS_PER_DEG } from "../../constants";
+import { Clipper } from "clipper2-ts";
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -41,7 +42,7 @@ function routedPath(
     );
 }
 
-function expectPathClearOf(path: GeographicCoordinate[], hull: GeographicCoordinate[]) {
+function expectPathClearOf(path: GeographicCoordinate[], hull: readonly GeographicCoordinate[]) {
     for (let i = 0; i < path.length - 1; i++) {
         expect(segmentCrossesHull(path[i], path[i + 1], hull)).toBe(false);
     }
@@ -105,7 +106,7 @@ function approxDistMetres(a: GeographicCoordinate, b: GeographicCoordinate): num
 function segmentCrossesHull(
     A: GeographicCoordinate,
     B: GeographicCoordinate,
-    hull: GeographicCoordinate[],
+    hull: readonly GeographicCoordinate[],
 ): boolean {
     const n = hull.length;
     for (let i = 0; i < n; i++) {
@@ -687,6 +688,86 @@ describe("one zone geometry for every test", () => {
             expect(routeNeedsBypass([farOut, inside], geometry)).toBe(true);
             expect(routeNeedsBypass([farOut, outside], geometry)).toBe(false);
         }
+    });
+});
+
+describe("zone shapes are built once per zone", () => {
+    beforeEach(() => exclusionZoneSet.clearZones());
+    afterEach(() => jest.restoreAllMocks());
+
+    /** Counts the zone buffers built from here on. */
+    function countBuffers() {
+        return jest.spyOn(Clipper, "inflatePathsD");
+    }
+
+    test("reuses an unchanged zone's shape", () => {
+        const zones = new Map([[1, squareZone(41.0, -72.0)]]);
+        const first = buildZoneGeometry(zones);
+        const buffers = countBuffers();
+
+        const second = buildZoneGeometry(zones);
+
+        expect(buffers).not.toHaveBeenCalled();
+        expect(second.zones[0].expanded).toBe(first.zones[0].expanded);
+    });
+
+    test("rebuilds only the zone an edit replaced", () => {
+        const movedID = exclusionZoneSet.addZone(squareZone(41.0, -72.0));
+        const keptID = exclusionZoneSet.addZone(squareZone(41.01, -72.0));
+        const kept = buildZoneGeometry(exclusionZoneSet.getZones()).zones[1].expanded;
+        const buffers = countBuffers();
+
+        exclusionZoneSet.moveVertex(movedID, 0, coord(40.999, -72.001));
+        const geometry = buildZoneGeometry(exclusionZoneSet.getZones());
+
+        expect(buffers).toHaveBeenCalledTimes(1);
+        expect(geometry.zones.find((z) => z.zoneID === keptID)!.expanded).toBe(kept);
+    });
+
+    test("rebuilds after a vertex is added or deleted", () => {
+        const zoneID = exclusionZoneSet.addZone(squareZone(41.0, -72.0));
+        buildZoneGeometry(exclusionZoneSet.getZones());
+        const buffers = countBuffers();
+
+        exclusionZoneSet.addVertex(zoneID, coord(41.0, -72.001));
+        buildZoneGeometry(exclusionZoneSet.getZones());
+        const zone = exclusionZoneSet.getZone(zoneID)!;
+        exclusionZoneSet.updateZone(zoneID, { ...zone, vertices: zone.vertices!.slice(1) });
+        buildZoneGeometry(exclusionZoneSet.getZones());
+
+        expect(buffers).toHaveBeenCalledTimes(2);
+    });
+
+    test("gives a restored zone set the shapes of the zones restored", () => {
+        const zoneID = exclusionZoneSet.addZone(squareZone(41.0, -72.0));
+        const before = buildZoneGeometry(exclusionZoneSet.getZones());
+        const snapshot = exclusionZoneSet.captureSnapshot();
+        exclusionZoneSet.moveVertex(zoneID, 0, coord(40.999, -72.001));
+        buildZoneGeometry(exclusionZoneSet.getZones());
+
+        exclusionZoneSet.restoreFromSnapshot(snapshot);
+
+        expect(buildZoneGeometry(exclusionZoneSet.getZones())).toEqual(before);
+    });
+
+    test("rebuilds for a different safety margin", () => {
+        const zones = new Map([[1, squareZone(41.0, -72.0)]]);
+        buildZoneGeometry(zones, 5);
+        const buffers = countBuffers();
+
+        buildZoneGeometry(zones, 10);
+
+        expect(buffers).toHaveBeenCalledTimes(1);
+    });
+
+    test("the buffer drawn on the map reuses the shape the router tests against", () => {
+        const zone = squareZone(41.0, -72.0);
+        buildZoneGeometry(new Map([[1, zone]]));
+        const buffers = countBuffers();
+
+        getZoneBufferVertices(zone);
+
+        expect(buffers).not.toHaveBeenCalled();
     });
 });
 

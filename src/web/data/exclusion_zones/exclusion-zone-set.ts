@@ -2,8 +2,8 @@ import cloneDeep from "lodash/cloneDeep";
 import { GeographicCoordinate } from "../../types/protobuf-types";
 
 export interface ExclusionZone {
-    label?: string;
-    vertices?: GeographicCoordinate[];
+    readonly label?: string;
+    readonly vertices?: readonly Readonly<GeographicCoordinate>[];
 }
 
 export const EXCLUSION_ZONE_SET_VERSION = "1.0";
