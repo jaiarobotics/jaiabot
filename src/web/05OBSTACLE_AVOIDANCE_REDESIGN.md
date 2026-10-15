@@ -42,7 +42,7 @@ data model.
 - **Waypoint** is used throughout. The MissionPlan message sent to bots calls these _goals_, for
   historical reasons; "goal" is used only when discussing that message directly.
 - **Blocked waypoint:** a waypoint inside a zone or its safety buffer. _Derived_, by
-  `isLocationBlockedByZone`, the same test that asks for confirmation before a point is placed in
+  `isLocationBlocked`, the same test that asks for confirmation before a point is placed in
   a zone.
 - **Conflicted mission:** a mission whose path crosses a zone, through one of its legs or one of
   its waypoints. _Derived._
@@ -209,7 +209,8 @@ undone action. Nothing is rerouted; status is recomputed when the screen draws.
 ### What is new for the operator
 
 - Blocked waypoints drawn in red, detours included; in a mission being edited the edit-mode
-  yellow wins. A running mission's faded copy is not coloured. Legs that cross a zone are not
+  yellow wins. Detours are orange only when no other colour applies: edit-mode yellow, red and
+  the selected bot's turquoise all replace it. A running mission's faded copy is not coloured. Legs that cross a zone are not
   marked; that is reassessed once the waypoint colour is in use.
 - A routing-status icon in each mission's accordion header
 - Reroute actions, in a per-mission variant and an all-missions variant. They will likely appear in
