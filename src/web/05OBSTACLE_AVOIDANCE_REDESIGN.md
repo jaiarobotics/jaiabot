@@ -634,11 +634,12 @@ In progress. Decided and known items:
   most urgent winning:
     - _Red_ (white glyph): the route crosses a zone, through a leg or a visible waypoint inside
       one.
-    - _Amber_ (dark glyph): the route is clear, but some waypoints are suppressed, so they and
-      their tasks will not run. The dialog says how many, and how many are clear again, so a
-      Reroute would bring them back.
+    - _Amber_ (dark glyph): the route is clear, but some suppressed waypoints are no longer
+      blocked, so a Reroute would bring them back. The dialog says how many.
     - _White_ (dark glyph, like other JCC buttons): nothing to do. Detours, if any, show on the
-      map, and Restore is still available in the dialog.
+      map, and Restore is still available in the dialog. A mission whose suppressed waypoints are
+      all still blocked is white: a Reroute cannot bring them back, and its dialog says how many
+      will not run.
 
     Status is in the colour only, so the dialog states it in words and the button's label names
     it.
@@ -703,12 +704,15 @@ In progress. Decided and known items:
     - _Mission set:_ an icon beside the panel's "Mission Set" title, in line with the missions'
       icons, shows the status of the whole set (disabled while no mission has waypoints) and
       opens a short dialog: one line counting the missions that cross a zone ("3 of 18 missions
-      cross a zone", or "No missions cross a zone"), followed, only when some exist, by "2 missions
-      have suppressed waypoints." (adding "1 is clear again." when it applies), so an amber set
-      icon is explained; then
+      cross a zone", or "No missions cross a zone"), followed, only when some exist, by "1 mission
+      has suppressed waypoints that are clear again; Reroute all brings them back.", so an amber
+      set icon is explained; then
       Reroute all and Restore all. It lists no missions; each mission's own icon shows which ones
-      conflict. After Reroute all or Restore all, the report is one summary line ("18 rerouted: 16
-      changed, 2 unchanged") followed by only the missions left unchanged, each with its reason.
+      conflict. After Reroute all or Restore all, the report states the result: "All missions
+      rerouted.", or "2 missions could not be rerouted:" followed by only those missions, each
+      with its reason; after Restore all, "All missions restored to original waypoints." The
+      count line's total is the whole set, missions with no waypoints included, as the list shows
+      them; the actions skip those missions.
       Sets of 10–20 missions are expected, which is why the dialog does not list every mission.
     - Both icons look like buttons, so an operator can tell they can be tapped.
     - After a reroute or restore, the dialog shows the report alongside the status and both
