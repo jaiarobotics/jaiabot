@@ -784,8 +784,9 @@ In progress. Decided and known items:
   numbers.
 - **One projection: Web Mercator (EPSG:3857), the map's own.** Every zone test (placement,
   suppression, routing status, routing and the drawn buffer ring) uses the same projected,
-  buffered shape per zone, built once by `buildZoneGeometry`. Mercator needs no origin, so there
-  is nothing to store. Lengths set in metres (the safety margin, the A\* grid cell and clearances)
+  buffered shape per zone, built by `buildZoneGeometry` and reused until the zone is replaced:
+  zones are never changed in place, so a zone object always has the same shape. Mercator needs no
+  origin, so there is nothing to store. Lengths set in metres (the safety margin, the A\* grid cell and clearances)
   are converted at the local latitude, where one unit covers cos(latitude) metres. Buffers are
   built with Clipper2's decimal functions; the integer ones rounded them to whole metres. A buffer
   is simplified to fewer vertices with a tolerance of a tenth of the margin, after inflating by
@@ -856,10 +857,10 @@ changes.
 
 ## Parked for later phases
 
-- **Performance, near the end of this PR:** the missions panel and the mission layer each
-  rebuild the zone geometry on every redraw, up to twice a second; the panel tests every
-  mission's route and the layer tests every waypoint. Caching the geometry needs a zone-set
-  revision, since the zone set is changed in place.
+- **Later, if a profile shows it:** the missions panel tests every mission's route and the
+  mission layer every waypoint against every zone on each redraw. Estimated well under a
+  millisecond for typical sets and roughly 5–20 ms at the limits (20 missions × 80 waypoints, 10
+  zones); unmeasured. A bounding-box check per zone would skip most of the work.
 - **Undo and the visible panel, for the team:** an ordinary Undo restores the panel that was open
   at the previous edit, because switching panels is not tracked. Only the routing dialogs' Undo
   keeps the current panel. Restoring the panel also keeps selection-based panels (waypoint, zone
