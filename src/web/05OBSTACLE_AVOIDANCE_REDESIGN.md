@@ -666,8 +666,8 @@ In progress. Decided and known items:
       operator's choice.
     - _Past the waypoint limit:_ appending is refused, because the bot cannot take more.
     - Nothing is dispatched until the operator agrees, so a refusal or a Cancel records no undo
-      entry (this fixes Parked defect b). After a cancelled or refused typed move, the panel's
-      inputs return to the waypoint's location.
+      entry. After a cancelled or refused typed move, the panel's inputs return to the
+      waypoint's location.
     - `checkPlacement(location, zones, point, appendingTo?)` in `utils/routing/placement.ts`
       returns `{ kind: "allowed" }`, `{ kind: "confirm"; message }` or
       `{ kind: "refused"; message }`. `point` (`"waypoint"`, `"rallyPoint"` or `"surveyCorner"`) picks the wording. The waypoint
@@ -842,7 +842,7 @@ changes.
 | Draw, edit or delete a zone, or clear all zones          | `ADD_EXCLUSION_ZONE`, `ADD_ZONE_VERTEX`, `MOVE_ZONE_VERTEX`, `DELETE_ZONE_VERTEX`, `DELETE_EXCLUSION_ZONE`, `CLEAR_EXCLUSION_ZONES` | existing zone handlers                                           | yes                       | **Unchanged:** changes the zone set only. No mission changes and no dialog; routing status is recomputed at render.                                                                                                                                                 |
 | **Loading and saving**                                   |                                                                                                                                     |                                                                  |                           |                                                                                                                                                                                                                                                                     |
 | Load a mission set or a zone set                         | `LOAD_MISSION_SET`, `LOAD_EXCLUSION_ZONE_SET`                                                                                       | `handleLoadMissionSet`, `handleLoadExclusionZoneSet`             | yes                       | **Unchanged:** loads as is; nothing is rerouted and no dialog opens. Routing status shows any conflicts.                                                                                                                                                            |
-| Save or export a mission set or zone set                 | `CHANGE_MISSION_SET_NAME`, `CHANGE_EXCLUSION_ZONE_SET_NAME`                                                                         | `handleChangeMissionSetName`, `handleChangeExclusionZoneSetName` | yes                       | **Changed:** the Export buttons dispatch the name change as Save does, so undoing the next edit no longer reverts the name (Parked defect a). The handlers are unchanged.                                                                                           |
+| Save or export a mission set or zone set                 | `CHANGE_MISSION_SET_NAME`, `CHANGE_EXCLUSION_ZONE_SET_NAME`                                                                         | `handleChangeMissionSetName`, `handleChangeExclusionZoneSetName` | yes                       | **Changed:** the Export buttons dispatch the name change as Save does, when the name changes, so undoing the next edit no longer reverts the name. The handlers are unchanged.                                                                                      |
 | **Routing status and dialog**                            |                                                                                                                                     |                                                                  |                           |                                                                                                                                                                                                                                                                     |
 | Tap a mission's routing-status icon                      | none (component state)                                                                                                              | none                                                             | no                        | **New:** the mission's status button opens its dialog: status details, Reroute and Restore original waypoints.                                                                                                                                                      |
 | Tap the mission-set icon                                 | none (component state)                                                                                                              | none                                                             | no                        | **New:** the mission-set status button opens its dialog: a count of the missions that cross a zone, Reroute all and Restore all.                                                                                                                                    |
@@ -856,11 +856,6 @@ changes.
 
 ## Parked for later phases
 
-- **In this PR, revisited once the reworked code can be tested in the browser:** two undo
-  defects carried over from PR #1674's review. (a) Export renames the zone or mission set without
-  a tracked action, unlike Save, so undoing the next edit reverts the name. (b) A placement
-  refused inside a zone still records an empty undo entry; fixed by checking before dispatch
-  (Phase 3).
 - **Performance, near the end of this PR:** the missions panel and the mission layer each
   rebuild the zone geometry on every redraw, up to twice a second; the panel tests every
   mission's route and the layer tests every waypoint. Caching the geometry needs a zone-set
