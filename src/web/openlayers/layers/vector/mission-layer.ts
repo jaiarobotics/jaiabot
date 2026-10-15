@@ -1,9 +1,11 @@
 import JaiaVectorLayer from "./jaia-vector-layer";
 import Mission from "../../../data/mission_set/mission";
 import { missionSet } from "../../../data/mission_set/mission-set";
+import { exclusionZoneSet } from "../../../data/exclusion_zones/exclusion-zone-set";
 import { TaskType } from "../../../types/protobuf-types";
 import { LayerTitles, LineType } from "../../../types/openlayers-types";
 import { constantHeadingParamsToLocation } from "../../../utils/conversions";
+import { buildZoneGeometry, isLocationBlocked, ZoneGeometry } from "../../../utils/routing/router";
 import { layersZIndexes } from "../zindex";
 import {
     generateWaypointFeature,
@@ -22,9 +24,11 @@ class MissionLayer extends JaiaVectorLayer {
      *
      * @param {Mission} mission Used to access waypoint and determine color of line segment
      * @param {number} waypointNum Positon of waypoint in mission sequence (to be displayed on icon)
+     * @param {ZoneGeometry} [geometry] Zones that colour a waypoint inside them; none leaves it
+     *     uncoloured
      * @returns {void}
      */
-    buildMission(mission: Mission, waypointNum: number) {
+    buildMission(mission: Mission, waypointNum: number, geometry?: ZoneGeometry) {
         const waypoint = mission.getWaypoint(waypointNum);
         const source = this.getVectorLayer().getSource();
 
@@ -56,7 +60,11 @@ class MissionLayer extends JaiaVectorLayer {
         }
 
         // Add waypoint
-        source.addFeature(generateWaypointFeature(waypoint.getLocation(), waypointNum, mission));
+        const isBlocked =
+            geometry !== undefined && isLocationBlocked(waypoint.getLocation(), geometry);
+        source.addFeature(
+            generateWaypointFeature(waypoint.getLocation(), waypointNum, mission, isBlocked),
+        );
 
         // Add projected constant heading track
         if (waypoint.getTask().getType() === TaskType.CONSTANT_HEADING) {
@@ -89,13 +97,16 @@ class MissionLayer extends JaiaVectorLayer {
         }
 
         let missions = missionSet.getMissions();
+        let geometry: ZoneGeometry | undefined;
         if (layerTitle === LayerTitles.GHOST_MISSION_LAYER) {
             missions = missionSet.getGhostMissions();
+        } else {
+            geometry = buildZoneGeometry(exclusionZoneSet.getZones());
         }
 
         for (let [missionID, mission] of missions) {
             for (let [index, waypoint] of mission.getWaypoints().entries()) {
-                this.buildMission(mission, index + 1);
+                this.buildMission(mission, index + 1, geometry);
             }
         }
     }

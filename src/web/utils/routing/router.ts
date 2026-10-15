@@ -750,6 +750,17 @@ export function routeNeedsBypass(route: GeographicCoordinate[], geometry: ZoneGe
 }
 
 /**
+ * Reports whether a location is inside a zone or its safety margin.
+ *
+ * @param {GeographicCoordinate} location Location to test
+ * @param {ZoneGeometry} geometry Zones to test against
+ * @returns {boolean} True if any zone blocks the location
+ */
+export function isLocationBlocked(location: GeographicCoordinate, geometry: ZoneGeometry): boolean {
+    return getBlockingZoneIDs(location, geometry).length > 0;
+}
+
+/**
  * Returns true if the given location falls inside the safety-margin buffer
  * of any exclusion zone.
  *
@@ -763,5 +774,5 @@ export function isLocationBlockedByZone(
     zones: ReadonlyMap<number, ExclusionZone>,
     safetyMargin = DEFAULT_SAFETY_MARGIN_METERS,
 ): boolean {
-    return getBlockingZoneIDs(location, buildZoneGeometry(zones, safetyMargin)).length > 0;
+    return isLocationBlocked(location, buildZoneGeometry(zones, safetyMargin));
 }

@@ -5,6 +5,17 @@ import { JaiaContextType, JaiaAction, ButtonNames } from "../../types/context-ty
 import { MapModes } from "../../types/openlayers-types";
 import { UNASSIGNED_ID } from "../../utils/constants";
 import { exclusionZoneLayer } from "../../openlayers/layers/vector/exclusion-zone-layer";
+import { missionLayer } from "../../openlayers/layers/vector/mission-layer";
+
+/**
+ * Redraws the zones and the missions.
+ *
+ * @returns {void}
+ */
+function redrawZonesAndMissions() {
+    exclusionZoneLayer.updateFeatures();
+    missionLayer.updateFeatures();
+}
 
 /**
  * Adds a new exclusion zone.
@@ -16,7 +27,7 @@ import { exclusionZoneLayer } from "../../openlayers/layers/vector/exclusion-zon
 export function handleAddExclusionZone(mutableState: JaiaContextType, action: JaiaAction) {
     if (!action.exclusionZone) return mutableState;
     const zoneID = exclusionZoneSet.addZone(action.exclusionZone);
-    exclusionZoneLayer.updateFeatures();
+    redrawZonesAndMissions();
     setExclusionZoneDrawActive(false);
     handleMapModeChange(MapModes.DEFAULT);
 
@@ -40,7 +51,7 @@ export function handleDeleteExclusionZone(mutableState: JaiaContextType, action:
         jaiaGlobal.setZoneInEditMode(UNASSIGNED_ID);
     }
     exclusionZoneSet.deleteZone(action.zoneID);
-    exclusionZoneLayer.updateFeatures();
+    redrawZonesAndMissions();
     return mutableState;
 }
 
@@ -54,7 +65,7 @@ export function handleClearExclusionZones(mutableState: JaiaContextType) {
     exclusionZoneSet.clearZones();
     jaiaGlobal.resetSelectedZoneVertex();
     jaiaGlobal.setZoneInEditMode(UNASSIGNED_ID);
-    exclusionZoneLayer.updateFeatures();
+    redrawZonesAndMissions();
     return mutableState;
 }
 
@@ -82,7 +93,7 @@ export function handleToggleExclusionZoneDrawing(mutableState: JaiaContextType) 
 export function handleLoadExclusionZoneSet(mutableState: JaiaContextType, action: JaiaAction) {
     if (!action.exclusionZoneSetSnapshot) return mutableState;
     exclusionZoneSet.restoreFromSnapshot(action.exclusionZoneSetSnapshot);
-    exclusionZoneLayer.updateFeatures();
+    redrawZonesAndMissions();
 
     return mutableState;
 }
@@ -143,7 +154,7 @@ export function handleMoveZoneVertex(mutableState: JaiaContextType, action: Jaia
         vertexIndex: newIdx,
         isMoveable: selected.isMoveable,
     });
-    exclusionZoneLayer.updateFeatures();
+    redrawZonesAndMissions();
 
     return mutableState;
 }
@@ -214,7 +225,7 @@ export function handleAddZoneVertex(mutableState: JaiaContextType, action: JaiaA
         mutableState.visiblePanel = ButtonNames.ZONE_VERTEX_PANEL;
     }
 
-    exclusionZoneLayer.updateFeatures();
+    redrawZonesAndMissions();
 
     return mutableState;
 }
@@ -235,7 +246,7 @@ export function handleDeleteZoneVertex(mutableState: JaiaContextType, action: Ja
         vertices: zone.vertices.filter((_, i) => i !== action.vertexIndex),
     });
     jaiaGlobal.resetSelectedZoneVertex();
-    exclusionZoneLayer.updateFeatures();
+    redrawZonesAndMissions();
 
     return mutableState;
 }

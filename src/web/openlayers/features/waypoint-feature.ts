@@ -35,12 +35,14 @@ import missionFlagIcon from "../../style/icons/mission-flag.svg";
  * @param {GeographicCoordinate} location Lat/lon of waypoint
  * @param {number} waypointNum Positon of waypoint in mission sequence (to be displayed on icon)
  * @param {Mission} mission Used to determine color of waypoint
+ * @param {boolean} [isBlocked] The waypoint is inside an exclusion zone or its safety margin
  * @returns {Feature} Waypoint icon to display on map
  */
 export function generateWaypointFeature(
     location: GeographicCoordinate,
     waypointNum: number,
     mission: Mission,
+    isBlocked = false,
 ) {
     if (!location) {
         return new Feature();
@@ -56,7 +58,7 @@ export function generateWaypointFeature(
     feature.set("waypointNum", waypointNum);
     feature.set("missionID", mission.getMissionID());
     feature.set("isDetour", isDetour);
-    feature.setStyle(generateWaypointStyle(waypointNum, mission, isDetour));
+    feature.setStyle(generateWaypointStyle(waypointNum, mission, isBlocked));
     return feature;
 }
 
@@ -65,27 +67,17 @@ export function generateWaypointFeature(
  *
  * @param {number} waypointNum Positon of waypoint in mission sequence (to be displayed on icon)
  * @param {Mission} mission Used to determine color of waypoint
+ * @param {boolean} isBlocked The waypoint is inside an exclusion zone or its safety margin
  * @returns {Style} Style to be applied to a waypoint feature
  */
-function generateWaypointStyle(waypointNum: number, mission: Mission, isDetour = false) {
-    if (isDetour) {
-        return new Style({
-            image: new Icon({
-                src: waypointIcon,
-                anchor: [0.5, 1],
-                color: OpenLayersColors.DETOUR,
-            }),
-            zIndex: getWaypointZIndex(mission, waypointNum),
-        });
-    }
-
+function generateWaypointStyle(waypointNum: number, mission: Mission, isBlocked: boolean) {
     const task = mission.getWaypoint(waypointNum).getTask();
 
     return new Style({
         image: new Icon({
             src: getWaypointSrc(task),
             anchor: [0.5, 1],
-            color: getWaypointColor(mission, waypointNum),
+            color: getWaypointColor(mission, waypointNum, isBlocked),
         }),
         stroke: new Stroke({
             color: OpenLayersColors.OUTLINE,
@@ -262,9 +254,10 @@ export function getWaypointSrc(task: Task) {
  *
  * @param {Mission} mission Used to determine color of the line segment
  * @param {number} waypointNum Makes color change for target waypoint
+ * @param {boolean} [isBlocked] The waypoint is inside an exclusion zone or its safety margin
  * @returns {OpenLayersColors} Color to be applied to waypoint
  */
-function getWaypointColor(mission: Mission, waypointNum?: number) {
+function getWaypointColor(mission: Mission, waypointNum?: number, isBlocked = false) {
     if (mission.getGhostParameters().hasStarted) {
         if (waypointNum && shouldColorTargetWaypoint(mission, waypointNum)) {
             return OpenLayersColors.TARGET;
@@ -278,8 +271,16 @@ function getWaypointColor(mission: Mission, waypointNum?: number) {
         return OpenLayersColors.EDIT;
     }
 
+    if (isBlocked) {
+        return OpenLayersColors.BLOCKED;
+    }
+
     if (isAssignedToSelectedBot(mission)) {
         return OpenLayersColors.SELECT;
+    }
+
+    if (waypointNum && mission.getWaypoint(waypointNum).getIsDetour()) {
+        return OpenLayersColors.DETOUR;
     }
 
     return OpenLayersColors.DEFAULT;

@@ -1,6 +1,6 @@
 import Mission from "../../data/mission_set/mission";
 import { GeographicCoordinate } from "../../types/protobuf-types";
-import { getBlockingZoneIDs, routeNeedsBypass, ZoneGeometry } from "./router";
+import { getBlockingZoneIDs, isLocationBlocked, routeNeedsBypass, ZoneGeometry } from "./router";
 
 /** How a mission's route stands against the zones. Several statuses can hold at once. */
 export interface RoutingStatus {
@@ -26,7 +26,7 @@ export function getRoutingStatus(mission: Mission, geometry: ZoneGeometry): Rout
         isConflicted: isRouteConflicted(mission, geometry),
         suppressed: suppressed.length,
         clearSuppressed: suppressed.filter(
-            (waypoint) => !isBlocked(waypoint.getLocation(), geometry),
+            (waypoint) => !isLocationBlocked(waypoint.getLocation(), geometry),
         ).length,
     };
 }
@@ -55,7 +55,7 @@ export function getRoutingLevel(
     if (isRouteConflicted(mission, geometry)) return RoutingLevel.CROSSES_ZONE;
     const hasClearSuppressed = mission
         .getSuppressedWaypoints()
-        .some((waypoint) => !isBlocked(waypoint.getLocation(), geometry));
+        .some((waypoint) => !isLocationBlocked(waypoint.getLocation(), geometry));
     if (hasClearSuppressed) return RoutingLevel.HAS_CLEAR_SUPPRESSED;
     return RoutingLevel.CLEAR;
 }
@@ -104,7 +104,7 @@ export function getRouteWarnings(
 
     const first = mission.getWaypoints()[0]?.getLocation();
     if (!start || !first) return warnings;
-    if (isBlocked(start, geometry)) {
+    if (isLocationBlocked(start, geometry)) {
         warnings.push(RouteWarning.START_INSIDE_ZONE);
         return warnings;
     }
@@ -121,17 +121,6 @@ export function getRouteWarnings(
 }
 
 /**
- * Reports whether a location is inside a zone or its safety margin.
- *
- * @param {GeographicCoordinate} location Location to test
- * @param {ZoneGeometry} geometry Zones to test against
- * @returns {boolean} True if any zone blocks the location
- */
-function isBlocked(location: GeographicCoordinate, geometry: ZoneGeometry): boolean {
-    return getBlockingZoneIDs(location, geometry).length > 0;
-}
-
-/**
  * Reports whether the mission's visible route, detours included, crosses a zone.
  *
  * @param {Mission} mission Mission to test
@@ -143,6 +132,7 @@ function isRouteConflicted(mission: Mission, geometry: ZoneGeometry): boolean {
     // A waypoint inside a zone is tested on its own: routing treats a leg touching it as
     // unroutable rather than blocked, so the leg test alone misses it.
     return (
-        route.some((location) => isBlocked(location, geometry)) || routeNeedsBypass(route, geometry)
+        route.some((location) => isLocationBlocked(location, geometry)) ||
+        routeNeedsBypass(route, geometry)
     );
 }

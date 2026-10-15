@@ -1,4 +1,6 @@
 import cloneDeep from "lodash/cloneDeep";
+import { asArray } from "ol/color";
+import { Icon, Style } from "ol/style";
 
 import {
     handleAddExclusionZone,
@@ -19,6 +21,8 @@ import { jaiaGlobal } from "../../../data/jaia_global/jaia-global";
 import Mission from "../../../data/mission_set/mission";
 import { ButtonNames, JaiaContextType } from "../../../types/context-types";
 import { UNASSIGNED_ID } from "../../../utils/constants";
+import { missionLayer } from "../../../openlayers/layers/vector/mission-layer";
+import { OpenLayersColors } from "../../../style/openlayers/colors";
 import { makeMutableState, resetHandlerSingletons, coord, squareZone } from "./handler-test-utils";
 
 // RECT is a tall, narrow rectangle wound SW -> SE -> NE -> NW, the same winding
@@ -65,38 +69,38 @@ function zoneIDs(): number[] {
 
 beforeEach(resetHandlerSingletons);
 
-describe("zone edits never change a mission's waypoints", () => {
-    const edits: [string, (state: JaiaContextType, zoneID: number) => void][] = [
-        [
-            "adding a zone",
-            (state) => handleAddExclusionZone(state, { exclusionZone: rectZone() } as any),
-        ],
-        [
-            "adding a vertex",
-            (state, zoneID) => handleAddZoneVertex(state, { zoneID, location: APEX } as any),
-        ],
-        [
-            "moving a vertex",
-            (state, zoneID) => {
-                jaiaGlobal.setSelectedZoneVertex({ zoneID, vertexIndex: 0, isMoveable: true });
-                handleMoveZoneVertex(state, { location: coord(40.998, -72.0015) } as any);
-            },
-        ],
-        [
-            "deleting a vertex",
-            (state, zoneID) => handleDeleteZoneVertex(state, { zoneID, vertexIndex: 0 } as any),
-        ],
-        ["deleting a zone", (state, zoneID) => handleDeleteExclusionZone(state, { zoneID } as any)],
-        ["clearing all zones", (state) => handleClearExclusionZones(state)],
-        [
-            "loading a zone set",
-            (state) =>
-                handleLoadExclusionZoneSet(state, {
-                    exclusionZoneSetSnapshot: zoneSetSnapshot([squareZone(41.5, -72.5)]),
-                } as any),
-        ],
-    ];
+const edits: [string, (state: JaiaContextType, zoneID: number) => void][] = [
+    [
+        "adding a zone",
+        (state) => handleAddExclusionZone(state, { exclusionZone: rectZone() } as any),
+    ],
+    [
+        "adding a vertex",
+        (state, zoneID) => handleAddZoneVertex(state, { zoneID, location: APEX } as any),
+    ],
+    [
+        "moving a vertex",
+        (state, zoneID) => {
+            jaiaGlobal.setSelectedZoneVertex({ zoneID, vertexIndex: 0, isMoveable: true });
+            handleMoveZoneVertex(state, { location: coord(40.998, -72.0015) } as any);
+        },
+    ],
+    [
+        "deleting a vertex",
+        (state, zoneID) => handleDeleteZoneVertex(state, { zoneID, vertexIndex: 0 } as any),
+    ],
+    ["deleting a zone", (state, zoneID) => handleDeleteExclusionZone(state, { zoneID } as any)],
+    ["clearing all zones", (state) => handleClearExclusionZones(state)],
+    [
+        "loading a zone set",
+        (state) =>
+            handleLoadExclusionZoneSet(state, {
+                exclusionZoneSetSnapshot: zoneSetSnapshot([squareZone(41.5, -72.5)]),
+            } as any),
+    ],
+];
 
+describe("zone edits never change a mission's waypoints", () => {
     test.each(edits)("%s leaves waypoints and detours alone", (_, edit) => {
         const zoneID = exclusionZoneSet.addZone(rectZone());
         const missionID = addRoutedMission();
@@ -106,6 +110,44 @@ describe("zone edits never change a mission's waypoints", () => {
         edit(mutableState, zoneID);
 
         expect(missionSet.getMission(missionID).getWaypoints()).toEqual(before);
+    });
+});
+
+describe("zone edits redraw the missions", () => {
+    afterEach(() => jest.restoreAllMocks());
+
+    test.each(edits)("%s redraws the missions", (_, edit) => {
+        const zoneID = exclusionZoneSet.addZone(rectZone());
+        addRoutedMission();
+        const redraw = jest.spyOn(missionLayer, "updateFeatures");
+
+        edit(makeMutableState(), zoneID);
+
+        expect(redraw).toHaveBeenCalled();
+    });
+
+    test("adding a zone over a waypoint colours it as blocked", () => {
+        const missionID = addRoutedMission();
+        missionSet.setMissionIDInEditMode(UNASSIGNED_ID);
+        const waypointColor = () => {
+            const marker = missionLayer
+                .getVectorLayer()
+                .getSource()
+                .getFeatures()
+                .find(
+                    (feature) =>
+                        feature.get("missionID") === missionID && feature.get("waypointNum") === 1,
+                );
+            return ((marker!.getStyle() as Style).getImage() as Icon).getColor();
+        };
+        missionLayer.updateFeatures();
+        expect(waypointColor()).toEqual(asArray(OpenLayersColors.DEFAULT));
+
+        handleAddExclusionZone(makeMutableState(), {
+            exclusionZone: squareZone(40.998, -72.002, 0.0002),
+        } as any);
+
+        expect(waypointColor()).toEqual(asArray(OpenLayersColors.BLOCKED));
     });
 });
 
