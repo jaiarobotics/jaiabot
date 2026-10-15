@@ -142,16 +142,22 @@ describe("getRoutingLevel", () => {
         expect(getRoutingLevel(mission, ZONE_GEOMETRY)).toBe(RoutingLevel.CROSSES_ZONE);
     });
 
-    test("is HAS_SUPPRESSED for a clear route with suppressed waypoints", () => {
+    test("is HAS_CLEAR_SUPPRESSED for a clear route with a suppressed waypoint no longer blocked", () => {
         const mission = loadMission([{ location: WEST }, { location: NORTH, isSuppressed: true }]);
 
-        expect(getRoutingLevel(mission, ZONE_GEOMETRY)).toBe(RoutingLevel.HAS_SUPPRESSED);
+        expect(getRoutingLevel(mission, ZONE_GEOMETRY)).toBe(RoutingLevel.HAS_CLEAR_SUPPRESSED);
     });
 
-    test("is HAS_SUPPRESSED when every waypoint is suppressed", () => {
+    test("is HAS_CLEAR_SUPPRESSED when every waypoint is suppressed and one is no longer blocked", () => {
         const mission = loadMission([{ location: NORTH, isSuppressed: true }]);
 
-        expect(getRoutingLevel(mission, ZONE_GEOMETRY)).toBe(RoutingLevel.HAS_SUPPRESSED);
+        expect(getRoutingLevel(mission, ZONE_GEOMETRY)).toBe(RoutingLevel.HAS_CLEAR_SUPPRESSED);
+    });
+
+    test("is CLEAR when every suppressed waypoint is still blocked", () => {
+        const mission = loadMission([{ location: WEST }, { location: INSIDE, isSuppressed: true }]);
+
+        expect(getRoutingLevel(mission, ZONE_GEOMETRY)).toBe(RoutingLevel.CLEAR);
     });
 
     test("is CLEAR for a clear route with nothing suppressed", () => {
@@ -160,7 +166,7 @@ describe("getRoutingLevel", () => {
 });
 
 describe("getWorstRoutingLevel", () => {
-    const { CROSSES_ZONE, HAS_SUPPRESSED, CLEAR } = RoutingLevel;
+    const { CROSSES_ZONE, HAS_CLEAR_SUPPRESSED, CLEAR } = RoutingLevel;
 
     test("is undefined when every level is undefined, or there are none", () => {
         expect(getWorstRoutingLevel([undefined, undefined])).toBeUndefined();
@@ -169,8 +175,10 @@ describe("getWorstRoutingLevel", () => {
 
     test("is the most urgent defined level", () => {
         expect(getWorstRoutingLevel([CLEAR, undefined])).toBe(CLEAR);
-        expect(getWorstRoutingLevel([CLEAR, HAS_SUPPRESSED, CLEAR])).toBe(HAS_SUPPRESSED);
-        expect(getWorstRoutingLevel([undefined, CLEAR, CROSSES_ZONE, HAS_SUPPRESSED])).toBe(
+        expect(getWorstRoutingLevel([CLEAR, HAS_CLEAR_SUPPRESSED, CLEAR])).toBe(
+            HAS_CLEAR_SUPPRESSED,
+        );
+        expect(getWorstRoutingLevel([undefined, CLEAR, CROSSES_ZONE, HAS_CLEAR_SUPPRESSED])).toBe(
             CROSSES_ZONE,
         );
     });

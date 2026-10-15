@@ -26,11 +26,11 @@ describe("MissionRoutingButton", () => {
     });
 
     test("is amber when some waypoints are suppressed", () => {
-        const button = renderButton(RoutingLevel.HAS_SUPPRESSED);
+        const button = renderButton(RoutingLevel.HAS_CLEAR_SUPPRESSED);
 
         expect(button).toHaveClass("warning");
         expect(button).toHaveAccessibleName(
-            "Routing status: some waypoints are suppressed and won't run",
+            "Routing status: some suppressed waypoints are clear again",
         );
     });
 

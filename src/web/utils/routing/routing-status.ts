@@ -34,13 +34,14 @@ export function getRoutingStatus(mission: Mission, geometry: ZoneGeometry): Rout
 /** A mission's routing status at a glance, most urgent first. */
 export enum RoutingLevel {
     CROSSES_ZONE,
-    HAS_SUPPRESSED,
+    /** The route is clear, and a reroute would bring back suppressed waypoints. */
+    HAS_CLEAR_SUPPRESSED,
     CLEAR,
 }
 
 /**
  * Gives the most urgent of a mission's routing statuses: its route crosses a zone, some of its
- * waypoints are suppressed, or neither.
+ * suppressed waypoints are no longer blocked, or neither.
  *
  * @param {Mission} mission Mission whose route is tested
  * @param {ZoneGeometry} geometry Zones to test against
@@ -52,7 +53,10 @@ export function getRoutingLevel(
 ): RoutingLevel | undefined {
     if (mission.getOriginalWaypoints().length === 0) return undefined;
     if (isRouteConflicted(mission, geometry)) return RoutingLevel.CROSSES_ZONE;
-    if (mission.getSuppressedWaypoints().length > 0) return RoutingLevel.HAS_SUPPRESSED;
+    const hasClearSuppressed = mission
+        .getSuppressedWaypoints()
+        .some((waypoint) => !isBlocked(waypoint.getLocation(), geometry));
+    if (hasClearSuppressed) return RoutingLevel.HAS_CLEAR_SUPPRESSED;
     return RoutingLevel.CLEAR;
 }
 

@@ -2,8 +2,7 @@ import { useContext, useState } from "react";
 
 import { JaiaDispatchContext } from "../../../context/JaiaContext";
 import { JaiaActions } from "../../../context/jaia-actions";
-
-type RoutingAction = "reroute" | "restore";
+import { RoutingAction } from "../../../types/routing-types";
 
 /**
  * Runs a reroute or a restore of some missions, and tracks which one is running and which one
@@ -12,7 +11,7 @@ type RoutingAction = "reroute" | "restore";
  * A custom React hook: each component that uses it gets its own copy of this state.
  *
  * @returns {object} `running`, the action in progress, or null; `lastRun`, the last action
- * this hook ran, or null; `run`, which starts an action; and `clearLastRun`
+ * this hook ran, or null; `run`, which starts an action; and `undo`, which backs out the last one
  */
 export function useRoutingAction() {
     const jaiaDispatch = useContext(JaiaDispatchContext);
@@ -44,5 +43,16 @@ export function useRoutingAction() {
         );
     };
 
-    return { running, lastRun, run, clearLastRun: () => setLastRun(null) };
+    /**
+     * Backs out the last action, as the toolbar Undo would, but keeps the visible panel.
+     *
+     * @returns {void}
+     */
+    const undo = () => {
+        // Restoring the panel of the previous edit could close the dialog
+        jaiaDispatch({ type: JaiaActions.CLICKED_UNDO, keepPanelState: true });
+        setLastRun(null);
+    };
+
+    return { running, lastRun, run, undo };
 }

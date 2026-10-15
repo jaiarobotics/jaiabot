@@ -2,11 +2,14 @@ import { useContext } from "react";
 import { createPortal } from "react-dom";
 
 import RoutingActionButton from "../../RoutingDialog/RoutingActionButton";
-import { describeOutcome, describeRoutingStatus } from "../../RoutingDialog/routing-text";
+import {
+    describeOutcome,
+    describeRoutingStatus,
+    isNotRerouted,
+} from "../../RoutingDialog/routing-text";
 import { useRoutingAction } from "../../RoutingDialog/use-routing-action";
 
-import { JaiaContext, JaiaDispatchContext } from "../../../../context/JaiaContext";
-import { JaiaActions } from "../../../../context/jaia-actions";
+import { JaiaContext } from "../../../../context/JaiaContext";
 import Mission from "../../../../data/mission_set/mission";
 import { UNASSIGNED_ID } from "../../../../utils/constants";
 import { buildZoneGeometry } from "../../../../utils/routing/router";
@@ -25,8 +28,7 @@ interface Props {
  */
 export default function MissionRoutingDialog({ mission, onClose }: Props) {
     const jaiaContext = useContext(JaiaContext);
-    const jaiaDispatch = useContext(JaiaDispatchContext);
-    const { running, lastRun, run, clearLastRun } = useRoutingAction();
+    const { running, lastRun, run, undo } = useRoutingAction();
 
     const missionID = mission.getMissionID();
     const botID = jaiaContext.missionsManager.getBotID(missionID);
@@ -37,19 +39,7 @@ export default function MissionRoutingDialog({ mission, onClose }: Props) {
     const outcome = lastRun
         ? jaiaContext.rerouteReport?.find((report) => report.missionID === missionID)
         : undefined;
-    // A mission left unchanged has nothing to undo
-    const canUndo = outcome?.kind === "changed" || outcome?.kind === "restored";
-
-    /**
-     * Backs out this dialog's last action, as the toolbar Undo would.
-     *
-     * @returns {void}
-     */
-    const handleUndoClick = () => {
-        // Restoring the panel of the previous edit could close this dialog
-        jaiaDispatch({ type: JaiaActions.CLICKED_UNDO, keepPanelState: true });
-        clearLastRun();
-    };
+    const canUndo = outcome !== undefined && !isNotRerouted(outcome);
 
     // Rendered on the body so a positioned panel cannot stack above it
     return createPortal(
@@ -68,7 +58,7 @@ export default function MissionRoutingDialog({ mission, onClose }: Props) {
                         {canUndo && (
                             <button
                                 className="dialog-button"
-                                onClick={handleUndoClick}
+                                onClick={undo}
                                 disabled={running !== null}
                             >
                                 {lastRun === "reroute" ? "Undo reroute" : "Undo restore"}

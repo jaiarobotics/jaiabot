@@ -9,9 +9,9 @@ import { RoutingLevel } from "../../../../utils/routing/routing-status";
 
 const STATUSES: Record<RoutingLevel, { level: StatusLevel; label: string }> = {
     [RoutingLevel.CROSSES_ZONE]: { level: "error", label: "the route crosses an exclusion zone" },
-    [RoutingLevel.HAS_SUPPRESSED]: {
+    [RoutingLevel.HAS_CLEAR_SUPPRESSED]: {
         level: "warning",
-        label: "some waypoints are suppressed and won't run",
+        label: "some suppressed waypoints are clear again",
     },
     [RoutingLevel.CLEAR]: { level: "normal", label: "nothing to do" },
 };

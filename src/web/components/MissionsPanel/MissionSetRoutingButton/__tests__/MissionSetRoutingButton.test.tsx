@@ -4,7 +4,7 @@ import MissionSetRoutingButton from "../MissionSetRoutingButton";
 
 import { RoutingLevel } from "../../../../utils/routing/routing-status";
 
-const { CROSSES_ZONE, HAS_SUPPRESSED, CLEAR } = RoutingLevel;
+const { CROSSES_ZONE, HAS_CLEAR_SUPPRESSED, CLEAR } = RoutingLevel;
 
 function renderButton(...routingLevels: (RoutingLevel | undefined)[]) {
     render(
@@ -24,7 +24,7 @@ describe("MissionSetRoutingButton", () => {
     });
 
     test("is red when any route crosses a zone", () => {
-        const button = renderButton(CLEAR, HAS_SUPPRESSED, CROSSES_ZONE, undefined);
+        const button = renderButton(CLEAR, HAS_CLEAR_SUPPRESSED, CROSSES_ZONE, undefined);
 
         expect(button).toHaveClass("error");
         expect(button).toHaveAccessibleName(
@@ -32,12 +32,12 @@ describe("MissionSetRoutingButton", () => {
         );
     });
 
-    test("is amber when no route crosses a zone but a mission has suppressed waypoints", () => {
-        const button = renderButton(CLEAR, HAS_SUPPRESSED);
+    test("is amber when no route crosses a zone but a mission has waypoints clear again", () => {
+        const button = renderButton(CLEAR, HAS_CLEAR_SUPPRESSED);
 
         expect(button).toHaveClass("warning");
         expect(button).toHaveAccessibleName(
-            "Mission set routing status: some missions have suppressed waypoints",
+            "Mission set routing status: some missions have suppressed waypoints that are clear again",
         );
     });
 

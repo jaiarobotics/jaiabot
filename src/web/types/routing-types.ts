@@ -7,6 +7,8 @@ export type RoutingResult =
     /** No way around the zones on the leg between these two original waypoint numbers. */
     | { kind: "noRoute"; leg: [number, number] };
 
+export type RoutingAction = "reroute" | "restore";
+
 /** What a reroute or restore did to one mission, for the report. */
 export type RerouteOutcome = { missionID: number } & (
     | RerouteResult
