@@ -14,6 +14,7 @@ implements (DATA/ADC/STATUS packet formats, CTRL command set, dump+live streamin
 import argparse
 import asyncio
 import logging
+import os
 import socket
 import struct
 import time
@@ -58,6 +59,9 @@ STATUS_SENT_CNT_STRUCT = struct.Struct('<Q')  # optional trailing sent_cnt (guid
 RH_CROPPED_FLAG = 0x01
 
 RECONNECT_DELAY_SECONDS = 5
+
+# written by jaiabot_storm_manager once the air descent ICAS data is queued for offload
+COMPLETE_MARKER_NAME = 'icas_air_descent_complete'
 
 # more than the peripheral's 2048-sample ring buffer, so any replay is recognized
 SEEN_SAMPLES_MAX = 4096
@@ -263,9 +267,24 @@ async def run_session(args, publisher: ICASUdpPublisher, tracker: SampleTracker)
 
         # Keep the session alive while connected; notifications arrive via callbacks.
         while client.is_connected:
+            if air_descent_complete(args):
+                lg.info('Air descent complete, disconnecting from ICAS peripheral')
+                return
             await asyncio.sleep(1)
 
     lg.warning('Disconnected from ICAS peripheral')
+
+
+def default_complete_marker():
+    bot_index = os.environ.get('jaia_bot_index')
+    if bot_index is None:
+        return None
+    log_dir = os.environ.get('jaia_log_dir', '/var/log/jaiabot')
+    return os.path.join(log_dir, 'bot', bot_index, COMPLETE_MARKER_NAME)
+
+
+def air_descent_complete(args) -> bool:
+    return args.complete_marker is not None and os.path.exists(args.complete_marker)
 
 
 async def main_loop(args):
@@ -276,7 +295,7 @@ async def main_loop(args):
     # not every STORM bot carries an ICAS, so only warn once until it is found
     not_found_logged = False
 
-    while True:
+    while not air_descent_complete(args):
         try:
             await run_session(args, publisher, tracker)
             not_found_logged = False
@@ -290,6 +309,9 @@ async def main_loop(args):
 
         lg.info('Retrying in %d seconds...', RECONNECT_DELAY_SECONDS)
         await asyncio.sleep(RECONNECT_DELAY_SECONDS)
+
+    # clean exit so systemd (Restart=on-failure) leaves the driver stopped
+    lg.warning('ICAS air descent complete (%s exists); stopping BLE scanning', args.complete_marker)
 
 
 def main():
@@ -308,6 +330,10 @@ def main():
                         help='Seconds to wait for a GATT connection (default: 10)')
     parser.add_argument('--adc_enabled', action='store_true',
                         help='Also subscribe to the raw ADC notification stream (10 Hz)')
+    parser.add_argument('--complete_marker', default=default_complete_marker(),
+                        help='File whose existence means the air descent is over and the driver '
+                             'should exit (default: $jaia_log_dir/bot/$jaia_bot_index/'
+                             f'{COMPLETE_MARKER_NAME})')
     parser.add_argument('-l', '--log_level', default='WARNING',
                         choices=['DEBUG', 'INFO', 'WARNING', 'ERROR'])
     args = parser.parse_args()

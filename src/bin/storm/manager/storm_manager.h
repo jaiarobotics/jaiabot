@@ -70,6 +70,10 @@ class StormManager : public goby::zeromq::MultiThreadApplication<config::StormMa
         protobuf::ICASData data;
     };
     const std::deque<ICASSample>& icas_air_descent_samples() const { return icas_samples_; }
+    // true once the ICAS has delivered everything it recorded to the Pi
+    bool icas_transfer_complete() const;
+    // persistent marker telling jaiabot_icas.py to stop scanning (air descent happens once)
+    void mark_icas_air_descent_complete();
 
   private:
     void initialize() override;
@@ -84,6 +88,7 @@ class StormManager : public goby::zeromq::MultiThreadApplication<config::StormMa
     void handle_command(const protobuf::Command& command);
     void handle_storm_mission_update(const protobuf::StormMissionUpdate& storm_mission_update);
     void load_pending_task_packets();
+    std::filesystem::path bot_log_dir() const;
     std::filesystem::path outbox_dir() const;
     std::filesystem::path task_packet_path(const protobuf::TaskPacket& task_packet) const;
 
@@ -103,6 +108,10 @@ class StormManager : public goby::zeromq::MultiThreadApplication<config::StormMa
     // generously larger than the ICAS peripheral's own 2048-sample ring buffer
     static constexpr std::size_t kMaxICASSamples{4096};
     std::deque<ICASSample> icas_samples_;
+    // starts at launch so a bot without an ICAS is "quiet" after icas_transfer_quiet_seconds
+    goby::time::SteadyClock::time_point last_icas_receive_time_{goby::time::SteadyClock::now()};
+    std::optional<goby::time::SteadyClock::time_point> last_icas_status_time_;
+    bool icas_dump_mode_{false};
 };
 
 } // namespace apps

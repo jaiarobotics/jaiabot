@@ -40,7 +40,8 @@ struct AirDescentDataOffload
     void loop(const EvLoop& ev);
     void try_send_to_mcu();
     void convert_air_descent_data_to_task_packets();
-    void convert_icas_data_to_task_packets();
+    void start_shore_send_when_icas_ready();
+    void convert_icas_data_to_task_packets(bool transfer_complete);
 
   public:
     using reactions =
@@ -56,6 +57,7 @@ struct AirDescentDataOffload
     // packet index -> data
     std::map<int, StormAirDescentData> air_descent_data_;
     bool data_offloaded_from_mcu_{false};
+    bool icas_data_converted_{false};
 
     goby::time::SteadyClock::time_point next_mcu_send_time_{goby::time::SteadyClock::now()};
 

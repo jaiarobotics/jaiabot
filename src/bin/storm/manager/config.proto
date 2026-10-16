@@ -42,4 +42,8 @@ message StormManager
     // caps the number of TaskPackets (Iridium messages) used to offload the ICAS parachute
     // peripheral's air-descent data; the buffered samples are downsampled to fit this budget
     optional int32 icas_air_descent_max_task_packets = 31 [default = 3];
+
+    // ICAS transfer is considered complete once nothing has been received from it for this
+    // long (sunk, out of range, or not fitted), or its STATUS reports the replay is drained
+    optional uint32 icas_transfer_quiet_seconds = 32 [default = 30];
 }

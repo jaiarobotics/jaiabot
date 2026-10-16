@@ -179,6 +179,15 @@ jaiabot::apps::StormManager::StormManager()
             icas_samples_.push_back({sample_time, data});
             if (icas_samples_.size() > kMaxICASSamples)
                 icas_samples_.pop_front();
+            last_icas_receive_time_ = goby::time::SteadyClock::now();
+        });
+
+    interprocess().subscribe<jaiabot::groups::icas_status>(
+        [this](const jaiabot::protobuf::ICASStatus& status)
+        {
+            last_icas_receive_time_ = goby::time::SteadyClock::now();
+            last_icas_status_time_ = last_icas_receive_time_;
+            icas_dump_mode_ = status.dump_mode();
         });
 
     // receive data from MCU
@@ -245,14 +254,48 @@ jaiabot::apps::StormManager::StormManager()
 
 jaiabot::apps::StormManager::~StormManager() {}
 
-std::filesystem::path
-jaiabot::apps::StormManager::outbox_dir() const
+std::filesystem::path jaiabot::apps::StormManager::bot_log_dir() const
 {
     const char* log_dir = std::getenv("jaia_log_dir");
     const char* bot_index = std::getenv("jaia_bot_index");
     const std::filesystem::path root = log_dir ? log_dir : "/var/log/jaiabot";
     const std::string bot = bot_index ? bot_index : std::to_string(cfg().bot_id());
-    return root / "bot" / bot / "storm_outbox";
+    return root / "bot" / bot;
+}
+
+std::filesystem::path jaiabot::apps::StormManager::outbox_dir() const
+{
+    return bot_log_dir() / "storm_outbox";
+}
+
+bool jaiabot::apps::StormManager::icas_transfer_complete() const
+{
+    const auto now = goby::time::SteadyClock::now();
+    const auto quiet = std::chrono::seconds(cfg().icas_transfer_quiet_seconds());
+
+    // nothing heard recently: ICAS sank, is out of range, or isn't fitted
+    if (now - last_icas_receive_time_ >= quiet)
+        return true;
+
+    // connected and replay drained: everything recorded so far has been delivered
+    return last_icas_status_time_ && now - *last_icas_status_time_ < quiet && !icas_dump_mode_;
+}
+
+void jaiabot::apps::StormManager::mark_icas_air_descent_complete()
+{
+    // must match the path checked by jaiabot_icas.py
+    const auto marker = bot_log_dir() / "icas_air_descent_complete";
+    std::error_code error;
+    if (std::filesystem::exists(marker, error))
+        return;
+
+    std::filesystem::create_directories(marker.parent_path(), error);
+    std::ofstream file(marker);
+    if (!file)
+        glog.is_warn() && glog << "Failed to write ICAS air descent marker: " << marker
+                               << std::endl;
+    else
+        glog.is_verbose() && glog << "ICAS air descent complete, wrote " << marker << std::endl;
 }
 
 std::filesystem::path

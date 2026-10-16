@@ -59,8 +59,7 @@ void jaiabot::statechart::self_test::AirDescentDataOffload::mcu_response(const E
 
                 data_offloaded_from_mcu_ = true;
                 convert_air_descent_data_to_task_packets();
-                convert_icas_data_to_task_packets();
-                try_send_to_shore();
+                start_shore_send_when_icas_ready();
             }
 
             break;
@@ -89,9 +88,16 @@ void jaiabot::statechart::self_test::AirDescentDataOffload::loop(const EvLoop& e
             next_mcu_send_time_ = now + this->machine().mcu_send_interval();
         }
     }
+    else
+    {
+        start_shore_send_when_icas_ready();
+    }
 
     if (now >= offload_timeout_)
     {
+        // queue whatever ICAS data we have so it is not lost; only stop the ICAS driver if
+        // the transfer finished, otherwise the next wake can pick up the rest
+        convert_icas_data_to_task_packets(this->app().icas_transfer_complete());
         this->machine().insert_warning(
             protobuf::WARNING__STORM_SELF_TEST__AIR_DESCENT_DATA_OFFLOAD_TIMEOUT);
         post_event(EvAirDescentDataTimeout());
@@ -154,8 +160,26 @@ void jaiabot::statechart::self_test::AirDescentDataOffload::
     }
 }
 
-void jaiabot::statechart::self_test::AirDescentDataOffload::convert_icas_data_to_task_packets()
+void jaiabot::statechart::self_test::AirDescentDataOffload::start_shore_send_when_icas_ready()
 {
+    // TaskPackets must all be queued before sending, as this state ends once the queue drains
+    if (icas_data_converted_ || !this->app().icas_transfer_complete())
+        return;
+
+    convert_icas_data_to_task_packets(true);
+    try_send_to_shore();
+}
+
+void jaiabot::statechart::self_test::AirDescentDataOffload::convert_icas_data_to_task_packets(
+    bool transfer_complete)
+{
+    if (icas_data_converted_)
+        return;
+    icas_data_converted_ = true;
+
+    if (transfer_complete)
+        this->app().mark_icas_air_descent_complete();
+
     const auto& icas_samples = this->app().icas_air_descent_samples();
     if (icas_samples.empty())
         return;
