@@ -661,7 +661,6 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
             }
         });
 
-
     if (cfg().bot_type() == protobuf::STORM)
     {
         interprocess().subscribe<jaiabot::groups::storm::mission_report>(

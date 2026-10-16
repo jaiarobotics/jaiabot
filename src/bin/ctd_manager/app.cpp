@@ -116,7 +116,7 @@ void jaiabot::apps::CTDManager::handle_ctd_profile(const jaiabot::protobuf::CTDP
         const std::size_t max_samples = std::clamp<std::size_t>(cfg().iridium_offload_max_samples(),
                                                                 2, samples_per_part * max_parts);
 
-        std::vector<jaiabot::utils::Point> profile_points;
+        std::vector<jaiabot::utils::DownsamplePoint> profile_points;
         profile_points.reserve(ctd_profile.snapshot_size());
         for (const auto& snapshot : ctd_profile.snapshot())
         {
@@ -124,7 +124,7 @@ void jaiabot::apps::CTDManager::handle_ctd_profile(const jaiabot::protobuf::CTDP
         }
 
         const auto selected_indices =
-            jaiabot::utils::downsampleIndices(profile_points, max_samples);
+            jaiabot::utils::select_downsample_indices(profile_points, max_samples);
         const std::size_t num_parts =
             (selected_indices.size() + samples_per_part - 1) / samples_per_part;
 
