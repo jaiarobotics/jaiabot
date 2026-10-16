@@ -62,11 +62,11 @@ class StormManager : public goby::zeromq::MultiThreadApplication<config::StormMa
 
     // ICAS parachute peripheral samples accumulated over the mission (via jaiabot_icas.py ->
     // jaiabot_udp_gateway), for offload during the air_descent_data_offload self-test state.
-    // ICASData::t_us is the peripheral's own uptime clock, not wall-clock time, so we pair each
-    // sample with the local receipt time for use in TaskPacket start/end times.
+    // ICASData::t_us is the peripheral's uptime clock, so pair each sample with its wall-clock
+    // time (ICASData::sample_time if set, else local receipt time) for TaskPacket start/end.
     struct ICASSample
     {
-        goby::time::MicroTime received_time;
+        goby::time::MicroTime sample_time;
         protobuf::ICASData data;
     };
     const std::deque<ICASSample>& icas_air_descent_samples() const { return icas_samples_; }

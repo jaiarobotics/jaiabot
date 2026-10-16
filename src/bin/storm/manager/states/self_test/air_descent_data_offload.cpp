@@ -214,9 +214,9 @@ void jaiabot::statechart::self_test::AirDescentDataOffload::convert_icas_data_to
         task_packet.set_bot_id(this->cfg().bot_id());
         task_packet.set_type(protobuf::MissionTask::STORM_AIR_DESCENT);
         task_packet.set_start_time_with_units(
-            icas_samples[selected_indices[chunk_start]].received_time);
+            icas_samples[selected_indices[chunk_start]].sample_time);
         task_packet.set_end_time_with_units(
-            icas_samples[selected_indices[chunk_end - 1]].received_time);
+            icas_samples[selected_indices[chunk_end - 1]].sample_time);
         *task_packet.mutable_icas_air_descent() = icas_data;
         this->app().enqueue_task_packet(task_packet);
     }

@@ -173,7 +173,10 @@ jaiabot::apps::StormManager::StormManager()
     interprocess().subscribe<jaiabot::groups::icas>(
         [this](const jaiabot::protobuf::ICASData& data)
         {
-            icas_samples_.push_back({goby::time::SystemClock::now<goby::time::MicroTime>(), data});
+            auto sample_time = data.has_sample_time()
+                                   ? goby::time::MicroTime::from_value(data.sample_time())
+                                   : goby::time::SystemClock::now<goby::time::MicroTime>();
+            icas_samples_.push_back({sample_time, data});
             if (icas_samples_.size() > kMaxICASSamples)
                 icas_samples_.pop_front();
         });

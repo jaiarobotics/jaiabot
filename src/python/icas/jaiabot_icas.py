@@ -16,6 +16,8 @@ import asyncio
 import logging
 import socket
 import struct
+import time
+from collections import deque
 
 from bleak import BleakClient, BleakScanner
 from bleak.exc import BleakError
@@ -50,11 +52,15 @@ CTRL_SET_THROTTLE_US = 0x07
 # Little-endian struct formats matching section 4 of the ICAS development guide
 DATA_STRUCT = struct.Struct('<IqhHH')     # seq, t_us, temp_x100, rh_x100, flags (18 bytes)
 ADC_STRUCT = struct.Struct('<H')          # raw ADC counts (2 bytes)
-STATUS_STRUCT = struct.Struct('<BIQIIIIBBQ')  # ver..sent_cnt (39 bytes)
+STATUS_STRUCT = struct.Struct('<BIQIIIIBB')  # ver..dump_mode (31 bytes)
+STATUS_SENT_CNT_STRUCT = struct.Struct('<Q')  # optional trailing sent_cnt (guide: "31+ bytes")
 
 RH_CROPPED_FLAG = 0x01
 
 RECONNECT_DELAY_SECONDS = 5
+
+# more than the peripheral's 2048-sample ring buffer, so any replay is recognized
+SEEN_SAMPLES_MAX = 4096
 
 
 class ICASUdpPublisher:
@@ -87,6 +93,45 @@ class ICASUdpPublisher:
         self._send(envelope)
 
 
+class SampleTracker:
+    """Drops samples re-sent by the peripheral's ring buffer replay on reconnect, and estimates
+    each sample's wall-clock time from the peripheral's uptime clock (t_us)."""
+
+    def __init__(self):
+        self._seen = set()
+        self._seen_order = deque()
+        self._max_seq = None
+        # min(host_time - t_us): least-delayed packet gives the best boot-time estimate
+        self._offset_us = None
+
+    def _reset(self):
+        self._seen.clear()
+        self._seen_order.clear()
+        self._max_seq = None
+        self._offset_us = None
+
+    def accept(self, data: ICASData, host_time_us: int) -> bool:
+        key = (data.seq, data.t_us)
+        if key in self._seen:
+            return False
+
+        # unseen sample at or below a sequence id we already have: peripheral rebooted
+        if self._max_seq is not None and data.seq <= self._max_seq:
+            lg.warning('ICAS peripheral appears to have rebooted (seq %d <= %d)', data.seq, self._max_seq)
+            self._reset()
+
+        self._seen.add(key)
+        self._seen_order.append(key)
+        if len(self._seen_order) > SEEN_SAMPLES_MAX:
+            self._seen.discard(self._seen_order.popleft())
+        self._max_seq = data.seq if self._max_seq is None else max(self._max_seq, data.seq)
+
+        offset = host_time_us - data.t_us
+        self._offset_us = offset if self._offset_us is None else min(self._offset_us, offset)
+        data.sample_time = data.t_us + self._offset_us
+        return True
+
+
 def decode_data(payload: bytes) -> ICASData:
     seq, t_us, temp_x100, rh_x100, flags = DATA_STRUCT.unpack(payload)
     data = ICASData()
@@ -109,7 +154,7 @@ def decode_adc(payload: bytes) -> ICASAdcData:
 
 def decode_status(payload: bytes) -> ICASStatus:
     (ver, rb_count, rb_overwrites, period_ms, samples_ok, samples_err, i2c_fails, streaming,
-     dump_mode, sent_cnt) = STATUS_STRUCT.unpack(payload[:STATUS_STRUCT.size])
+     dump_mode) = STATUS_STRUCT.unpack(payload[:STATUS_STRUCT.size])
     status = ICASStatus()
     status.version = ver
     status.ring_buffer_count = rb_count
@@ -120,7 +165,9 @@ def decode_status(payload: bytes) -> ICASStatus:
     status.i2c_fails = i2c_fails
     status.streaming = bool(streaming)
     status.dump_mode = bool(dump_mode)
-    status.sent_count = sent_cnt
+    sent_cnt_end = STATUS_STRUCT.size + STATUS_SENT_CNT_STRUCT.size
+    if len(payload) >= sent_cnt_end:
+        (status.sent_count,) = STATUS_SENT_CNT_STRUCT.unpack(payload[STATUS_STRUCT.size:sent_cnt_end])
     return status
 
 
@@ -165,7 +212,7 @@ async def find_device(name: str, address: str, timeout: float):
     return device.address
 
 
-async def run_session(args, publisher: ICASUdpPublisher):
+async def run_session(args, publisher: ICASUdpPublisher, tracker: SampleTracker):
     address = await find_device(args.name, args.address, args.scan_timeout)
     lg.info('Connecting to ICAS peripheral at %s...', address)
 
@@ -178,9 +225,14 @@ async def run_session(args, publisher: ICASUdpPublisher):
 
         def on_data(_characteristic, payload: bytearray):
             try:
-                publisher.send_data(decode_data(bytes(payload)))
+                data = decode_data(bytes(payload))
             except struct.error as e:
                 lg.warning('Failed to decode DATA packet (%d bytes): %s', len(payload), e)
+                return
+            if tracker.accept(data, int(time.time() * 1e6)):
+                publisher.send_data(data)
+            else:
+                lg.debug('Dropping replayed ICAS sample (seq=%d)', data.seq)
 
         def on_status(_characteristic, payload: bytearray):
             try:
@@ -214,10 +266,12 @@ async def run_session(args, publisher: ICASUdpPublisher):
 
 async def main_loop(args):
     publisher = ICASUdpPublisher(args.port)
+    # persists across reconnects so ring buffer replays are de-duplicated
+    tracker = SampleTracker()
 
     while True:
         try:
-            await run_session(args, publisher)
+            await run_session(args, publisher, tracker)
         except BleakError as e:
             lg.warning('BLE error: %s', e)
         except asyncio.TimeoutError:

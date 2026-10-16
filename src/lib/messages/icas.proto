@@ -32,6 +32,7 @@ message ICASData
     optional double temperature_celsius = 3;
     optional double relative_humidity_percent = 4;
     optional uint32 flags = 5;       // bitfield (0x01 = RH cropped)
+    optional uint64 sample_time = 6; // estimated wall-clock time of sample (microseconds since epoch)
 }
 
 // Mirrors the JAIA-ICAS peripheral's ADC characteristic packet (2 bytes)
