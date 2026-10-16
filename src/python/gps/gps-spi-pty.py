@@ -548,6 +548,9 @@ def main():
     args = parser.parse_args()
     signal.signal(signal.SIGINT, handle_ctrl_c)
 
+    # flush each line to the journal; stdout is block-buffered under systemd
+    sys.stdout.reconfigure(line_buffering=True)
+
     run(
         pty_path=args.pty_path,
         bus=args.bus,
