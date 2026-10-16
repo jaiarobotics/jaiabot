@@ -68,7 +68,7 @@ parser.add_argument('--rf_encryption_password', default ='', help='Encryption ke
 parser.add_argument('--comms_links', choices=['xbee', 'wifi', 'iridium'], nargs="+", default=['xbee'], help='Select one or more comms_links')
 parser.add_argument('--camera_positions', choices=['aft', 'fore', 'outward', 'none'], nargs="+", default=['none'], help='Select one or more camera_positions')
 parser.add_argument('--dccl_encryption_password', default ='', help='Encryption passphrase for DCCL (intervehicle) messages: can be any string')
-parser.add_argument('--additional_sensors', choices=['turner_c_fluor', 'turner_c_fluor_2', 'aml', 'ppk', 'icas', 'none'], nargs="+", default=['none'], help='Select one or more additional sensors')
+parser.add_argument('--additional_sensors', choices=['turner_c_fluor', 'turner_c_fluor_2', 'aml', 'ppk', 'none'], nargs="+", default=['none'], help='Select one or more additional sensors')
 parser.add_argument('--tail_serial_number', default='unknown_serial_number', help='Tail serial number to use for this bot (defaults to "unknown_serial_number")')
 
 args=parser.parse_args()
@@ -509,6 +509,16 @@ jaiabot_apps = [
      'error_on_fail': 'ERROR__NOT_RESPONDING__JAIABOT_STORM_MANAGER',
      'runs_on': [BOT_TYPE.STORM],
      'wanted_by': 'jaiabot_health.service'},
+    {'exe': 'jaiabot_icas.py',
+     'description': 'JaiaBot ICAS Parachute Sensor BLE Driver',
+     'template': 'py-app.service.in',
+     'subdir': 'icas',
+     'args': f'-p {UDP_GATEWAY_PORT}',
+     'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_ICAS_DRIVER',
+     'runs_on': [BOT_TYPE.STORM],
+     'runs_when': Mode.RUNTIME,
+     'wanted_by': 'jaiabot_health.service',
+     'restart': 'on-failure'},
     {'exe': 'jaiabot_pid_control',
      'description': 'JaiaBot PID Controller',
      'template': 'goby-app.service.in',
@@ -728,22 +738,6 @@ if 'ppk' in jaia_additional_sensors:
     }
 
     jaiabot_apps.append(jaiabot_ubx_ppk)
-
-if 'icas' in jaia_additional_sensors:
-    jaiabot_icas = {
-        'exe': 'jaiabot_icas.py',
-        'description': 'JaiaBot ICAS Parachute Sensor BLE Driver',
-        'template': 'py-app.service.in',
-        'subdir': 'icas',
-        'args': f'-p {UDP_GATEWAY_PORT}',
-        'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_ICAS_DRIVER',
-        'runs_on': [Type.BOT],
-        'runs_when': Mode.RUNTIME,
-        'wanted_by': 'jaiabot_health.service',
-        'restart': 'on-failure'
-    }
-
-    jaiabot_apps.append(jaiabot_icas)
 
 # BIO bots read the TSYS01 through the payload board, so skip the Python driver there to
 # avoid double-publishing (checked here since 'runs_on' can't express "bot AND not BIO").

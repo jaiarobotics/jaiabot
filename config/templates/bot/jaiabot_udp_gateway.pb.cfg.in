@@ -11,4 +11,3 @@ echo_enabled: $echo_enabled
 salinity_enabled: $salinity_enabled
 bar30_enabled: $bar30_enabled
 tsys01_enabled: $tsys01_enabled
-icas_enabled: $icas_enabled

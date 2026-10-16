@@ -201,6 +201,10 @@ async def read_metadata(client: BleakClient) -> ICASMetadata:
     return metadata
 
 
+class ICASNotFoundError(BleakError):
+    pass
+
+
 async def find_device(name: str, address: str, timeout: float):
     if address:
         return address
@@ -208,7 +212,7 @@ async def find_device(name: str, address: str, timeout: float):
     lg.info('Scanning for ICAS peripheral advertised as "%s"...', name)
     device = await BleakScanner.find_device_by_name(name, timeout=timeout)
     if device is None:
-        raise BleakError(f'Could not find a BLE device advertising as "{name}"')
+        raise ICASNotFoundError(f'Could not find a BLE device advertising as "{name}"')
     return device.address
 
 
@@ -269,9 +273,16 @@ async def main_loop(args):
     # persists across reconnects so ring buffer replays are de-duplicated
     tracker = SampleTracker()
 
+    # not every STORM bot carries an ICAS, so only warn once until it is found
+    not_found_logged = False
+
     while True:
         try:
             await run_session(args, publisher, tracker)
+            not_found_logged = False
+        except ICASNotFoundError as e:
+            (lg.debug if not_found_logged else lg.warning)('%s; will keep scanning', e)
+            not_found_logged = True
         except BleakError as e:
             lg.warning('BLE error: %s', e)
         except asyncio.TimeoutError:
