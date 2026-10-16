@@ -155,6 +155,36 @@ describe("handleRerouteMissions", () => {
     });
 });
 
+describe("the plan sent after a reroute", () => {
+    test("opens a suppressed waypoint's segment at the first detour, dropping its lane start", () => {
+        const mission = Mission.fromJSON({
+            waypoints: [
+                { location: coord(41.0, -72.01) },
+                { location: coord(41.0, -72.006), isLaneStart: true },
+                { location: INSIDE, segmentStart: { speed: 2 } },
+                { location: coord(41.0, -71.994), isLaneStart: true },
+                { location: coord(41.0, -71.99) },
+            ],
+        } as any);
+        const missionID = missionSet.addMission(mission);
+
+        reroute(makeMutableState(), missionID);
+
+        const rerouted = missionSet.getMission(missionID)!;
+        expect(rerouted.getSuppressedWaypoints()).toHaveLength(1);
+        expect(rerouted.getWaypoint(3)!.getIsDetour()).toBe(true);
+        // Adding a mission to the set gives every segment the set's speed, so only the indices count
+        expect(
+            rerouted
+                .getSegments()
+                .map((segment) => [segment.start_goal_index, segment.lane_start_goal_indices]),
+        ).toEqual([
+            [0, [1]],
+            [2, undefined],
+        ]);
+    });
+});
+
 describe("handleRestoreOriginalWaypoints", () => {
     test("brings back suppressed waypoints, removes detours and reports both", () => {
         const missionID = addMission(WEST, INSIDE, EAST);

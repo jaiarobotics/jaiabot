@@ -247,6 +247,35 @@ describe("segments built at send", () => {
         expect(mission.getSegments()[0].lane_start_goal_indices).toEqual([1, 3]);
     });
 
+    test("a lane whose first waypoint is suppressed starts at the next goal sent", () => {
+        const withDetour = loadMission([
+            {},
+            { isLaneStart: true },
+            {},
+            { isDetour: true },
+            { isLaneStart: true, isSuppressed: true },
+            {},
+        ]);
+        const withoutDetour = loadMission([{}, {}, { isLaneStart: true, isSuppressed: true }, {}]);
+
+        expect(withDetour.getSegments()[0].lane_start_goal_indices).toEqual([1, 3]);
+        expect(withoutDetour.getSegments()[0].lane_start_goal_indices).toEqual([2]);
+    });
+
+    test("a lane start carried onto its segment's start is dropped", () => {
+        const mission = loadMission([
+            {},
+            { segmentStart: { speed: 2 }, isSuppressed: true },
+            { isLaneStart: true, isSuppressed: true },
+            {},
+        ]);
+
+        expect(mission.getSegments()).toEqual([
+            { start_goal_index: 0, speed: 1 },
+            { start_goal_index: 1, speed: 2 },
+        ]);
+    });
+
     test("a lane start at its segment's start is dropped", () => {
         const mission = loadMission([
             { isLaneStart: true },
