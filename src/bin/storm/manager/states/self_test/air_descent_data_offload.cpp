@@ -180,7 +180,39 @@ void jaiabot::statechart::self_test::AirDescentDataOffload::convert_icas_data_to
     if (transfer_complete)
         this->app().mark_icas_air_descent_complete();
 
-    const auto& icas_samples = this->app().icas_air_descent_samples();
+    const auto& all_samples = this->app().icas_air_descent_samples();
+    if (all_samples.empty())
+        return;
+
+    const auto window_minutes = this->cfg().icas_air_descent_window_minutes();
+    using ICASSample = std::remove_cvref_t<decltype(all_samples)>::value_type;
+    auto samples_in_window = [&](goby::time::MicroTime window_end)
+    {
+        const auto window_start =
+            window_minutes == 0
+                ? goby::time::MicroTime::from_value(0)
+                : window_end - goby::time::convert_duration<goby::time::MicroTime>(
+                                   std::chrono::minutes(window_minutes));
+        std::vector<ICASSample> samples;
+        std::copy_if(all_samples.begin(), all_samples.end(), std::back_inserter(samples),
+                     [&](const auto& sample) {
+                         return sample.sample_time >= window_start &&
+                                sample.sample_time <= window_end;
+                     });
+        return samples;
+    };
+
+    auto icas_samples = samples_in_window(this->machine().splashdown_time().value_or(
+        goby::time::SystemClock::now<goby::time::MicroTime>()));
+
+    // nothing near this wake's water detection: data recovered on a later wake, long after
+    // the descent, so anchor on the newest sample (roughly when the ICAS was lost) instead
+    if (icas_samples.empty())
+        icas_samples = samples_in_window(all_samples.back().sample_time);
+
+    glog.is_verbose() && glog << group("statechart") << "Keeping " << icas_samples.size()
+                              << " of " << all_samples.size()
+                              << " ICAS samples within the air descent window" << std::endl;
     if (icas_samples.empty())
         return;
 

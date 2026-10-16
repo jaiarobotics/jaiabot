@@ -29,6 +29,7 @@ struct InWaterDetection : boost::statechart::state<InWaterDetection, SelfTest>,
 {
     using StateBase = boost::statechart::state<InWaterDetection, SelfTest>;
     using ThresholdBase = ThresholdCommon<InWaterDetection>;
+    using ThresholdBase::react;
 
     InWaterDetection(typename StateBase::my_context c) : StateBase(c)
     {
@@ -37,8 +38,13 @@ struct InWaterDetection : boost::statechart::state<InWaterDetection, SelfTest>,
     }
     ~InWaterDetection() {}
 
-    using local_reactions =
-        boost::mpl::list<boost::statechart::transition<EvWaterDetected, LaunchTubeDetection>>;
+    boost::statechart::result react(const EvWaterDetected&)
+    {
+        this->machine().set_splashdown_time(goby::time::SystemClock::now<goby::time::MicroTime>());
+        return transit<LaunchTubeDetection>();
+    }
+
+    using local_reactions = boost::mpl::list<boost::statechart::custom_reaction<EvWaterDetected>>;
     using common_reactions = ThresholdBase::common_reactions; // typedef for jaia_state_tool
 
     using reactions = typename boost::mpl::copy<local_reactions,

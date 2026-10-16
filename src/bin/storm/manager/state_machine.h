@@ -24,6 +24,7 @@
 
 #include <algorithm>
 #include <map>
+#include <optional>
 
 // Boost
 #include <boost/statechart/state_machine.hpp>
@@ -104,6 +105,9 @@ struct StormManagerStateMachine
         return parachute_attachment_recovery_attempted_;
     }
 
+    void set_splashdown_time(goby::time::MicroTime t) { splashdown_time_ = t; }
+    const std::optional<goby::time::MicroTime>& splashdown_time() const { return splashdown_time_; }
+
     void add_id(protobuf::TaskPacket& task_packet) { task_packet.set_storm_id(task_packet_id_++); }
     void observe_id(const protobuf::TaskPacket& task_packet)
     {
@@ -144,6 +148,7 @@ struct StormManagerStateMachine
 
     bool launch_tube_recovery_attempted_{false};
     bool parachute_attachment_recovery_attempted_{false};
+    std::optional<goby::time::MicroTime> splashdown_time_;
     int task_packet_id_{0};
     std::deque<protobuf::TaskPacket> task_packet_queue_;
     std::map<int, bool> task_packet_subscribed_links_;

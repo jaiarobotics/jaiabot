@@ -46,4 +46,8 @@ message StormManager
     // ICAS transfer is considered complete once nothing has been received from it for this
     // long (sunk, out of range, or not fitted), or its STATUS reports the replay is drained
     optional uint32 icas_transfer_quiet_seconds = 32 [default = 30];
+
+    // only ICAS samples from this long before splashdown are offloaded, so time spent
+    // powered on in the aircraft doesn't use up the TaskPacket budget; 0 keeps all samples
+    optional uint32 icas_air_descent_window_minutes = 33 [default = 10];
 }
