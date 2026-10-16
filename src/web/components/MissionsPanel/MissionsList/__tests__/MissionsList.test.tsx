@@ -2,12 +2,22 @@ import { act, render, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 
 import MissionsList from "../MissionsList";
-import { JaiaContextProvider } from "../../../../context/JaiaContext";
+import {
+    JaiaContext,
+    JaiaContextProvider,
+    JaiaDispatchContext,
+} from "../../../../context/JaiaContext";
+import { JaiaActions } from "../../../../context/jaia-actions";
+import {
+    makeMutableState,
+    resetHandlerSingletons,
+} from "../../../../context/handlers/__tests__/handler-test-utils";
 
 import { missionSet } from "../../../../data/mission_set/mission-set";
 import Mission from "../../../../data/mission_set/mission";
 import { locationA } from "../../../../data/tests/__mocks__/waypoint-mock";
 import Task from "../../../../data/tasks/task";
+import { RoutingLevel } from "../../../../utils/routing/routing-status";
 import { TaskType } from "../../../../types/protobuf-types";
 
 test.skip("Exercise Duplicate Mission Button", async () => {
@@ -16,16 +26,15 @@ test.skip("Exercise Duplicate Mission Button", async () => {
     const originalID = missionSet.addMission(originalMission);
     originalMission.addWaypoint(locationA);
 
-    let waypoint1 = originalMission.getWaypoint(1);
     let task1 = new Task();
     task1.setType(TaskType.DIVE);
-    waypoint1.setTask(task1);
+    originalMission.setWaypointTask(1, task1);
 
     // Render the missions list
     await act(async () => {
         render(
             <JaiaContextProvider>
-                <MissionsList />
+                <MissionsList routingLevels={new Map()} />
             </JaiaContextProvider>,
         );
     });
@@ -52,4 +61,29 @@ test.skip("Exercise Duplicate Mission Button", async () => {
     expect(mission2AccordionChildren[1].textContent).toBe("Unassigned");
     expect(Array.from(missionsList.children).length).toBe(2);
     expect(missionSet.getMission(2).getMissionID()).toBe(2);
+});
+
+test("tapping a mission's routing status does not expand or collapse its accordion", async () => {
+    resetHandlerSingletons();
+    const mission = new Mission();
+    mission.addWaypoint(locationA);
+    const missionID = missionSet.addMission(mission);
+    const dispatch = jest.fn();
+    render(
+        <JaiaContext.Provider value={makeMutableState()}>
+            <JaiaDispatchContext.Provider value={dispatch}>
+                <MissionsList routingLevels={new Map([[missionID, RoutingLevel.CLEAR]])} />
+            </JaiaDispatchContext.Provider>
+        </JaiaContext.Provider>,
+    );
+    const isAccordionAction = () =>
+        dispatch.mock.calls.some(
+            ([action]) => action.type === JaiaActions.CLICKED_MISSION_ACCORDION,
+        );
+
+    await userEvent.click(screen.getByRole("button", { name: /^Routing status/ }));
+    expect(isAccordionAction()).toBe(false);
+
+    await userEvent.click(screen.getByText(`Mission-${missionID}`));
+    expect(isAccordionAction()).toBe(true);
 });

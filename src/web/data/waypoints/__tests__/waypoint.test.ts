@@ -1,4 +1,5 @@
-import Waypoint from "../waypoint";
+import { MissionWaypoint } from "../waypoint";
+import { mgrsToLonLat } from "../../../utils/conversions";
 import { MAX_LAT, MAX_LON, MGRS_PLACEHOLDER, MIN_LAT, MIN_LON } from "../../../utils/constants";
 
 const locations = [
@@ -128,35 +129,29 @@ describe("Waypoint lat/lon and MGRS conversion", () => {
 
     describe("latLonToMGRS", () => {
         test.each(locations)("converts $name lat/lon to MGRS components", (location) => {
-            const waypoint = new Waypoint();
-            waypoint.setLocation({ lat: location.lat, lon: location.lon });
+            const waypoint = new MissionWaypoint({ lat: location.lat, lon: location.lon });
 
             expect(waypoint.latLonToMGRS()).toEqual(location.components);
         });
 
         test("clamps coordinates above the supported MGRS bounds", () => {
-            const waypoint = new Waypoint();
-            waypoint.setLocation({ lat: MAX_LAT + 1, lon: MAX_LON + 1 });
+            const waypoint = new MissionWaypoint({ lat: MAX_LAT + 1, lon: MAX_LON + 1 });
 
-            const clampedWaypoint = new Waypoint();
-            clampedWaypoint.setLocation({ lat: MAX_LAT, lon: MAX_LON });
+            const clampedWaypoint = new MissionWaypoint({ lat: MAX_LAT, lon: MAX_LON });
 
             expect(waypoint.latLonToMGRS()).toEqual(clampedWaypoint.latLonToMGRS());
         });
 
         test("clamps coordinates below the supported MGRS bounds", () => {
-            const waypoint = new Waypoint();
-            waypoint.setLocation({ lat: MIN_LAT - 1, lon: MIN_LON - 1 });
+            const waypoint = new MissionWaypoint({ lat: MIN_LAT - 1, lon: MIN_LON - 1 });
 
-            const clampedWaypoint = new Waypoint();
-            clampedWaypoint.setLocation({ lat: MIN_LAT, lon: MIN_LON });
+            const clampedWaypoint = new MissionWaypoint({ lat: MIN_LAT, lon: MIN_LON });
 
             expect(waypoint.latLonToMGRS()).toEqual(clampedWaypoint.latLonToMGRS());
         });
 
         test("returns placeholder MGRS components when latitude is invalid", () => {
-            const waypoint = new Waypoint();
-            waypoint.setLocation({ lat: Number.NaN, lon: -77.03656 });
+            const waypoint = new MissionWaypoint({ lat: Number.NaN, lon: -77.03656 });
 
             expect(waypoint.latLonToMGRS()).toEqual({
                 gridZoneDesignator: MGRS_PLACEHOLDER,
@@ -167,8 +162,7 @@ describe("Waypoint lat/lon and MGRS conversion", () => {
         });
 
         test("returns placeholder MGRS components when longitude is invalid", () => {
-            const waypoint = new Waypoint();
-            waypoint.setLocation({ lat: 38.89796, lon: Number.NaN });
+            const waypoint = new MissionWaypoint({ lat: 38.89796, lon: Number.NaN });
 
             expect(waypoint.latLonToMGRS()).toEqual({
                 gridZoneDesignator: MGRS_PLACEHOLDER,
@@ -181,9 +175,7 @@ describe("Waypoint lat/lon and MGRS conversion", () => {
 
     describe("mgrsToLonLat", () => {
         test.each(locations)("converts $name MGRS to lon/lat", (location) => {
-            const waypoint = new Waypoint();
-
-            expectLonLatCloseTo(waypoint.mgrsToLonLat(location.mgrs), location);
+            expectLonLatCloseTo(mgrsToLonLat(location.mgrs), location);
         });
 
         test.each(["", "UJ2338907424", "99ZUJ2338907424", "not-a-grid"])(
@@ -191,8 +183,7 @@ describe("Waypoint lat/lon and MGRS conversion", () => {
             (mgrs) => {
                 jest.spyOn(console, "error").mockImplementation(() => {});
 
-                const waypoint = new Waypoint();
-                const [lon, lat] = waypoint.mgrsToLonLat(mgrs);
+                const [lon, lat] = mgrsToLonLat(mgrs);
 
                 expect(Number.isNaN(lon)).toBe(true);
                 expect(Number.isNaN(lat)).toBe(true);
@@ -202,8 +193,7 @@ describe("Waypoint lat/lon and MGRS conversion", () => {
 
     describe("switching between formats", () => {
         test.each(locations)("round-trips $name from lat/lon to MGRS and back", (location) => {
-            const waypoint = new Waypoint();
-            waypoint.setLocation({ lat: location.lat, lon: location.lon });
+            const waypoint = new MissionWaypoint({ lat: location.lat, lon: location.lon });
 
             const mgrs = waypoint.latLonToMGRS();
             const mgrsString = [
@@ -213,14 +203,12 @@ describe("Waypoint lat/lon and MGRS conversion", () => {
                 mgrs.northing,
             ].join("");
 
-            expectLonLatCloseTo(waypoint.mgrsToLonLat(mgrsString), location);
+            expectLonLatCloseTo(mgrsToLonLat(mgrsString), location);
         });
 
         test.each(locations)("round-trips $name from MGRS to lat/lon and back", (location) => {
-            const waypoint = new Waypoint();
-            const [lon, lat] = waypoint.mgrsToLonLat(location.mgrs);
-
-            waypoint.setLocation({ lat, lon });
+            const [lon, lat] = mgrsToLonLat(location.mgrs);
+            const waypoint = new MissionWaypoint({ lat, lon });
 
             expect(waypoint.latLonToMGRS()).toEqual(location.components);
         });

@@ -1,5 +1,5 @@
 import cloneDeep from "lodash/cloneDeep";
-import { ChangeEvent, useContext, useEffect, useState } from "react";
+import { ChangeEvent, FocusEvent, KeyboardEvent, useContext, useEffect, useState } from "react";
 import { error } from "toastr";
 
 import TaskParameters from "./TaskParameters/TaskParameters";
@@ -14,7 +14,9 @@ import Waypoint from "../../data/waypoints/waypoint";
 import { selectTheme } from "../../utils/style";
 import { MGRS_PLACEHOLDER } from "../../utils/constants";
 import { snakeCaseToTitleCase, validateCoordinate } from "../../utils/input";
+import { mgrsToLonLat } from "../../utils/conversions";
 import { compareSelectedWaypoints } from "./waypoint-panel";
+import { usePlacementCheck } from "../PlacementDialog/PlacementDialog";
 
 import {
     CoordinateSystem,
@@ -23,7 +25,7 @@ import {
     MGRSComponents,
 } from "../../types/jaia-system-types";
 import { PanelActions, WaypointSections } from "../../types/context-types";
-import { TaskType } from "../../types/protobuf-types";
+import { GeographicCoordinate, TaskType } from "../../types/protobuf-types";
 import { MapModes } from "../../types/openlayers-types";
 
 import Icon from "@mdi/react";
@@ -316,92 +318,93 @@ function TaskSelection(props: Props) {
  * Displays the waypoint location in lat/lon format. Allows the operator to edit these values.
  *
  * @notes
- * Location data exists in both number and string form. We utilize the number type
- * when saving to the data model and string type when working with user input. We need to use
- * strings when working with user input to allow negative signs and decimal points. As the
- * operator enters a coordinate, we will check if the value can be converted to a number.
- * If it can, we will update the data model with the numerical form of the user input.
+ * Typed values are held as strings, to allow negative signs and decimal points while typing.
+ * They take effect on Enter, or when focus leaves both fields, so a partly typed coordinate
+ * never moves the waypoint.
  */
 function LatLonDisplay(props: Props) {
     const jaiaDispatch = useContext(JaiaDispatchContext);
-    const [latInput, setLatInput] = useState(props.waypoint.getLocation().lat.toString());
-    const [lonInput, setLonInput] = useState(props.waypoint.getLocation().lon.toString());
+    const { checkAndPlace, placementDialog, isPrompting } = usePlacementCheck();
+    const [draft, setDraft] = useState<{
+        lat: string;
+        lon: string;
+        waypoint: Waypoint;
+        from: GeographicCoordinate;
+    } | null>(null);
+
+    const location = props.waypoint.getLocation();
+    // A draft started on another waypoint, or before the waypoint moved, no longer applies
+    const current =
+        draft?.waypoint === props.waypoint &&
+        draft.from.lat === location.lat &&
+        draft.from.lon === location.lon
+            ? draft
+            : null;
+    const shown = current ?? { lat: location.lat.toString(), lon: location.lon.toString() };
 
     /**
-     * Compares the lat stored in state and context. If the value in context
-     * is different, the waypoint has moved via a mechanism outside of the input box
-     * such as "tap to move". The function syncs the two sources.
-     *
-     * @returns {string} Most up to date latitude
-     */
-    const getLatInput = () => {
-        if (isNaN(Number(latInput))) {
-            return latInput;
-        }
-
-        if (props.waypoint.getLocation().lat !== Number(latInput)) {
-            const updatedLat = props.waypoint.getLocation().lat.toString();
-            setLatInput(updatedLat);
-            return updatedLat;
-        }
-
-        return latInput;
-    };
-
-    /**
-     * Compares the lon stored in state and context. If the value in context
-     * is different, the waypoint has moved via a mechanism outsie of the input box
-     * such as "tap to move". The function syncs the two sources.
-     *
-     * @returns {string} Most up to date longitude
-     */
-    const getLonInput = () => {
-        if (isNaN(Number(lonInput))) {
-            return lonInput;
-        }
-
-        if (props.waypoint.getLocation().lon !== Number(lonInput)) {
-            const updatedLon = props.waypoint.getLocation().lon.toString();
-            setLonInput(updatedLon);
-            return updatedLon;
-        }
-
-        return lonInput;
-    };
-
-    /**
-     * Updates the local copy of the coordinate on each key stroke. If the
-     * coordinate is a number, the data model and OpenLayers will be updated.
+     * Keeps the typed value without moving the waypoint
      *
      * @param {ChangeEvent} evt Contains the coord type + value
      * @returns {void}
      */
     const handleCoordinateChange = (evt: ChangeEvent<HTMLInputElement>) => {
-        let lat = latInput;
-        let lon = lonInput;
+        const typed = {
+            ...shown,
+            [evt.target.name === CoordinateTypes.LAT ? "lat" : "lon"]: evt.target.value,
+        };
+        setDraft({ ...typed, waypoint: props.waypoint, from: location });
+    };
 
-        const value = evt.target.value;
-
-        if (evt.target.name === CoordinateTypes.LAT) {
-            setLatInput(value);
-            lat = value;
-        } else {
-            setLonInput(value);
-            lon = value;
-        }
-
-        if (isNaN(Number(value))) {
+    /**
+     * Moves the waypoint to the typed coordinate, asking first if it is inside a zone. An
+     * empty or non-numeric value, or a cancelled move, puts the waypoint's location back.
+     *
+     * @returns {void}
+     */
+    const commitDraft = () => {
+        if (!current || isPrompting) return;
+        const isNumber = (value: string) => value.trim() !== "" && !isNaN(Number(value));
+        if (!isNumber(current.lat) || !isNumber(current.lon)) {
+            setDraft(null);
             return;
         }
+        const [lat, lon] = validateCoordinate(current.lat, current.lon);
+        const typed = { lat: Number(lat), lon: Number(lon) };
+        if (typed.lat === location.lat && typed.lon === location.lon) {
+            setDraft(null);
+            return;
+        }
+        checkAndPlace(
+            typed,
+            "waypoint",
+            () => {
+                setDraft(null);
+                jaiaDispatch({ type: JaiaActions.MOVE_WAYPOINT, location: typed });
+            },
+            { onCancel: () => setDraft(null) },
+        );
+    };
 
-        const updatedLatLon = validateCoordinate(lat, lon);
-        setLatInput(updatedLatLon[0]);
-        setLonInput(updatedLatLon[1]);
+    /**
+     * Commits the typed coordinate when the operator presses Enter
+     *
+     * @param {KeyboardEvent} evt The key pressed
+     * @returns {void}
+     */
+    const handleKeyDown = (evt: KeyboardEvent<HTMLInputElement>) => {
+        if (evt.key === "Enter") commitDraft();
+    };
 
-        jaiaDispatch({
-            type: JaiaActions.MOVE_WAYPOINT,
-            location: { lat: Number(updatedLatLon[0]), lon: Number(updatedLatLon[1]) },
-        });
+    /**
+     * Commits the typed coordinate when focus leaves both fields, not when it moves between them
+     *
+     * @param {FocusEvent} evt The blur, with the element taking focus
+     * @returns {void}
+     */
+    const handleBlur = (evt: FocusEvent<HTMLInputElement>) => {
+        if (evt.currentTarget.parentElement?.contains(evt.relatedTarget as Node)) return;
+        commitDraft();
     };
 
     return (
@@ -409,22 +412,28 @@ function LatLonDisplay(props: Props) {
             <div className="label">Lat:</div>
             <input
                 name={CoordinateTypes.LAT}
-                value={getLatInput()}
+                value={shown.lat}
                 className="jaia-input location"
                 autoComplete="off"
                 disabled={props.isDisabled}
                 onChange={(evt) => handleCoordinateChange(evt)}
+                onKeyDown={(evt) => handleKeyDown(evt)}
+                onBlur={(evt) => handleBlur(evt)}
             />
 
             <div className="label">Lon:</div>
             <input
                 name={CoordinateTypes.LON}
-                value={getLonInput()}
+                value={shown.lon}
                 className="jaia-input location"
                 autoComplete="off"
                 disabled={props.isDisabled}
                 onChange={(evt) => handleCoordinateChange(evt)}
+                onKeyDown={(evt) => handleKeyDown(evt)}
+                onBlur={(evt) => handleBlur(evt)}
             />
+
+            {placementDialog}
         </div>
     );
 }
@@ -449,19 +458,29 @@ function MGRSDisplay(props: Props) {
     const [squareID, setSquareID] = useState(currentMGRS.squareIdentifier);
     const [easting, setEasting] = useState(currentMGRS.easting);
     const [northing, setNorthing] = useState(currentMGRS.northing);
+    const { checkAndPlace, placementDialog } = usePlacementCheck();
 
     useEffect(() => {
         const locationChange = compareLocation();
         // Update MGRS values from an external change such as tap to move
         if (locationChange) {
-            const mgrs = props.waypoint.latLonToMGRS();
-            setGZD(mgrs.gridZoneDesignator);
-            setSquareID(mgrs.squareIdentifier);
-            setEasting(mgrs.easting);
-            setNorthing(mgrs.northing);
-            currentMGRS = props.waypoint.latLonToMGRS();
+            showWaypointLocation();
         }
     });
+
+    /**
+     * Sets the MGRS inputs to the waypoint's location
+     *
+     * @returns {void}
+     */
+    const showWaypointLocation = () => {
+        const mgrs = props.waypoint.latLonToMGRS();
+        setGZD(mgrs.gridZoneDesignator);
+        setSquareID(mgrs.squareIdentifier);
+        setEasting(mgrs.easting);
+        setNorthing(mgrs.northing);
+        currentMGRS = mgrs;
+    };
 
     /**
      * Updates the MGRS data in state as an operator changes the values
@@ -497,24 +516,24 @@ function MGRSDisplay(props: Props) {
      */
     const handleSubmitMGRSCoordinates = () => {
         const mgrsStr = gzd + squareID + easting + northing;
-        const [lon, lat] = props.waypoint.mgrsToLonLat(mgrsStr);
+        const [lon, lat] = mgrsToLonLat(mgrsStr);
 
         if (isNaN(lon) || isNaN(lat)) {
             error("Invalid MGRS input");
             return;
         }
 
-        currentMGRS = {
-            gridZoneDesignator: gzd,
-            squareIdentifier: squareID,
-            easting: easting,
-            northing: northing,
+        const move = () => {
+            currentMGRS = {
+                gridZoneDesignator: gzd,
+                squareIdentifier: squareID,
+                easting: easting,
+                northing: northing,
+            };
+            jaiaDispatch({ type: JaiaActions.MOVE_WAYPOINT, location: { lat, lon } });
         };
 
-        jaiaDispatch({
-            type: JaiaActions.MOVE_WAYPOINT,
-            location: { lat, lon },
-        });
+        checkAndPlace({ lat, lon }, "waypoint", move, { onCancel: showWaypointLocation });
     };
 
     /**
@@ -531,7 +550,7 @@ function MGRSDisplay(props: Props) {
             currentMGRS.easting +
             currentMGRS.northing;
 
-        let [displayedLon, displayedLat] = props.waypoint.mgrsToLonLat(mgrsStr);
+        let [displayedLon, displayedLat] = mgrsToLonLat(mgrsStr);
         displayedLon = Number(displayedLon.toFixed(COMPARE_DECIMALS));
         displayedLat = Number(displayedLat.toFixed(COMPARE_DECIMALS));
 
@@ -586,6 +605,8 @@ function MGRSDisplay(props: Props) {
             <button onClick={handleSubmitMGRSCoordinates}>
                 <Icon path={mdiArrowRight} />
             </button>
+
+            {placementDialog}
         </div>
     );
 }

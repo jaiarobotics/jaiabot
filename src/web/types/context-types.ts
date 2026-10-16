@@ -11,8 +11,6 @@ import {
     ExclusionZone,
     ExclusionZoneSet,
     ExclusionZoneSetSnapshot,
-    PendingReroute,
-    PendingWaypointRemoval,
 } from "../data/exclusion_zones/exclusion-zone-set";
 import { Bots } from "../data/bots/bots";
 import { Hubs } from "../data/hubs/hubs";
@@ -29,6 +27,7 @@ import {
     CoordinateSystem,
 } from "./jaia-system-types";
 import { Speeds, Command, GeographicCoordinate, TaskType } from "./protobuf-types";
+import { RerouteOutcome } from "./routing-types";
 
 // Type used to capture the JCC context
 export interface JaiaContextType {
@@ -42,12 +41,11 @@ export interface JaiaContextType {
     jaiaGlobal: JaiaGlobal;
     missionsManager: MissionsManager;
     exclusionZoneSet: ExclusionZoneSet;
-    pendingReroute: PendingReroute | null;
-    pendingWaypointRemoval: PendingWaypointRemoval | null;
-    placementError: string;
 
     visibleDetails: NodeTypes;
     visiblePanel: ButtonNames;
+    // Outcome of the last reroute or restore
+    rerouteReport: RerouteOutcome[] | null;
     visibleWaypointSection: WaypointSections;
     hubAccordionStates: HubAccordionStates;
     botAccordionStates: BotAccordionStates;
@@ -83,6 +81,7 @@ export interface JaiaAction {
     type: JaiaActions;
     botID?: number;
     missionID?: number;
+    missionIDs?: number[];
     rallyID?: number;
     zoneID?: number;
 
@@ -91,7 +90,6 @@ export interface JaiaAction {
     clickedTaskPacket?: SelectedTaskPacket;
 
     waypoint?: Waypoint;
-    waypoints?: Waypoint[];
     location?: GeographicCoordinate;
     locations?: GeographicCoordinate[];
     task?: Task;
@@ -111,6 +109,11 @@ export interface JaiaAction {
     botAccordionName?: BotAccordionNames;
     mapLayerAccordionName?: MapLayerAccordionNames;
     panelAction?: PanelActions;
+    /**
+     * Undo leaves the visible panel, and the zone editing and map mode that go with it, as they
+     * are instead of restoring the snapshot's.
+     */
+    keepPanelState?: boolean;
     buttonType?: ButtonTypes;
     buttonName?: ButtonNames;
     isMissionAccordionExpanded?: boolean;
@@ -120,8 +123,7 @@ export interface JaiaAction {
 
     command?: Command;
     exclusionZone?: ExclusionZone;
-    exclusionZones?: ExclusionZone[];
-    exclusionZoneSnapshot?: ExclusionZoneSetSnapshot;
+    exclusionZoneSetSnapshot?: ExclusionZoneSetSnapshot;
     missionSpeeds?: Speeds;
     missionRepeats?: number;
     missionSetName?: string;

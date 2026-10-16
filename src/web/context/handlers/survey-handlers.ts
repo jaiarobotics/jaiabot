@@ -11,10 +11,6 @@ import { DEFAULT_MISSION_SET_NAME, MISSION_ENDPOINTS, UNASSIGNED_ID } from "../.
 import { MapModes } from "../../types/openlayers-types";
 import { TaskType } from "../../types/protobuf-types";
 import { ButtonNames, JaiaAction, JaiaContextType } from "../../types/context-types";
-import {
-    detectMissionReroutes,
-    detectWaypointRemovals,
-} from "../../data/exclusion_zones/exclusion-zone-detection";
 
 /**
  * Makes map and grid plan changes based on survey state change
@@ -25,8 +21,6 @@ import {
  */
 export function handleChangeGridPlanningState(mutableState: JaiaContextType, action: JaiaAction) {
     gridPlan.setState(action.gridPlanningState);
-    const priorMissionSetSnapshot = missionSet.captureSnapshot();
-    const priorMissionsManagerSnapshot = missionsManager.captureSnapshot();
 
     switch (action.gridPlanningState) {
         case GridPlanningStates.ACCEPTING_GRID_DRAWING:
@@ -69,18 +63,19 @@ export function handleChangeGridPlanningState(mutableState: JaiaContextType, act
 
         case GridPlanningStates.APPROVED:
             for (const [missionID, mission] of gridPlan.getMissions()) {
-                const waypoints = mission.getWaypoints();
-                for (let i = 0; i < waypoints.length; i++) {
+                const count = mission.getWaypoints().length;
+                for (let i = 0; i < count; i++) {
+                    const waypointNum = i + 1;
                     if (i === 0) {
-                        waypoints[i].setTask(cloneDeep(gridPlan.getStartTask()));
-                    } else if (i === waypoints.length - 1) {
+                        mission.setWaypointTask(waypointNum, cloneDeep(gridPlan.getStartTask()));
+                    } else if (i === count - 1) {
                         // End mission task
                         continue;
-                    } else if (i === waypoints.length - MISSION_ENDPOINTS) {
+                    } else if (i === count - MISSION_ENDPOINTS) {
                         // End survey task
-                        waypoints[i].setTask(cloneDeep(gridPlan.getEndTask()));
+                        mission.setWaypointTask(waypointNum, cloneDeep(gridPlan.getEndTask()));
                     } else {
-                        waypoints[i].setTask(cloneDeep(gridPlan.getSurveyTask()));
+                        mission.setWaypointTask(waypointNum, cloneDeep(gridPlan.getSurveyTask()));
                     }
                 }
             }
@@ -101,24 +96,6 @@ export function handleChangeGridPlanningState(mutableState: JaiaContextType, act
             handleMapModeChange(MapModes.DEFAULT);
             mutableState.visiblePanel = ButtonNames.NONE;
             missionLayer.updateFeatures();
-
-            const pendingRemoval = detectWaypointRemovals();
-            if (pendingRemoval) {
-                mutableState.pendingWaypointRemoval = {
-                    ...pendingRemoval,
-                    priorMissionSetSnapshot,
-                    priorMissionsManagerSnapshot,
-                };
-            } else {
-                const pending = detectMissionReroutes();
-                if (pending) {
-                    mutableState.pendingReroute = {
-                        ...pending,
-                        priorMissionSetSnapshot,
-                        priorMissionsManagerSnapshot,
-                    };
-                }
-            }
             break;
     }
     return mutableState;

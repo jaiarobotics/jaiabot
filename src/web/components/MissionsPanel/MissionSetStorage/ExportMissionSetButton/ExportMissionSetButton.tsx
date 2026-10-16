@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useContext, useState } from "react";
+import { JaiaDispatchContext } from "../../../../context/JaiaContext";
+import { JaiaActions } from "../../../../context/jaia-actions";
 import { missionSet } from "../../../../data/mission_set/mission-set";
 import { DialogActions } from "../../../../types/context-types";
 import { DisabledCodes } from "./export-messages";
@@ -14,6 +16,7 @@ interface Props {
  * It manages the alert/confirm dialog that appears when clicking on the button.
  */
 export default function ExportMissionSetButton(props: Props) {
+    const jaiaDispatch = useContext(JaiaDispatchContext);
     const [isDialogVisible, setIsDialogVisible] = useState(false);
 
     /**
@@ -49,7 +52,11 @@ export default function ExportMissionSetButton(props: Props) {
     const onDialogClose = (dialogAction: DialogActions) => {
         setIsDialogVisible(false);
         if (dialogAction === DialogActions.CONFIRMED) {
-            exportMissionSetToFile(props.saveName);
+            const name = props.saveName.trim();
+            exportMissionSetToFile(name);
+            if (name !== missionSet.getName()) {
+                jaiaDispatch({ type: JaiaActions.CHANGE_MISSION_SET_NAME, missionSetName: name });
+            }
         }
     };
 

@@ -5,11 +5,13 @@ import { useContext, useEffect } from "react";
 import { JaiaContext, JaiaDispatchContext } from "../../../context/JaiaContext";
 import { JaiaActions } from "../../../context/jaia-actions";
 import MissionAssignMenu from "../MissionAssignMenu/MissionAssignMenu";
+import MissionRoutingButton from "./MissionRoutingButton/MissionRoutingButton";
 import DeleteMissionButton from "../../../components/__buttons__/DeleteMissionButton/DeleteMissionButton";
 
 import { missionsManager } from "../../../data/missions_manager/missions-manager";
 import { MDI_BUTTON_SIZE, UNASSIGNED_ID } from "../../../utils/constants";
 import { accordionTheme, addDropdownListener, scrollMissionsList } from "../../../utils/style";
+import { RoutingLevel } from "../../../utils/routing/routing-status";
 import JaiaToggle from "../../../components/JaiaToggle/JaiaToggle";
 
 // MUI | MDI
@@ -27,11 +29,16 @@ import {
 
 import "./MissionsList.less";
 
+interface MissionsListProps {
+    /** Each mission's routing level by mission ID, undefined for a mission with no waypoints */
+    routingLevels: ReadonlyMap<number, RoutingLevel | undefined>;
+}
+
 interface Props {
     missionID: number;
 }
 
-export default function MissionsList() {
+export default function MissionsList(props: MissionsListProps) {
     const jaiaContext = useContext(JaiaContext);
     const jaiaDispatch = useContext(JaiaDispatchContext);
 
@@ -128,12 +135,24 @@ export default function MissionsList() {
                                 handleAccordionChange(mission.getMissionID(), expanded)
                             }
                         >
-                            <AccordionSummary
-                                className="mission-accordion-summary"
-                                expandIcon={<ExpandMoreIcon />}
-                            >
-                                <MissionAccordionTitle missionID={mission.getMissionID()} />
-                            </AccordionSummary>
+                            {/* Spans, since MUI puts the Accordion's first child in an <h3> */}
+                            <span className="mission-accordion-header">
+                                <AccordionSummary
+                                    className="mission-accordion-summary"
+                                    expandIcon={<ExpandMoreIcon />}
+                                >
+                                    <MissionAccordionTitle missionID={mission.getMissionID()} />
+                                </AccordionSummary>
+                                {/* Laid over the summary, not inside it, since it is a button itself */}
+                                <span className="mission-status-icons">
+                                    <MissionRoutingButton
+                                        mission={mission}
+                                        routingLevel={props.routingLevels.get(
+                                            mission.getMissionID(),
+                                        )}
+                                    />
+                                </span>
+                            </span>
                             <AccordionDetails className="mission-accordion-details">
                                 <div className="mission-accordion-row">
                                     <MissionAssignMenu missionID={mission.getMissionID()} />

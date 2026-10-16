@@ -5,6 +5,7 @@ import { JaiaActions } from "../../../context/jaia-actions";
 import TakeControlDialog from "../TakeControl/TakeControlDialog/TakeControlDialog";
 import { StartAllMissionsDialog } from "./StartAllMissionsDialog";
 import { DisabledCodes } from "../disabled-codes";
+import { describeRouteWarningsForBots } from "../route-warnings";
 
 import { Icon } from "@mdi/react";
 import { Button } from "@mui/material";
@@ -14,6 +15,9 @@ import Bot from "../../../data/bots/bot";
 import Mission from "../../../data/mission_set/mission";
 
 import { missionsManager } from "../../../data/missions_manager/missions-manager";
+import { exclusionZoneSet } from "../../../data/exclusion_zones/exclusion-zone-set";
+import { buildZoneGeometry } from "../../../utils/routing/router";
+import { getRouteWarnings, RouteWarning } from "../../../utils/routing/routing-status";
 
 import { Command, CommandType } from "../../../types/protobuf-types";
 import { ButtonNames, ButtonTypes, DialogActions } from "../../../types/context-types";
@@ -39,6 +43,7 @@ export default function StartAllMissionsButton(props: Props) {
         new Map<DisabledCodes, number[]>(initBotReadyStates()),
     );
     const [isTakeControlVisible, setIsTakeControlVisible] = useState(false);
+    const [routeWarnings, setRouteWarnings] = useState<string[]>([]);
 
     /**
      * Loops through the connected Bots and categorizes them based on their
@@ -70,6 +75,32 @@ export default function StartAllMissionsButton(props: Props) {
         }
 
         setBotReadyStates(updatedBotReadyStates);
+        setRouteWarnings(findRouteWarnings(updatedBotReadyStates.get(DisabledCodes.NONE)));
+    };
+
+    /**
+     * Checks each Bot's assigned mission route, and the Bot's path to its first waypoint,
+     * against the exclusion zones
+     *
+     * @param {number[]} readyBotIDs IDs of the Bots to check
+     * @returns {string[]} One line per warning, listing the Bots it applies to
+     */
+    const findRouteWarnings = (readyBotIDs: number[]) => {
+        const geometry = buildZoneGeometry(exclusionZoneSet.getZones());
+        const botsByWarning = new Map<RouteWarning, number[]>([
+            [RouteWarning.ROUTE_CROSSES_ZONE, []],
+            [RouteWarning.APPROACH_CROSSES_ZONE, []],
+            [RouteWarning.START_INSIDE_ZONE, []],
+        ]);
+        for (const botID of readyBotIDs) {
+            const mission = props.missions.get(missionsManager.getMissionID(botID));
+            if (!mission) continue;
+            const start = props.bots.get(botID).getLocation();
+            for (const warning of getRouteWarnings(mission, start, geometry)) {
+                botsByWarning.get(warning).push(botID);
+            }
+        }
+        return describeRouteWarningsForBots(botsByWarning);
     };
 
     /**
@@ -140,6 +171,7 @@ export default function StartAllMissionsButton(props: Props) {
                 isVisible={isDialogVisible}
                 botReadyStates={botReadyStates}
                 numBots={props.bots.size}
+                routeWarnings={routeWarnings}
                 onClose={onDialogClose}
             />
             <TakeControlDialog

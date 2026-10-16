@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { exclusionZoneSet } from "../../../../data/exclusion_zones/exclusion-zone-set";
+import { useContext, useState } from "react";
+import { JaiaContext, JaiaDispatchContext } from "../../../../context/JaiaContext";
+import { JaiaActions } from "../../../../context/jaia-actions";
 import { DialogActions } from "../../../../types/context-types";
 import { exportZonesToFile } from "../zone-storage";
 import { DisabledCodes } from "./export-messages";
@@ -14,6 +15,8 @@ interface Props {
  * It manages the alert/confirm dialog that appears when clicking on the button.
  */
 export default function ExportZoneButton(props: Props) {
+    const jaiaContext = useContext(JaiaContext);
+    const jaiaDispatch = useContext(JaiaDispatchContext);
     const [isDialogVisible, setIsDialogVisible] = useState(false);
 
     /**
@@ -22,7 +25,7 @@ export default function ExportZoneButton(props: Props) {
      * @returns {DisabledCodes} The applicable disabled code based on the zone set conditions.
      */
     const getDisabledCode = () => {
-        if (exclusionZoneSet.getZones().size === 0) return DisabledCodes.NO_ZONES;
+        if (jaiaContext!.exclusionZoneSet.getZones().size === 0) return DisabledCodes.NO_ZONES;
         if (!props.saveName.trim()) return DisabledCodes.NO_NAME;
         return DisabledCodes.NONE;
     };
@@ -49,7 +52,14 @@ export default function ExportZoneButton(props: Props) {
     const onDialogClose = (dialogAction: DialogActions) => {
         setIsDialogVisible(false);
         if (dialogAction === DialogActions.CONFIRMED) {
-            exportZonesToFile(props.saveName.trim());
+            const name = props.saveName.trim();
+            exportZonesToFile(name);
+            if (name !== jaiaContext.exclusionZoneSet.getName()) {
+                jaiaDispatch({
+                    type: JaiaActions.CHANGE_EXCLUSION_ZONE_SET_NAME,
+                    exclusionZoneSetName: name,
+                });
+            }
         }
     };
 

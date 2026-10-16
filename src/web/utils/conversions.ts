@@ -1,4 +1,5 @@
 import * as turf from "@turf/turf";
+import * as mgrs from "mgrs";
 import { Units } from "@turf/helpers";
 
 import { GeographicCoordinate } from "../types/protobuf-types";
@@ -111,4 +112,20 @@ export function locationToConstantHeadingParams(
     params.constant_heading = (bearing + 360) % 360;
     params.constant_heading_time = Math.round(distance / params.constant_heading_speed);
     return params;
+}
+
+/**
+ * Converts an MGRS string to lat/lon coordinate
+ *
+ * @param {string} mgrsStr Location to convert
+ * @returns {number[]} Coordinates [lon, lat]
+ */
+export function mgrsToLonLat(mgrsStr: string): number[] {
+    try {
+        const [lon, lat] = mgrs.toPoint(mgrsStr);
+        return [lon, lat];
+    } catch (err) {
+        console.error("Failed to convert MGRS to lon/lat", err);
+        return [NaN, NaN];
+    }
 }

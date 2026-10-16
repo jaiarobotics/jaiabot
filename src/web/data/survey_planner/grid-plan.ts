@@ -2,7 +2,7 @@ import cloneDeep from "lodash/cloneDeep";
 import Task from "../tasks/task";
 import Mission from "../mission_set/mission";
 import { UNASSIGNED_ID, MAX_WAYPOINTS, MAX_LANES_PER_BOT } from "../../utils/constants";
-import { BottomDepthSafetyParams, GeographicCoordinate, Segment } from "../../types/protobuf-types";
+import { BottomDepthSafetyParams, GeographicCoordinate } from "../../types/protobuf-types";
 
 export enum GridPlanningStates {
     ACCEPTING_MISSION_START_LOCATION = 1,
@@ -233,7 +233,6 @@ export class GridPlan {
 
         while (lanesCovered < this.numOfLanes) {
             let updatedLanesPerBot = lanesPerBot;
-            let nextLaneStartIndex = 1;
 
             if (extraLanes > 0) {
                 updatedLanesPerBot += 1;
@@ -241,29 +240,20 @@ export class GridPlan {
             }
 
             const baseMission = new Mission();
-            const segment: Segment = {
-                start_goal_index: 0,
-                lane_start_goal_indices: [nextLaneStartIndex],
-            };
             baseMission.setMissionID(missionID);
 
             for (let i = lanesCovered; i < lanesCovered + updatedLanesPerBot; i++) {
                 const mission = this.missions.get(i + 1);
-                // Do not count start + end points
-                nextLaneStartIndex += mission.getWaypoints().length - 2;
-                // Remove mission end location and mark where the next lane starts if not last lane in group
-                if (i + 1 < lanesCovered + updatedLanesPerBot) {
-                    mission.getWaypoints().pop();
-                    segment.lane_start_goal_indices.push(nextLaneStartIndex);
-                }
+                const points = mission.getWaypoints();
+                const isFirstLane = i === lanesCovered;
+                const isLastLane = i + 1 === lanesCovered + updatedLanesPerBot;
 
-                // Remove mission start location if not first lane in group
-                if (i !== lanesCovered) {
-                    mission.getWaypoints().shift();
-                }
-
-                baseMission.addWaypoints(cloneDeep(mission.getWaypoints()));
-                baseMission.setSegments([segment]);
+                // The shared mission start and end points appear once per bot, not once per lane
+                const first = isFirstLane ? 0 : 1;
+                const end = isLastLane ? points.length : points.length - 1;
+                const laneStartNum = baseMission.getWaypoints().length + (isFirstLane ? 2 : 1);
+                baseMission.addWaypoints(points.slice(first, end));
+                baseMission.setLaneStart(laneStartNum);
                 this.missions.delete(mission.getMissionID());
             }
             this.missions.set(baseMission.getMissionID(), baseMission);

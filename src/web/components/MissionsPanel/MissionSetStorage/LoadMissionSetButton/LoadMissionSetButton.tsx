@@ -55,6 +55,11 @@ export default function LoadMissionSetButton(props: Props) {
 
         if (dialogAction === DialogActions.CONFIRMED) {
             const loadResult = await loadSnapshotFromHub(props.saveName);
+            if (loadResult.resultType === LoadResultType.UNKNOWN_FORMAT) {
+                setDisabledCode(DisabledCodes.UNKNOWN_FORMAT);
+                setIsDialogVisible(true);
+                return;
+            }
             if (loadResult.snapshot) {
                 jaiaDispatch({
                     type: JaiaActions.LOAD_MISSION_SET,
