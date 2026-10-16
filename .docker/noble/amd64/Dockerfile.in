@@ -15,6 +15,7 @@ RUN apt-get update && \
             devscripts equivs ca-certificates quilt \
             clang clang-tools dirmngr\
             dput cdbs \
+            gcc-arm-none-eabi binutils-arm-none-eabi libnewlib-arm-none-eabi \
             && rm -rf /var/lib/apt/lists/*
 
 # Add packages.jaia.tech and signing key for packages.gobysoft.org and packages.jaia.tech

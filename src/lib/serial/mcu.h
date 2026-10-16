@@ -43,7 +43,10 @@ ProtobufMessage decode_from_mcu(const goby::middleware::protobuf::IOData& io_msg
 
     std::size_t i = 0;
     for (auto it = encoded.rbegin(), end = encoded.rbegin() + bytes_in_crc32; it != end; ++it, ++i)
-        provided_crc |= ((*it) & 0xFF) << (i * bits_in_byte);
+        // cast is required as char is signed on some platforms, which would sign-extend
+        // any CRC byte >= 0x80 and corrupt the comparison
+        provided_crc |= static_cast<std::uint32_t>(static_cast<std::uint8_t>(*it))
+                        << (i * bits_in_byte);
 
     if (computed_crc != provided_crc)
     {

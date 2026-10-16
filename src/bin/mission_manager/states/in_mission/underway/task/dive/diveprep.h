@@ -66,6 +66,13 @@ struct DivePrep : boost::statechart::state<DivePrep, Dive>,
             start.set_lat_with_units(pos.lat_with_units());
             start.set_lon_with_units(pos.lon_with_units());
         }
+        else if (cfg().reacquire_gps_timeout() > 0)
+        {
+            // STORM: report 0,0 so the user can see the dive happened without a fix
+            auto& start = *context<Dive>().dive_packet().mutable_start_location();
+            start.set_lat(0);
+            start.set_lon(0);
+        }
 
         // This makes sure we capture the pressure before the dive begins
         // Then we can adjust pressure accordingly

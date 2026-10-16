@@ -30,6 +30,8 @@ using boost::units::quantity;
 #include <goby/middleware/application/multi_thread.h>
 #include <goby/middleware/gpsd/groups.h>
 #include <goby/middleware/protobuf/gpsd.pb.h>
+#include <goby/middleware/protobuf/intervehicle.pb.h>
+#include <goby/middleware/transport/intervehicle/groups.h>
 #include <goby/util/seawater.h>
 using goby::glog;
 namespace middleware = goby::middleware;
@@ -37,6 +39,7 @@ namespace middleware = goby::middleware;
 #include "jaiabot/comms/comms.h"
 #include "jaiabot/health/health.h"
 #include "jaiabot/intervehicle.h"
+#include "jaiabot/messages/mission.pb.h"
 #include "jaiabot/messages/sensor/pressure_temperature.pb.h"
 #include "jaiabot/messages/sensor/salinity.pb.h"
 #include "jaiabot/messages/storm_mcu.pb.h"
@@ -100,6 +103,18 @@ jaiabot::apps::StormManager::StormManager()
         {
             glog.is_debug2() && glog << "Received delegate request: " << req.ShortDebugString()
                                      << std::endl;
+
+            // our self test may have finished before jaiabot_mission_manager reached
+            // SELF_TEST, in which case it ignored our response; answer again
+            if (req.state() == protobuf::PRE_DEPLOYMENT__SELF_TEST && self_test_result_)
+            {
+                glog.is_verbose() && glog << group("statechart")
+                                          << "Self test already complete; re-sending result: "
+                                          << self_test_result_->ShortDebugString() << std::endl;
+                interprocess().publish<jaiabot::groups::state_delegate_response>(
+                    *self_test_result_);
+            }
+
             process_mission_manager_state(req.state());
         });
 
@@ -110,6 +125,12 @@ jaiabot::apps::StormManager::StormManager()
             if (change.direction() == jaiabot::protobuf::MissionStateChange::ENTERED)
                 process_mission_manager_state(change.state());
         });
+
+    // Mission reports are published continuously, so they cover the case where the mission
+    // manager entered Idle before this application subscribed to its state-change event.
+    interprocess().subscribe<jaiabot::groups::mission_report>(
+        [this](const jaiabot::protobuf::MissionReport& report)
+        { process_mission_manager_state(report.state()); });
 
     // GPS TPV
     interprocess().subscribe<goby::middleware::groups::gpsd::tpv>(
@@ -130,7 +151,7 @@ jaiabot::apps::StormManager::StormManager()
 
     // conductivity - currently comes in two different messages
     // TODO - replace with _with_units
-    interprocess().subscribe<jaiabot::groups::raw_salinity>(
+    interprocess().subscribe<jaiabot::groups::salinity>(
         [this, post_conductivity_event](const jaiabot::protobuf::SalinityData& sal)
         { post_conductivity_event(sal.conductivity_raw() * jaiabot::units::microsiemens_per_cm); });
     interprocess().subscribe<jaiabot::groups::raw_salinity>(
@@ -178,6 +199,20 @@ jaiabot::apps::StormManager::StormManager()
         {
             if (status.has_location())
                 machine_->set_latest_location(status.location());
+
+            bool gps_connected = true;
+            for (auto error : status.error())
+            {
+                switch (static_cast<protobuf::Error>(error))
+                {
+                    case protobuf::ERROR__MISSING_DATA__GPS_FIX:
+                    case protobuf::ERROR__MISSING_DATA__GPS_POSITION:
+                    case protobuf::ERROR__NOT_RESPONDING__GOBY_GPS: gps_connected = false; break;
+                    default: break;
+                }
+            }
+            machine_->set_gps_connected(gps_connected);
+
             if (status.has_battery_percent())
                 machine_->set_latest_battery_percent(status.battery_percent());
         });
@@ -188,6 +223,20 @@ jaiabot::apps::StormManager::StormManager()
         {
             if (!task_packet.has_storm_id()) // reject our own publications
                 enqueue_task_packet(task_packet);
+        });
+
+    // track which intervehicle links have a TaskPacket subscriber (the hub), so an offload
+    // expired for lack of subscribers is only retried when no link is still delivering it
+    interprocess().subscribe<goby::middleware::intervehicle::groups::subscription_report>(
+        [this](const goby::middleware::intervehicle::protobuf::SubscriptionReport& report)
+        {
+            const auto task_packet_dccl_id =
+                protobuf::TaskPacket::descriptor()->options().GetExtension(dccl::msg).id();
+            const bool subscribed =
+                std::any_of(report.subscription().begin(), report.subscription().end(),
+                            [&](const auto& subscription)
+                            { return subscription.dccl_id() == task_packet_dccl_id; });
+            machine_->set_task_packet_subscribed(report.link_modem_id(), subscribed);
         });
 }
 
@@ -313,12 +362,34 @@ void jaiabot::apps::StormManager::publish_mission_report(protobuf::StormMissionS
     interprocess().publish<jaiabot::groups::storm::mission_report>(report);
 }
 
+void jaiabot::apps::StormManager::send_activate_command()
+{
+    protobuf::Command command;
+    command.set_bot_id(cfg().bot_id());
+    command.set_time_with_units(goby::time::SystemClock::now<goby::time::MicroTime>());
+    command.set_type(protobuf::Command::ACTIVATE);
+    goby::glog.is_verbose() && goby::glog << group("statechart")
+                                          << "Sending command: " << command.ShortDebugString()
+                                          << std::endl;
+    interprocess().publish<jaiabot::groups::self_command>(command);
+}
+
+void jaiabot::apps::StormManager::publish_self_test_result(
+    const protobuf::MissionStateDelegateResponse& resp)
+{
+    self_test_result_ = resp;
+    interprocess().publish<jaiabot::groups::state_delegate_response>(resp);
+}
+
 void jaiabot::apps::StormManager::process_mission_manager_state(protobuf::MissionState state)
 {
     switch (state)
     {
         case protobuf::PRE_DEPLOYMENT__IDLE:
-            machine_->process_event(statechart::EvStarted());
+            if (machine_->state() == protobuf::STARTING_UP)
+                machine_->process_event(statechart::EvStarted());
+            else
+                send_activate_command();
             break;
 
         case protobuf::PRE_DEPLOYMENT__SELF_TEST:

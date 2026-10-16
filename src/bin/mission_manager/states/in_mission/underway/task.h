@@ -110,7 +110,8 @@ struct Task : boost::statechart::state<Task, Underway, task::TaskSelection>, App
                 task_packet_file.close();
             }
 
-            if (this->machine().rf_disable() || !this->cfg().send_task_packets_to_hub())
+            // STORM: publish TaskPackets on the bot only; jaiabot_storm_manager sends them to the hub
+            if (this->machine().rf_disable() || this->cfg().bot_type() == protobuf::STORM)
             {
                 glog.is_debug2() &&
                     glog << "(Not sending TaskPackets to Hub) Publishing task packet interprocess: "

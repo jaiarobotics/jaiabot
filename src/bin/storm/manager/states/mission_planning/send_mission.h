@@ -31,7 +31,16 @@ struct SendMission : boost::statechart::state<SendMission, MissionPlanning>,
 {
     using StateBase = boost::statechart::state<SendMission, MissionPlanning>;
 
-    SendMission(typename StateBase::my_context c) : StateBase(c) { try_send_mission(); }
+    SendMission(typename StateBase::my_context c) : StateBase(c)
+    {
+        const auto timeout_seconds = this->cfg().gps_fix_wait_timeout_seconds();
+        gps_fix_timeout_enabled_ = timeout_seconds > 0;
+        if (gps_fix_timeout_enabled_)
+            gps_fix_timeout_ =
+                goby::time::SteadyClock::now() + std::chrono::seconds(timeout_seconds);
+
+        try_send_mission();
+    }
     ~SendMission() {}
 
     void loop(const EvLoop& ev) { try_send_mission(); }
@@ -46,15 +55,23 @@ struct SendMission : boost::statechart::state<SendMission, MissionPlanning>,
         if (sent_)
             return;
 
-        // wait for a real GPS fix before commanding a mission; latest_location()
-        // defaults to (0, 0) until set_latest_location() is called
-        if (!this->machine().has_latest_location())
+        const bool has_location = this->machine().has_latest_location();
+        const bool gps_fix_timed_out =
+            gps_fix_timeout_enabled_ && goby::time::SteadyClock::now() >= gps_fix_timeout_;
+
+        if (!has_location && !gps_fix_timed_out)
         {
             goby::glog.is_warn() &&
                 goby::glog << group("statechart")
                            << "Waiting for a valid location before sending mission" << std::endl;
             return;
         }
+
+        if (!has_location)
+            goby::glog.is_warn() &&
+                goby::glog << group("statechart") << "GPS fix wait timed out after "
+                           << this->cfg().gps_fix_wait_timeout_seconds()
+                           << " seconds; starting mission with location (0, 0)" << std::endl;
 
         // create a regular mission and send it over to jaiabot_mission_manager
         protobuf::Command command;
@@ -67,10 +84,15 @@ struct SendMission : boost::statechart::state<SendMission, MissionPlanning>,
         mission_plan.set_movement(protobuf::MissionPlan::TRANSIT);
 
         auto& goal = *mission_plan.add_goal();
-        *goal.mutable_location() = this->machine().latest_location();
-        // Storm bots are rudderless and cannot navigate back to this pre-dive location
-        // snapshot (it may drift underwater) - recover wherever the vehicle currently is
-        goal.set_movewptmode(false);
+        if (has_location)
+        {
+            *goal.mutable_location() = this->machine().latest_location();
+        }
+        else
+        {
+            goal.mutable_location()->set_lat(0);
+            goal.mutable_location()->set_lon(0);
+        }
 
         const bool skip_dive = this->skip_dive();
         auto& task = *goal.mutable_task();
@@ -100,28 +122,46 @@ struct SendMission : boost::statechart::state<SendMission, MissionPlanning>,
         sent_ = true;
     }
 
-    // do not risk the dive if we're low on battery and already holding several datasets
-    // of storm data that haven't been acknowledged over Iridium
+    // do not risk the dive if we're low on battery and cannot offload or locate the bot
     bool skip_dive()
     {
         auto& machine = this->machine();
+
+        // a non-positive max_depth disables diving (e.g. for testing): a DIVE task with a 0 m
+        // target would still run powered descent at the surface
+        if (machine.mission().dive().max_depth() <= 0)
+        {
+            goby::glog.is_warn() && goby::glog << group("statechart")
+                                               << "Skipping dive: max_depth is "
+                                               << machine.mission().dive().max_depth()
+                                               << " (diving disabled)" << std::endl;
+            return true;
+        }
+
         if (!machine.has_latest_battery_percent())
             return false;
 
         const bool low_battery =
             machine.latest_battery_percent() < machine.mission().min_battery_percentage();
-        const bool too_much_undelivered_data =
-            machine.task_packet_queue().size() >= machine.mission().min_stored_datasets();
+        const bool max_stored_datasets_reached =
+            machine.task_packet_queue().size() >= machine.mission().max_stored_datasets();
+        const bool no_gps = !machine.gps_connected();
 
-        if (low_battery && too_much_undelivered_data)
+        if (low_battery && (max_stored_datasets_reached || no_gps))
         {
-            goby::glog.is_warn() &&
+            if (goby::glog.is_warn())
+            {
                 goby::glog << group("statechart") << "Skipping dive: battery at "
                            << machine.latest_battery_percent() << "% is below minimum of "
-                           << machine.mission().min_battery_percentage() << "% and "
-                           << machine.task_packet_queue().size()
-                           << " TaskPacket(s) remain un-offloaded (minimum "
-                           << machine.mission().min_stored_datasets() << ")" << std::endl;
+                           << machine.mission().min_battery_percentage() << "%";
+                if (max_stored_datasets_reached)
+                    goby::glog << "; " << machine.task_packet_queue().size()
+                               << " TaskPacket(s) remain un-offloaded (maximum "
+                               << machine.mission().max_stored_datasets() << ")";
+                if (no_gps)
+                    goby::glog << "; GPS is unavailable";
+                goby::glog << std::endl;
+            }
             machine.insert_warning(
                 protobuf::WARNING__STORM_MISSION_PLANNING__DIVE_SKIPPED_LOW_BATTERY);
             return true;
@@ -130,5 +170,7 @@ struct SendMission : boost::statechart::state<SendMission, MissionPlanning>,
     }
 
     bool sent_{false};
+    bool gps_fix_timeout_enabled_{false};
+    goby::time::SteadyClock::time_point gps_fix_timeout_;
 };
 #endif

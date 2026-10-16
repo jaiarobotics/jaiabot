@@ -25,6 +25,7 @@
 
 #include "config.pb.h"
 #include "jaiabot/messages/health.pb.h"
+#include "jaiabot/messages/sensor/catalog.pb.h"
 #include "jaiabot/messages/sensor/sensor_core.pb.h"
 #include "jaiabot/messages/sensor/turner__c_fluor.pb.h"
 #include <goby/zeromq/application/multi_thread.h>
@@ -37,7 +38,9 @@ class TurnerCFluorDriver
     : public goby::middleware::SimpleThread<jaiabot::config::TurnerCFluorThreadConfig>
 {
   public:
-    TurnerCFluorDriver(const jaiabot::config::TurnerCFluorThreadConfig& config);
+    // index is the jaiabot::sensor::protobuf::SensorInstance this thread serves, which
+    // distinguishes the driver threads when the payload board has more than one fluorometer
+    TurnerCFluorDriver(const jaiabot::config::TurnerCFluorThreadConfig& config, int index);
 
   private:
     void receive_data(const sensor::protobuf::TurnerCFluor& fluor_data);
@@ -50,6 +53,9 @@ class TurnerCFluorDriver
     int32_t sample_rate_{10};
     int32_t report_timeout_{20};
     int32_t resend_cfg_timeout_{20};
+    jaiabot::sensor::protobuf::SensorInstance instance_{jaiabot::sensor::protobuf::INSTANCE_1};
+    // distinct per instance so the two threads are distinguishable in the debug log
+    std::string glog_group_{"turner_c_fluor"};
     jaiabot::sensor::protobuf::FluorCoefficients fluorometer_coefficients_;
 };
 

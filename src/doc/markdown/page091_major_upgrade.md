@@ -4,6 +4,15 @@ A major software upgrade is defined as updating the Ubuntu release as well as th
 
 ## Preparing for major upgrade
 
+### Ensure all bots have a BNO085 IMU
+
+The BNO055 IMU is no longer supported. Any bot still fitted with one must have it replaced with a BNO085 before the fleet can be upgraded. For each of those bots:
+
+1. Set the imu type to `bno085` on the bot itself with `sudo dpkg-reconfigure jaiabot-embedded`. This is what the major upgrade checks.
+2. Regenerate the fleet configuration with `jaia admin fleet create` so that `imu_type` is `bno085` there too, since the upgraded system is configured from the fleet configuration rather than from the current debconf database. If the fleet configuration is embedded in the upgrade image, re-embed the new one (see the next sections).
+
+The major upgrade playbook checks every bot and aborts the entire fleet upgrade if any bot still reports `imu_type` as `bno055`.
+
 ### Ensure the Hub has a valid Fleet Configuration
 
 If this fleet was generated prior to fleet configuration files (this includes most 1.y fleets), one will need to be created for the current fleet. This can be done using `jaia admin fleet create` as described in the [Embedded Board Deployment](page025_embedded_setup.md) document.
@@ -11,6 +20,10 @@ If this fleet was generated prior to fleet configuration files (this includes mo
 This fleet configuration must then be embedded in the upgrade image (see the next step).
 
 If the fleet was generated using a fleet configuration file, a valid file on the hub should already exist at `/etc/jaiabot/fleetN.cfg`. In this case that fleet configuration will be reused and no further action is required.
+
+From release 3 onwards, fleet configurations carry a version and the upgrade image carries the fleet config tool of the new release. When upgrading to such an image, the hub migrates and validates the fleet configuration with that tool before any bot is touched, and stops with a message if the file cannot be used with the new release (in which case regenerate it with the new release's `jaia admin fleet create` and embed it in the ISO as described below).
+
+Major upgrades go one release at a time (1.y to 2.y to 3.y): the upgrade refuses to skip a release.
 
 
 ### Download and flash the upgrade image
@@ -51,7 +64,9 @@ ansible-playbook -i /etc/jaiabot/inventory.yml major-upgrade.yml -e hub_id=1 -e 
 
 where `hub_id` is the hub in use (the one with the upgrade USB flash key or CD connected) and `do_backup` is a boolean set to whether the existing (old) rootfs and overlay should be backed up to the `/var/log/jaiabot/major_upgrade/vX_codename` directory prior to the upgrade.
 
-To upgrade multiple Hubs, you will need to re-run this command (with the update hub_id) after moving the USB flash key to the new hub. Any number of bots will be updated from a single Hub as part of this command.
+Each node downloads the new images from the hub one at a time, capped at 1.5 MB/s so the upgrade does not saturate the fleet's radio link. Fleets in simulation mode (VirtualBox fleets and VirtualFleets) download uncapped. Pass `-e major_upgrade_download_limit_rate=<rate>` (a curl `--limit-rate` value such as `500K`, or `0` for no cap) to override either.
+
+Run this once, from the hub with the USB flash key or CD connected: it upgrades every bot and every hub in the fleet. Only that hub stages the upgrade (mounts the updates disk and checks the fleet configuration and its SSH key); the other hubs skip staging and download the new images from it like the bots do.
 
 ## Major upgrade design
 

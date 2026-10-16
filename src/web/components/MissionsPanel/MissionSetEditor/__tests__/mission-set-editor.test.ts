@@ -1,9 +1,14 @@
 import Mission from "../../../../data/mission_set/mission";
 import { missionSet, MissionSetSnapshot } from "../../../../data/mission_set/mission-set";
 import { BottomDepthSafetyParams } from "../../../../types/protobuf-types";
-import { DEFAULT_SPEED, UNASSIGNED_ID } from "../../../../utils/constants";
-import { getMaxWaypointsPerOutputMission, combineMissionSets } from "../mission-set-editor";
+import { DEFAULT_SPEED, MAX_SEGMENTS, UNASSIGNED_ID } from "../../../../utils/constants";
+import {
+    getMaxSegmentsPerOutputMission,
+    getMaxWaypointsPerOutputMission,
+    combineMissionSets,
+} from "../mission-set-editor";
 import { locationA } from "../../../../data/tests/__mocks__/waypoint-mock";
+import { expectSegmentsAscending } from "../../../../data/tests/segment-assertions";
 
 const DEFAULT_SPEEDS = { transit: 2, stationkeep_outer: 2 };
 
@@ -30,6 +35,73 @@ function makeCache(entries: [string, Mission[]][]): Map<string, MissionSetSnapsh
     }
     return cache;
 }
+
+/**
+ * Builds a mission whose waypoints are already split across the given number of segments,
+ * as a mission set that was itself produced by combining would be after a save and reload.
+ */
+function makeMultiSegmentMission(segmentCount: number): Mission {
+    const mission = makeMission(segmentCount * 2);
+    mission.setSegments(
+        Array.from({ length: segmentCount }, (_, i) => ({
+            start_goal_index: i * 2,
+            speed: DEFAULT_SPEEDS.transit,
+        })),
+    );
+    return mission;
+}
+
+describe("getMaxSegmentsPerOutputMission", () => {
+    test("returns 0 for empty names list", () => {
+        expect(getMaxSegmentsPerOutputMission([], new Map())).toBe(0);
+    });
+
+    test("one segment per source mission", () => {
+        const cache = makeCache([
+            ["A", [makeMission(2)]],
+            ["B", [makeMission(3)]],
+        ]);
+        expect(getMaxSegmentsPerOutputMission(["A", "B"], cache)).toBe(2);
+    });
+
+    test("a source with no waypoints contributes no segments", () => {
+        const cache = makeCache([
+            ["A", [makeMission(2)]],
+            ["empty", [makeMission(0)]],
+        ]);
+        expect(getMaxSegmentsPerOutputMission(["A", "empty"], cache)).toBe(1);
+    });
+
+    test("five single-segment sources reach the limit exactly", () => {
+        const names = ["A", "B", "C", "D", "E"];
+        const cache = makeCache(names.map((name) => [name, [makeMission(2)]]));
+        expect(getMaxSegmentsPerOutputMission(names, cache)).toBe(MAX_SEGMENTS);
+    });
+
+    test("six single-segment sources exceed the limit", () => {
+        const names = ["A", "B", "C", "D", "E", "F"];
+        const cache = makeCache(names.map((name) => [name, [makeMission(2)]]));
+        expect(getMaxSegmentsPerOutputMission(names, cache)).toBeGreaterThan(MAX_SEGMENTS);
+    });
+
+    test("two previously combined sources can exceed the limit on their own", () => {
+        const cache = makeCache([
+            ["combinedA", [makeMultiSegmentMission(3)]],
+            ["combinedB", [makeMultiSegmentMission(3)]],
+        ]);
+        expect(getMaxSegmentsPerOutputMission(["combinedA", "combinedB"], cache)).toBe(6);
+    });
+
+    test("counts the worst output mission, not the first", () => {
+        // one 1-mission set cycles into every output mission; the second set's
+        // second mission is the one that carries extra segments
+        const cache = makeCache([
+            ["transit", [makeMission(2)]],
+            ["survey", [makeMission(2), makeMultiSegmentMission(4)]],
+        ]);
+        expect(getMaxSegmentsPerOutputMission(["transit", "survey"], cache)).toBe(5);
+    });
+});
 
 describe("getMaxWaypointsPerOutputMission", () => {
     test("returns 0 for empty names list", () => {
@@ -172,7 +244,7 @@ describe("combineMissionSets", () => {
         const result = combineMissionSets(["survey"], "out", cache);
 
         const segments = result.missions[0][1].getSegments();
-        expect(segments[1].bottom_depth_safety_params).toEqual(srp);
+        expect(segments[0].bottom_depth_safety_params).toEqual(srp);
     });
 
     test("SRP: segment start_goal_index is offset by preceding waypoints", () => {
@@ -193,8 +265,41 @@ describe("combineMissionSets", () => {
 
         const segments = result.missions[0][1].getSegments();
         // Survey SRP segment offset by 2 transit waypoints
-        expect(segments[2].start_goal_index).toBe(2);
-        expect(segments[2].bottom_depth_safety_params).toEqual(srp);
+        expect(segments[1].start_goal_index).toBe(2);
+        expect(segments[1].bottom_depth_safety_params).toEqual(srp);
+    });
+
+    test("segments: one per source mission, ascending from 0", () => {
+        const cache = makeCache([
+            ["A", [makeMission(4)]],
+            ["B", [makeMission(4)]],
+        ]);
+        const result = combineMissionSets(["A", "B"], "out", cache);
+
+        const segments = result.missions[0][1].getSegments();
+        expect(segments.map((segment) => segment.start_goal_index)).toEqual([0, 4]);
+        expectSegmentsAscending(segments);
+    });
+
+    test("segments: source mission with no waypoints contributes no segment", () => {
+        const cache = makeCache([
+            ["empty", [makeMission(0)]],
+            ["A", [makeMission(3)]],
+            ["B", [makeMission(2)]],
+        ]);
+        const result = combineMissionSets(["empty", "A", "B"], "out", cache);
+
+        const segments = result.missions[0][1].getSegments();
+        expect(segments.map((segment) => segment.start_goal_index)).toEqual([0, 3]);
+        expectSegmentsAscending(segments);
+    });
+
+    test("segments: falls back to a single segment at 0 when no source contributes one", () => {
+        const cache = makeCache([["empty", [makeMission(0)]]]);
+        const result = combineMissionSets(["empty"], "out", cache);
+
+        const segments = result.missions[0][1].getSegments();
+        expect(segments).toEqual([{ start_goal_index: 0, speed: DEFAULT_SPEED }]);
     });
 
     test("empty set alongside non-empty set — output matches non-empty set alone", () => {

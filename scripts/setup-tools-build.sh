@@ -39,6 +39,14 @@ curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.
     arduino-cli core update-index && \
     arduino-cli core install arduino:avr
 
+# Install STM32 ARM GCC toolchain and flashing tools
+sudo apt-get -y install \
+    gcc-arm-none-eabi \
+    binutils-arm-none-eabi \
+    libnewlib-arm-none-eabi \
+    openocd \
+    stlink-tools
+
 # Install nvm, npm, and webpack
 curl https://raw.githubusercontent.com/creationix/nvm/${jaia_version_nvm}/install.sh | bash
 
@@ -75,4 +83,14 @@ if [ ! -e ${script_dir}/../.git/hooks/pre-commit ]; then
    fi
    # Install the pre-commit hook
    ${script_dir}/../scripts/git-hooks/clang-format-hooks/git-pre-commit-format install
+fi
+
+# Install necessary HAL drivers for STM32 if the script exists
+if [ -f "${script_dir}/stm32/fetch_drivers.sh" ]; then
+    echo ""
+    echo "🟢 Installing STM32 drivers..."
+    bash "${script_dir}/stm32/fetch_drivers.sh"
+else
+    echo ""
+    echo "STM32 build script not found at ${script_dir}/stm32/fetch_drivers.sh"
 fi

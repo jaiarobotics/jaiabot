@@ -50,9 +50,9 @@ message StormMission
     optional uint32 min_battery_percentage = 30
         [default = 10, (dccl.field) = { min: 0 max: 99 }];
 
-    // number of un-offloaded datasets that must be stored (in addition to the
-    // current one) before a low battery will cancel the dive
-    optional uint32 min_stored_datasets = 31
+    // maximum number of un-offloaded datasets to store before a low battery
+    // cancels the dive
+    optional uint32 max_stored_datasets = 31
         [default = 2, (dccl.field) = { min: 0 max: 100 }];
 
     optional uint32 surface_drift_time = 32
@@ -67,8 +67,22 @@ message StormMission
         }
     ];
 
+    // timeout for the SLEEP_PREP__DATA_OFFLOAD state (Iridium TaskPacket send)
     optional uint32 data_offload_timeout_minutes = 50 [
         default = 60,
+        (dccl.field) = {
+            min: 0
+            max: 600
+            units { unit: "metric::minute" }
+        }
+    ];
+
+    // timeout for the SELF_TEST__AIR_DESCENT_DATA_OFFLOAD state (local MCU
+    // serial link) - kept separate from data_offload_timeout_minutes since
+    // that satellite link timeout can be much longer than is reasonable to
+    // wait on the local, fast, serial MCU connection.
+    optional uint32 air_descent_data_offload_timeout_minutes = 51 [
+        default = 1,
         (dccl.field) = {
             min: 0
             max: 600

@@ -40,12 +40,26 @@ struct Transit
 
         if (goal)
         {
+            // STORM: rudderless, so never engage the helm transit (a drifting bot would just
+            // drive in whatever direction it happens to point)
+            if (cfg().bot_type() == protobuf::STORM)
+            {
+                glog.is_debug1() && glog << "STORM bot; performing task in place without "
+                                            "transiting"
+                                         << std::endl;
+                post_event(EvWaypointReached());
+                return;
+            }
+
             if (goal.get().has_task())
             {
                 slip_radius = cfg().waypoint_with_task_slip_radius();
             }
+
+            protobuf::GeographicCoordinate location = goal->location();
+
             auto update =
-                create_transit_update(goal->location(), this->machine().transit_speed_with_units(),
+                create_transit_update(location, this->machine().transit_speed_with_units(),
                                       this->machine().geodesy(), slip_radius);
             this->interprocess().publish<groups::mission_ivp_behavior_update>(update);
         }

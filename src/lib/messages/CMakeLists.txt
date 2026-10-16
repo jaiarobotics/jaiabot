@@ -16,6 +16,7 @@ set(SENSOR_PROTOS
   sensor/atlas_scientific__oem_ph.proto
   sensor/turner__c_fluor.proto
   sensor/aml.proto
+  sensor/tsys01.proto
 )
 
 # All messages used by microcontrollers (C code)
@@ -101,9 +102,10 @@ if(NOT CMAKE_CROSSCOMPILING)
   # and update the hash here (dccl -f src/lib/messages/jaia_dccl.proto -I build/amd64/include -I /usr/include -a -m jaiabot.protobuf.BotStatus -H)
 
   # When adding a new DCCL message (for intervehicle comms), make sure to add it to this list
-  check_dccl_md5_hash("jaiabot.protobuf.BotStatus" "0xf11cfa63a7a2242c")
-  check_dccl_md5_hash("jaiabot.protobuf.TaskPacket" "0x2426c7c2189387e9")
-  check_dccl_md5_hash("jaiabot.protobuf.Command" "0xe236f7ea51ed750a")
+  check_dccl_md5_hash("jaiabot.protobuf.BotStatus" "0xb418e53cf44e7298")
+  check_dccl_md5_hash("jaiabot.protobuf.TaskPacket" "0xbe4d3194d9a9f35b")
+  check_dccl_md5_hash("jaiabot.protobuf.Command" "0xce33195a3c0de5b2")
   check_dccl_md5_hash("jaiabot.protobuf.Engineering" "0x353435896a1ea1a0")
-  check_dccl_md5_hash("jaiabot.protobuf.Hub2HubData" "0xc15002484894b43c")
-endif()
+  check_dccl_md5_hash("jaiabot.protobuf.Hub2HubData" "0xc848d31de364bc8b")
+
+  endif()

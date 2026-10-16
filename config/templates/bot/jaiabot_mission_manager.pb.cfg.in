@@ -4,6 +4,8 @@ $interprocess_block
 fleet_id: $fleet_id
 bot_id: $bot_id
 
+$startup_timeout
+
 command_sub_cfg {
     intervehicle
     {
@@ -82,6 +84,7 @@ total_gps_fix_checks: 10 # (optional) (default=10)
 total_gps_degraded_fix_checks: 2 # (optional) (default=2)
 gps_hdop_fix: 1.3 # (optional) (default=1.3)
 gps_pdop_fix: 2.2 # (optional) (default=2.2)
+reacquire_gps_timeout: $reacquire_gps_timeout # (optional) (default=0, disabled) Seconds; STORM only
 
 # GPS Requirements after a Dive 
 total_after_dive_gps_fix_checks: $total_after_dive_gps_fix_checks # (optional) (default=15 for electronics stack 1, default=75 for electronics stack 1,2)
@@ -154,4 +157,4 @@ stop_camera_command {
 camera_available: $camera_available
 
 $delegated_states
-send_task_packets_to_hub: $send_task_packets_to_hub
+bot_type: $bot_type

@@ -40,6 +40,7 @@ class ArduinoSimThread : public SimulatorThread<jaiabot::config::ArduinoSimThrea
 
   private:
     void loop() override;
+    void update_voltage(jaiabot::protobuf::ArduinoResponse& arduino_response);
 
   private:
     int voltage_period_{1};

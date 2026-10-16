@@ -37,10 +37,16 @@ struct StationKeep : IvPSensorPauseCommon<StationKeep, Recovery,
         if (recovery.recover_at_final_goal())
         {
             auto final_goal = context<InMission>().final_goal();
-            update = create_location_stationkeep_update(
-                final_goal.location(), this->machine().mission_plan().speeds().transit_with_units(),
-                this->machine().mission_plan().speeds().stationkeep_outer_with_units(),
-                this->machine().geodesy());
+            // STORM: don't station keep at the pre-dive location the bot has drifted from
+            if (cfg().bot_type() != protobuf::STORM)
+            {
+                update = create_location_stationkeep_update(
+                    final_goal.location(),
+                    this->machine().mission_plan().speeds().transit_with_units(),
+                    this->machine().mission_plan().speeds().stationkeep_outer_with_units(),
+                    this->machine().geodesy());
+                this->interprocess().publish<groups::mission_ivp_behavior_update>(update);
+            }
         }
         else
         {
@@ -48,8 +54,8 @@ struct StationKeep : IvPSensorPauseCommon<StationKeep, Recovery,
                 recovery.location(), this->machine().mission_plan().speeds().transit_with_units(),
                 this->machine().mission_plan().speeds().stationkeep_outer_with_units(),
                 this->machine().geodesy());
+            this->interprocess().publish<groups::mission_ivp_behavior_update>(update);
         }
-        this->interprocess().publish<groups::mission_ivp_behavior_update>(update);
 
         if (recovery.sleep_once_goal_reached())
             post_event(EvSleep());
