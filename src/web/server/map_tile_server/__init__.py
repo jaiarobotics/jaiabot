@@ -9,7 +9,7 @@ from rasterio.warp import transform
 from . import mime_types
 from . import geotiff
 from .utils import *
-
+from .mapnik_renderer import TileRenderer, MapnikTileRenderer
 
 logging.basicConfig()
 l = logging.getLogger(__name__)
@@ -95,8 +95,9 @@ class MapTileServer:
     maps_directory: str
     tiles_directory: str
     geotiffs_directory: str
+    natural_earth_renderer: TileRenderer
 
-    def __init__(self, maps_directory: str):
+    def __init__(self, maps_directory: str, natural_earth_renderer: TileRenderer=MapnikTileRenderer('/etc/jaiabot/10m.xml.template')):
         """Create a MapTileServer
 
         Args:
@@ -111,6 +112,8 @@ class MapTileServer:
         os.makedirs(self.geotiffs_directory, exist_ok=True)
 
         geotiff.watch_directory_and_convert_to_tiles(self.geotiffs_directory, self.tiles_directory)
+
+        self.natural_earth_renderer = natural_earth_renderer
 
 
     def get_maps(self):
@@ -146,7 +149,11 @@ class MapTileServer:
         Returns:
             bytes or None: Binary image data in png format, if the image exists.
         """
-        tile_path = f'{self.tiles_directory}/{map_name}/{z}/{x}/{y}.png'
+        if map_name == 'natural-earth':
+            tile_path = self.natural_earth_renderer.render_tile(z, x, y)
+        else:
+            tile_path = f'{self.tiles_directory}/{map_name}/{z}/{x}/{y}.png'
+
         if not os.path.isfile(tile_path):
             return None
         else:
