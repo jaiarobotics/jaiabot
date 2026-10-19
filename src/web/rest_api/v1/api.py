@@ -175,12 +175,26 @@ def task_packets(jaia_request: APIRequest):
     else:
         included = None
 
-    with common.shared_data.data_lock:
-        task_packets = common.shared_data.data.task_packet_database.query_task_packets(bot_ids, start_time, end_time, included=included, mission_names=mission_names)
+    is_json = jaia_request.task_packets.format == TaskPacketQuery.JSON
 
-    if jaia_request.task_packets.format == TaskPacketQuery.JSON:
+    with common.shared_data.data_lock:
+        task_packet_database = common.shared_data.data.task_packet_database
+        # Offloaded task packets are loaded when a hub reports a successful offload, not on every
+        # poll: scanning the offload directory here ran once a second per JCC, under data_lock
+        version = task_packet_database.task_packets_version
+
+        if is_json and jaia_request.task_packets.HasField('known_version') and jaia_request.task_packets.known_version == version:
+            jaia_response = APIResponse()
+            jaia_response.task_packets.version = version
+            jaia_response.task_packets.unchanged = True
+            return jaia_response
+
+        task_packets = task_packet_database.query_task_packets(bot_ids, start_time, end_time, included=included, mission_names=mission_names, limit=jaia_request.task_packets.limit)
+
+    if is_json:
         jaia_response = APIResponse()
         jaia_response.task_packets.packets.extend(task_packets)
+        jaia_response.task_packets.version = version
         return jaia_response
 
     elif jaia_request.task_packets.format == TaskPacketQuery.KMZ:
@@ -357,13 +371,6 @@ def task_packet_include(jaia_request: APIRequest) -> APIResponse:
             jaia_request.task_packet_include.include
         )
         jaia_response.task_packet_include_response.success = True
-    return jaia_response
-
-
-def task_packets_version(_: APIRequest) -> APIResponse:
-    jaia_response = APIResponse()
-    with common.shared_data.data_lock:
-        jaia_response.task_packets_version.version = common.shared_data.data.task_packet_database.task_packets_version
     return jaia_response
 
 

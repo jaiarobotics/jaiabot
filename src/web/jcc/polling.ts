@@ -9,7 +9,7 @@ import {
     PortalBotStatus,
     PortalHubStatus,
 } from "@proto/jaiabot/messages/rest_api";
-import { BotStatus } from "@proto/jaiabot/messages/jaia_dccl";
+import { BotStatus, TaskPacket } from "@proto/jaiabot/messages/jaia_dccl";
 import { Engineering } from "@proto/jaiabot/messages/engineering";
 import { botLayer } from "../openlayers/layers/vector/bot-layer";
 import { hubLayer } from "../openlayers/layers/vector/hub-layer";
@@ -118,24 +118,12 @@ export async function pollTaskPackets() {
     try {
         taskPacketRequestInFlight = true;
 
-        const task_packets_version_response = await jaia_rest_api.request({
-            target: {
-                all: true,
-            },
-            task_packets_version: true,
-        });
-
-        const version = task_packets_version_response.task_packets_version?.version ?? 0;
-
-        // Refetch when the filter window changes, even if the server version is unchanged.
-        const forceFetch = getTaskPacketWindowKey() !== lastFetchedWindowKey;
-        // A superseded fetch records nothing, so the next poll fetches again.
-        if (
-            (forceFetch || version !== taskPackets.getVersion()) &&
-            (await refreshTaskPacketsForWindow())
-        ) {
-            taskPackets.setVersion(version);
-        }
+        // A version only says nothing changed for the window it was fetched with
+        const knownVersion =
+            getTaskPacketWindowKey() === lastFetchedWindowKey
+                ? taskPackets.getVersion()
+                : undefined;
+        await refreshTaskPacketsForWindow(knownVersion);
     } catch (error) {
         console.error(error);
     }
@@ -151,38 +139,51 @@ function getTaskPacketWindowKey() {
     return `${taskPacketFilter.getStartDate().getTime()}|${taskPacketFilter.getEndDate().getTime()}`;
 }
 
+type TaskPacketsFetch =
+    | { unchanged: true }
+    | { unchanged: false; included: TaskPacket[]; excluded: TaskPacket[]; version: number };
+
 /**
  * Fetches task packets for the current window and loads them into the data model, unless a newer
  * fetch or filter search has started since. Every refetch of the task packets goes through here.
- * Records the window it applied so the poll doesn't fetch the same window again.
+ * Records the window and version it applied so the poll only asks the hub whether they changed.
  *
- * @returns {Promise<boolean>} True if the response was applied, false if it was superseded
+ * @param {number} [knownVersion] Version already loaded for this window; omit to fetch in full
+ * @returns {Promise<boolean>} True if the response was applied or unchanged, false if superseded
  */
-export async function refreshTaskPacketsForWindow() {
+export async function refreshTaskPacketsForWindow(knownVersion?: number) {
     const requestID = ++latestTaskPacketRequest;
     // Taken before the fetch reads the filter, so the key matches the window fetched.
     const windowKey = getTaskPacketWindowKey();
-    const { included, excluded } = await fetchTaskPacketsForWindow();
+    const result = await fetchTaskPacketsForWindow(knownVersion);
     if (requestID !== latestTaskPacketRequest) {
         return false;
     }
-    taskPackets.setIncludedTaskPackets(included);
-    taskPackets.setExcludedTaskPackets(excluded);
     lastFetchedWindowKey = windowKey;
+    if (result.unchanged === true) {
+        return true;
+    }
+    taskPackets.setIncludedTaskPackets(result.included);
+    taskPackets.setExcludedTaskPackets(result.excluded);
+    taskPackets.setVersion(result.version);
     updateTaskLayers();
     return true;
 }
 
 /**
- * Fetches task packets for the filter's window.
+ * Fetches task packets for the filter's window, unless they haven't changed since knownVersion.
  *
- * @returns {Promise<{ included: TaskPacket[]; excluded: TaskPacket[] }>} Task packets in the window
+ * @param {number} [knownVersion] Version of the task packets already loaded for this window
+ * @returns {Promise<TaskPacketsFetch>} Task packets in the window, or that they're unchanged
  *
  * @notes
  * JCC always sends the window rather than relying on the server's default.
  */
-async function fetchTaskPacketsForWindow() {
-    const query = (inclusion: { included_only: boolean } | { excluded_only: boolean }) =>
+async function fetchTaskPacketsForWindow(knownVersion?: number): Promise<TaskPacketsFetch> {
+    const query = (
+        inclusion: { included_only: boolean } | { excluded_only: boolean },
+        known_version?: number,
+    ) =>
         jaia_rest_api
             .request({
                 target: {
@@ -191,16 +192,24 @@ async function fetchTaskPacketsForWindow() {
                 task_packets: {
                     start_time: String(taskPacketFilter.getStartDate().getTime() * 1000),
                     end_time: String(taskPacketFilter.getEndDate().getTime() * 1000),
+                    known_version,
                     ...inclusion,
                 },
             })
-            .then((response) => response.task_packets?.packets ?? []);
+            .then((response) => response.task_packets ?? {});
 
-    const [included, excluded] = await Promise.all([
-        query({ included_only: true }),
-        query({ excluded_only: true }),
-    ]);
-    return { included, excluded };
+    // Any change bumps the hub's single version, so the included query's version covers both
+    const included = await query({ included_only: true }, knownVersion);
+    if (included.unchanged) {
+        return { unchanged: true };
+    }
+    const excluded = await query({ excluded_only: true });
+    return {
+        unchanged: false,
+        included: included.packets ?? [],
+        excluded: excluded.packets ?? [],
+        version: included.version ?? 0,
+    };
 }
 
 /**
