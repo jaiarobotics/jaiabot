@@ -82,11 +82,6 @@ message CommandResult
         [(jaia.field).rest_api.presence = GUARANTEED];
 }
 
-message EngineeringCommandResult {
-    required bool command_sent = 1
-        [(jaia.field).rest_api.presence = GUARANTEED];
-}
-
 message TaskPacketsVersionResult {
     required uint32 version = 1
         [(jaia.field).rest_api.presence = GUARANTEED];
@@ -239,10 +234,6 @@ message APIRequest
             }
         }];
         // Endpoints for JCC & JED
-        bool pod_status = 17 [(jaia.field).rest_api = {
-            presence: GUARANTEED,
-            doc: "This endpoint is used by JCC to check the overall status of the pod."
-        }];
         bool task_packets_version = 18 [(jaia.field).rest_api = {
             presence: GUARANTEED,
             doc: "Check the version of the task packets."
@@ -257,10 +248,10 @@ message APIRequest
         }];
         Engineering engineering_command = 20 [(jaia.field).rest_api = {
             presence: GUARANTEED,
-            doc: "Send an engineering command to bot(s). Expect a response of type 'engineering_command_result'."
+            doc: "Send an engineering command to bot(s). Expect a response of type 'command_result'."
             example {
                 request: '{"target": {"bots": [1]}, "engineering_command": {"bot_id": 1, "query_engineering_status": true}}'
-                response: '{"target": {"hubs": [1, 2], "bots": [1]}, "engineering_command_result": {"command_sent": true}, "request": {"target": {"bots": [1]}, "engineering_command": {"bot_id": 1, "time": "1722895468966813", "query_engineering_status": true}}}'
+                response: '{"target": {"hubs": [1, 2], "bots": [1]}, "command_result": {"command_sent": true}, "request": {"target": {"bots": [1]}, "engineering_command": {"bot_id": 1, "time": "1722895468966813", "query_engineering_status": true}}}'
             }
         }];
         TaskPacketInclude task_packet_include = 21 [(jaia.field).rest_api = {
@@ -295,9 +286,19 @@ message APIRequest
                 response: '{"type": "FeatureCollection", "crs": {"type": "name", "properties": {"name": "EPSG:4326"}}, "features": [{"type": "Feature", "properties": {"type": "depth-contour", "value": 4.73, "fill": "#c9ebb1", "stroke-width": 0}, "geometry": {"type": "Polygon", "coordinates": [[[-71.276, 41.658], [-71.27602, 41.6581], [-71.275796, 41.658102], [-71.276, 41.658], [-71.276, 41.658]]]}}, {"type": "Feature", "properties": {"type": "depth-contour", "value": 4.73, "fill": "#c9ebb1", "stroke-width": 0}, "geometry": {"type": "Polygon", "coordinates": [[[-71.27602, 41.6581], [-71.27602, 41.6581], [-71.275796, 41.658102], [-71.275796, 41.658102], [-71.27602, 41.6581]]]}}]}'
             }
         }];
+        bool engineering_status = 25 [(jaia.field).rest_api = {
+            presence: GUARANTEED,
+            doc: "Query the most recent engineering status of bots. Expect a response of type 'engineering_status'."
+            example {
+                request: '{"target": {"bots": [1]}, "engineering_status": true}'
+                response: '{"target": {"bots": [1]}, "request": {"target": {"bots": [1]}, "engineering_status": true}, "engineering_status": {"bots": [{"bot_id": 1, "time": "1722895470000000", "pid_control": {"speed": {"Kp": 1.0, "Ki": 0.0, "Kd": 0.0}, "heading": {"Kp": 0.7, "Ki": 0.0, "Kd": 0.3}}, "bot_status_rate": "BotStatusRate_1_Hz", "gps_requirements": {"transit_hdop_req": 1.3, "transit_pdop_req": 2.2, "after_dive_hdop_req": 1.3, "after_dive_pdop_req": 2.2, "transit_gps_fix_checks": 5}, "rf_disable_options": {"rf_disable": false, "rf_disable_timeout_mins": 10}}]}}'
+            }
+        }];
     }
 }
 
+
+// JCC's view of each node, built from a 'status' response rather than sent by the API
 
 message LinkStatusAge {
     required Link link = 1;
@@ -318,21 +319,6 @@ message PortalHubStatus {
     optional int32 status_age = 2;
 }
 
-message PodStatus {
-    repeated PortalHubStatus hubs = 1;
-    repeated PortalBotStatus bots = 2;
-    repeated ContactUpdate contacts = 3;
-    optional string controlling_client_id = 4;
-    
-    message Messages {
-        optional string error = 1;
-        optional string info = 2;
-    }
-
-    optional Messages messages = 5;
-
-}
-
 
 message APIResponse
 {
@@ -347,6 +333,29 @@ message APIResponse
         repeated BotStatus bots = 1
             [(jaia.field).rest_api.presence = GUARANTEED];
         repeated HubStatus hubs = 2
+            [(jaia.field).rest_api.presence = GUARANTEED];
+
+        message BotMissionPlan
+        {
+            required int32 bot_id = 1;
+            required MissionPlan mission_plan = 2;
+        }
+
+        repeated BotMissionPlan active_mission_plans = 4 [(jaia.field).rest_api = {
+            doc: "Mission plan currently active on each bot."
+        }];
+        optional string controlling_client_id = 5 [(jaia.field).rest_api = {
+            doc: "Client ID of the operator currently in control."
+        }];
+        optional uint64 time = 6 [(jaia.field).rest_api = {
+            presence: GUARANTEED,
+            doc: "Hub's current time as a Unix timestamp in microseconds. Subtract received_time from this to get a status age that is independent of the client's clock."
+        }];
+    }
+
+    message EngineeringStatuses
+    {
+        repeated Engineering bots = 1
             [(jaia.field).rest_api.presence = GUARANTEED];
     }
 
@@ -380,11 +389,7 @@ message APIResponse
         }];
         CommandResult command_result = 14 [(jaia.field).rest_api = {
             presence: GUARANTEED,
-            doc: "Command result. This is sent in response to a successful Request 'command' or 'command_for_hub' action."
-        }];
-        PodStatus pod_status = 16 [(jaia.field).rest_api = {
-            presence: GUARANTEED,
-            doc: "Overall pod status. This is sent in response to a successful Request 'pod_status' action."
+            doc: "Command result. This is sent in response to a successful Request 'command', 'command_for_hub' or 'engineering_command' action."
         }];
         TaskPacketsVersionResult task_packets_version = 17 [(jaia.field).rest_api = {
             presence: GUARANTEED,
@@ -394,10 +399,6 @@ message APIResponse
             presence: GUARANTEED,
             doc: "The client ID of the operator who has taken control."
         }];
-        EngineeringCommandResult engineering_command_result = 19 [(jaia.field).rest_api = {
-            presence: GUARANTEED,
-            doc: "Response to an engineering command. Indicates whether the command was successfully sent."
-        }];
         TaskPacketIncludeResponse task_packet_include_response = 21 [(jaia.field).rest_api = {
             presence: GUARANTEED,
             doc: "Response to a task packet include/exclude request."
@@ -405,6 +406,10 @@ message APIResponse
         RecordQueryResponse record_query_response = 22 [(jaia.field).rest_api = {
             presence: GUARANTEED,
             doc: "Response related to exclusion zones and mission sets."
+        }];
+        EngineeringStatuses engineering_status = 23 [(jaia.field).rest_api = {
+            presence: GUARANTEED,
+            doc: "Most recent engineering status of each bot. This is sent in response to a successful Request 'engineering_status' action."
         }];
     }
 

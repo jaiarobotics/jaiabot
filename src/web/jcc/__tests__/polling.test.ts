@@ -1,18 +1,26 @@
-import { pollTaskPackets, refreshTaskPacketsForWindow } from "../polling";
+import { pollStatus, pollTaskPackets, refreshTaskPacketsForWindow } from "../polling";
+import { bots } from "../../data/bots/bots";
 import { taskPackets } from "../../data/task_packets/task-packets";
 import { taskPacketFilter } from "../../data/task_packets/task-packet-filter";
 import { contourLayer } from "../../openlayers/layers/vector/contour-layer";
 import { TaskPacket } from "@proto/jaiabot/messages/jaia_dccl";
+import { Engineering } from "@proto/jaiabot/messages/engineering";
 import { APIRequest, APIResponse } from "@proto/jaiabot/messages/rest_api";
 
 // The map layers are replaced so polling can be tested without OpenLayers.
-jest.mock("../../openlayers/layers/vector/bot-layer", () => ({ botLayer: {} }));
-jest.mock("../../openlayers/layers/vector/hub-layer", () => ({ hubLayer: {} }));
-jest.mock("../../openlayers/layers/vector/mission-layer", () => ({
-    missionLayer: {},
-    ghostMissionLayer: {},
+jest.mock("../../openlayers/layers/vector/bot-layer", () => ({
+    botLayer: { updateFeatures: jest.fn() },
 }));
-jest.mock("../../openlayers/layers/vector/hub-comms-layer", () => ({ hubCommsLayer: {} }));
+jest.mock("../../openlayers/layers/vector/hub-layer", () => ({
+    hubLayer: { updateFeatures: jest.fn() },
+}));
+jest.mock("../../openlayers/layers/vector/mission-layer", () => ({
+    missionLayer: { updateFeatures: jest.fn() },
+    ghostMissionLayer: { updateFeatures: jest.fn() },
+}));
+jest.mock("../../openlayers/layers/vector/hub-comms-layer", () => ({
+    hubCommsLayer: { updateFeatures: jest.fn() },
+}));
 jest.mock("../../openlayers/layers/vector/dive-layer", () => ({
     diveLayer: { updateFeatures: jest.fn() },
 }));
@@ -245,5 +253,39 @@ describe("pollTaskPackets", () => {
         pendingResponses[0].resolve({ included: [], excluded: [] });
         await refresh;
         await expectPollSkipsFetch();
+    });
+});
+
+describe("pollStatus", () => {
+    test("combines each bot's status with its engineering status", async () => {
+        const engineering: Engineering = { bot_id: 7, query_engineering_status: true };
+        global.fetch = jest.fn((_url: string, init: RequestInit) => {
+            const request: APIRequest = JSON.parse(init.body as string);
+            const body: APIResponse = request.engineering_status
+                ? { engineering_status: { bots: [engineering] } }
+                : { status: { bots: [{ bot_id: 7, received_time: "1000" }], time: "3000" } };
+            return Promise.resolve({ ok: true, json: () => Promise.resolve(body) });
+        }) as unknown as typeof fetch;
+
+        await pollStatus();
+
+        expect(bots.getBot(7)?.getEngineering()).toEqual(engineering);
+        expect(bots.getBot(7)?.getStatusAge()).toBe(2000);
+    });
+
+    test("keeps polling after a response without a status", async () => {
+        let statusBody: APIResponse = {};
+        global.fetch = jest.fn((_url: string, init: RequestInit) => {
+            const request: APIRequest = JSON.parse(init.body as string);
+            const body: APIResponse = request.engineering_status ? {} : statusBody;
+            return Promise.resolve({ ok: true, json: () => Promise.resolve(body) });
+        }) as unknown as typeof fetch;
+
+        await pollStatus();
+
+        statusBody = { status: { bots: [{ bot_id: 8, received_time: "1000" }], time: "1500" } };
+        await pollStatus();
+
+        expect(bots.getBot(8)?.getStatusAge()).toBe(500);
     });
 });

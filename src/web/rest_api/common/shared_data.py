@@ -98,21 +98,6 @@ class Data:
             self.hub_metadata[hub_id] = msg.device_metadata
 
 
-    def sim_now(self):
-        """Gets the current simulation time based on the hub metadata."""
-        now = utc_now_microseconds()
-
-        if len(self.hub_metadata) > 0:
-            metadata: DeviceMetadata = list(self.hub_metadata.values())[0] # Use the first hub's metadata as reference
-            if metadata is not None:
-                if metadata.HasField('simulation_warp'):
-                    now *= metadata.simulation_warp
-                if metadata.HasField('simulation_reference_time'):
-                    now += metadata.simulation_reference_time
-
-        return now
-
-
 # Access must be locked!    
 data = Data()
 # protects Data
