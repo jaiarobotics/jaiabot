@@ -161,7 +161,8 @@ def generate_request_section(action: str):
 
     section = Section(title=f"{action} (request)", content=content)
     section.add_subsections(generate_parameter_section(action, section.title))
-    section.add_subsections(generate_simple_variant(action, section.title))
+    if field.type in (google.protobuf.descriptor.FieldDescriptor.TYPE_BOOL, google.protobuf.descriptor.FieldDescriptor.TYPE_MESSAGE):
+        section.add_subsections(generate_simple_variant(action, section.title))
     section.add_subsections(generate_full_variant(action, section.title))
 
     return section
@@ -278,7 +279,7 @@ def generate_simple_variant(action, parent):
 
     enums=dict()
     
-    if action_field_desc.type != google.protobuf.descriptor.FieldDescriptor.TYPE_BOOL:
+    if action_field_desc.type == google.protobuf.descriptor.FieldDescriptor.TYPE_MESSAGE:
         jaia_request_action = getattr(jaia_request, action_field_desc.name)
         for field in jaia_request_action.DESCRIPTOR.fields:
             presence = field.GetOptions().Extensions[jaiabot.messages.option_extensions_pb2.field].rest_api.presence
@@ -410,10 +411,14 @@ def generate_full_variant(action, parent):
 {json.dumps(json.loads(ex_req), indent=2)}
 ```
 """))
-        example_section.add_subsections(Section(title=f'Response JSON [{example_section.title}]',
+        try:
+            ex_resp_title, ex_resp_text = 'Response JSON', json.dumps(json.loads(ex_resp), indent=2)
+        except json.JSONDecodeError:
+            ex_resp_title, ex_resp_text = 'Response', ex_resp
+        example_section.add_subsections(Section(title=f'{ex_resp_title} [{example_section.title}]',
                                                    content=f"""
 ```
-{json.dumps(json.loads(ex_resp), indent=2)}
+{ex_resp_text}
 ```
 """))
         

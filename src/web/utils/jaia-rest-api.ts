@@ -1,23 +1,27 @@
 import { randomBase57 } from "../shared/Utilities";
-import { APIRequest, APIResponse } from "@proto/jaiabot/messages/rest_api";
+import { APIErrorCode, APIRequest, APIResponse } from "@proto/jaiabot/messages/rest_api";
 import { FeatureCollection, Geometry } from "geojson";
+
+export class JaiaRESTAPIError extends Error {
+    code?: APIErrorCode;
+
+    constructor(code?: APIErrorCode, details?: string) {
+        super(`${code}: ${details}`);
+        this.code = code;
+    }
+}
 
 export class JaiaRESTAPI {
     client_id: string;
-    port: number;
     base_url: URL;
     headers: { [key: string]: string };
 
-    constructor(client_id: string | null = null, port = 9092) {
+    constructor(client_id: string | null = null) {
         this.client_id = client_id ?? randomBase57(22);
 
         console.info(`Jaia REST API v1 clientId = ${this.client_id}`);
 
         this.base_url = new URL("/jaia/v1", window.location.href);
-        this.base_url.port = port.toString();
-        this.port = port;
-
-        console.info(`Jaia REST API v1 base URL = ${this.base_url.href}`);
 
         this.headers = {
             "Content-Type": "application/json; charset=utf-8",
@@ -32,7 +36,7 @@ export class JaiaRESTAPI {
             })
             .then((response) => {
                 if (response.error) {
-                    throw new Error(`${response.error?.code}: ${response.error?.details}`);
+                    throw new JaiaRESTAPIError(response.error.code, response.error.details);
                 }
                 return response;
             })
@@ -79,3 +83,23 @@ export class JaiaRESTAPI {
 }
 
 export const jaia_rest_api = new JaiaRESTAPI();
+
+/**
+ * Returns null instead of rejecting when the API reports that a requested record doesn't exist
+ *
+ * @param {Promise<T>} request Pending API request
+ * @returns {Promise<T | null>} The request's result, or null if the record was not found
+ */
+export async function nullIfRecordNotFound<T>(request: Promise<T>): Promise<T | null> {
+    try {
+        return await request;
+    } catch (error) {
+        if (
+            error instanceof JaiaRESTAPIError &&
+            error.code === APIErrorCode.API_ERROR__RECORD_NOT_FOUND
+        ) {
+            return null;
+        }
+        throw error;
+    }
+}

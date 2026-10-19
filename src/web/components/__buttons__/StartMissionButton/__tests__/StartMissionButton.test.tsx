@@ -26,7 +26,7 @@ const mockBotStatus1: PortalBotStatus = {
     bot_status: {
         bot_id: 1,
     },
-    portalStatusAge: 40_000_000, // microseconds
+    status_age: 40_000_000, // microseconds
 };
 
 const mockBotStatus2: PortalBotStatus = {
@@ -34,7 +34,7 @@ const mockBotStatus2: PortalBotStatus = {
         bot_id: 2,
         mission_state: MissionState.PRE_DEPLOYMENT__IDLE,
     },
-    portalStatusAge: 1_000_000,
+    status_age: 1_000_000,
 };
 
 const mockBotStatus3: PortalBotStatus = {
@@ -42,7 +42,7 @@ const mockBotStatus3: PortalBotStatus = {
         bot_id: 3,
         mission_state: MissionState.PRE_DEPLOYMENT__WAIT_FOR_MISSION_PLAN,
     },
-    portalStatusAge: 1_000_000,
+    status_age: 1_000_000,
 };
 
 const mockBotStatus4: PortalBotStatus = {
@@ -51,7 +51,7 @@ const mockBotStatus4: PortalBotStatus = {
         mission_state: MissionState.PRE_DEPLOYMENT__WAIT_FOR_MISSION_PLAN,
         battery_percent: 15,
     },
-    portalStatusAge: 1_000_000,
+    status_age: 1_000_000,
 };
 
 const mockBotStatus5: PortalBotStatus = {
@@ -60,7 +60,7 @@ const mockBotStatus5: PortalBotStatus = {
         mission_state: MissionState.PRE_DEPLOYMENT__WAIT_FOR_MISSION_PLAN,
         battery_percent: 50,
     },
-    portalStatusAge: 1_000_000,
+    status_age: 1_000_000,
 };
 
 bots.setBot(mockBotStatus1);

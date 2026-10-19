@@ -54,7 +54,8 @@ class Data:
     task_packet_files_path = "/var/log/jaiabot/bot_offload"
     task_packet_loaded_filenames: Set[str] = set()
 
-    controlling_client_id = "NONE"
+    # The operator client that last took control; None until one does
+    controlling_client_id: Optional[str] = None
 
     exclusion_zones = CRUDLRecords(_LOG_DIR / 'exclusion-zones')
     mission_sets = CRUDLRecords(_LOG_DIR / 'mission-sets')
@@ -83,6 +84,10 @@ class Data:
         if msg.HasField('hub_status'):            
             msg.hub_status.received_time = utc_now_microseconds()
             self.hubs[msg.hub_status.hub_id] = msg.hub_status
+
+            # Task packets that weren't sent over the radio arrive in files from the offload
+            if msg.hub_status.bot_offload.offload_succeeded:
+                self.task_packet_database.add_task_packets_from_files()
             
         if msg.HasField('task_packet'):
             log.info('Task packet received')
@@ -91,6 +96,21 @@ class Data:
 
         if msg.HasField('device_metadata'):
             self.hub_metadata[hub_id] = msg.device_metadata
+
+
+    def sim_now(self):
+        """Gets the current simulation time based on the hub metadata."""
+        now = utc_now_microseconds()
+
+        if len(self.hub_metadata) > 0:
+            metadata: DeviceMetadata = list(self.hub_metadata.values())[0] # Use the first hub's metadata as reference
+            if metadata is not None:
+                if metadata.HasField('simulation_warp'):
+                    now *= metadata.simulation_warp
+                if metadata.HasField('simulation_reference_time'):
+                    now += metadata.simulation_reference_time
+
+        return now
 
 
 # Access must be locked!    
@@ -104,9 +124,5 @@ def create_queues(streaming_endpoints):
         # thread safe queue for outbound messages
         to_portal_queue[ep.hub_id] = Queue()
 
-def get_queue(hub_id=None):
-    if hub_id:
-        return to_portal_queue[hub_id]
-    else:
-        # return the first available queue if no hub_id is specified
-        return to_portal_queue[list(to_portal_queue.keys())[0]]
+def get_queue(hub_id):
+    return to_portal_queue[hub_id]

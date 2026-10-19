@@ -116,9 +116,7 @@ Depends: ${shlibs:Depends}, ${misc:Depends},
 	 python3-simplejson,
 	 python3-protobuf,
          python3-dataclasses-json,
-         python3-rasterio,
-         python3-geopandas,
-         python3-networkx
+         python3-rasterio
 Section: science
 Architecture: all
 Description: Web UI applications for the Jaiabot Project
