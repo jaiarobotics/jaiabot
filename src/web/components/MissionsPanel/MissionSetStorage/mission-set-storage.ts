@@ -1,6 +1,7 @@
 import Mission from "../../../data/mission_set/mission";
 import {
     missionSet,
+    MissionSet,
     MissionSetSnapshot,
     MISSION_SET_VERSION,
 } from "../../../data/mission_set/mission-set";
@@ -9,7 +10,8 @@ import Task from "../../../data/tasks/task";
 import { MissionTask_TaskType } from "@proto/jaiabot/messages/mission";
 import { LegacyMissionInterface, LegacyRunInterface } from "../../../types/legacy-types";
 import { DEFAULT_SPEED, UNASSIGNED_ID } from "../../../utils/constants";
-import { jaiaAPI } from "../../../utils/jaia-api";
+import { jaia_rest_api } from "../../../utils/jaia-rest-api";
+import { RecordQuery_RecordType } from "@proto/jaiabot/messages/rest_api";
 
 export enum LoadResultType {
     CURRENT_FORMAT = "CURRENT_FORMAT",
@@ -29,7 +31,16 @@ export interface LoadSnapshotResult {
  * @returns {void}
  */
 export async function saveSnapshotToHub(name: string, snapshot: MissionSetSnapshot): Promise<void> {
-    await jaiaAPI.saveMissionSet(name, { ...snapshot, name, version: MISSION_SET_VERSION });
+    await jaia_rest_api.request({
+        target: {
+            all: true,
+        },
+        record_query: {
+            type: RecordQuery_RecordType.MISSION_SET,
+            save_name: name,
+            save_content: JSON.stringify({ ...snapshot, name, version: MISSION_SET_VERSION }),
+        },
+    });
 }
 
 /**
@@ -53,7 +64,20 @@ export async function saveToHub(name: string): Promise<void> {
  * Called by UI code, snapshot is sent to the reducer/action handler
  */
 export async function loadSnapshotFromHub(saveName: string): Promise<LoadSnapshotResult> {
-    const targetSet = await jaiaAPI.loadMissionSet(saveName);
+    const targetSet = await jaia_rest_api
+        .request({
+            target: {
+                all: true,
+            },
+            record_query: {
+                type: RecordQuery_RecordType.MISSION_SET,
+                get_name: saveName,
+            },
+        })
+        .then(
+            (res) => JSON.parse(res.record_query_response?.content ?? "null") as MissionSetSnapshot,
+        );
+
     if (!targetSet) {
         return {
             snapshot: null,
@@ -99,7 +123,15 @@ export async function loadSnapshotFromHub(saveName: string): Promise<LoadSnapsho
  * @returns {boolean} False if the mission set was not found
  */
 export async function deleteFromHub(name: string): Promise<void> {
-    await jaiaAPI.deleteMissionSet(name);
+    await jaia_rest_api.request({
+        target: {
+            all: true,
+        },
+        record_query: {
+            type: RecordQuery_RecordType.MISSION_SET,
+            delete_name: name,
+        },
+    });
 }
 
 /**
@@ -108,7 +140,19 @@ export async function deleteFromHub(name: string): Promise<void> {
  * @returns {string[]} Names of all saved missions sets
  */
 export async function listSavedMissionSetsFromHub(): Promise<string[]> {
-    return jaiaAPI.listMissionSets();
+    return await jaia_rest_api
+        .request({
+            target: {
+                all: true,
+            },
+            record_query: {
+                type: RecordQuery_RecordType.MISSION_SET,
+                list: true,
+            },
+        })
+        .then((res) => {
+            return res.record_query_response?.names ?? [];
+        });
 }
 
 /**

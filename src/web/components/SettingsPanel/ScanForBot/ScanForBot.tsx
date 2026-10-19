@@ -43,7 +43,7 @@ export default function ScanForBot() {
         };
 
         const res = await sendHubCommand(command);
-        if (res && res.status === "ok") {
+        if (res && !res.error) {
             success(`Scanning for Bot ${botID}`);
         }
     };

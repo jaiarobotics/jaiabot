@@ -115,155 +115,6 @@ export class JaiaAPI {
         return this.clientId;
     }
 
-    getMetadata() {
-        return this.get("jaia/v0/metadata");
-    }
-
-    getStatus() {
-        return this.get("jaia/v0/status");
-    }
-
-    /**
-     * Gets most recent status for hub(s)
-     *
-     * @returns {{[key: string]: PortalHubStatus}} Object containing most recent status for hub(s)
-     */
-    getStatusHubs() {
-        return this.get("jaia/v0/status-hubs");
-    }
-
-    /**
-     * Queries the server for TaskPackets within a specified range. If no start and end date, the
-     * server defaults to a 14 hour window with the end date set to now
-     *
-     * @param {string} startDate (optional) sets the lower bound on the TaskPackets displayed
-     * @param {string} endDate (optional) sets the upper bound on the TaskPackets displayed
-     * @returns {Promise<TaskPacket[]>} array of TaskPackets or error obj
-     *
-     * @notes
-     * Expected startDate format: yyyy-mm-dd hh:mm
-     * Expected endDate format: yyyy-mm-dd hh:mm
-     */
-    getTaskPackets(startDate?: string, endDate?: string): Promise<JaiaResponse<TaskPackets>> {
-        if (startDate && endDate) {
-            const startDateStr = convertHTMLStrDateToISO(startDate);
-            const endDateStr = convertHTMLStrDateToISO(endDate);
-            return this.get(`jaia/v0/task-packets?startDate=${startDateStr}&endDate=${endDateStr}`);
-        } else if (startDate && !endDate) {
-            const startDateStr = convertHTMLStrDateToISO(startDate);
-            return this.get(`jaia/v0/task-packets?startDate=${startDateStr}`);
-        } else {
-            // Let server set default date values
-            return this.get(`jaia/v0/task-packets`);
-        }
-    }
-
-    getTaskPacketsVersion() {
-        return this.get(`jaia/v0/task-packets-version`);
-    }
-
-    async postTaskPacketInclude(
-        task_packet_id: string,
-        include: boolean,
-    ): Promise<JaiaResponse<any>> {
-        return this.post("jaia/v0/task-packet-include", {
-            task_packet_id: task_packet_id,
-            include: include,
-        });
-    }
-
-    /**
-     * Get a set of depth contours from the backend in GeoJSON format.
-     *
-     * @async
-     * @param {?string} [startDate] sets the lower bound on the TaskPackets displayed
-     * @param {?string} [endDate] sets the upper bound on the TaskPackets displayed
-     * @returns {Promise<FeatureCollection<Geometry>>} The depth contour feature set.
-     * @notes Expected startDate format: yyyy-mm-dd hh:mm Expected endDate format: yyyy-mm-dd hh:mm
-     */
-    async getDepthContours(
-        startDate?: string,
-        endDate?: string,
-    ): Promise<FeatureCollection<Geometry>> {
-        var queryParameters = [];
-        if (startDate) {
-            const startDateStr = convertHTMLStrDateToISO(startDate);
-            queryParameters.push(`startDate=${startDateStr}`);
-        }
-        if (endDate) {
-            const endDateStr = convertHTMLStrDateToISO(endDate);
-            queryParameters.push(`endDate=${endDateStr}`);
-        }
-
-        if (queryParameters.length > 0) {
-            const queryParameterString = queryParameters.join("&");
-            return (await this.get(
-                `jaia/v0/depth-contours?${queryParameterString}`,
-            )) as FeatureCollection<Geometry>;
-        } else {
-            // Let server set default date values
-            return (await this.get(`jaia/v0/depth-contours`)) as FeatureCollection<Geometry>;
-        }
-    }
-
-    /**
-     * Gets a depth-contour color map computed from a set of task packets. Used
-     * by the task packet filter so the contour matches the packets shown on the map.
-     *
-     * @param {TaskPacket[]} taskPackets Task packets to contour
-     * @returns {Promise<FeatureCollection<Geometry>>} The depth contour feature set
-     */
-    async getDepthContoursForTaskPackets(
-        taskPackets: TaskPacket[],
-    ): Promise<FeatureCollection<Geometry>> {
-        return (await this.post(
-            "jaia/v0/depth-contours",
-            taskPackets,
-        )) as FeatureCollection<Geometry>;
-    }
-
-    /**
-     * Gets a GeoJSON object with interpolated drift features
-     *
-     * @param {string} startDate (optional) Set a lower bound on drift packets used for interpolation
-     * @param {string} endDate (optional) Set an upper bound of drift packets used for interpolation
-     *
-     * @returns {Feature<Geometry>[] | void} A GeoJSON feature set containing interpolated drift features
-     */
-    getDriftMap(startDate?: string, endDate?: string) {
-        var queryParameters = [];
-        if (startDate) {
-            const startDateStr = convertHTMLStrDateToISO(startDate);
-            queryParameters.push(`startDate=${startDateStr}`);
-        }
-        if (endDate) {
-            const endDateStr = convertHTMLStrDateToISO(endDate);
-            queryParameters.push(`endDate=${endDateStr}`);
-        }
-
-        if (queryParameters.length > 0) {
-            const queryParameterString = queryParameters.join("&");
-            return this.get(`jaia/v0/drift-map?${queryParameterString}`)
-                .then((geoJSON) => {
-                    const features = new GeoJSON().readFeatures(geoJSON);
-                    return features;
-                })
-                .catch((err) => {
-                    logResReqError("getDriftMap", err);
-                });
-        } else {
-            // Let server set default date values
-            return this.get(`jaia/v0/drift-map`)
-                .then((geoJSON) => {
-                    const features = new GeoJSON().readFeatures(geoJSON);
-                    return features;
-                })
-                .catch((err) => {
-                    logResReqError("getDriftMap", err);
-                });
-        }
-    }
-
     async getOfflineMaps() {
         return this.get("maps/").then((response) => {
             return response as Promise<MapsDirectory>;
@@ -297,53 +148,8 @@ export class JaiaAPI {
         });
     }
 
-    async getCTDProfiles() {
-        return fetch("ctd-profiles", {
-            method: "GET",
-        });
-    }
-
-    allStop() {
-        return this.post("jaia/v0/all-stop");
-    }
-
-    allActivate() {
-        return this.post("jaia/v0/all-activate", null);
-    }
-
-    nextTaskAll() {
-        return this.post("jaia/v0/next-task-all", null);
-    }
-
-    allRecover() {
-        return this.post("jaia/v0/all-recover", null);
-    }
-
-    postCommand(command: Command) {
-        return this.post("jaia/v0/command", command);
-    }
-
-    postCommandForHub(command: CommandForHub) {
-        return this.post("jaia/v0/command-for-hub", command);
-    }
-
-    postEngineeringPanel(engineeringPanelCommand: Engineering) {
-        return this.post("jaia/v0/ep-command", engineeringPanelCommand);
-    }
-
-    takeControl() {
-        return this.post("jaia/v0/take-control", null);
-    }
-
-    postEngineering(engineeringCommand: Engineering) {
-        return this.post("jaia/v0/engineering-command", engineeringCommand);
-    }
-
-    postMissionFilesCreate(descriptor: any) {
-        return this.post("missionfiles/create", descriptor);
-    }
-
     // ── Exclusion zone hub storage ──────────────────────────────────────────
+    // TODO:  Port the tests to REST API v1, and remove these
 
     async listExclusionZones(): Promise<string[]> {
         const response = await this.get("jaia/v0/exclusion-zones");
@@ -367,6 +173,7 @@ export class JaiaAPI {
     }
 
     // ── Mission set hub storage ─────────────────────────────────────────────
+    // TODO:  Port the tests to REST API v1, and remove these
 
     async listMissionSets(): Promise<string[]> {
         const response = await this.get("jaia/v0/mission-sets");
@@ -388,18 +195,6 @@ export class JaiaAPI {
     async deleteMissionSet(name: string): Promise<void> {
         await this.delete(`jaia/v0/mission-sets/${encodeURIComponent(name)}`);
     }
-}
-
-/**
- * Combine console.error and console.log into one function to reduce code repetition
- *
- * @param {string} functionName Used as location input to the error msg to help debug
- * @param {Error} error Prints the error object to make all debug data visible
- * @returns {void}
- */
-function logResReqError(functionName: string, error: Error) {
-    console.error(`${functionName}:`, error);
-    console.log(`${functionName}:`, error);
 }
 
 export const jaiaAPI = new JaiaAPI(randomBase57(22), "/", false);

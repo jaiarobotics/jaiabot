@@ -3,7 +3,7 @@ import { taskPackets } from "../../data/task_packets/task-packets";
 import { taskPacketFilter } from "../../data/task_packets/task-packet-filter";
 import { contourLayer } from "../../openlayers/layers/vector/contour-layer";
 import { TaskPacket } from "@proto/jaiabot/messages/jaia_dccl";
-import { convertHTMLStrDateToISO } from "../../shared/Utilities";
+import { APIRequest, APIResponse } from "@proto/jaiabot/messages/rest_api";
 
 // The map layers are replaced so polling can be tested without OpenLayers.
 jest.mock("../../openlayers/layers/vector/bot-layer", () => ({ botLayer: {} }));
@@ -27,14 +27,15 @@ jest.mock("../../openlayers/layers/vector/excluded-task-packets-layer", () => ({
 }));
 jest.mock("../../style/audio/sound-effects", () => ({}));
 
-type TaskPacketsBody = { result: { included: TaskPacket[]; excluded: TaskPacket[] } };
+type TaskPacketsBody = { included: TaskPacket[]; excluded: TaskPacket[] };
 
 /**
  * A pending task packet response the test resolves when it chooses, so responses can be made to
- * arrive in any order.
+ * arrive in any order. It answers both the included and excluded requests of one refresh.
  */
 interface PendingResponse {
     resolve: (body: TaskPacketsBody) => void;
+    body: Promise<TaskPacketsBody>;
 }
 
 let pendingResponses: PendingResponse[] = [];
@@ -70,7 +71,7 @@ async function expectPollSkipsFetch() {
     const fetchCount = pendingResponses.length;
     pendingResponses
         .slice(1)
-        .forEach((response) => response.resolve({ result: { included: [], excluded: [] } }));
+        .forEach((response) => response.resolve({ included: [], excluded: [] }));
     await poll;
     expect(fetchCount).toBe(1);
 }
@@ -81,16 +82,27 @@ beforeEach(() => {
     taskPackets.setIncludedTaskPackets([]);
     taskPackets.setExcludedTaskPackets([]);
     taskPackets.setVersion(0);
-    // Each task packet fetch waits for the test to resolve it; the version endpoint returns 5.
-    global.fetch = jest.fn((url: string) => {
-        if (url.includes("task-packets-version")) {
-            return Promise.resolve({ ok: true, json: () => Promise.resolve(5) });
+    // Each task packet fetch waits for the test to resolve it; the version request returns 5.
+    global.fetch = jest.fn((_url: string, init: RequestInit) => {
+        const request: APIRequest = JSON.parse(init.body as string);
+        const respond = (body: APIResponse) => ({ ok: true, json: () => Promise.resolve(body) });
+
+        if (request.task_packets_version) {
+            return Promise.resolve(respond({ task_packets_version: { version: 5 } }));
         }
-        return new Promise((resolve) => {
-            pendingResponses.push({
-                resolve: (body) => resolve({ ok: true, json: () => Promise.resolve(body) }),
-            });
-        });
+
+        // A refresh requests the included packets first, then the excluded ones.
+        const includedOnly = request.task_packets?.included_only;
+        if (includedOnly) {
+            let resolve: (body: TaskPacketsBody) => void;
+            const body = new Promise<TaskPacketsBody>((r) => (resolve = r));
+            pendingResponses.push({ resolve: resolve!, body });
+        }
+        return pendingResponses[pendingResponses.length - 1].body.then((body) =>
+            respond({
+                task_packets: { packets: includedOnly ? body.included : body.excluded },
+            }),
+        );
     }) as unknown as typeof fetch;
 });
 
@@ -101,7 +113,7 @@ describe("refreshTaskPacketsForWindow", () => {
 
         const refresh = refreshTaskPacketsForWindow();
         await flushPromises();
-        pendingResponses[0].resolve({ result: { included, excluded } });
+        pendingResponses[0].resolve({ included, excluded });
 
         expect(await refresh).toBe(true);
         expect(taskPackets.getIncludedTaskPackets()).toBe(included);
@@ -116,9 +128,9 @@ describe("refreshTaskPacketsForWindow", () => {
         const older = refreshTaskPacketsForWindow();
         const newer = refreshTaskPacketsForWindow();
         await flushPromises();
-        pendingResponses[1].resolve({ result: { included: [], excluded: [suppressed] } });
+        pendingResponses[1].resolve({ included: [], excluded: [suppressed] });
         expect(await newer).toBe(true);
-        pendingResponses[0].resolve({ result: { included: [suppressed], excluded: [] } });
+        pendingResponses[0].resolve({ included: [suppressed], excluded: [] });
 
         expect(await older).toBe(false);
         expect(taskPackets.getIncludedTaskPackets()).toEqual([]);
@@ -131,7 +143,7 @@ describe("pollTaskPackets", () => {
     test("records the version when its response is applied", async () => {
         const poll = pollTaskPackets();
         await flushPromises();
-        pendingResponses[0].resolve({ result: { included: [], excluded: [] } });
+        pendingResponses[0].resolve({ included: [], excluded: [] });
         await poll;
 
         expect(taskPackets.getVersion()).toBe(5);
@@ -142,7 +154,7 @@ describe("pollTaskPackets", () => {
         await flushPromises();
         // A newer refresh, e.g. from a window change, supersedes the poll's fetch.
         refreshTaskPacketsForWindow();
-        pendingResponses[0].resolve({ result: { included: [makeTaskPacket(1000)], excluded: [] } });
+        pendingResponses[0].resolve({ included: [makeTaskPacket(1000)], excluded: [] });
         await poll;
 
         // Leaving the version unrecorded makes the next poll fetch again.
@@ -163,14 +175,18 @@ describe("pollTaskPackets", () => {
         const poll = pollTaskPackets();
         await flushPromises();
         expect(pendingResponses).toHaveLength(1);
-        pendingResponses[0].resolve({ result: { included: [], excluded: [] } });
+        pendingResponses[0].resolve({ included: [], excluded: [] });
         await poll;
 
-        const taskPacketUrl = (global.fetch as jest.Mock).mock.calls
-            .map(([url]) => url as string)
-            .find((url) => !url.includes("task-packets-version"));
-        expect(taskPacketUrl).toContain(`startDate=${convertHTMLStrDateToISO("2026-06-01 00:00")}`);
-        expect(taskPacketUrl).toContain(`endDate=${convertHTMLStrDateToISO("2026-06-01 23:59")}`);
+        const taskPacketQuery = (global.fetch as jest.Mock).mock.calls
+            .map(([, init]) => (JSON.parse(init.body) as APIRequest).task_packets)
+            .find((query) => query !== undefined);
+        expect(taskPacketQuery?.start_time).toBe(
+            String(new Date("2026-06-01T00:00").getTime() * 1000),
+        );
+        expect(taskPacketQuery?.end_time).toBe(
+            String(new Date("2026-06-01T23:59").getTime() * 1000),
+        );
     });
 
     test("skips the fetch when neither the window nor the version has changed", async () => {
@@ -181,7 +197,7 @@ describe("pollTaskPackets", () => {
 
         const first = pollTaskPackets();
         await flushPromises();
-        pendingResponses[0].resolve({ result: { included: [], excluded: [] } });
+        pendingResponses[0].resolve({ included: [], excluded: [] });
         await first;
         await expectPollSkipsFetch();
     });
@@ -194,7 +210,7 @@ describe("pollTaskPackets", () => {
             new Date("2026-06-03T23:59"),
         );
         await flushPromises();
-        pendingResponses[0].resolve({ result: { included: [], excluded: [] } });
+        pendingResponses[0].resolve({ included: [], excluded: [] });
         await poll;
 
         // The first poll fetched the new window, so the second has nothing to refetch.
@@ -210,7 +226,7 @@ describe("pollTaskPackets", () => {
 
         const refresh = refreshTaskPacketsForWindow();
         await flushPromises();
-        pendingResponses[0].resolve({ result: { included: [], excluded: [] } });
+        pendingResponses[0].resolve({ included: [], excluded: [] });
         await refresh;
         await expectPollSkipsFetch();
     });

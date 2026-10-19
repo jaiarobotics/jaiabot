@@ -1,4 +1,4 @@
-import { jaiaAPI } from "../jaia-api";
+import { jaia_rest_api } from "../jaia-rest-api";
 import { warning } from "../notifications";
 
 const HTTP_NO_CONTENT = 204;
@@ -37,7 +37,12 @@ export function downloadFile(
  * @returns {void}
  */
 export async function getCTDFiles() {
-    const res = await jaiaAPI.getCTDProfiles();
+    const res = await jaia_rest_api.fetch_request({
+        target: {
+            all: true,
+        },
+        download_ctd_profiles: true,
+    });
 
     if (res.status === HTTP_NO_CONTENT) {
         warning("No new CTD profiles on the Hub");

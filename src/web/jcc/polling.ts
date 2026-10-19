@@ -3,8 +3,8 @@ import { hubs } from "../data/hubs/hubs";
 import { jaiaGlobal } from "../data/jaia_global/jaia-global";
 import { taskPackets } from "../data/task_packets/task-packets";
 import { taskPacketFilter } from "../data/task_packets/task-packet-filter";
-import { getHTMLDateString, getHTMLTimeString, convertHTMLStrDateToISO } from "../shared/Utilities";
-import { PortalBotStatus, PortalHubStatus } from "../shared/PortalStatus";
+import { PortalHubStatus } from "@proto/jaiabot/messages/rest_api";
+import { PortalBotStatus } from "@proto/jaiabot/messages/rest_api";
 import { botLayer } from "../openlayers/layers/vector/bot-layer";
 import { hubLayer } from "../openlayers/layers/vector/hub-layer";
 import { ghostMissionLayer, missionLayer } from "../openlayers/layers/vector/mission-layer";
@@ -15,6 +15,7 @@ import { hubCommsLayer } from "../openlayers/layers/vector/hub-comms-layer";
 import { excludedTaskPacketsLayer } from "../openlayers/layers/vector/excluded-task-packets-layer";
 import { DeviceMetadata, DeviceMetadata_Version } from "@proto/jaiabot/messages/metadata";
 import SoundEffects from "../style/audio/sound-effects";
+import { jaia_rest_api } from "../utils/jaia-rest-api";
 
 const MAX_REQUEST_TIME = 10000; // ms;
 const VERSION_LENGTH = 3;
@@ -23,10 +24,6 @@ const CONNECTION_WARNING = "connection-warning";
 const CONGESTION_WARNING = "congestion-warning";
 const HUB_CONNECTION_ERROR = "Connection Dropped To HUB";
 
-const STATUS_URL = "/jaia/v0/status";
-const TASK_PACKET_URL = "/jaia/v0/task-packets";
-const TASK_PACKET_VERSION_URL = "/jaia/v0/task-packets-version";
-const METADATA_URL = "/jaia/v0/metadata";
 const GITHUB_URL = "https://api.github.com/repos/jaiarobotics/jaiabot/releases/latest";
 
 let statusRequestInFlight = false;
@@ -41,21 +38,6 @@ let lastFetchedWindowKey = "";
 let latestTaskPacketRequest = 0;
 
 let statusRequestStartTime = new Date().getTime();
-
-/**
- * Fetches from the Hub's API, reloading the page if the request was redirected
- * to sign in (CloudHub), so the operator is taken to the sign-in page and back
- *
- * @param {string} url API endpoint
- * @returns {Promise<Response>} Response from the API
- */
-async function fetchApi(url: string) {
-    const response = await fetch(url, { redirect: "manual" });
-    if (response.type === "opaqueredirect") {
-        location.reload();
-    }
-    return response;
-}
 
 /**
  * Hits the status endpoint and updates the data model and openlayers
@@ -75,20 +57,29 @@ export async function pollStatus() {
     try {
         statusRequestInFlight = true;
         statusRequestStartTime = new Date().getTime();
-        const response = await fetchApi(STATUS_URL);
-        if (!response.ok) {
-            console.error(`Response status: ${response.status}`);
+
+        const rest_response = await jaia_rest_api.request({
+            target: {
+                all: true,
+            },
+            pod_status: true,
+        });
+
+        const pod_status = rest_response.pod_status;
+
+        if (pod_status == null) {
+            console.error("Pod status response is null");
+            return;
+        }
+
+        updateBots(pod_status.bots ?? []);
+        updateHubs(pod_status.hubs ?? []);
+        updateJaiaGlobal(pod_status.controlling_client_id ?? "");
+        updateOpenLayers();
+        if (pod_status.messages?.error && pod_status.messages?.error === HUB_CONNECTION_ERROR) {
+            updateWarning(CONNECTION_WARNING, true);
         } else {
-            const json = await response.json();
-            updateBots(json.bots);
-            updateHubs(json.hubs);
-            updateJaiaGlobal(json.controllingClientId);
-            updateOpenLayers();
-            if (json.messages.error && json.messages.error === HUB_CONNECTION_ERROR) {
-                updateWarning(CONNECTION_WARNING, true);
-            } else {
-                updateWarning(CONNECTION_WARNING, false);
-            }
+            updateWarning(CONNECTION_WARNING, false);
         }
     } catch (error) {
         updateWarning(CONNECTION_WARNING, true);
@@ -116,35 +107,29 @@ export async function pollTaskPackets() {
     }
     try {
         taskPacketRequestInFlight = true;
-        const versionRes = await fetchApi(TASK_PACKET_VERSION_URL);
-        if (!versionRes.ok) {
-            console.error(`Task packet response status: ${versionRes.status}`);
-        } else {
-            const version = await versionRes.json();
-            // Refetch when the filter window changes, even if the server version is unchanged.
-            const forceFetch = getTaskPacketWindowKey() !== lastFetchedWindowKey;
-            // A superseded fetch records nothing, so the next poll fetches again.
-            if (
-                (forceFetch || version !== taskPackets.getVersion()) &&
-                (await refreshTaskPacketsForWindow())
-            ) {
-                taskPackets.setVersion(version);
-            }
+
+        const task_packets_version_response = await jaia_rest_api.request({
+            target: {
+                all: true,
+            },
+            task_packets_version: true,
+        });
+
+        const version = task_packets_version_response.task_packets_version?.version ?? 0;
+
+        // Refetch when the filter window changes, even if the server version is unchanged.
+        const forceFetch = getTaskPacketWindowKey() !== lastFetchedWindowKey;
+        // A superseded fetch records nothing, so the next poll fetches again.
+        if (
+            (forceFetch || version !== taskPackets.getVersion()) &&
+            (await refreshTaskPacketsForWindow())
+        ) {
+            taskPackets.setVersion(version);
         }
     } catch (error) {
         console.error(error);
     }
     taskPacketRequestInFlight = false;
-}
-
-/**
- * Formats a Date as the "yyyy-mm-dd hh:mm" string that convertHTMLStrDateToISO expects
- *
- * @param {Date} date Date to format
- * @returns {string} Query string in the form "yyyy-mm-dd hh:mm"
- */
-function toTaskPacketQueryString(date: Date) {
-    return `${getHTMLDateString(date)} ${getHTMLTimeString(date)}`;
 }
 
 /**
@@ -167,12 +152,12 @@ export async function refreshTaskPacketsForWindow() {
     const requestID = ++latestTaskPacketRequest;
     // Taken before the fetch reads the filter, so the key matches the window fetched.
     const windowKey = getTaskPacketWindowKey();
-    const json = await fetchTaskPacketsForWindow();
+    const { included, excluded } = await fetchTaskPacketsForWindow();
     if (requestID !== latestTaskPacketRequest) {
         return false;
     }
-    taskPackets.setIncludedTaskPackets(json.result.included);
-    taskPackets.setExcludedTaskPackets(json.result.excluded);
+    taskPackets.setIncludedTaskPackets(included);
+    taskPackets.setExcludedTaskPackets(excluded);
     lastFetchedWindowKey = windowKey;
     updateTaskLayers();
     return true;
@@ -181,20 +166,28 @@ export async function refreshTaskPacketsForWindow() {
 /**
  * Fetches task packets for the filter's window.
  *
- * @returns {Promise<{ result: { included: TaskPacket[]; excluded: TaskPacket[] } }>} Response
+ * @returns {Promise<{ included: TaskPacket[]; excluded: TaskPacket[] }>} Task packets in the window
  *
  * @notes
  * JCC always sends the window rather than relying on the server's default.
  */
 async function fetchTaskPacketsForWindow() {
-    const startDateISO = convertHTMLStrDateToISO(
-        toTaskPacketQueryString(taskPacketFilter.getStartDate()),
-    );
-    const endDateISO = convertHTMLStrDateToISO(
-        toTaskPacketQueryString(taskPacketFilter.getEndDate()),
-    );
-    const res = await fetchApi(`${TASK_PACKET_URL}?startDate=${startDateISO}&endDate=${endDateISO}`);
-    return res.json();
+    const query = (included_only: boolean) =>
+        jaia_rest_api
+            .request({
+                target: {
+                    all: true,
+                },
+                task_packets: {
+                    start_time: String(taskPacketFilter.getStartDate().getTime() * 1000),
+                    end_time: String(taskPacketFilter.getEndDate().getTime() * 1000),
+                    included_only,
+                },
+            })
+            .then((response) => response.task_packets?.packets ?? []);
+
+    const [included, excluded] = await Promise.all([query(true), query(false)]);
+    return { included, excluded };
 }
 
 /**
@@ -209,18 +202,23 @@ export async function pollMetadata() {
     }
     try {
         metadataRequestInFlight = true;
-        const res = await fetchApi(METADATA_URL);
-        if (!res.ok) {
-            console.error(`Metadata response status: ${res.status}`);
-        } else {
-            const metadata: DeviceMetadata = await res.json();
-            const isUpgradeAvailable = compareVersions(
-                metadata.jaiabot_version,
-                jaiaGlobal.getGitHubVersion(),
-            );
-            jaiaGlobal.setMetadata(metadata);
-            jaiaGlobal.setIsUpgradeAvailable(isUpgradeAvailable);
-        }
+
+        const metadata_response = await jaia_rest_api.request({
+            target: {
+                all: true,
+            },
+            metadata: true,
+        });
+
+        // Get metadata for the first hub
+        const metadata = metadata_response.metadata?.hubs?.[0];
+
+        const isUpgradeAvailable = compareVersions(
+            metadata?.jaiabot_version,
+            jaiaGlobal.getGitHubVersion(),
+        );
+        jaiaGlobal.setMetadata(metadata);
+        jaiaGlobal.setIsUpgradeAvailable(isUpgradeAvailable);
     } catch (error) {
         console.error(error);
     }
@@ -281,14 +279,13 @@ export async function pollInternet() {
  * @param {PortalBotStatus} botStatuses Bot data from the server
  * @returns {void}
  */
-function updateBots(botStatuses: { [botID: string]: PortalBotStatus }) {
-    const botIDs = Object.keys(botStatuses);
-    for (let botID of botIDs) {
-        const numericBotID = Number(botID);
+function updateBots(botStatuses: PortalBotStatus[]) {
+    for (let botStatus of botStatuses) {
+        const numericBotID = botStatus.bot_status?.bot_id ?? -1;
         const wasCommsDropped = bots.getBot(numericBotID)?.isCommsDropped() ?? false;
-        bots.setBot(botStatuses[botID]);
-        botStatuses[botID].isDisconnected = bots.getBot(numericBotID)?.isCommsDropped() ?? false;
-        handleBotSoundEffects(wasCommsDropped, botStatuses[botID].isDisconnected);
+        bots.setBot(botStatus);
+        botStatus.isDisconnected = bots.getBot(numericBotID)?.isCommsDropped() ?? false;
+        handleBotSoundEffects(wasCommsDropped, botStatus.isDisconnected);
     }
     bots.setTick(bots.getTick() + 1);
 }
@@ -299,10 +296,9 @@ function updateBots(botStatuses: { [botID: string]: PortalBotStatus }) {
  * @param {PortalHubStatus} hubStatuses Hub data from the server
  * @returns {void}
  */
-function updateHubs(hubStatuses: { [hubId: string]: PortalHubStatus }) {
-    const hubIDs = Object.keys(hubStatuses);
-    for (let hubID of hubIDs) {
-        hubs.setHub(hubStatuses[hubID]);
+function updateHubs(hubStatuses: PortalHubStatus[]) {
+    for (let hubStatus of hubStatuses) {
+        hubs.setHub(hubStatus);
     }
 }
 
@@ -411,7 +407,7 @@ function deconstructTagName(tagName: string) {
  * @returns {boolean} True if there is a new version, False otherwise
  */
 function compareVersions(
-    currentVersion: DeviceMetadata_Version,
+    currentVersion: DeviceMetadata_Version | undefined,
     gitHubVersion: DeviceMetadata_Version,
 ) {
     if (!currentVersion) {

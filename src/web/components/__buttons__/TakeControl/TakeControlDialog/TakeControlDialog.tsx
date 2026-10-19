@@ -1,4 +1,4 @@
-import { jaiaAPI } from "../../../../utils/jaia-api";
+import { jaia_rest_api } from "../../../../utils/jaia-rest-api";
 
 interface Props {
     isVisible: boolean;
@@ -18,14 +18,19 @@ export default function TakeControlDialog(props: Props) {
      * @returns {void}
      */
     const handleTakeControlClick = () => {
-        jaiaAPI.takeControl().then(() => {
-            if (props.groupBotsByReadyState) {
-                props.groupBotsByReadyState();
-            }
+        jaia_rest_api
+            .takeControl()
+            .then(() => {
+                if (props.groupBotsByReadyState) {
+                    props.groupBotsByReadyState();
+                }
 
-            props.setIsTakeControlVisible(false);
-            props.setIsDialogVisible(true);
-        });
+                props.setIsTakeControlVisible(false);
+                props.setIsDialogVisible(true);
+            })
+            .catch((error) => {
+                console.error("Error taking control:", error);
+            });
     };
 
     if (props.isVisible) {

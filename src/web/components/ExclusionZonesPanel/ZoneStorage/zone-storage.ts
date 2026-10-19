@@ -1,9 +1,10 @@
+import { jaia_rest_api } from "../../../utils/jaia-rest-api";
+import { RecordQuery_RecordType } from "@proto/jaiabot/messages/rest_api";
 import {
     exclusionZoneSet,
     ExclusionZoneSetSnapshot,
     EXCLUSION_ZONE_SET_VERSION,
 } from "../../../data/exclusion_zones/exclusion-zone-set";
-import { jaiaAPI } from "../../../utils/jaia-api";
 
 interface ExclusionZoneFile {
     version: string;
@@ -29,7 +30,17 @@ export interface ImportZoneResult {
  * @returns {Promise<string[]>} Alphabetically sorted list of saved zone set names
  */
 export async function listSavedZoneSetsFromHub(): Promise<string[]> {
-    return jaiaAPI.listExclusionZones();
+    return jaia_rest_api
+        .request({
+            target: {
+                all: true,
+            },
+            record_query: {
+                type: RecordQuery_RecordType.EXCLUSION_ZONE,
+                list: true,
+            },
+        })
+        .then((response) => response?.record_query_response?.names ?? []);
 }
 
 /**
@@ -39,7 +50,16 @@ export async function listSavedZoneSetsFromHub(): Promise<string[]> {
  * @returns {Promise<void>}
  */
 export async function saveToHub(name: string): Promise<void> {
-    await jaiaAPI.saveExclusionZone(name, exclusionZoneSet.captureSnapshot());
+    jaia_rest_api.request({
+        target: {
+            all: true,
+        },
+        record_query: {
+            type: RecordQuery_RecordType.EXCLUSION_ZONE,
+            save_name: name,
+            save_content: JSON.stringify(exclusionZoneSet.captureSnapshot()),
+        },
+    });
 }
 
 /**
@@ -49,7 +69,21 @@ export async function saveToHub(name: string): Promise<void> {
  * @returns {Promise<ExclusionZoneSetSnapshot | null>} The loaded snapshot, or null if not found
  */
 export async function loadSnapshotFromHub(name: string): Promise<ExclusionZoneSetSnapshot | null> {
-    return jaiaAPI.loadExclusionZone(name) as Promise<ExclusionZoneSetSnapshot | null>;
+    return jaia_rest_api
+        .request({
+            target: {
+                all: true,
+            },
+            record_query: {
+                type: RecordQuery_RecordType.EXCLUSION_ZONE,
+                get_name: name,
+            },
+        })
+        .then((response) =>
+            response?.record_query_response?.content
+                ? (JSON.parse(response.record_query_response.content) as ExclusionZoneSetSnapshot)
+                : null,
+        );
 }
 
 /**
@@ -59,7 +93,15 @@ export async function loadSnapshotFromHub(name: string): Promise<ExclusionZoneSe
  * @returns {Promise<void>}
  */
 export async function deleteFromHub(name: string): Promise<void> {
-    await jaiaAPI.deleteExclusionZone(name);
+    jaia_rest_api.request({
+        target: {
+            all: true,
+        },
+        record_query: {
+            type: RecordQuery_RecordType.EXCLUSION_ZONE,
+            delete_name: name,
+        },
+    });
 }
 
 // ── File export / import ────────────────────────────────────────────────────

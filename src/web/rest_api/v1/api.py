@@ -1,6 +1,11 @@
+import google.protobuf.json_format
 import jaiabot.messages.rest_api_pb2 as rest_api
-from jaiabot.messages.rest_api_pb2 import TaskPacketQuery, APIRequest, APIResponse
+from jaiabot.messages.rest_api_pb2 import TaskPacketQuery, APIRequest, APIResponse, RecordQuery
 import jaiabot.messages.portal_pb2
+from jaiabot.messages.jaia_dccl_pb2 import BotStatus
+from jaiabot.messages.mission_pb2 import MissionPlan
+from jaiabot.messages.hub_pb2 import HubStatus
+from jaiabot.messages.rest_api_pb2 import PodStatus, PortalBotStatus, PortalHubStatus
 
 from pyjaia.kmz import getKMZ
 from pyjaia.csv import task_packets_to_csv
@@ -10,10 +15,37 @@ import common.shared_data
 from common.time import utc_now_microseconds
 from common.api_exception import APIException
 
-
 import logging
+from pathlib import Path
+import io
+import zipfile
+import shutil
+from http import HTTPStatus
+from flask import Response, send_file
+
 
 l = logging.getLogger(__name__)
+
+
+def get_bots_and_hubs(target: APIRequest.Nodes):
+    """Gets lists of the bots and hubs corresponding to a REST Nodes object.
+
+    WARNING:
+        This function is not thread safe and should only be called within a `with common.shared_data.data_lock:` block.
+
+    Args:
+        target (APIRequest.Nodes): The Nodes object containing the target information.
+
+    Returns:
+        tuple: A tuple containing two lists: the first list contains the bots, and the second list contains the hubs.
+    """
+    if target.all:
+        bots = list(common.shared_data.data.bots.values())
+        hubs = list(common.shared_data.data.hubs.values())
+    else:
+        bots = [common.shared_data.data.bots[value] for value in target.bots if value in common.shared_data.data.bots]
+        hubs = [common.shared_data.data.hubs[value] for value in target.hubs if value in common.shared_data.data.hubs]
+    return bots, hubs
 
 
 def process_request(jaia_request: APIRequest) -> APIResponse:
@@ -25,6 +57,12 @@ def process_request(jaia_request: APIRequest) -> APIResponse:
         raise APIException(rest_api.API_ERROR__NOT_IMPLEMENTED, "Action '" + action + "' has not yet been implemented in the REST API")
 
 def send_client_to_portal_message(hub_id, msg):
+    """Send a client-to-portal message.  If no hub_id is specified, it will default to the first one.
+
+    Args:
+        hub_id (int, optional): The ID of the hub to send the message to. Defaults to None, which will use the first available hub.
+        msg (ClientToPortalMessage): The client-to-portal message to be sent.
+    """
     # queue.Queue is threadsafe
     common.shared_data.get_queue(hub_id).put(msg)
 
@@ -89,7 +127,7 @@ def task_packets(jaia_request: APIRequest):
     else:
         bot_ids = jaia_request.target.bots
 
-    start_time = jaia_request.task_packets.start_time if jaia_request.task_packets.HasField('start_time') else None
+    start_time = jaia_request.task_packets.start_time if jaia_request.task_packets.HasField('start_time') else utc_now_microseconds() - 14 * 60 * 60 * 1000000  # 14 hours ago in microseconds
     end_time = jaia_request.task_packets.end_time if jaia_request.task_packets.HasField('end_time') else None
     mission_names = list(jaia_request.task_packets.mission_name) or None
 
@@ -206,3 +244,173 @@ def command_for_hub(jaia_request: APIRequest) -> APIResponse:
 
     return jaia_response
 
+
+def pod_status(jaia_request: APIRequest) -> APIResponse:
+    jaia_response = APIResponse()
+
+    bots: list[BotStatus] = []
+    hubs: list[HubStatus] = []
+
+    with common.shared_data.data_lock:
+        bots, hubs = get_bots_and_hubs(jaia_request.target)
+
+        jaia_response.pod_status.controlling_client_id = common.shared_data.data.controlling_client_id
+
+    jaia_response.target.bots.extend([bot.bot_id for bot in bots])
+
+    for bot in bots:
+        portal_bot_status = PortalBotStatus()
+        portal_bot_status.bot_status.CopyFrom(bot)
+        portal_bot_status.last_status_received_time = bot.received_time
+        portal_bot_status.portalStatusAge = utc_now_microseconds() - bot.received_time
+
+        if bot.bot_id in common.shared_data.data.active_mission_plans:
+            portal_bot_status.active_mission_plan.CopyFrom(common.shared_data.data.active_mission_plans[bot.bot_id])
+
+        if bot.bot_id in common.shared_data.data.bots_engineering:
+            portal_bot_status.engineering.CopyFrom(common.shared_data.data.bots_engineering[bot.bot_id])
+
+        # TODO: portal_bot_status.active_link_status_age
+
+        jaia_response.pod_status.bots.append(portal_bot_status)
+
+    for hub in hubs:
+        portal_hub_status = PortalHubStatus()
+        portal_hub_status.hub_status.CopyFrom(hub)
+        portal_hub_status.last_status_received_time = hub.received_time
+        portal_hub_status.portalStatusAge = utc_now_microseconds() - hub.received_time
+
+        jaia_response.pod_status.hubs.append(portal_hub_status)
+    
+    jaia_response.pod_status.contacts.extend(common.shared_data.data.contacts.values())
+
+    return jaia_response
+
+
+def depth_contours(jaia_request: APIRequest):
+    geojson_contours = task_packets_to_geojson(jaia_request.depth_contours.packets)
+    return geojson_contours, {'Content-Type': 'application/vnd.geo+json'}
+
+
+def take_control(jaia_request: APIRequest) -> APIResponse:
+    jaia_response = APIResponse()
+    with common.shared_data.data_lock:
+        common.shared_data.data.controlling_client_id = jaia_request.take_control
+        jaia_response.controlling_client_id = common.shared_data.data.controlling_client_id
+    return jaia_response
+
+
+def engineering_command(jaia_request: APIRequest) -> APIResponse:
+    jaia_response = APIResponse()
+    with common.shared_data.data_lock:
+        bots, _ = get_bots_and_hubs(jaia_request.target)
+
+        engineering_command = jaia_request.engineering_command
+
+        for bot in bots:
+            engineering_command.bot_id = bot.bot_id
+            engineering_command.time = utc_now_microseconds()
+
+            client_to_portal_msg = jaiabot.messages.portal_pb2.ClientToPortalMessage()
+            client_to_portal_msg.engineering_command.CopyFrom(engineering_command)
+
+            send_client_to_portal_message(hub_id=None, msg=client_to_portal_msg)
+
+    jaia_response.engineering_command_result.command_sent = True
+
+    return jaia_response
+
+
+def task_packet_include(jaia_request: APIRequest) -> APIResponse:
+    jaia_response = APIResponse()
+    with common.shared_data.data_lock:
+        common.shared_data.data.task_packet_database.set_task_packet_included(
+            jaia_request.task_packet_include.task_packet_id,
+            jaia_request.task_packet_include.include
+        )
+        jaia_response.task_packet_include_response.success = True
+    return jaia_response
+
+
+def task_packets_version(_: APIRequest) -> APIResponse:
+    jaia_response = APIResponse()
+    with common.shared_data.data_lock:
+        jaia_response.task_packets_version.version = common.shared_data.data.task_packet_database.task_packets_version
+    return jaia_response
+
+
+def download_ctd_profiles(_: APIRequest) -> Response:
+    """Provides access to CTD files on the Hub
+    """
+    dir = Path("/var/log/jaiabot/bot_offload")
+    downloaded_dir = Path("/var/log/jaiabot/ctd_downloaded")
+    downloaded_dir.mkdir(parents=True, exist_ok=True)
+    files = [
+        path
+        for path in dir.glob("*.unb")
+        if not (downloaded_dir / path.name).exists()
+    ] if dir.exists() else []
+
+    if len(files) == 0:
+        return Response(status=HTTPStatus.NO_CONTENT)
+
+    zip_file = io.BytesIO()
+    with zipfile.ZipFile(zip_file, "w", zipfile.ZIP_DEFLATED) as zf:
+        for path in files:
+            zf.write(path, arcname=path.name)
+    zip_file.seek(0)
+    zip_name = "jaia-ctd.zip"
+
+    # Move zipped files to archive so they are not re-zipped
+    ctd_archive = dir / "ctd_archive"
+    ctd_archive.mkdir(parents=True, exist_ok=True)
+    for ctd_file in files:
+        archived_file = ctd_archive / ctd_file.name
+        try:
+            shutil.move(str(ctd_file), archived_file)
+        except PermissionError:
+            if not archived_file.exists():
+                raise
+            l.warning(
+                f"CTD profile archived but source could not be removed: {ctd_file}"
+            )
+        (downloaded_dir / ctd_file.name).touch()
+    
+    return send_file(
+        zip_file,
+        as_attachment=True,
+        download_name=zip_name,
+        mimetype="application/zip",
+    )
+
+
+
+def record_query(jaia_request: APIRequest) -> APIResponse:
+    jaia_response = APIResponse()
+
+    try:
+        with common.shared_data.data_lock:
+            records_request = jaia_request.record_query
+
+            if records_request.type == RecordQuery.RecordType.EXCLUSION_ZONE:
+                records_handler = common.shared_data.data.exclusion_zones
+            elif records_request.type == RecordQuery.RecordType.MISSION_SET:
+                records_handler = common.shared_data.data.mission_sets
+            else:
+                raise ValueError("Invalid record type")
+
+            if records_request.HasField("list"):
+                jaia_response.record_query_response.names.extend(records_handler.list_zones())
+            if records_request.HasField("get_name"):
+                jaia_response.record_query_response.content = records_handler.get_zone(records_request.get_name)
+            if records_request.HasField("delete_name"):
+                records_handler.delete_zone(records_request.delete_name)
+            if records_request.HasField("save_name"):
+                records_handler.save_zone(records_request.save_name, records_request.save_content)
+
+        return jaia_response
+    except Exception as e:
+        print(f"Error processing records request: {e}")
+        jaia_response.error.code = 1
+        jaia_response.error.details = str(e)
+        return jaia_response
