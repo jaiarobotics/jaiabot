@@ -59,6 +59,25 @@ function exists() {
     return 1
 }
 
+# A lookup that fails says nothing about whether the resource is there, so it must not
+# read as "none found": it sets $1 only when the command succeeded
+function lookup() {
+    # $1: variable to set, $2: what is looked up, ${@:3}: the describe command
+    local -n found=$1
+    local what=$2 err
+    err=$(mktemp)
+    if found=$("${@:3}" 2>"$err"); then
+        rm -f "$err"
+        [ "$found" = "None" ] && found=""
+        return 0
+    fi
+    echo "⚠️  Could not look up ${what}: $(tr '\n' ' ' < "$err")"
+    rm -f "$err"
+    FAILED+=("look up ${what}")
+    found=""
+    return 1
+}
+
 function attempt() {
     # $1: what is being done, ${@:2}: the command
     local what=$1
@@ -85,6 +104,12 @@ if [ "$ASSUME_YES" = "false" ]; then
         echo "❌ Fleet number mismatch. Aborting."
         exit 1
     fi
+fi
+
+if ! identity=$(aws sts get-caller-identity --query Arn --output text 2>&1); then
+    echo "❌ Cannot reach AWS: ${identity##*$'\n'}" >&2
+    echo "   Nothing was deleted. Sign in (e.g. 'aws login') and run this again." >&2
+    exit 1
 fi
 
 if [ -n "$CUSTOMER" ]; then
@@ -115,20 +140,19 @@ TAG_FILTER="Name=tag:jaia_fleet,Values=$FLEET_TAG_VALUE"
 
 echo "Finding resources with jaia_fleet=$FLEET_TAG_VALUE..."
 
-# Get EC2 instance IDs
-INSTANCE_IDS=$(aws ec2 describe-instances --filters "$TAG_FILTER" "Name=instance-state-name,Values=pending,running,stopping,stopped" --query "Reservations[].Instances[].InstanceId" --output text)
-
-if [ -n "$INSTANCE_IDS" ] && [ "$INSTANCE_IDS" != "None" ]; then
+if ! lookup INSTANCE_IDS "instances" aws ec2 describe-instances --filters "$TAG_FILTER" "Name=instance-state-name,Values=pending,running,stopping,stopped" --query "Reservations[].Instances[].InstanceId" --output text; then
+    :
+elif [ -n "$INSTANCE_IDS" ]; then
     echo "Found instances: $INSTANCE_IDS"
 
     # Get and disassociate Elastic IPs
-    ALLOC_IDS=$(aws ec2 describe-addresses --filters "$TAG_FILTER" --query "Addresses[].AllocationId" --output text)
-    if [ -n "$ALLOC_IDS" ] && [ "$ALLOC_IDS" != "None" ]; then
+    if lookup ALLOC_IDS "Elastic IPs" aws ec2 describe-addresses --filters "$TAG_FILTER" --query "Addresses[].AllocationId" --output text \
+            && [ -n "$ALLOC_IDS" ]; then
         echo "Disassociating and releasing Elastic IPs: $ALLOC_IDS"
 
         for ALLOC_ID in $ALLOC_IDS; do
-            ASSOC_ID=$(aws ec2 describe-addresses --allocation-ids "$ALLOC_ID" --query "Addresses[].AssociationId" --output text)
-            if [ -n "$ASSOC_ID" ] && [ "$ASSOC_ID" != "None" ]; then
+            lookup ASSOC_ID "the association of Elastic IP $ALLOC_ID" aws ec2 describe-addresses --allocation-ids "$ALLOC_ID" --query "Addresses[].AssociationId" --output text || continue
+            if [ -n "$ASSOC_ID" ]; then
                 attempt "disassociate Elastic IP $ALLOC_ID" aws ec2 disassociate-address --association-id "$ASSOC_ID"
             fi
             attempt "release Elastic IP $ALLOC_ID" aws ec2 release-address --allocation-id "$ALLOC_ID"
@@ -147,9 +171,8 @@ else
 fi
 
 # Two runs that raced for the same fleet leave a VPC each, so this is a list
-VPC_IDS=$(aws ec2 describe-vpcs --filters "$TAG_FILTER" --query "Vpcs[].VpcId" --output text)
-
-if [ -z "$VPC_IDS" ] || [ "$VPC_IDS" = "None" ]; then
+if lookup VPC_IDS "VPCs" aws ec2 describe-vpcs --filters "$TAG_FILTER" --query "Vpcs[].VpcId" --output text \
+        && [ -z "$VPC_IDS" ]; then
     echo "No VPC found."
 fi
 
@@ -161,7 +184,7 @@ for VPC_ID in $VPC_IDS; do
     echo "Deleting dependent resources in VPC $VPC_ID..."
 
     # Delete Internet Gateways
-    IGW_IDS=$(aws ec2 describe-internet-gateways --filters "Name=attachment.vpc-id,Values=$VPC_ID" --query "InternetGateways[].InternetGatewayId" --output text)
+    lookup IGW_IDS "internet gateways of $VPC_ID" aws ec2 describe-internet-gateways --filters "Name=attachment.vpc-id,Values=$VPC_ID" --query "InternetGateways[].InternetGatewayId" --output text
 
     echo "Found InternetGateways: $IGW_IDS"
     if [ -n "$IGW_IDS" ] && [ "$IGW_IDS" != "None" ]; then
@@ -172,7 +195,7 @@ for VPC_ID in $VPC_IDS; do
     fi
 
     # Delete subnets
-    SUBNET_IDS=$(aws ec2 describe-subnets --filters "Name=vpc-id,Values=$VPC_ID" --query "Subnets[].SubnetId" --output text)
+    lookup SUBNET_IDS "subnets of $VPC_ID" aws ec2 describe-subnets --filters "Name=vpc-id,Values=$VPC_ID" --query "Subnets[].SubnetId" --output text
     echo "Found Subnets: $SUBNET_IDS"
     if [ -n "$SUBNET_IDS" ] && [ "$SUBNET_IDS" != "None" ]; then
         for SUBNET_ID in $SUBNET_IDS; do
@@ -181,7 +204,7 @@ for VPC_ID in $VPC_IDS; do
     fi
 
     # Delete route tables (excluding the main route table)
-    RTB_IDS=$(aws ec2 describe-route-tables --filters "Name=vpc-id,Values=$VPC_ID" --query "RouteTables[?Associations[?Main==false]].RouteTableId" --output text)
+    lookup RTB_IDS "route tables of $VPC_ID" aws ec2 describe-route-tables --filters "Name=vpc-id,Values=$VPC_ID" --query "RouteTables[?Associations[?Main==false]].RouteTableId" --output text
     echo "Found RouteTables: $RTB_IDS"
     if [ -n "$RTB_IDS" ] && [ "$RTB_IDS" != "None" ]; then
         for RTB_ID in $RTB_IDS; do
@@ -190,7 +213,7 @@ for VPC_ID in $VPC_IDS; do
     fi
 
     # Delete security groups (excluding default)
-    SG_IDS=$(aws ec2 describe-security-groups --filters "Name=vpc-id,Values=$VPC_ID" --query "SecurityGroups[?GroupName!='default'].GroupId" --output text)
+    lookup SG_IDS "security groups of $VPC_ID" aws ec2 describe-security-groups --filters "Name=vpc-id,Values=$VPC_ID" --query "SecurityGroups[?GroupName!='default'].GroupId" --output text
     echo "Found SecurityGroups: $SG_IDS"
     if [ -n "$SG_IDS" ] && [ "$SG_IDS" != "None" ]; then
         for SG_ID in $SG_IDS; do
