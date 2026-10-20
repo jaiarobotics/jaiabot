@@ -46,19 +46,33 @@ STUBS = {
           'n=$(grep -c "^nc " "$JAIA_TEST_CALLS")\n'
           '[ "$n" -gt "${JAIA_TEST_NC_FAILURES:-0}" ]\n',
     "sleep": 'exit 0\n',
-    "systemctl": 'echo "systemctl $*" >> "$JAIA_TEST_CALLS"\n'
+    # Status and timestamp queries are answered without being recorded, so "nothing
+    # was done" stays an empty call log
+    "systemctl": 'case "$1" in\n'
+                 '    is-active) exit ${JAIA_TEST_ACTIVE:-0} ;;\n'
+                 '    show) echo "${JAIA_TEST_STARTED:-}"; exit 0 ;;\n'
+                 'esac\n'
+                 'echo "systemctl $*" >> "$JAIA_TEST_CALLS"\n'
                  'case "$1" in is-enabled) exit ${JAIA_TEST_ENABLED:-0} ;; esac\n',
     "wg": """
 case "$1" in
     genkey) echo "%(priv)s" ;;
     pubkey) cat > /dev/null; echo "%(pub)s" ;;
+    show) echo "%(server)s	${JAIA_TEST_HANDSHAKE:-$(date +%%s)}" ;;
 esac
-""" % {"priv": NODE_PRIVKEY, "pub": NODE_PUBKEY},
+""" % {"priv": NODE_PRIVKEY, "pub": NODE_PUBKEY, "server": SERVER_PUBKEY},
     "ssh": """
 echo "ssh $*" >> "$JAIA_TEST_CALLS"
 cat "$JAIA_TEST_ANSWER"
+[ -n "${JAIA_TEST_SSH_STDERR:-}" ] && echo "$JAIA_TEST_SSH_STDERR" >&2
 exit ${JAIA_TEST_SSH_STATUS:-0}
 """,
+    "ssh-keygen": 'echo "ssh-keygen $*" >> "$JAIA_TEST_CALLS"\n',
+    # Writes the bootstrap key the way 'jaia admin fleet generate --action vpn_key' does
+    "jaia": 'echo "jaia $*" >> "$JAIA_TEST_CALLS"\n'
+            '[ -n "${JAIA_TEST_NO_STORED_KEY:-}" ] && exit 1\n'
+            'while [ $# -gt 0 ]; do [ "$1" = --bootdir ] && dir=$2; shift; done\n'
+            'echo "restored bootstrap key" > "$dir/jaiabot/init/id_vpn_tmp"\n',
 }
 
 
@@ -96,6 +110,12 @@ class NodeEnrollTest(unittest.TestCase):
                 f.write("#!/bin/sh\n" + body)
             os.chmod(path, 0o755)
 
+        self.fleet_cfg_dir = os.path.join(self.dir, "etc")
+        os.makedirs(self.fleet_cfg_dir)
+        self.stored_cfg = os.path.join(self.fleet_cfg_dir, "fleet7.cfg")
+        with open(self.stored_cfg, "w") as f:
+            f.write("version: 2\nfleet: 7\n")
+
         self.env = dict(
             os.environ,
             PATH=fake_bin + os.pathsep + os.environ["PATH"],
@@ -104,6 +124,7 @@ class NodeEnrollTest(unittest.TestCase):
             JAIA_WG_DIR=self.wg_dir,
             JAIA_DEBCONF_SH=debconf,
             JAIA_CLOUDHUB_HOST_FILE=os.path.join(self.dir, "cloudhub_host"),
+            JAIA_FLEET_CFG_DIR=self.fleet_cfg_dir,
             JAIA_TEST_CALLS=self.calls,
             JAIA_TEST_ANSWER=self.answer,
         )
@@ -338,6 +359,117 @@ class NodeEnrollTest(unittest.TestCase):
         hold up first boot for as long as TCP is willing to wait."""
         self.run_script()
         self.assertIn("ConnectTimeout=", self.recorded())
+
+    def test_a_changed_host_key_is_reported_as_such(self):
+        """Not "is fleet pairing open": the operator would open it and see the same."""
+        self.env["JAIA_TEST_SSH_STATUS"] = "255"
+        self.env["JAIA_TEST_SSH_STDERR"] = "Host key verification failed."
+        self.write_answer("")
+        result = self.run_script()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("SSH host key is not the one this node recorded", result.stderr)
+        self.assertNotIn("is fleet pairing open", result.stderr)
+        self.assertIn("ssh: Host key verification failed.", result.stderr)
+
+    def test_a_first_pairing_keeps_the_host_key_it_already_trusts(self):
+        self.assertEqual(self.run_script().returncode, 0)
+        self.assertNotIn("ssh-keygen", self.recorded())
+
+    ## A CloudHub replaced under the same name
+
+    def paired_then_replaced(self, **env):
+        """Paired once, the key spent, and the CloudHub then rebuilt: the tunnel stops
+        handshaking while the name still answers on 443."""
+        self.assertEqual(self.run_script().returncode, 0)
+        open(self.calls, "w").close()
+        self.env.update(env)
+        return self.run_again()
+
+    def stale(self):
+        return {"JAIA_TEST_HANDSHAKE": "1000000000"}
+
+    def test_a_tunnel_that_stopped_handshaking_pairs_again(self):
+        result = self.paired_then_replaced(**self.stale())
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("pairing again", result.stdout)
+        self.assertIn("Paired with fleet7.jaia.tech", result.stdout)
+        self.assertIn("jaia@fleet7.jaia.tech bot 3 " + NODE_PUBKEY, self.recorded())
+
+    def test_pairing_again_takes_the_key_from_the_nodes_own_fleet_config(self):
+        self.paired_then_replaced(**self.stale())
+        self.assertIn("jaia admin fleet generate {} bot 3 --action vpn_key".format(self.stored_cfg),
+                      self.recorded())
+        self.assertFalse(os.path.exists(self.moved_key), "the restored key was not spent")
+
+    def test_pairing_again_accepts_the_replacement_host_key(self):
+        self.paired_then_replaced(**self.stale())
+        calls = self.recorded()
+        self.assertIn("ssh-keygen -R fleet7.jaia.tech", calls)
+        self.assertLess(calls.index("ssh-keygen -R"), calls.index("ssh -o"))
+
+    def test_pairing_again_keeps_the_nodes_wireguard_identity(self):
+        for name, value in (("privatekey", "a" * 43 + "="), ("publickey", "b" * 43 + "=")):
+            with open(os.path.join(self.wg_dir, name), "w") as f:
+                f.write(value + "\n")
+        self.paired_then_replaced(**self.stale())
+        self.assertIn("bot 3 " + "b" * 43 + "=", self.recorded())
+        self.assertIn("PrivateKey = " + "a" * 43 + "=", self.installed_config())
+
+    def test_a_live_tunnel_is_not_paired_again(self):
+        result = self.paired_then_replaced()
+        self.assertIn("Already paired", result.stdout)
+        self.assertEqual("", self.recorded())
+
+    def test_a_stopped_tunnel_is_not_taken_for_a_replaced_cloudhub(self):
+        result = self.paired_then_replaced(JAIA_TEST_ACTIVE="3", **self.stale())
+        self.assertIn("Already paired", result.stdout)
+        self.assertEqual("", self.recorded())
+
+    def test_a_tunnel_that_has_not_handshaken_yet_is_given_time(self):
+        result = self.paired_then_replaced(JAIA_TEST_HANDSHAKE="0",
+                                           JAIA_TEST_STARTED=subprocess.check_output(
+                                               ["date"], text=True).strip())
+        self.assertIn("Already paired", result.stdout)
+
+    def test_a_tunnel_that_never_handshook_since_long_ago_pairs_again(self):
+        result = self.paired_then_replaced(JAIA_TEST_HANDSHAKE="0",
+                                           JAIA_TEST_STARTED="Mon 2026-01-05 00:00:00 UTC")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("pairing again", result.stdout)
+
+    def test_an_unreachable_cloudhub_is_not_mistaken_for_a_replaced_one(self):
+        self.assertEqual(self.run_script().returncode, 0)
+        open(self.calls, "w").close()
+        self.env.update(self.stale(), JAIA_TEST_NC_FAILURES="1000", JAIA_PAIRING_WAIT_SECONDS="0")
+        result = self.run_again()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("Could not reach fleet7.jaia.tech", result.stderr)
+        self.assertNotIn("jaia admin", self.recorded())
+        self.assertFalse(os.path.exists(self.moved_key))
+
+    def test_without_a_stored_fleet_config_it_says_how_to_pair_again(self):
+        os.remove(self.stored_cfg)
+        result = self.paired_then_replaced(**self.stale())
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("no {} to take the fleet's bootstrap key from".format(self.stored_cfg), result.stderr)
+        self.assertNotIn("ssh ", self.recorded())
+
+    def test_a_key_that_cannot_be_taken_from_the_config_stops_the_attempt(self):
+        result = self.paired_then_replaced(JAIA_TEST_NO_STORED_KEY="1", **self.stale())
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("could not take the bootstrap key", result.stderr)
+        self.assertNotIn("ssh ", self.recorded())
+
+    def test_a_refused_repairing_leaves_the_restored_key_for_another_try(self):
+        """As on first boot: refused because pairing was closed, so run it again once open"""
+        self.assertEqual(self.run_script().returncode, 0)
+        open(self.calls, "w").close()
+        self.env.update(self.stale(), JAIA_TEST_SSH_STATUS="255")
+        self.write_answer("")
+        self.assertNotEqual(self.run_again().returncode, 0)
+        self.assertTrue(os.path.exists(self.moved_key))
+        with open(self.moved_key) as f:
+            self.assertIn("restored", f.read())
 
 
 if __name__ == "__main__":
