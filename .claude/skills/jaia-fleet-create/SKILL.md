@@ -6,8 +6,8 @@ description: Build a new 3.y JaiaBot fleet with a CloudHub — fleet config, `ja
 # Build a new fleet with a CloudHub
 
 Follow `references/checklist.md` step by step with a Jaia technician. It is the whole
-procedure and stands on its own; this file says what you do, what they do, and how you
-check. Say at each step which it is.
+procedure, in `jaia` commands and browser steps, and stands on its own; this file says
+what you do, what they do, and how you check each step. Say at each step which it is.
 
 **The fleet config is what joins the parts.** Ask for its path; read where the fleet
 stands from it and from the fleet itself, never from memory of an earlier session; ask
@@ -35,29 +35,35 @@ which part is wanted; run that part's preflight.
 - **Keep the record**: `fleet<N>-record.md` next to the config, from
   `references/record-template.md`, after every step, with the evidence.
 
-## Checks
+## Checks, by checklist step
 
-```
-scripts/preflight.sh --part A --fleet <N> --region <region> --repo <repo> [--base-uri <name>] [--config fleetN.cfg]
-scripts/preflight.sh --part B --config fleetN.cfg
-scripts/preflight.sh --part C --config fleetN.cfg
-scripts/check_dns.sh <base uri> <CloudHub IPv4> [--wait <s>]
-scripts/check_cloudhub.sh <base uri> [--ip <IPv4>] [--ssh]     # --ssh only while pairing is open
-scripts/check_node.sh <address> [--paired]
-scripts/pi_image.sh <repo> [--download <dir>]
-```
+FAIL stops the part; explain every WARN. When something fails, look in
+`references/troubleshooting.md` before trying anything else.
 
-FAIL stops the part; explain every WARN. Run `preflight.sh --part A … --config` after
-`fleet create` (A2) and before `cloudhub create` (A3). Preflight warns when the AMI and
-the `jaia` tool are different releases: resolve that first. When something fails, look
-in `references/troubleshooting.md` before trying anything else.
-
-## Notes on the steps
-
-- **A2**: walk the technician through the answers in the checklist before they start.
+- **A1**: `scripts/preflight.sh --part A --fleet <N> --region <r> --repo <repo> --base-uri <name>`
+  (AWS as the technician, the AMI, no VPC for the fleet, SSH agent, Yubikey, DNS not
+  yet taken). A WARN that the AMI and the `jaia` tool are different releases must be
+  resolved first.
+- **A2**: walk the technician through the answers first. Then
+  `scripts/preflight.sh --part A … --config fleetN.cfg`: refuses a simulation, a config
+  without a CloudHub, another fleet or base URI, or one already through `cloudhub create`.
 - **A3**: run it from the checkout (it needs `rootfs/cloud/aws`); keep `--output-json`.
   Copy the DNS records, SMTP note and account steps it prints into the record.
-- **A4**: give the technician the records exactly as printed; `check_dns.sh … --wait`
-  while they enter them.
-- **B**: confirm the device with the technician before anything writes to a card.
-- **C3**: `check_node.sh --paired` on every node, then the JCC check.
+- **A4**: give the records exactly as printed; `scripts/check_dns.sh <base uri> <IPv4> --wait 1800`
+  (the zone's own name servers and public resolvers) while they enter them.
+- **A5**: `scripts/check_cloudhub.sh <base uri> --ip <IPv4>` until every site passes
+  (`--ip` ignores this workstation's resolver); it also reports port 22 closed.
+- **A8**: on a "Connection to Hub Dropped" banner, `scripts/check_cloudhub.sh … --ssh`
+  during a pairing window (C1).
+- **B1**: `scripts/pi_image.sh <repo> [--download <dir>]` finds the image; by hand,
+  `gunzip -c <image> | sudo dd of=/dev/<card> bs=4M status=progress`. Confirm the device
+  with the technician before anything writes to it.
+- **B**: `scripts/preflight.sh --part B --config fleetN.cfg` (warns without the CloudHub
+  key); `scripts/check_node.sh <address>` once a node is up (`jaia_ip h<id>f<N>` /
+  `b<id>f<N>` on the fleet Wi-Fi): id, release, units, radios; waits up to two minutes
+  for a hub's first health report.
+- **C**: `scripts/preflight.sh --part C --config fleetN.cfg`; **C1**
+  `scripts/check_cloudhub.sh <base uri> --ssh` (services, release, REST API); **C3**
+  `scripts/check_node.sh <address> --paired` on every node (tunnel, handshake, UDP
+  32000), then the JCC check; **C4** `scripts/check_cloudhub.sh <base uri>` shows
+  port 22 closed.
