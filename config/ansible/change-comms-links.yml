@@ -28,7 +28,7 @@
         vtype: "multiselect"
 
     - name: Reconfigure package
-      command: dpkg-reconfigure -f noninteractive jaiabot-embedded
+      command: /usr/bin/jaia-debconf.sh reconfigure
 
     - name: Restart JaiaBot services
       command: systemctl restart jaiabot
