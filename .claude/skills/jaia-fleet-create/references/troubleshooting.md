@@ -63,6 +63,25 @@ step 7).
 **Password-reset email doesn't arrive** — the SMTP credentials parameter is missing or
 wrong in the region (`preflight.sh` warns), or the provider hasn't verified the sender.
 
+**The reset link says "the verification token might have expired", and setting a
+password then fails** — the recipient's mailbox is Microsoft 365 with Defender Safe
+Links, which opens the link in a sandbox before the user does; Authelia's reset page
+spends the single-use token as soon as it loads (Authelia v4.39.28; upstream won't
+change it: authelia/authelia#2994, #3801). Confirm with `sudo journalctl -u authelia`:
+`"the token has already been consumed"` on `/api/reset-password/identity/finish` from
+an IP that isn't the user's (whois: Microsoft, e.g. 51.54.38.126) a few seconds after
+the email, then `"no identity verification process has been initiated"` from the user.
+When the scanner got there first nothing else is logged, so the user's error may be the
+only sign. Fix, by the customer's Microsoft 365 admin: add `*.jaia.tech/*` (or the
+customer's domain) to the Safe Links policy's "Do not rewrite the following URLs" — it
+must match the host in the link, `auth.<base uri>`; `auth.jaia.tech/*` does not, and a
+Tenant Allow/Block List URL entry alone may not either. Then request a new reset
+email (older ones were already scanned) and check no Microsoft-IP `/identity/finish`
+precedes the user's. Not yet confirmed on a fleet. A bootstrap address outside Microsoft
+365 avoids it for the commissioning account. Planned Jaia-side fix: a custom email
+template that sends the link through a Caddy-served "Continue" page with the token
+after `#`, where a scanner cannot spend it.
+
 ## Nodes
 
 **A hub serves JCC but shows nothing; its JCC has no hub** — every app on it is held
