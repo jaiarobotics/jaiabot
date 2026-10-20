@@ -269,7 +269,7 @@ cat <<EOF > /etc/authelia/configuration.yml
 server:
   address: 'tcp://:$authelia_port'
   asset_path: '$authelia_asset_dir'
-default_2fa_method: 'webauthn'
+default_2fa_method: 'totp'
 webauthn:
   disable: false
   enable_passkey_login: false
