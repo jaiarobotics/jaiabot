@@ -14,8 +14,11 @@ source includes/import_utils.sh
 
 if [ ! $# -eq 4 ]; then
    echo "Usage ./import_vms.sh vm.ova n_bots|bots_comma_separated_list n_hubs|hubs_comma_separated_list fleet_id"
+   echo "Set JAIA_SIM_WARP to change the simulation warp (default 10)"
    exit 1;
 fi
+
+SIM_WARP="${JAIA_SIM_WARP:-10}"
 
 # prompt for sudo up front
 sudo bash -c "exit"
@@ -204,7 +207,7 @@ service_vpn_enabled: false
 fleet_type: FLEET_TYPE_SIMULATION
 
 settings {
-  warp: 10
+  warp: ${SIM_WARP}
   user_role: USER_ROLE_DEVELOPER
   comms_links: COMMS_LINK_WIFI
 }
