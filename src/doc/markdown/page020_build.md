@@ -113,6 +113,8 @@ jaia dev build --configure_verbose --build_verbose
 
 `JAIA_BUILD_VERBOSE` is read when each build step runs, so it also works when running `ninja` or `cmake --build` directly in the build directory.
 
+When running `ninja` directly, rerun `cmake .` (or `build.sh`) after adding a source file to the STM32 firmware or to the Python packages the dev venv installs, since those file lists are only gathered at configure time.
+
 ### Using `jaia dev`
 
 *This section written by Claude*
