@@ -481,6 +481,8 @@ echo ">>>>>> Tagged resources"
 
 # No connection sharing: a ControlPersist master would hold the $(ssh ...) pipe open, and the server reboots mid-setup
 SSH_OPTS=(-o ConnectTimeout=10 -o PasswordAuthentication=No -o StrictHostKeyChecking=no -o ControlMaster=no -o ControlPath=none -o ServerAliveInterval=10 -o ServerAliveCountMax=3)
+# Every login costs a touch of a hardware (-sk) key, so waits run on the CloudHub within one login
+REMOTE_WAIT_POLLS=60
 
 # Wait to get public key
 echo ">>>>>> Waiting for server to startup and first-boot configure to get Wireguard public key";
@@ -494,16 +496,17 @@ done
 
 echo ">>>>>> Server Wireguard Pubkey: ${SERVER_WIREGUARD_PUBKEY}"
 
+CLOUDHUB_SSH_PUBKEY=${TMPDIR}/hub${CLOUDHUB_ID}_fleet${FLEET_ID}.pub
 deadline=$((SECONDS + WAIT_TIMEOUT_SECONDS))
-while ! ssh "${SSH_OPTS[@]}" jaia@${PUBLIC_IPV4_ADDRESS} "mount | grep -q overlayroot"; do
+while ! ssh "${SSH_OPTS[@]}" jaia@${PUBLIC_IPV4_ADDRESS} \
+        "for _ in \$(seq ${REMOTE_WAIT_POLLS}); do mount | grep -q overlayroot && exec cat /home/jaia/.ssh/hub${CLOUDHUB_ID}_fleet${FLEET_ID}.pub; sleep 5; done; exit 1" \
+        > ${CLOUDHUB_SSH_PUBKEY}; do
     echo ">>>>>> Nearly there... please keep waiting (Connection refused and Permission denied are *expected* for a while...)";
     abort_if_timed_out $deadline "the CloudHub to reboot onto its overlay root"
     exit_if_interrupted
     sleep 5
 done
 
-CLOUDHUB_SSH_PUBKEY=${TMPDIR}/hub${CLOUDHUB_ID}_fleet${FLEET_ID}.pub
-ssh "${SSH_OPTS[@]}" jaia@${PUBLIC_IPV4_ADDRESS} "cat /home/jaia/.ssh/hub${CLOUDHUB_ID}_fleet${FLEET_ID}.pub" > ${CLOUDHUB_SSH_PUBKEY}
 jaia admin fleet cloudhub set_key ${FLEET_CONFIG} ${CLOUDHUB_SSH_PUBKEY}
 echo ">>>>>> Recorded the CloudHub's SSH public key in ${FLEET_CONFIG}"
 
@@ -512,16 +515,24 @@ echo ">>>>>> Recorded the CloudHub's SSH public key in ${FLEET_CONFIG}"
 # their own AWS console, so it is the one that can still let somebody in when this
 # CloudHub's Authelia will not start and the support page is therefore down. A ufw
 # rule in front of it could only be lifted from the box it is locking.
-ssh "${SSH_OPTS[@]}" jaia@${PUBLIC_IPV4_ADDRESS} "sudo ufw allow in on eth0 to any port 22 proto tcp; sudo ufw allow in on eth0 proto udp to any port 51820; sudo ufw allow in on eth0 proto udp to any port 51821; sudo ufw allow in on wg_cloudhub; sudo ufw --force enable"
-echo ">>>>>> Updated CloudHub ufw firewall rules to exclude connecting on VirtualFleet VPN"
-
+#
 # Hand-over: from here the CloudHub's own reconcile timer is the only writer of the
 # open-to-everyone port 22 rule this run made, and with fleet pairing closed - as a
 # new CloudHub starts - its first act is to remove it. Revoking it here instead would
 # race that timer, which has been running since boot, and leave two writers of one
 # rule. Last, because the reconcile closes the door this run came in by.
-ssh "${SSH_OPTS[@]}" jaia@${PUBLIC_IPV4_ADDRESS} "sudo mkdir -p -m 0700 /var/log/jaiabot/auth/support && sudo touch /var/log/jaiabot/auth/support/handed-over && sudo jaia-support-access.py reconcile" \
-    || echo ">>>>>> WARNING: could not reconcile port 22 at hand-over; the CloudHub's timer will within five minutes"
+HANDOVER_FAILED=10
+handover_status=0
+ssh "${SSH_OPTS[@]}" jaia@${PUBLIC_IPV4_ADDRESS} "sudo ufw allow in on eth0 to any port 22 proto tcp; sudo ufw allow in on eth0 proto udp to any port 51820; sudo ufw allow in on eth0 proto udp to any port 51821; sudo ufw allow in on wg_cloudhub; sudo ufw --force enable || exit; sudo mkdir -p -m 0700 /var/log/jaiabot/auth/support && sudo touch /var/log/jaiabot/auth/support/handed-over && sudo jaia-support-access.py reconcile || exit ${HANDOVER_FAILED}" \
+    || handover_status=$?
+if (( handover_status != 0 && handover_status != HANDOVER_FAILED )); then
+    echo ">>>>>> Could not update the CloudHub's ufw firewall rules" >&2
+    exit $handover_status
+fi
+echo ">>>>>> Updated CloudHub ufw firewall rules to exclude connecting on VirtualFleet VPN"
+if (( handover_status == HANDOVER_FAILED )); then
+    echo ">>>>>> WARNING: could not reconcile port 22 at hand-over; the CloudHub's timer will within five minutes"
+fi
 echo ">>>>>> Handed port 22 to the CloudHub: closed until fleet pairing is opened from the JCU"
 
 exit_if_interrupted

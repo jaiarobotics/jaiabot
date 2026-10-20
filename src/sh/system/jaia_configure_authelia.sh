@@ -557,14 +557,57 @@ sim.$base_uri {
 
 EOF
 
+caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+
+# Caddy runs only once its names resolve here (see jaia-caddy-dns-ready.sh), and the
+# timer starts it when they do
+caddy_names=("$base_uri" "auth.$base_uri" "users.$base_uri" "support.$base_uri" "run.$base_uri" "sim.$base_uri")
+caddy_wait_for_dns=/etc/systemd/system/caddy.service.d/jaia-wait-for-dns.conf
+if $throwaway_deployment; then
+    rm -f "$caddy_wait_for_dns"
+    systemctl disable --now jaia-caddy-start.timer 2>/dev/null || true
+else
+    mkdir -p "$(dirname "$caddy_wait_for_dns")"
+    cat <<EOF > "$caddy_wait_for_dns"
+[Service]
+ExecCondition=+/usr/bin/jaia-caddy-dns-ready.sh ${caddy_names[*]}
+EOF
+    cat <<EOF > /etc/systemd/system/jaia-caddy-start.service
+[Unit]
+Description=Start Caddy if its names resolve to this CloudHub
+
+[Service]
+Type=oneshot
+ExecStart=/bin/systemctl start caddy.service
+ExecStartPost=/bin/sh -c 'if systemctl is-active --quiet caddy.service; then systemctl stop --no-block jaia-caddy-start.timer; fi'
+EOF
+    cat <<EOF > /etc/systemd/system/jaia-caddy-start.timer
+[Unit]
+Description=Start Caddy once its names resolve to this CloudHub
+
+[Timer]
+OnActiveSec=30s
+OnUnitInactiveSec=30s
+AccuracySec=5s
+
+[Install]
+WantedBy=timers.target
+EOF
+    systemctl enable jaia-caddy-start.timer
+fi
+systemctl daemon-reload
+
 # Caddy starts with its stock Caddyfile when installed, so reload to apply ours
 # (graceful if running). The running process cannot reload into a new binary,
-# and a stock binary rejects 'replace', so restart when the binary changed.
-caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
-if $caddy_binary_changed; then
+# and a stock binary rejects 'replace', so restart when the binary changed. A
+# restart while the names do not resolve leaves it stopped, for the timer.
+if $caddy_binary_changed || { ! $throwaway_deployment && ! /usr/bin/jaia-caddy-dns-ready.sh "${caddy_names[@]}"; }; then
     systemctl restart caddy
 else
     systemctl reload-or-restart caddy
+fi
+if ! $throwaway_deployment && ! systemctl is-active --quiet caddy; then
+    systemctl start jaia-caddy-start.timer
 fi
 
 ###########
