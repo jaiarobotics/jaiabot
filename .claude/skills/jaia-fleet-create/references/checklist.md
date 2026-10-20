@@ -63,7 +63,7 @@ config has the key — so keep one hub's card for after A, or regenerate it then
 Per bot and hub:
 
 1. **Image**: the current Raspberry Pi image for the CloudHub's repo, written with
-   Raspberry Pi Imager. Check the device before writing.
+   balenaEtcher or the SD card cloner. Check the device before writing.
 2. **Boot files**, with the card's boot partition mounted:
    `jaia admin fleet generate fleetN.cfg <hub|bot> <id>` (`--bootdir` if not found).
 3. **Power on.** With pairing closed the node is refused and keeps its bootstrap key:
