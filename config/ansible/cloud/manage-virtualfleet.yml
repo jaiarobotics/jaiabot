@@ -7,7 +7,7 @@
     - include_tasks: tasks/read-env.yml
     
     - include_tasks: tasks/instance-state.yml
-      vars: 
-        - do_wait: false
+      vars:
+        do_wait: false
 
     - include_tasks: tasks/check-state.yml
