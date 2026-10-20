@@ -603,6 +603,9 @@ jobs:
               | tar xf - -C /tmp/sea-trial-sim/sim --strip-components=1 || true
             docker exec jaia-sim bash -c 'tar cf - ~/jaia-logs 2>/dev/null' \
               | tar xf - -C /tmp/sea-trial-sim/sim || true
+            # the Goby apps' own logs, which name a failing link or driver
+            docker exec jaia-sim bash -c 'tar cf - /var/log/jaiabot/hub /var/log/jaiabot/bot 2>/dev/null' \
+              | tar xf - -C /tmp/sea-trial-sim/sim || true
             # a bot killed for memory leaves no message of its own
             docker inspect jaia-sim \
               --format 'OOMKilled={{.State.OOMKilled}} ExitCode={{.State.ExitCode}}' || true
