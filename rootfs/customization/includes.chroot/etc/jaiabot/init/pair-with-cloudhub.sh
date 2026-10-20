@@ -9,6 +9,9 @@ WG_DIR="${JAIA_WG_DIR:-/etc/wireguard}"
 DEBCONF_SH="${JAIA_DEBCONF_SH:-/usr/bin/jaia-debconf.sh}"
 HOST_FILE="${JAIA_CLOUDHUB_HOST_FILE:-/etc/jaiabot/cloudhub_host}"
 PORTAL_UNIT="${JAIA_PORTAL_UNIT:-jaiabot_goby_intervehicle_portal}"
+FLEET_CFG_DIR="${JAIA_FLEET_CFG_DIR:-/etc/jaiabot}"
+# PersistentKeepalive keeps a live tunnel handshaking every two minutes or so
+STALE_SECONDS="${JAIA_TUNNEL_STALE_SECONDS:-300}"
 
 # First boot names the CloudHub, or passes an empty name for a node that should not
 # enroll. The name is kept so that running this again with no argument - as "Pair
@@ -42,28 +45,76 @@ id=$(jaia_debconf_node_id)
 WG_PROFILE=wg_jaia_ch${fleet}
 WG_CONF=${WG_DIR}/${WG_PROFILE}.conf
 
+# Whether the CloudHub can be reached the way pairing reaches it, over TCP, rather than
+# by a ping some networks block. Its HTTPS port answers whether or not pairing is open.
+wait_for_cloudhub()
+{
+    local wait_seconds="${JAIA_PAIRING_WAIT_SECONDS:-120}"
+    local deadline=$((SECONDS + wait_seconds))
+    until nc -z -w 5 "${CLOUDHUB_HOST}" 443 >/dev/null 2>&1; do
+        if (( SECONDS >= deadline )); then
+            echo "Could not reach ${CLOUDHUB_HOST} (TCP port 443) within ${wait_seconds} seconds, not pairing" >&2
+            exit 1
+        fi
+        sleep 2
+    done
+}
+
+# A tunnel someone stopped, or that does not start at boot, says nothing about the
+# CloudHub, so only a running one that has stopped handshaking counts as stale
+tunnel_is_stale()
+{
+    systemctl is-active --quiet wg-quick@${WG_PROFILE} || return 1
+    local now handshake started
+    now=$(date +%s)
+    handshake=$(sudo wg show ${WG_PROFILE} latest-handshakes 2>/dev/null | awk '{print $2; exit}')
+    if [ -n "${handshake}" ] && [ "${handshake}" != 0 ]; then
+        (( now - handshake > STALE_SECONDS ))
+        return
+    fi
+    started=$(systemctl show -p ActiveEnterTimestamp --value wg-quick@${WG_PROFILE} 2>/dev/null || true)
+    [ -n "${started}" ] && started=$(date -d "${started}" +%s 2>/dev/null) || return 1
+    (( now - started > STALE_SECONDS ))
+}
+
+REPAIRING=false
 if [ ! -e "${BOOT_KEY}" ] && [ ! -e "${PRIVATE_KEY}" ]; then
+    if [ ! -e "${WG_CONF}" ]; then
+        echo "Not paired, and no bootstrap key (id_vpn_tmp) to pair with"
+        exit 0
+    fi
     # Paired already, and the key that did it spent: nothing to do, which is what
     # makes this safe to run on every node in a fleet
-    if [ -e "${WG_CONF}" ]; then
+    if ! tunnel_is_stale; then
         echo "Already paired with ${CLOUDHUB_HOST}"
         exit 0
     fi
-    echo "Not paired, and no bootstrap key (id_vpn_tmp) to pair with"
-    exit 0
-fi
-
-# Whether the CloudHub can be reached the way pairing reaches it, over TCP, rather than
-# by a ping some networks block. Its HTTPS port answers whether or not pairing is open.
-WAIT_SECONDS="${JAIA_PAIRING_WAIT_SECONDS:-120}"
-deadline=$((SECONDS + WAIT_SECONDS))
-until nc -z -w 5 "${CLOUDHUB_HOST}" 443 >/dev/null 2>&1; do
-    if (( SECONDS >= deadline )); then
-        echo "Could not reach ${CLOUDHUB_HOST} (TCP port 443) within ${WAIT_SECONDS} seconds, not pairing" >&2
+    # Reachable but no longer answering the tunnel: the CloudHub was replaced (a rebuild,
+    # say), so pair again with the bootstrap key from this node's own fleet config
+    wait_for_cloudhub
+    echo "The tunnel to ${CLOUDHUB_HOST} has not handshaken in over ${STALE_SECONDS} seconds; pairing again"
+    stored_cfg=${FLEET_CFG_DIR}/fleet${fleet}.cfg
+    if [ ! -r "${stored_cfg}" ]; then
+        echo "Cannot pair ${type} ${id} again: no ${stored_cfg} to take the fleet's bootstrap key from." \
+             "Put id_vpn_tmp ('jaia admin fleet generate … --action vpn_key') in ${BOOT_DIR}/jaiabot/init and run this again" >&2
         exit 1
     fi
-    sleep 2
-done
+    keydir=$(mktemp -d)
+    trap 'rm -rf ${keydir}' EXIT
+    mkdir -p ${keydir}/jaiabot/init
+    if ! jaia admin fleet generate "${stored_cfg}" ${type} ${id} --action vpn_key --bootdir ${keydir} >/dev/null 2>&1 \
+        || [ ! -s ${keydir}/jaiabot/init/id_vpn_tmp ]; then
+        echo "Cannot pair ${type} ${id} again: could not take the bootstrap key from ${stored_cfg}" >&2
+        exit 1
+    fi
+    install -m 600 ${keydir}/jaiabot/init/id_vpn_tmp ${PRIVATE_KEY}
+    sudo chown jaia:jaia ${PRIVATE_KEY}
+    rm -rf ${keydir}
+    trap - EXIT
+    REPAIRING=true
+else
+    wait_for_cloudhub
+fi
 
 if [ -e "${BOOT_KEY}" ]; then
     sudo mount -o remount,rw ${BOOT_DIR}
@@ -80,13 +131,28 @@ if [ ! -e ${WG_DIR}/privatekey ] || [ ! -e ${WG_DIR}/publickey ]; then
     sudo bash -c "umask 077; wg genkey | tee ${WG_DIR}/privatekey | wg pubkey > ${WG_DIR}/publickey"
 fi
 
+# A CloudHub that was replaced comes back under the same name with a new host key,
+# and pairing again is the deliberate step that accepts it
+if [ -e "${WG_CONF}" ] || ${REPAIRING}; then
+    ssh-keygen -R "${CLOUDHUB_HOST}" >/dev/null 2>&1 || true
+fi
+
 # The CloudHub is told the public half only, and answers with a config whose
 # PrivateKey is a placeholder, so this node's key never leaves it. Bounded, because
 # a CloudHub not open for pairing drops the connection rather than refusing it.
+SSH_ERR=$(mktemp)
+trap 'rm -f ${CONF} ${SSH_ERR}' EXIT
 if ! ssh -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15 -i ${PRIVATE_KEY} \
-    jaia@${CLOUDHUB_HOST} "$type $id $(sudo cat ${WG_DIR}/publickey)" > ${CONF}; then
-    # The CloudHub answered on 443 just now, so this is pairing, not the network
-    echo "${CLOUDHUB_HOST} did not accept ${type} ${id} for pairing: is fleet pairing open on its JCU?" >&2
+    jaia@${CLOUDHUB_HOST} "$type $id $(sudo cat ${WG_DIR}/publickey)" > ${CONF} 2> ${SSH_ERR}; then
+    if grep -qiE "host key verification failed|remote host identification has changed" ${SSH_ERR}; then
+        echo "${CLOUDHUB_HOST}'s SSH host key is not the one this node recorded for it, so ${type} ${id}" \
+             "was not paired. If the CloudHub was replaced, remove the old key" \
+             "(ssh-keygen -R ${CLOUDHUB_HOST}) and pair again" >&2
+    else
+        # The CloudHub answered on 443 just now, so this is pairing, not the network
+        echo "${CLOUDHUB_HOST} did not accept ${type} ${id} for pairing: is fleet pairing open on its JCU?" >&2
+    fi
+    sed 's/^/  ssh: /' ${SSH_ERR} >&2
     exit 1
 fi
 
