@@ -25,7 +25,7 @@ function(stm32_sketch sketchname nickname device interface programmer baudrate)
   file(CREATE_LINK ${project_INC_DIR}/nanopb ${STM32_SOURCE_DIR}/nanopb SYMBOLIC)
   file(CREATE_LINK ${project_INC_DIR}/jaiabot ${STM32_SOURCE_DIR}/jaiabot SYMBOLIC)
 
-  file(GLOB_RECURSE firmware_sources CONFIGURE_DEPENDS
+  file(GLOB_RECURSE firmware_sources
     ${STM32_SOURCE_DIR}/Core/*
     ${STM32_SOURCE_DIR}/*.s
     ${STM32_SOURCE_DIR}/*.ld)
