@@ -191,6 +191,17 @@ The figure below diagrams the flow for messages between the bots and hubs using 
 Communication between the Cloudhub and iridium.jaia.tech happens within the Cloudhub (Wireguard) VPN, where iridium.jaia.tech is assigned the address of hub25 (and Cloudhub is hub30 as usual). 
 
 
+### Simulation
+
+*This section written by Claude*
+
+When `jaia_comms_mode` includes `iridium`, the simulator launches stand-ins for the modem and for Iridium's servers from `config/launch/simulation/iridium/`, using [virtual_iridium](https://github.com/tsaubergine/virtual_iridium):
+
+- Each bot runs `Iridium9602.py`, which answers DRIVER_IRIDIUM's AT commands on `/tmp/iridium<bot id>`. It sends MO messages over DirectIP to the hub's DRIVER_IRIDIUM_SHORE on port 11800 and receives MT messages on port 10800 + bot id. A simulated bot's IMEI is its bot id, zero-padded to 15 digits.
+- The hub runs `iridium_mt_forward_server.py` in place of iridium.jaia.tech. It listens on port 10800 and forwards each MT message to the bot with that IMEI (bots 1 to 5).
+
+To simulate Iridium, add `i` to the comms argument of `generate_all_launch.sh`, for example `./generate_all_launch.sh 1 10 i` for Iridium only or `wi` for WiFi and Iridium. The Docker simulator takes the same letters in `JAIA_SIM_COMMS`. Any `jaia_iridium_sim_args` (`JAIA_SIM_IRIDIUM_ARGS` in Docker) are passed to each `Iridium9602.py`; for example, `--sbdix_failure_rate 0.2` fails a fifth of SBD sessions, and `--csq 1` reports a signal below the driver's default `sbd_min_signal_strength` of 2.
+
 ## Fleet DNS
 
 *This section written by Claude*

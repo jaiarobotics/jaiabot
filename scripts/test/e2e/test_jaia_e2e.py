@@ -287,6 +287,13 @@ class CheckTest(unittest.TestCase):
         result = checks.execution_checks(observations, [1], 0, {1: [(41.66, -71.27)]}, 25)
         self.assertFalse([c for c in result if 'near its last goal' in c.name][0].passed)
 
+    def test_execution_judges_the_position_at_recovery_not_after_it(self):
+        observations = checks.Observations()
+        observations.ingest({'bots': [bot(1, checks.RECOVERY_STOPPED)]})
+        observations.ingest({'bots': [bot(1, checks.POST_IDLE, lat=41.70)]})
+        result = checks.execution_checks(observations, [1], 0, {1: [(41.66, -71.27)]}, 25)
+        self.assertTrue([c for c in result if 'near its last goal' in c.name][0].passed)
+
     def test_a_post_deployment_failure_stays_out_of_the_execution_tier(self):
         observations = checks.Observations()
         for state in (checks.RECOVERY_STOPPED, checks.POST_FAILED):

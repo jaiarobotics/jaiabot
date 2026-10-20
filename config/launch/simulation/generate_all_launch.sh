@@ -11,7 +11,7 @@ launchfile=${script_dir}/all.launch
 warpfile=${script_dir}/../../gen/common/sim.py
 
 if [[ "$1" == "-h" || "$1" == "--help" ]]; then
-    echo "Usage: generate_all_launch.sh [n_bots, default ${n_bots}] [warp, default ${warp}] [(x)bee or (w)ifi comms, default ${comms_mode}] [n_hubs, default ${n_hubs}]"
+    echo "Usage: generate_all_launch.sh [n_bots, default ${n_bots}] [warp, default ${warp}] [any of (x)bee, (w)ifi, (i)ridium comms, default ${comms_mode}] [n_hubs, default ${n_hubs}]"
     exit;
 fi
 
@@ -34,16 +34,18 @@ cat <<EOF > ${launchfile}
 
 EOF
 
+comms_modes=()
 if [[ "$comms_mode" == *x* ]]; then
-    jaia_comms_mode="xbee"
+    comms_modes+=(xbee)
     echo "./world_sim.launch" >> ${launchfile}
 fi
 if [[ "$comms_mode" == *w* ]]; then
-    jaia_comms_mode="wifi"
+    comms_modes+=(wifi)
 fi
-if [[ "$comms_mode" == *w* && "$comms_mode" == *x* ]]; then
-    jaia_comms_mode="xbee,wifi"
+if [[ "$comms_mode" == *i* ]]; then
+    comms_modes+=(iridium)
 fi
+jaia_comms_mode=$(IFS=,; echo "${comms_modes[*]}")
 
 ${script_dir}/../../../rootfs/customization/includes.chroot/etc/jaiabot/init/jaia-create-ansible-inventory.sh -b $(seq -s , 1 ${n_bots}) -h $(seq -s , 1 ${n_hubs}) -f 0 > /etc/jaiabot/inventory.yml
 

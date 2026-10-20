@@ -255,6 +255,13 @@ Explanation of command.
   "/bin/bash" Tells docker to launch a bash shell
 ```
 
+*This section written by Claude*
+
+Two more environment variables set the simulated comms:
+
+- `--env JAIA_SIM_COMMS=wi`: the links to simulate, any of (x)bee, (w)ifi and (i)ridium (default `w`). See [Iridium simulation](page050_communications.md#simulation).
+- `--env JAIA_SIM_IRIDIUM_ARGS="--sbdix_failure_rate 0.2"`: extra arguments for each bot's Iridium modem simulator.
+
 ### Stop the simulator
 
 The following command will shut down the simulator, stop the container and remove it.

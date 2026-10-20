@@ -45,6 +45,9 @@ class Observations:
         self.states = collections.defaultdict(collections.Counter)
         self.transitions = collections.defaultdict(list)
         self.last_location = {}
+        # a bot drifts once it leaves recovery, and over a slow link such as Iridium
+        # offload can take long enough for that to carry it well off its last goal
+        self.recovery_location = {}
         self.health = collections.defaultdict(set)
         self.errors = collections.defaultdict(set)
         self.warnings = collections.defaultdict(set)
@@ -66,6 +69,8 @@ class Observations:
                     self.transitions[bot_id].append(state)
             if 'location' in bot:
                 self.last_location[bot_id] = (bot['location']['lat'], bot['location']['lon'])
+                if state.startswith(RECOVERY):
+                    self.recovery_location[bot_id] = self.last_location[bot_id]
             if bot.get('health_state'):
                 self.health[bot_id].add(bot['health_state'])
             errors, warnings = api.bot_faults(bot)
@@ -151,7 +156,8 @@ def execution_checks(observations, expected_bots, expected_dives, goals_by_bot,
                             'recovered' if observations.reached_recovery(bot_id)
                             else f'last state {observations.transitions[bot_id][-1:]}'))
         final_goal = goals_by_bot.get(bot_id, [])[-1:]
-        here = observations.last_location.get(bot_id)
+        here = (observations.recovery_location.get(bot_id)
+                or observations.last_location.get(bot_id))
         if final_goal and here:
             distance = mission.distance_m(here, final_goal[0])
             checks.append(Check(EXECUTION, f'bot {bot_id} finished near its last goal',
