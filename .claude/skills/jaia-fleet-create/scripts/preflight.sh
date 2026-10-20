@@ -4,14 +4,17 @@
 # more: a part that does not touch AWS does not ask for it. Exits non-zero if
 # anything would stop that part; warnings are printed but do not fail.
 #
-#   A (CloudHub):  --part A --fleet <id> --region <region> --repo <repo> [--base-uri <name>]
+#   A (CloudHub):  --part A --fleet <id> --region <region> --repo <repo> [--base-uri <name>] [--config fleetN.cfg]
 #   B (nodes):     --part B --config fleetN.cfg
 #   C (pairing):   --part C --config fleetN.cfg
+#
+# Part A takes the config once 'fleet create' has written it, and checks it is a
+# real fleet with a CloudHub before 'cloudhub create' spends anything on it.
 
 usage()
 {
     cat <<EOF
-Usage: $0 --part A --fleet <id> --region <region> --repo <repo> [--base-uri <name>]
+Usage: $0 --part A --fleet <id> --region <region> --repo <repo> [--base-uri <name>] [--config fleetN.cfg]
        $0 --part B --config fleetN.cfg
        $0 --part C --config fleetN.cfg
 EOF
@@ -66,11 +69,41 @@ check_config()
     FLEET=$(config_value fleet)
     BASE_URI=$(config_value base_uri)
     [ -n "$BASE_URI" ] || fail "fleet config has no CloudHub (cloudhub.base_uri): was it created with CloudHub yes?"
-    # cloudhub create records the CloudHub's key in the config; nodes need it
+    # cloudhub create records the CloudHub's key in the config: pairing needs it, and a
+    # node generated without it accepts no SSH from the CloudHub until paired again
     if awk '/hub *\{/{h=1} h&&/id: *30/{f=1} h&&/\}/{h=0} END{exit !f}' "$CONFIG"; then
         ok "fleet $FLEET, CloudHub $BASE_URI, made (its key is recorded in the config)"
-    else
+    elif [ "$1" = required ]; then
         fail "the config has no key for the CloudHub (hub 30): run part A's 'cloudhub create' with this config first"
+    else
+        warn "the config has no key for the CloudHub (hub 30) yet: nodes made from it will not accept SSH from the CloudHub until 'Pair new hub' is run after part A"
+    fi
+}
+
+# The config as 'fleet create' wrote it, before 'cloudhub create' acts on it
+check_new_config()
+{
+    if [ ! -r "$CONFIG" ]; then
+        fail "cannot read $CONFIG"
+        return
+    fi
+    if ! out=$(jaia admin fleet validate "$CONFIG" 2>&1); then
+        fail "fleet config does not validate: ${out##*$'\n'}"
+        return
+    fi
+    ok "fleet config $CONFIG is valid"
+    perms=$(stat -c %a "$CONFIG")
+    [ "$perms" = 600 ] || warn "fleet config is mode $perms; it holds private keys: chmod 600 $CONFIG"
+    [ "$(config_value fleet)" = "$FLEET" ] || fail "the config is for fleet $(config_value fleet), not $FLEET"
+    [ "$(config_value fleet_type)" != FLEET_TYPE_SIMULATION ] \
+        || fail "the config is a simulation (fleet create --simulation): a real fleet is made without that flag"
+    grep -q '^hubs: *30$' "$CONFIG" && [ -n "$(config_value base_uri)" ] \
+        || fail "the config has no CloudHub: 'fleet create' must be answered CloudHub yes"
+    if [ -n "$BASE_URI" ] && [ "$(config_value base_uri)" != "$BASE_URI" ]; then
+        fail "the config's base URI is $(config_value base_uri), not $BASE_URI"
+    fi
+    if awk '/hub *\{/{h=1} h&&/id: *30/{f=1} h&&/\}/{h=0} END{exit !f}' "$CONFIG"; then
+        fail "the config already holds a CloudHub key (hub 30): it has been through 'cloudhub create' once"
     fi
 }
 
@@ -86,6 +119,7 @@ case "$PART" in
         [ -n "$FLEET" ] && [ -n "$REGION" ] && [ -n "$REPO" ] || usage
         need aws git dig curl nc openssl ssh ssh-add
         check_tool
+        [ -z "$CONFIG" ] || check_new_config
 
         top=$(git rev-parse --show-toplevel 2>/dev/null)
         if [ -z "$top" ] || [ ! -e "$top/rootfs/cloud/aws/create_vpc.sh" ]; then
@@ -139,7 +173,7 @@ case "$PART" in
         ;;
     B)
         check_tool
-        check_config || { echo; echo "1 check(s) failed"; exit 1; }
+        check_config optional || { echo; echo "1 check(s) failed"; exit 1; }
         config_version=$(config_value version)
         tool_config_version=$(jaia admin fleet version 2>/dev/null | grep -o '[0-9]\+' | tail -1)
         [ -n "$config_version" ] && [ "$config_version" = "$tool_config_version" ] \
@@ -149,7 +183,7 @@ case "$PART" in
     C)
         need dig curl nc
         check_tool
-        check_config || { echo; echo "1 check(s) failed"; exit 1; }
+        check_config required || { echo; echo "1 check(s) failed"; exit 1; }
         if [ -n "$BASE_URI" ]; then
             address=$(dig +short "$BASE_URI" A | tail -1)
             [ -n "$address" ] && ok "$BASE_URI resolves to $address" || fail "$BASE_URI does not resolve: part A's DNS step is not finished"

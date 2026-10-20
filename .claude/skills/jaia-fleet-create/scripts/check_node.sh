@@ -39,10 +39,15 @@ else
 fi
 
 if [ "$type" = hub ]; then
-    status=$(curl -s -m 5 -X POST -H 'Content-Type: application/json' \
-             -d '{"target":{"all":true},"status":true}' http://localhost/jaia/v1)
-    if echo "$status" | grep -q "\"hub_id\":${id}"; then ok "hub ${id} is in its own REST API status (JCC will show it)"
-    else fail "hub ${id} is not in its own REST API status: JCC will not show it"; fi
+    # The first health report takes a minute or two after boot to reach the REST API
+    for waited in $(seq 0 5 120); do
+        status=$(curl -s -m 5 -X POST -H 'Content-Type: application/json' \
+                 -d '{"target":{"all":true},"status":true}' http://localhost/jaia/v1)
+        echo "$status" | grep -q "\"hub_id\":${id}" && break
+        sleep 5
+    done
+    if echo "$status" | grep -q "\"hub_id\":${id}"; then ok "hub ${id} is in its own REST API status (JCC will show it)$([ "$waited" -gt 0 ] && echo ", after ${waited} s")"
+    else fail "hub ${id} is not in its own REST API status after ${waited} s (up $(cut -d. -f1 /proc/uptime) s): JCC will not show it"; fi
 fi
 
 if [ "$PAIRED" = true ]; then

@@ -7,24 +7,38 @@
 
 usage()
 {
-    echo "Usage: $0 <base uri> [--ssh]"
+    echo "Usage: $0 <base uri> [--ip <IPv4>] [--ssh]"
     exit 2
 }
 
 [ $# -ge 1 ] || usage
 BASE_URI=$1
+shift
 SSH=false
-[ "${2:-}" = "--ssh" ] && SSH=true
+IP=""
+while (( $# > 0 )); do
+    case "$1" in
+        --ssh) SSH=true; shift ;;
+        --ip) IP="$2"; shift 2 ;;
+        *) usage ;;
+    esac
+done
+# With --ip (the IPv4 'cloudhub create' printed) nothing here depends on this
+# workstation's resolver, which may still hold the name's old address or none
+HOST=${IP:-$BASE_URI}
 
 failures=0
 ok() { echo "ok    $*"; }
 fail() { echo "FAIL  $*"; failures=$((failures + 1)); }
+[ -n "$IP" ] && echo "note  checking at $IP rather than what $BASE_URI resolves to here"
 
 # Signed in, each is a page; signed out, each sends the browser to auth. for its
 # login, and auth. itself answers. A 502 from sim. means no VirtualFleet is running.
 for site in "" run. auth. users. support. sim.; do
     url="https://${site}${BASE_URI}/"
-    result=$(curl -sS -m 15 -o /dev/null -w '%{http_code} %{ssl_verify_result}' "$url" 2>&1 | tail -1)
+    resolve=()
+    [ -n "$IP" ] && resolve=(--resolve "${site}${BASE_URI}:443:${IP}")
+    result=$(curl -sS -m 15 "${resolve[@]}" -o /dev/null -w '%{http_code} %{ssl_verify_result}' "$url" 2>&1 | tail -1)
     read -r code verify <<<"$result"
     if [ "$verify" != 0 ]; then
         fail "$url: no valid certificate yet (${result})"
@@ -37,11 +51,11 @@ for site in "" run. auth. users. support. sim.; do
     fi
 done
 
-expiry=$(echo | openssl s_client -connect "${BASE_URI}:443" -servername "$BASE_URI" 2>/dev/null \
+expiry=$(echo | openssl s_client -connect "${HOST}:443" -servername "$BASE_URI" 2>/dev/null \
              | openssl x509 -noout -enddate 2>/dev/null | cut -d= -f2)
 [ -n "$expiry" ] && echo "note  certificate for $BASE_URI expires $expiry"
 
-if nc -z -w 5 "$BASE_URI" 22 2>/dev/null; then
+if nc -z -w 5 "$HOST" 22 2>/dev/null; then
     echo "note  port 22 is open: fleet pairing (or a support grant) is open"
     port22=open
 else
@@ -57,7 +71,7 @@ if $SSH; then
         # A new CloudHub's host key is unknown here, and a rebuilt one's has changed
         ssh_err=$(mktemp)
         ssh -o BatchMode=yes -o ConnectTimeout=15 -o StrictHostKeyChecking=accept-new \
-            "jaia@${BASE_URI}" 'bash -s' 2>"$ssh_err" <<'EOF' || failures=$((failures + 1))
+            -o "HostKeyAlias=${BASE_URI}" "jaia@${HOST}" 'bash -s' 2>"$ssh_err" <<'EOF' || failures=$((failures + 1))
 bad=0
 echo "note  $(dpkg-query -W -f='jaiabot-embedded ${Version}' jaiabot-embedded 2>/dev/null) on $(lsb_release -cs 2>/dev/null)"
 for unit in apache2 caddy authelia lldap jaia_support_portal jaia_support_reconcile.timer jaiabot_web_portal jaiabot_hub_manager; do
