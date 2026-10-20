@@ -1,3 +1,5 @@
+include_guard(GLOBAL)
+
 # versions
 # automatically patched in CircleCI build to correct version
 set(PROJECT_VERSION_MAJOR "X")
@@ -33,10 +35,6 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/.git")
     message(WARNING "No version tags reachable from HEAD (shallow clone or tags not fetched?); using placeholder version ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}")
   endif()
 
-  message("MAJOR VERSION: ${PROJECT_VERSION_MAJOR}")
-  message("MINOR VERSION: ${PROJECT_VERSION_MINOR}")
-  message("PATCH VERSION: ${PROJECT_VERSION_PATCH}")
-
   if(PROJECT_LAST_REV)
     string(STRIP ${PROJECT_LAST_REV} PROJECT_LAST_REV)
   endif()
@@ -56,8 +54,6 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/.git")
   execute_process(COMMAND git rev-list ${PROJECT_GIT_VERSION}..HEAD --count
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     OUTPUT_VARIABLE PROJECT_REVS_SINCE_TAG)
-
-  message("Project Revs Since Tag: ${PROJECT_REVS_SINCE_TAG}")
 
   if(PROJECT_REVS_SINCE_TAG)
     string(STRIP ${PROJECT_REVS_SINCE_TAG} PROJECT_REVS_SINCE_TAG)

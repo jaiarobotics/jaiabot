@@ -48,8 +48,8 @@ if(build_python_venv AND NOT CMAKE_CROSSCOMPILING)
     COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/jaia_serial ${jaiabot_python_share_dir}/jaia_serial
     COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_SOURCE_DIR}/pyjaiaprotobuf/pyproject.toml ${jaiabot_python_share_dir}/pyjaiaprotobuf/pyproject.toml
     COMMAND python3 -m venv venv --system-site-packages --clear
-    COMMAND ./venv/bin/pip install -qU wheel
-    COMMAND ./venv/bin/pip install -r requirements.txt
+    COMMAND ${JAIA_RUN_QUIET} ./venv/bin/pip install --disable-pip-version-check -U wheel
+    COMMAND ${JAIA_RUN_QUIET} ./venv/bin/pip install --disable-pip-version-check -r requirements.txt
     COMMAND ${CMAKE_COMMAND} -E touch ${jaiabot_python_venv_stamp}
     WORKING_DIRECTORY ${jaiabot_python_share_dir}
     DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/requirements.txt

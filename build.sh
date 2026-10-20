@@ -1,4 +1,48 @@
 #!/bin/bash
+#
+# Usage: build.sh [--make] [--verbose] [--configure-verbose] [--build-verbose] [targets...]
+#
+# Quiet by default. --configure-verbose (or JAIA_CONFIGURE_VERBOSE=1) shows CMake's status
+# messages, --build-verbose (or JAIA_BUILD_VERBOSE=1) shows every build command and its output,
+# and --verbose (or JAIA_VERBOSE=1) does both.
+
+is_set() { [ -n "${1}" ] && [ "${1}" != "0" ]; }
+
+# --- Argument parsing: Ninja by default, pass --make to use GNU Make instead ---
+GENERATOR=Ninja
+args=()
+for arg in "$@"; do
+    case "${arg}" in
+        --make) GENERATOR="Unix Makefiles" ;;
+        --verbose) JAIA_VERBOSE=1 ;;
+        --configure-verbose) JAIA_CONFIGURE_VERBOSE=1 ;;
+        --build-verbose) JAIA_BUILD_VERBOSE=1 ;;
+        *) args+=("${arg}") ;;
+    esac
+done
+set -- "${args[@]}"
+
+if is_set "${JAIA_VERBOSE-}"; then
+    JAIA_CONFIGURE_VERBOSE=1
+    JAIA_BUILD_VERBOSE=1
+fi
+
+configure_verbose=false
+if is_set "${JAIA_CONFIGURE_VERBOSE-}"; then configure_verbose=true; fi
+
+# read by scripts/build/run-quiet.sh in the build steps
+if is_set "${JAIA_BUILD_VERBOSE-}"; then
+    build_verbose=true
+    export JAIA_BUILD_VERBOSE=1
+else
+    build_verbose=false
+    unset JAIA_BUILD_VERBOSE
+fi
+
+info() {
+    if ${configure_verbose} || ${build_verbose}; then echo "$@"; fi
+}
+
 # --- System Requirements Check ---
 MIN_PROC=4
 MIN_RAM_KB=3145728    # 3-4 GiB in KB
@@ -18,7 +62,7 @@ fi
 
 # Allow user to set nproc for their system, if desired
 if [ -z "${JAIA_BUILD_NPROC}" ]; then
-    echo "[INFO] JAIA_BUILD_NPROC not set, calculating automatically..."
+    info "[INFO] JAIA_BUILD_NPROC not set, calculating automatically..."
 
     NPROC=$(nproc)
 
@@ -28,10 +72,10 @@ if [ -z "${JAIA_BUILD_NPROC}" ]; then
         JAIA_BUILD_NPROC=${MEMORY_NPROC}
     fi
 
-    echo "[INFO] Auto nproc = ${JAIA_BUILD_NPROC}"
+    info "[INFO] Auto nproc = ${JAIA_BUILD_NPROC}"
 fi
 
-echo "Detected system: $NPROC Processor(s), $(($MEMORY_KB / 1024)) MiB RAM, $((AVAILABLE_DISK_KB / 1024)) MiB free disk"
+info "Detected system: $NPROC Processor(s), $(($MEMORY_KB / 1024)) MiB RAM, $((AVAILABLE_DISK_KB / 1024)) MiB free disk"
 
 if [ "$NPROC" -lt "$MIN_PROC" ]; then
     echo "Warning: Your system has less than the required $MIN_PROC Processors to build the software."
@@ -54,18 +98,6 @@ fi
 script_dir=$(dirname $0)
 
 ARCH=$(dpkg --print-architecture)
-
-# --- Generator selection: Ninja by default, pass --make to use GNU Make instead ---
-GENERATOR=Ninja
-args=()
-for arg in "$@"; do
-    if [ "${arg}" = "--make" ]; then
-        GENERATOR="Unix Makefiles"
-    else
-        args+=("${arg}")
-    fi
-done
-set -- "${args[@]}"
 
 if [ "${GENERATOR}" = "Ninja" ] && ! command -v ninja > /dev/null; then
     echo "Error: ninja not found. Install it with 'jaia dev setup' (or scripts/build/setup-tools-build.sh), or pass --make to use GNU Make instead." >&2
@@ -90,7 +122,7 @@ mkdir -p ${script_dir}/build/${ARCH}
 # Initialize and update submodules
 git submodule update --init
 
-echo "Configuring (generator: ${GENERATOR})..."
+info "Configuring (generator: ${GENERATOR})..."
 cd ${script_dir}/build/${ARCH}
 
 # cmake refuses to reconfigure a directory that another generator wrote
@@ -99,6 +131,17 @@ if [ -f CMakeCache.txt ] && ! grep -q "^CMAKE_GENERATOR:INTERNAL=${GENERATOR}\$"
     rm -rf CMakeCache.txt CMakeFiles
 fi
 
-(set -x; cmake -G "${GENERATOR}" ${JAIABOT_CMAKE_FLAGS} ../..)
-echo "Building with ${JAIA_BUILD_NPROC} parallel processes..."
-(set -x; time cmake --build . -- -j${JAIA_BUILD_NPROC} ${JAIABOT_MAKE_FLAGS} $@)
+if ${configure_verbose}; then
+    (set -x; cmake -G "${GENERATOR}" ${JAIABOT_CMAKE_FLAGS} ../..)
+else
+    # cmake prints "Configuring done" etc. at every log level
+    JAIA_BUILD_VERBOSE=0 ../../scripts/build/run-quiet.sh \
+        cmake -G "${GENERATOR}" --log-level=NOTICE ${JAIABOT_CMAKE_FLAGS} ../..
+fi
+
+info "Building with ${JAIA_BUILD_NPROC} parallel processes..."
+if ${build_verbose}; then
+    (set -x; time cmake --build . --verbose -- -j${JAIA_BUILD_NPROC} ${JAIABOT_MAKE_FLAGS} $@)
+else
+    cmake --build . -- -j${JAIA_BUILD_NPROC} ${JAIABOT_MAKE_FLAGS} $@
+fi

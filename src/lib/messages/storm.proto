@@ -1,13 +1,8 @@
 syntax = "proto2";
 
-import "goby/middleware/protobuf/gpsd.proto";
-
 import "dccl/option_extensions.proto";
 
-import "jaiabot/messages/option_extensions.proto";
 import "jaiabot/messages/mission.proto";
-import "jaiabot/messages/sensor/blue_robotics__bar30.proto";
-import "jaiabot/messages/sensor/atlas_scientific__oem_ec.proto";
 
 package jaiabot.protobuf;
 

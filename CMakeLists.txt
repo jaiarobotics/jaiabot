@@ -28,7 +28,7 @@ find_package( Nanopb REQUIRED )
 find_package(DCCL REQUIRED)
 get_target_property(DCCL_INCLUDE_DIR dccl INTERFACE_INCLUDE_DIRECTORIES)
 
-message("Using DCCL in ${DCCL_INCLUDE_DIR}")
+message(STATUS "Using DCCL in ${DCCL_INCLUDE_DIR}")
 include_directories("${DCCL_INCLUDE_DIR}")
 
 # find MOOS
@@ -56,7 +56,7 @@ file(MAKE_DIRECTORY ${project_INTERMEDIATE_DIR})
 
 # Write the version to a simple text file for scripts to use
 if(PROJECT_VERSION_GITHASH)
-  file(WRITE ${project_SHARE_DIR}/version.txt "${PROJECT_GIT_VERSION}${PROJECT_DIRTY_REV_STRING}")
+  file(CONFIGURE OUTPUT ${project_SHARE_DIR}/version.txt CONTENT "${PROJECT_GIT_VERSION}${PROJECT_DIRTY_REV_STRING}")
 endif()
 
 ## set the cmake defaults for libraries and binaries
@@ -66,6 +66,9 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${project_BIN_DIR} CACHE PATH
   "Output directory for the binaries" )
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${project_LIB_DIR} CACHE PATH 
   "Output directory for the static libraries (archives)" )
+
+# prefix for custom commands whose output is only worth seeing on failure, a warning, or a verbose build
+set(JAIA_RUN_QUIET ${CMAKE_SOURCE_DIR}/scripts/build/run-quiet.sh)
 
 # include our local include directory
 include_directories(${project_INC_DIR})
