@@ -47,6 +47,16 @@ isn't loading. `check_cloudhub.sh --ssh` reports it; `/var/log/apache2/error.log
 why. On releases before SW-2677 it was a stale `key {}` block in
 `/etc/jaiabot/rest_api.pb.cfg`: stop and report rather than editing it.
 
+**`check_cloudhub.sh --ssh` says the host key is not the one recorded** — this
+workstation has seen an earlier CloudHub under the same name. If the CloudHub was
+rebuilt, `ssh-keygen -R <base uri>` and run it again; if it wasn't, stop: something
+else is answering for the CloudHub's name.
+
+**A JCU settings playbook (e.g. Comms Links) shows no result and the JCU is 503 for a
+minute or two** — the reconfigure it runs stops the JCU's own service, which ends the
+playbook. From SW-2686 the node starts its services again by itself; check it with
+`check_node.sh` rather than running the playbook again.
+
 **Sim says the VirtualFleet isn't running** — expected until one is created (part A,
 step 7).
 

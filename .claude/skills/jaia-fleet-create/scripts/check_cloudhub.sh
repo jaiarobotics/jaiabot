@@ -54,7 +54,10 @@ if $SSH; then
         fail "--ssh needs port 22 open: Open Fleet Pairing in the CloudHub's JCU first"
     else
         echo "--- on the CloudHub"
-        ssh -o BatchMode=yes -o ConnectTimeout=15 "jaia@${BASE_URI}" 'bash -s' <<'EOF' || failures=$((failures + 1))
+        # A new CloudHub's host key is unknown here, and a rebuilt one's has changed
+        ssh_err=$(mktemp)
+        ssh -o BatchMode=yes -o ConnectTimeout=15 -o StrictHostKeyChecking=accept-new \
+            "jaia@${BASE_URI}" 'bash -s' 2>"$ssh_err" <<'EOF' || failures=$((failures + 1))
 bad=0
 echo "note  $(dpkg-query -W -f='jaiabot-embedded ${Version}' jaiabot-embedded 2>/dev/null) on $(lsb_release -cs 2>/dev/null)"
 for unit in apache2 caddy authelia lldap jaia_support_portal jaia_support_reconcile.timer jaiabot_web_portal jaiabot_hub_manager; do
@@ -68,6 +71,13 @@ failed=$(systemctl --failed --no-legend --plain | awk '{print $1}' | tr '\n' ' '
 [ -n "$failed" ] && echo "note  failed units: $failed(grub-initrd-fallback, grub2-common and jaiabot_update_ufw_rules are known and harmless on a CloudHub)"
 exit $bad
 EOF
+        if grep -qiE "host key verification failed|remote host identification has changed" "$ssh_err"; then
+            echo "FAIL  ${BASE_URI}'s SSH host key is not the one this workstation recorded: if the CloudHub" \
+                 "was rebuilt, 'ssh-keygen -R ${BASE_URI}' and run this again"
+        elif [ -s "$ssh_err" ]; then
+            sed 's/^/  ssh: /' "$ssh_err"
+        fi
+        rm -f "$ssh_err"
     fi
 fi
 
