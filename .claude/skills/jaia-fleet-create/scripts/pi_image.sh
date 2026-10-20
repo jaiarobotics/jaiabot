@@ -33,7 +33,7 @@ size=$(curl -fsSI -m 20 "$url" | awk 'tolower($1)=="content-length:"{print $2}' 
 
 echo "release ${version}"
 echo "image   ${url}"
-echo "size    $((size / 1024 / 1024)) MiB (gzip; write it with Raspberry Pi Imager, or gunzip | dd)"
+echo "size    $((size / 1024 / 1024)) MiB (gzip; write it with balenaEtcher, the SD card cloner, or gunzip | dd)"
 
 if [ -n "$DIR" ]; then
     mkdir -p "$DIR"
