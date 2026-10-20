@@ -67,7 +67,8 @@ Per bot and hub:
 2. **Boot files**, with the card's boot partition mounted:
    `jaia admin fleet generate fleetN.cfg <hub|bot> <id>` (`--bootdir` if not found).
 3. **Power on.** With pairing closed the node is refused and keeps its bootstrap key:
-   correct; it pairs in C.
+   correct; it pairs in C. If the CloudHub already exists, opening Fleet Pairing (C1)
+   first lets each node pair itself at first boot, and C2 is not needed.
 
 Check, a minute or two after boot: the node's JCU (`http://<address>/jcu/`) shows the
 right type, id and fleet, and a hub's JCC (`http://<address>/`) shows the hub itself.
@@ -79,8 +80,8 @@ key. No AWS.
 
 1. **Open Fleet Pairing**: CloudHub JCU → Fleet Changes → "Open Fleet Pairing", 1 hour.
    Port 22 is open to everyone meanwhile: don't leave it open.
-2. **Pair**: hub 1's JCU on the fleet Wi-Fi (`http://10.23.<N>.11/jcu/`) → "Pair Fleet
-   to CloudHub". "Already paired" is fine.
+2. **Pair** (nodes that did not pair at first boot): hub 1's JCU on the fleet Wi-Fi
+   (`http://10.23.<N>.11/jcu/`) → "Pair Fleet to CloudHub". "Already paired" is fine.
 3. **Verify**: CloudHub JCU → "Check CloudHub VPN Status" lists every node's handshake;
    JCC at `https://run.<base uri>/` shows every hub and bot.
 4. **Close Fleet Pairing.**
