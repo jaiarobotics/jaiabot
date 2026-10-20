@@ -811,7 +811,7 @@ class CreateTest(unittest.TestCase):
     def test_test_keys_need_no_yubikey(self):
         with open(os.path.join(self.env.dir, "bin", "ykman"), "w") as f:
             f.write("#!/bin/sh\necho 'no Yubikey here' >&2\nexit 1\n")
-        answers = ["7", "no", "no", "1, 2", "1", "", "wifipass", "no"]
+        answers = ["7", "no", "1, 2", "1", "", "wifipass", "no"]
         answers += settings_answers(ALL_GROUPS, {}) + ["no"] + node_answers([1, 2], [1])
         result, out = self.run_create(answers, "--test-keys")
         self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
@@ -823,18 +823,18 @@ class CreateTest(unittest.TestCase):
     def test_without_test_keys_a_hub_key_needs_a_yubikey(self):
         with open(os.path.join(self.env.dir, "bin", "ykman"), "w") as f:
             f.write("#!/bin/sh\nexit 1\n")
-        answers = ["7", "no", "no", "1", "1", "", "wifipass", "no"]
+        answers = ["7", "no", "1", "1", "", "wifipass", "no"]
         result, _ = self.run_create(answers)
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("ykman failed", result.stderr)
 
     def test_edit_with_test_keys_keeps_existing_hub_keys(self):
-        answers = ["7", "no", "no", "1", "1", "", "wifipass", "no"]
+        answers = ["7", "no", "1", "1", "", "wifipass", "no"]
         answers += settings_answers(ALL_GROUPS, {}) + ["no"] + node_answers([1], [1])
         result, out = self.run_create(answers)
         self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
         before = {k.id: k.public_key for k in fc.parse_fleet_config(SCHEMA, out).ssh.hub}
-        edit = ["<default>"] * 3 + ["1, 2"] + ["<default>"] * 3 + ["<default>"]
+        edit = ["<default>"] * 2 + ["1, 2"] + ["<default>"] * 3 + ["<default>"]
         edit += accept(fc.parse_fleet_config(SCHEMA, out).settings) + ["no"] + node_answers([1, 2], [1])
         answers_file = os.path.join(self.env.dir, "edit-answers.txt")
         with open(answers_file, "w") as f:
@@ -848,15 +848,13 @@ class CreateTest(unittest.TestCase):
     def test_creates_a_valid_current_version_file(self):
         answers = [
             "abc", "7",                      # fleet id: re-asked until it is in range
-            "no",                            # a simulation? no, so real
-            "yes",                           # and it has a CloudHub
+            "yes",                           # it has a CloudHub
             "1, 2", "1, 2",                  # physical hubs, bots
             "ssh-ed25519 AAAAperm me", "",   # permanent keys
             "wifipass", "yes",               # wlan password, service vpn
             "<default>",                     # base_uri: fleet7.jaia.tech
             "nobody", "admin@example.com",   # admin_email: re-asked until it is one
-            "<default>",                     # smtp_address
-            "", "",                          # smtp_sender, smtp_credentials_ssm_parameter: defaults
+            "yes",                           # Jaia SMTP
             "acme corp", "acme",             # customer: re-asked until it can name AWS resources
         ]
         answers += settings_answers(ALL_GROUPS, {"comms_links": "xbee, iridium", "bot_type": "pam",
@@ -884,7 +882,7 @@ class CreateTest(unittest.TestCase):
         self.assertEqual((cfg.wlan_password, cfg.service_vpn_enabled), ("wifipass", True))
         self.assertEqual([cfg.cloudhub.base_uri, cfg.cloudhub.admin_email, cfg.cloudhub.smtp_address],
                          ["fleet7.jaia.tech", "admin@example.com", "submission://smtp.postmarkapp.com:587"])
-        self.assertFalse(cfg.cloudhub.HasField("smtp_sender"), "a blank answer leaves the default")
+        self.assertFalse(cfg.cloudhub.HasField("smtp_sender"), "Jaia SMTP leaves the default")
         self.assertFalse(cfg.cloudhub.HasField("smtp_credentials_ssm_parameter"))
         self.assertEqual(cfg.customer, "acme")
 
@@ -922,15 +920,53 @@ class CreateTest(unittest.TestCase):
         result = self.env.run("validate", out)
         self.assertEqual(result.returncode, 0, result.stderr)
 
+    def test_without_jaia_smtp_its_settings_are_asked(self):
+        answers = ["7", "yes", "1", "1", "", "wifipass", "no",
+                   "<default>", "admin@example.com",
+                   "no", "smtp://smtp.example.com:587", "noreply@example.com", "/example/smtp",
+                   "<default>"]
+        answers += settings_answers(ALL_GROUPS, {}) + ["no"] + node_answers([1, 30], [1])
+        result, out = self.run_create(answers)
+        self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+        auth = fc.parse_fleet_config(SCHEMA, out).cloudhub
+        self.assertEqual((auth.smtp_address, auth.smtp_sender, auth.smtp_credentials_ssm_parameter),
+                         ("smtp://smtp.example.com:587", "noreply@example.com", "/example/smtp"))
+
+    def test_edit_to_jaia_smtp_drops_the_custom_settings(self):
+        out = os.path.join(self.env.dir, "smtp.cfg")
+        loaded = fc.parse_fleet_config(SCHEMA, fixture("v2_no_permanent_keys.cfg"))
+        loaded.cloudhub.smtp_sender = "noreply@example.com"
+        with open(out, "w") as f:
+            f.write(fc.fleet_config_text(loaded))
+        answers = ["<default>"] * 4 + [""] + ["<default>"] * 2
+        answers += ["<default>", "<default>", "yes", "<default>"]
+        answers += accept(loaded.settings) + ["no"] + node_answers([30], [1])
+        result, _ = self.run_edit(out, answers)
+        self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+        auth = fc.parse_fleet_config(SCHEMA, out).cloudhub
+        self.assertEqual(auth.smtp_address, fc.JAIA_SMTP_ADDRESS)
+        self.assertFalse(auth.HasField("smtp_sender"))
+
+    def test_edit_keeps_a_simulation(self):
+        out = os.path.join(self.env.dir, "sim.cfg")
+        shutil.copyfile(fixture("v2_simulation.cfg"), out)
+        loaded = fc.parse_fleet_config(SCHEMA, out)
+        answers = ["<default>"] * 4 + [""] + ["<default>"] * 2
+        answers += accept(loaded.settings) + ["no"] + node_answers(list(loaded.hubs), list(loaded.bots))
+        result, _ = self.run_edit(out, answers)
+        self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+        self.assertTrue(fc.is_simulation(fc.parse_fleet_config(SCHEMA, out)))
+
     def test_no_cloudhub_means_no_auth_and_no_hub_30(self):
         """A VirtualFleet has no CloudHub, and has to say so to be allowed none."""
-        answers = ["7", "yes", "no", "1", "1", "", "wifipass", "no"]
+        answers = ["7", "no", "1", "1", "", "wifipass", "no"]
         answers += settings_answers(ALL_GROUPS, {})
         answers += ["yes", "", "1"] + settings_answers({"ALL", "BOT"}, {}) + ["no"]
         answers += node_answers([1], [1])
-        result, out = self.run_create(answers)
+        result, out = self.run_create(answers, "--simulation")
         self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
         cfg = fc.parse_fleet_config(SCHEMA, out)
+        self.assertTrue(fc.is_simulation(cfg))
         self.assertEqual(list(cfg.hubs), [1])
         self.assertFalse(cfg.HasField("cloudhub"))
         self.assertFalse(cfg.HasField("comms"))
@@ -940,14 +976,13 @@ class CreateTest(unittest.TestCase):
     def test_back_returns_to_the_previous_question(self):
         back = fc.SCRIPTED_BACK
         answers = [
-            "8", back, "7",          # fleet id, then back from the fleet type question
-            "yes", back, "no",       # fleet type: simulation, back, then real
-            "yes",                   # and it has a CloudHub
+            "8", back, "7",          # fleet id, then back from the CloudHub question
+            "no", back, "yes",       # CloudHub: no, back, then yes
             "1", "2",                # physical hubs, bots
             back,                    # from the permanent keys, back past key generation to bots
             "1, 2",                  # bots again
             "", "wifipass", "yes",   # permanent keys, wlan password, service vpn
-            "<default>", "admin@example.com", "<default>", "<default>", "<default>", "<default>",
+            "<default>", "admin@example.com", "<default>", "<default>",
         ]
         # back from the second settings question returns to the first, re-answered here
         first = [q for q in SCHEMA.questions if not q.identity][0]
@@ -966,7 +1001,7 @@ class CreateTest(unittest.TestCase):
         back = fc.SCRIPTED_BACK
         # back from the CloudHub authentication all the way to the CloudHub question,
         # answered no the second time round
-        answers = ["7", "yes", "yes", "1", "1", "", "wifipass", "no"] + [back] * 6
+        answers = ["7", "yes", "1", "1", "", "wifipass", "no"] + [back] * 6
         answers += ["no", "1", "1", "", "wifipass", "no"]
         answers += settings_answers(ALL_GROUPS, {}) + ["no"] + node_answers([1], [1])
         result, out = self.run_create(answers)
@@ -981,15 +1016,17 @@ class CreateTest(unittest.TestCase):
         self.assertIn("Cancelled", result.stderr)
         self.assertFalse(os.path.exists(out))
 
-    def test_rf_encryption_password_is_proposed_at_random(self):
+    def test_encryption_passwords_are_proposed_at_random(self):
         class AcceptDefault:
             def inputbox(self, text, default=""):
                 return default
-        q = SCHEMA.questions_by_name["rf_encryption_password"]
-        first, second = fc.ask_question(AcceptDefault(), q, ""), fc.ask_question(AcceptDefault(), q, "")
-        self.assertRegex(first, "^[0-9a-f]{32}$")
-        self.assertNotEqual(first, second)
-        self.assertEqual(fc.ask_question(AcceptDefault(), q, "keep"), "keep")
+        for name, pattern in (("rf_encryption_password", "^[0-9a-f]{32}$"),
+                              ("dccl_encryption_password", "^[A-Za-z0-9_-]{32}$")):
+            q = SCHEMA.questions_by_name[name]
+            first, second = fc.ask_question(AcceptDefault(), q, ""), fc.ask_question(AcceptDefault(), q, "")
+            self.assertRegex(first, pattern)
+            self.assertNotEqual(first, second)
+            self.assertEqual(fc.ask_question(AcceptDefault(), q, "keep"), "keep")
 
     def test_edit_keeps_everything_when_every_answer_is_accepted(self):
         """Accepting every prefilled answer rewrites the same configuration."""
@@ -997,10 +1034,10 @@ class CreateTest(unittest.TestCase):
         out = os.path.join(self.env.dir, "edited.cfg")
         shutil.copyfile(fixture("v1_fleet7.cfg"), out)
         override = fc.node_settings_for(SCHEMA, before, "bot", 2)
-        answers = ["<default>"] * 5                 # fleet, type, cloudhub, hubs, bots
+        answers = ["<default>"] * 4                 # fleet, cloudhub, hubs, bots
         answers += ["<default>", ""]                # keep the permanent key, then no more
         answers += ["<default>"] * 2                # wlan password, service vpn
-        answers += ["<default>"] * 5                # cloudhub auth
+        answers += ["<default>"] * 6                # cloudhub auth: not Jaia SMTP, so its three questions
         answers += ["<default>"]                    # customer
         answers += accept(before.settings)
         answers += ["<default>", "<default>"] + accept(override, {"ALL", "BOT"})  # the existing override set
@@ -1025,7 +1062,7 @@ class CreateTest(unittest.TestCase):
         loaded = SCHEMA.NodeSettings()
         fc.fill_defaults(SCHEMA, loaded)
         # a 2.y fleet without hub 30 stays without a CloudHub, so no CloudHub questions follow
-        answers = ["<default>"] * 5 + ["", "<default>", "<default>"]
+        answers = ["<default>"] * 4 + ["", "<default>", "<default>"]
         answers += settings_answers(ALL_GROUPS, {"bot_type": "bio"})
         answers += ["no"] + node_answers([1], [1])
         result, _ = self.run_edit(out, answers)
@@ -1042,8 +1079,8 @@ class CreateTest(unittest.TestCase):
         shutil.copyfile(fixture("v1_fleet7.cfg"), out)
         before = fc.load_migrated(SCHEMA, fixture("v1_fleet7.cfg"), echo=lambda _: None)
         override = fc.node_settings_for(SCHEMA, before, "bot", 2)
-        answers = ["<default>"] * 4 + ["1, 2, 3"]
-        answers += ["<default>", ""] + ["<default>"] * 2 + ["<default>"] * 6
+        answers = ["<default>"] * 3 + ["1, 2, 3"]
+        answers += ["<default>", ""] + ["<default>"] * 2 + ["<default>"] * 7
         answers += accept(before.settings)
         answers += ["<default>", "<default>"] + accept(override, {"ALL", "BOT"}) + ["no"]
         answers += node_answers([1, 30], [1, 2, 3])
@@ -1060,7 +1097,7 @@ class CreateTest(unittest.TestCase):
         shutil.copyfile(fixture("v1_fleet7.cfg"), out)
         before = fc.load_migrated(SCHEMA, fixture("v1_fleet7.cfg"), echo=lambda _: None)
         override = fc.node_settings_for(SCHEMA, before, "bot", 2)
-        common = ["<default>"] * 4 + ["<default>", ""] + ["<default>"] * 2 + ["<default>"] * 6
+        common = ["<default>"] * 3 + ["<default>", ""] + ["<default>"] * 2 + ["<default>"] * 7
         tail = ["<default>", "<default>"] + accept(override, {"ALL", "BOT"}) + ["no"]
 
         # hub 1 and hub 30 are not asked: neither question applies to a hub
@@ -1094,8 +1131,8 @@ class CreateTest(unittest.TestCase):
         dst = os.path.join(self.env.dir, "dst.cfg")
         shutil.copyfile(fixture("v2_no_permanent_keys.cfg"), src)
         loaded = fc.parse_fleet_config(SCHEMA, fixture("v2_no_permanent_keys.cfg"))
-        answers = ["<default>"] * 5 + [""]
-        answers += ["<default>"] * 2 + ["<default>"] * 6
+        answers = ["<default>"] * 4 + [""]
+        answers += ["<default>"] * 2 + ["<default>"] * 7
         answers += accept(loaded.settings) + ["no"] + node_answers([30], [1])
         path = os.path.join(self.env.dir, "answers.txt")
         with open(path, "w") as f:
@@ -1107,8 +1144,8 @@ class CreateTest(unittest.TestCase):
 
     def test_per_node_questions_name_the_node(self):
         """Answering a VIN is meaningless without knowing which bot it is for."""
-        answers = ["7", "no", "yes", "1", "1, 2", "", "wifipass", "no",
-                   "<default>", "admin@example.com", "<default>", "<default>", "<default>", "<default>"]
+        answers = ["7", "yes", "1", "1, 2", "", "wifipass", "no",
+                   "<default>", "admin@example.com", "<default>", "<default>"]
         answers += settings_answers(ALL_GROUPS, {}) + ["no"]
         answers += node_answers([1, 30], [])          # hubs, then bot 1 runs out of answers
         result, _ = self.run_create(answers)
@@ -1116,7 +1153,7 @@ class CreateTest(unittest.TestCase):
         self.assertIn("no scripted answer for: bot 1: ", result.stderr)
 
     def test_nothing_written_when_answers_run_out(self):
-        result, out = self.run_create(["7", "no", "yes", "1"])
+        result, out = self.run_create(["7", "yes", "1"])
         self.assertEqual(result.returncode, 1)
         self.assertIn("no scripted answer", result.stderr)
         self.assertFalse(os.path.exists(out))
