@@ -248,6 +248,7 @@ filter-template-debian-builds: &filter-template-debian-builds
     branches:
       only:
         - "3.y"
+        - "task/3.y/iridium-sim-ci/SW-2679"
 
 # which branches to run the normal source build
 filter-template-normal-builds: &filter-template-normal-builds
@@ -291,6 +292,7 @@ filter-template-docker-sim-builds: &filter-template-docker-sim-builds
     branches:
       only:
         - "3.y"
+        - "task/3.y/iridium-sim-ci/SW-2679"
 
 ## Begin actual config
 version: 2.1
