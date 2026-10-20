@@ -22,51 +22,36 @@ function(stm32_sketch sketchname nickname device interface programmer baudrate)
 
   # Like the Arduino cmake: symlink the nanopb include dir into the sketch folder
   # so the Makefile finds both the runtime headers and the generated .pb.h files.
-  # Shared by all nicknames of a sketch so parallel builds don't race creating the same symlink.
-  set(links_target stm32_links_${sketchname})
-  if(NOT TARGET ${links_target})
-    add_custom_command(
-      OUTPUT ${STM32_SOURCE_DIR}/nanopb
-      DEPENDS ${project_INC_DIR}/nanopb
-      COMMAND ${CMAKE_COMMAND} -E make_directory ${STM32_SOURCE_DIR}/
-      COMMAND ${CMAKE_COMMAND} -E create_symlink
-        ${project_INC_DIR}/nanopb
-        ${STM32_SOURCE_DIR}/nanopb
-      COMMENT "Creating nanopb symlink for ${sketchname}"
-    )
+  file(CREATE_LINK ${project_INC_DIR}/nanopb ${STM32_SOURCE_DIR}/nanopb SYMBOLIC)
+  file(CREATE_LINK ${project_INC_DIR}/jaiabot ${STM32_SOURCE_DIR}/jaiabot SYMBOLIC)
 
-    add_custom_command(
-      OUTPUT ${STM32_SOURCE_DIR}/jaiabot
-      DEPENDS ${project_INC_DIR}/jaiabot
-      COMMAND ${CMAKE_COMMAND} -E make_directory ${STM32_SOURCE_DIR}
-      COMMAND ${CMAKE_COMMAND} -E create_symlink
-        ${project_INC_DIR}/jaiabot
-        ${STM32_SOURCE_DIR}/jaiabot
-      COMMENT "Creating jaiabot messages symlink for ${sketchname}"
-    )
+  file(GLOB_RECURSE firmware_sources
+    ${STM32_SOURCE_DIR}/Core/*
+    ${STM32_SOURCE_DIR}/*.s
+    ${STM32_SOURCE_DIR}/*.ld)
 
-    add_custom_target(${links_target}
-      DEPENDS ${STM32_SOURCE_DIR}/nanopb ${STM32_SOURCE_DIR}/jaiabot
-    )
-  endif()
-
-  # compile STM32 firmware via CubeMX-generated Makefile
+  # compile STM32 firmware via CubeMX-generated Makefile. The stamp rather than the hex is the
+  # output so the hex keeps the mtime upload.sh compares against when make has nothing to do.
+  set(build_stamp ${outdir}/build.stamp)
   add_custom_command(
-    OUTPUT ${hex_output}
+    OUTPUT ${build_stamp}
+    BYPRODUCTS ${hex_output}
     COMMAND ${CMAKE_COMMAND} -E make_directory ${outdir}
     # the Makefile appends to CFLAGS, so host flags from the environment (e.g. dpkg-buildflags
     # under debian/rules) would otherwise reach the bare-metal cross compiler
-    COMMAND ${CMAKE_COMMAND} -E env --unset=CFLAGS --unset=CPPFLAGS --unset=ASFLAGS --unset=LDFLAGS
+    COMMAND ${JAIA_RUN_QUIET} ${CMAKE_COMMAND} -E env --unset=CFLAGS --unset=CPPFLAGS --unset=ASFLAGS --unset=LDFLAGS
       make
+      --no-print-directory
       -C ${STM32_SOURCE_DIR}
       -j
       BUILD_DIR=${outdir}
       NANOPB_INC=${project_INC_DIR}/nanopb
       JAIABOT_INC=${project_INC_DIR}
       NANOPB_SYS_INC=${STM32_NANOPB_SYSTEM_INCLUDE_DIR}
+    COMMAND ${CMAKE_COMMAND} -E touch ${build_stamp}
     DEPENDS
-      ${project_INC_DIR}/nanopb
-      ${project_INC_DIR}/jaiabot
+      ${firmware_sources}
+      ${STM32_SOURCE_DIR}/Makefile
       jaiabot_messages_c
     COMMENT "Building STM32 firmware ${sketchname} for ${nickname}"
   )
@@ -74,72 +59,66 @@ function(stm32_sketch sketchname nickname device interface programmer baudrate)
   # target requiring compiled hex
   add_custom_target(stm32_compile_${sketchname}_${nickname}
     ALL
-    DEPENDS ${hex_output}
+    DEPENDS ${build_stamp}
   )
-  add_dependencies(stm32_compile_${sketchname}_${nickname} ${links_target})
 
-  # set upload variables for configure_file
   if(${nickname} STREQUAL "uart")
-    set(STM32_SERIAL_PORT /dev/ttyUSB0 CACHE STRING "Serial port for STM32 UART flashing")
-    set(baudrate_flag "${baudrate}")
-    set(serial_port_flag "${STM32_SERIAL_PORT}")
-  else()
-    set(baudrate_flag "")
-    set(serial_port_flag "")
-  endif()
-
-  # upload script with build-time paths
-  set(sharedir ${STM32_BINARY_DIR})
-  configure_file(
-    ${STM32_SOURCE_DIR}/upload.sh.in
-    ${outdir}/upload.sh
-    @ONLY
-  )
-
-  # upload script with install-time paths
-  set(sharedir ${STM32_INSTALL_DIR})
-  configure_file(
-    ${STM32_SOURCE_DIR}/upload.sh.in
-    ${outdir}/upload_installed.sh
-    @ONLY
-  )
-
-  install(
-    PROGRAMS ${outdir}/upload_installed.sh
-    DESTINATION ${STM32_INSTALL_DIR}/${sketchname}/${nickname}
-    RENAME upload.sh
-  )
-  install(
-    FILES ${hex_output}
-    DESTINATION ${STM32_INSTALL_DIR}/${sketchname}/${nickname}
-  )
-
-  # copy deploy script and stm32flash tool into the build output directory
-  if(${nickname} STREQUAL "uart")
+    # the deploy script and stm32flash tool stand in for the upload.sh.in template
     string(REPLACE "_" "-" sketch_script_name ${sketchname})
     set(deploy_script ${CMAKE_SOURCE_DIR}/scripts/hardware/stm32/deploy-${sketch_script_name}.sh)
     if(NOT EXISTS ${deploy_script})
       message(FATAL_ERROR "No deploy script found for sketch '${sketchname}': expected ${deploy_script}")
     endif()
-    add_custom_command(TARGET stm32_compile_${sketchname}_${nickname} POST_BUILD
-      COMMAND ${CMAKE_COMMAND} -E copy
-        ${deploy_script}
-        ${outdir}/upload.sh
-      COMMAND ${CMAKE_COMMAND} -E copy
-        ${CMAKE_SOURCE_DIR}/scripts/hardware/stm32/stm32flash-0.7.tar.gz
-        ${outdir}/stm32flash-0.7.tar.gz
+    set(stm32flash_tarball ${CMAKE_SOURCE_DIR}/scripts/hardware/stm32/stm32flash-0.7.tar.gz)
+    add_custom_command(
+      OUTPUT ${outdir}/upload.sh ${outdir}/stm32flash-0.7.tar.gz
+      COMMAND ${CMAKE_COMMAND} -E make_directory ${outdir}
+      COMMAND ${CMAKE_COMMAND} -E copy ${deploy_script} ${outdir}/upload.sh
+      COMMAND ${CMAKE_COMMAND} -E copy ${stm32flash_tarball} ${outdir}/stm32flash-0.7.tar.gz
+      DEPENDS ${deploy_script} ${stm32flash_tarball}
       COMMENT "Copying deploy script and stm32flash to ${outdir}"
     )
+    add_custom_target(stm32_deploy_files_${sketchname}_${nickname}
+      DEPENDS ${outdir}/upload.sh ${outdir}/stm32flash-0.7.tar.gz)
+    add_dependencies(stm32_compile_${sketchname}_${nickname} stm32_deploy_files_${sketchname}_${nickname})
+
     install(
       PROGRAMS ${deploy_script}
       DESTINATION ${STM32_INSTALL_DIR}/${sketchname}/${nickname}
       RENAME upload.sh
     )
     install(
-      FILES ${CMAKE_SOURCE_DIR}/scripts/hardware/stm32/stm32flash-0.7.tar.gz
+      FILES ${stm32flash_tarball}
       DESTINATION ${STM32_INSTALL_DIR}/${sketchname}/${nickname}
     )
+  else()
+    # upload script with build-time paths
+    set(sharedir ${STM32_BINARY_DIR})
+    configure_file(
+      ${STM32_SOURCE_DIR}/upload.sh.in
+      ${outdir}/upload.sh
+      @ONLY
+    )
+
+    # upload script with install-time paths
+    set(sharedir ${STM32_INSTALL_DIR})
+    configure_file(
+      ${STM32_SOURCE_DIR}/upload.sh.in
+      ${outdir}/upload_installed.sh
+      @ONLY
+    )
+
+    install(
+      PROGRAMS ${outdir}/upload_installed.sh
+      DESTINATION ${STM32_INSTALL_DIR}/${sketchname}/${nickname}
+      RENAME upload.sh
+    )
   endif()
+
+  install(
+    FILES ${hex_output}
+    DESTINATION ${STM32_INSTALL_DIR}/${sketchname}/${nickname}
+  )
 
   add_custom_target(stm32_upload_${sketchname}_${nickname}
     DEPENDS stm32_compile_${sketchname}_${nickname}

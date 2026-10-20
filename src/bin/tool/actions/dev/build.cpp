@@ -99,6 +99,10 @@ jaiabot::apps::dev::BuildTool::BuildTool()
 
         if (app_cfg().make())
             args.push_back("--make");
+        if (app_cfg().configure_verbose())
+            args.push_back("--configure-verbose");
+        if (app_cfg().build_verbose())
+            args.push_back("--build-verbose");
 
         for (const auto& target : app_cfg().target()) args.push_back(target);
     }

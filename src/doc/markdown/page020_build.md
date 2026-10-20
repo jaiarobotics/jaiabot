@@ -92,6 +92,29 @@ export JAIABOT_CMAKE_FLAGS="-Dbuild_doc=ON"
 ./build.sh
 ```
 
+### Build output
+
+*This section written by Claude*
+
+`build.sh` is quiet by default: a successful build prints Ninja's progress line and little else, while warnings and errors are still shown. Build steps that run other tools (pip, npm, the STM32 firmware `make`, ...) only show their output when they fail or print a warning. To see more, pass these flags or set the matching environment variables (to `1`):
+
+| Flag | Environment variable | Shows |
+|------|----------------------|-------|
+| `--configure-verbose` | `JAIA_CONFIGURE_VERBOSE` | CMake's status messages (compiler checks, packages found, version) |
+| `--build-verbose` | `JAIA_BUILD_VERBOSE` | Every build command (`ninja -v`) and the full output of each build step, including the STM32 firmware size report |
+| `--verbose` | `JAIA_VERBOSE` | Both of the above |
+
+```
+./build.sh --build-verbose
+JAIA_CONFIGURE_VERBOSE=1 ./build.sh
+# the jaia dev equivalents
+jaia dev build --configure_verbose --build_verbose
+```
+
+`JAIA_BUILD_VERBOSE` is read when each build step runs, so it also works when running `ninja` or `cmake --build` directly in the build directory.
+
+When running `ninja` directly, rerun `cmake .` (or `build.sh`) after adding a source file to the STM32 firmware or to the Python packages the dev venv installs, since those file lists are only gathered at configure time.
+
 ### Using `jaia dev`
 
 *This section written by Claude*

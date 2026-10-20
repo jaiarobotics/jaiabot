@@ -40,6 +40,7 @@ namespace middleware = goby::middleware;
 #include "jaiabot/health/health.h"
 #include "jaiabot/intervehicle.h"
 #include "jaiabot/messages/mission.pb.h"
+#include "jaiabot/messages/sensor/atlas_scientific__oem_ec.pb.h"
 #include "jaiabot/messages/sensor/pressure_temperature.pb.h"
 #include "jaiabot/messages/sensor/salinity.pb.h"
 #include "jaiabot/messages/storm_mcu.pb.h"

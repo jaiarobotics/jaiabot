@@ -57,6 +57,10 @@ struct TaskSelection : boost::statechart::state<TaskSelection, Task>,
                 case protobuf::MissionTask::STATION_KEEP: return transit<StationKeep>();
                 case protobuf::MissionTask::SURFACE_DRIFT: return transit<SurfaceDrift>();
                 case protobuf::MissionTask::CONSTANT_HEADING: return transit<ConstantHeading>();
+
+                // only used to label task packets from the STORM managers
+                case protobuf::MissionTask::STORM_AIR_DESCENT:
+                case protobuf::MissionTask::STORM_CTD_PROFILE: break;
             }
         }
 

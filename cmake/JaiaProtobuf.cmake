@@ -39,6 +39,10 @@ function(jaiabot_protobuf_generate)
       PROTOS ${args_PROTOS}
       GENERATE_EXTENSIONS .pb.h .pb.cc
     )
+    # protoc's generated code references the enum values the .proto marks deprecated
+    set(generated_sources ${${args_OUT_VAR}})
+    list(FILTER generated_sources INCLUDE REGEX "\\.pb\\.cc$")
+    set_source_files_properties(${generated_sources} PROPERTIES COMPILE_OPTIONS -Wno-deprecated-declarations)
   elseif("${args_LANGUAGE}" STREQUAL "C")
     protobuf_generate(
       LANGUAGE nanopb

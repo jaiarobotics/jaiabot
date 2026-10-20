@@ -16,7 +16,7 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/package-lock.json ${intermediate_web_
 set(npm_dependencies_stamp ${intermediate_web_dir}/npm_dependencies.stamp)
 
 add_custom_command(OUTPUT ${npm_dependencies_stamp}
-  COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/install_dependencies.sh
+  COMMAND ${JAIA_RUN_QUIET} ${CMAKE_CURRENT_SOURCE_DIR}/install_dependencies.sh
   ARGS ${intermediate_web_dir}
   COMMAND ${CMAKE_COMMAND} -E touch ${npm_dependencies_stamp}
   DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/package.json.in ${CMAKE_CURRENT_SOURCE_DIR}/package-lock.json
@@ -40,12 +40,12 @@ set(web_protobuf_types_stamp ${CMAKE_CURRENT_BINARY_DIR}/protobuf_types.stamp)
 file(GLOB_RECURSE web_proto_files ${project_SRC_DIR}/lib/messages/*.proto)
 
 add_custom_command(OUTPUT ${web_protobuf_types_stamp}
-  COMMAND ${CMAKE_COMMAND} -E env
+  COMMAND ${JAIA_RUN_QUIET} ${CMAKE_COMMAND} -E env
     "PATH=${intermediate_web_dir}/node_modules/.bin:$ENV{PATH}"
     "JAIA_PROTO_INCLUDE_DIRS=${web_proto_include_path}"
     ${CMAKE_CURRENT_SOURCE_DIR}/gen_protobuf_types.sh ${intermediate_web_dir}/types/proto
   COMMAND ${CMAKE_COMMAND} -E touch ${web_protobuf_types_stamp}
-  DEPENDS npm_dependencies ${web_proto_files}
+  DEPENDS npm_dependencies ${web_proto_files} ${CMAKE_CURRENT_SOURCE_DIR}/gen_protobuf_types.sh
   COMMENT "Generating TypeScript protobuf types for web apps"
   )
 
@@ -72,12 +72,9 @@ list(REMOVE_ITEM src_files
   ${CMAKE_CURRENT_SOURCE_DIR}/package.json
 )
 
-file(COPY ${src_files} DESTINATION ${intermediate_web_dir})
-
-# A developer's working tree may hold types generated from older protos; drop that copy and
-# clear the stamp so the intermediate tree only ever holds freshly generated ones
-file(REMOVE_RECURSE ${intermediate_web_dir}/types/proto)
-file(REMOVE ${web_protobuf_types_stamp})
+# Types run.sh generated into the source tree may be from older protos; the build generates its own
+file(COPY ${src_files} DESTINATION ${intermediate_web_dir}
+  REGEX "/types/proto$" EXCLUDE)
 
 set(web_out_dir ${project_SHARE_DIR}/jaiabot/web)
 
