@@ -425,6 +425,13 @@ workflows:
           <<: *filter-template-docker-sim-builds
           requires:
             - amd64-docker-sim
+      # the same mission with Iridium as the only link, through the Goby Iridium drivers and the 9602 simulator
+      - docker-sim-e2e:
+          name: docker-sim-e2e-iridium
+          comms: i
+          <<: *filter-template-docker-sim-builds
+          requires:
+            - amd64-docker-sim
 
       # every image that reaches an AMI gets trialled, on the same filter that built it
       - sea-trial-virtualfleet:
@@ -543,6 +550,11 @@ commands:
 
 jobs:
   docker-sim-e2e:
+    parameters:
+      # generate_all_launch.sh letters: (x)bee, (w)ifi, (i)ridium
+      comms:
+        type: string
+        default: w
     machine:
       image: ubuntu-2604:current
     resource_class: medium
@@ -568,7 +580,7 @@ jobs:
             fi
             echo $DOCKERHUB_PASSWORD | docker login -u $DOCKERHUB_USERNAME --password-stdin
             docker run -d --name jaia-sim -p 9092:9092 \
-              -e JAIA_SIM_BOTS=1 -e JAIA_SIM_WARP=10 -e JAIA_SIM_FLEET=30 \
+              -e JAIA_SIM_BOTS=1 -e JAIA_SIM_WARP=10 -e JAIA_SIM_FLEET=30 -e JAIA_SIM_COMMS=<< parameters.comms >> \
               gobysoft/jaiabot-sim:${TAG}-amd64
       - run:
           name: Run a short dive mission against the simulator

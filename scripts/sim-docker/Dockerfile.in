@@ -22,6 +22,9 @@ RUN echo "deb [signed-by=/etc/apt/keyrings/jaiabot.gpg] http://packages.jaia.tec
 RUN apt-get -y update
 # Install the required packages   
 RUN apt-get install -y goby3-gui goby3-apps goby3-moos jaiabot-apps jaiabot-python jaiabot-config jaiabot-web moos-ivp-apps moosdb10 libmoos-ivp gpsd wireguard chrony python3-systemd ansible rsync socat
+# Iridium 9602 modem simulator for jaia_comms_mode=iridium
+ARG VIRTUAL_IRIDIUM_REF=master
+RUN /usr/share/jaiabot/python/venv/bin/pip install --no-cache-dir "git+https://github.com/tsaubergine/virtual_iridium@${VIRTUAL_IRIDIUM_REF}"
 RUN useradd -mUs /bin/bash jaia
 COPY ./entrypoint.sh /entrypoint.sh
 ENTRYPOINT ["/bin/bash", "-li", "/entrypoint.sh"]
