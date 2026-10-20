@@ -13,8 +13,8 @@ Needs: a JaiaBot checkout of the release; its `jaia` tool first on `PATH` (the p
 from the same repo, or a build of that checkout); `aws login`; a Yubikey per physical
 hub; access to the domain's DNS.
 
-1. **Choose**: fleet id (not in use in the region), region (`ca-central-1`, `us-east-1`
-   or `us-gov-east-1`), repo (`release` for customers), base URI (`fleetN.jaia.tech` or
+1. **Choose**: fleet id (not in use in the region), region (`us-east-1` or
+   `us-gov-east-1`), repo (`release` for customers), base URI (`fleetN.jaia.tech` or
    a customer domain). The region must have a `<repo>/3.y` CloudHub image.
 2. **Fleet config**: `jaia admin fleet create fleetN.cfg`. Answers: fleet id; CloudHub
    **yes**; hub and bot ids; a Yubikey per hub; permanent SSH keys (yours and Jaia's);
