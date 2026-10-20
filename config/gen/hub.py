@@ -160,7 +160,9 @@ if common.app == 'goby_intervehicle_portal':
                                                      modem_imei_map=common.comms.iridium_modem_imei_mapping(),
                                                      sbd_type=sbd_type,
                                                      rockblock=rockblock,
-                                                     directip=directip)
+                                                     directip=directip,
+                                                     # the driver resolves the MT server only in the IP version this selects
+                                                     ipv6='ipv6: true' if ':' in iridium_mt_server_address else '')
 
     if has_hub2hub:
         # Hub2Hub comms
