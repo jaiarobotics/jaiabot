@@ -75,18 +75,12 @@ sed -i -E \
     -e 's/<VirtualHost[[:space:]]+\*:80>/<VirtualHost *:8080>/I' \
     /etc/apache2/sites-available/jcc.conf
 
-# Set up basic REST_API configuration with no key required
-# (as Authelia will handle authentication for this too)
+# Authelia authenticates the REST API's callers; it has no key of its own
 cat <<EOF > /etc/jaiabot/rest_api.pb.cfg
 streaming_endpoint {
     hub_id: $jaia_hub_id
     hostname: "::1"
     port: 40000
-}
-
-key {
-    private_key: ""
-    permission: [ALL]
 }
 EOF
 
