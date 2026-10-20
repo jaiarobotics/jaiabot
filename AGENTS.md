@@ -14,6 +14,7 @@ Subdirectories can have their own `AGENTS.md`. Before changing files, also read 
 
 ## Branches and PR titles
 
+- Never push to a release branch (`1.y`, `2.y`, `3.y`, ...). Create a branch from it and open a PR targeting it.
 - Name branches `<issue type>/<release branch>/<short-name>/<JIRA key>`, e.g. `task/3.y/mark-claude-docs/SW-2594`: the JIRA issue type in lowercase (`task`, `bug`, ...), the release branch the PR targets, a short kebab-case name, and the JIRA issue ID.
 - Title PRs the same way: `<issue type> / <release branch> / <short description> / <JIRA key>`, e.g. `task / 3.y / Mark Claude-authored sections of the Markdown docs / SW-2594`.
 - Take the issue type and key from the JIRA issue itself, or from the current branch name if it already follows this pattern. If you can't determine them, ask; never guess or invent a JIRA key or issue type.
