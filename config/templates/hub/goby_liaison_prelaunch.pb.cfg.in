@@ -242,13 +242,7 @@ upper_right_logo_link: "https://www.jaia.tech/"
         input_var {
             name: "comms_link"
             display_name: "Comms Links"
-            value: "xbee"
-            value: "wifi"
-            value: "iridium"
-            value: "xbee,wifi"
-            value: "xbee,iridium"
-            value: "wifi,iridium"
-            value: "xbee,iridium,wifi"
+            $comms_link_values
         }
         $limit
     }

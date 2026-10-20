@@ -1169,7 +1169,10 @@ def test_hub_key(fleet, hub):
 
 
 # Answers proposed for questions whose default is empty
-GENERATED_DEFAULTS = {"rf_encryption_password": lambda: secrets.token_hex(16)}
+GENERATED_DEFAULTS = {"rf_encryption_password": lambda: secrets.token_hex(16),
+                      "dccl_encryption_password": lambda: secrets.token_urlsafe(24)}
+
+JAIA_SMTP_ADDRESS = "submission://smtp.postmarkapp.com:587"
 
 
 def current_answer(q, settings):
@@ -1307,12 +1310,15 @@ def per_node_answers(schema, cfg):
     return answers
 
 
-def create(schema, ui, banner=None, existing=None, test_keys=False):
+def create(schema, ui, banner=None, existing=None, test_keys=False, simulation=False):
     """Ask every question, starting from an existing configuration when given."""
     cfg = schema.FleetConfig()
     if existing is not None:
         cfg.CopyFrom(existing)
     cfg.version = schema.version
+    if existing is None:
+        enum = cfg.DESCRIPTOR.fields_by_name["fleet_type"].enum_type
+        cfg.fleet_type = enum.values_by_name["FLEET_TYPE_SIMULATION" if simulation else "FLEET_TYPE_REAL"].number
     state = {
         "simulation": is_simulation(cfg),
         "cloudhub": wants_cloudhub(cfg),
@@ -1329,17 +1335,6 @@ def create(schema, ui, banner=None, existing=None, test_keys=False):
     def choose_fleet():
         cfg.fleet = ask_id(ui, "fleet_id", "Which fleet is this?",
                            cfg.fleet if cfg.HasField("fleet") else None)
-
-    def choose_fleet_type():
-        enum = cfg.DESCRIPTOR.fields_by_name["fleet_type"].enum_type
-        state["simulation"] = ui.yesno(
-            "Is this a simulation (VirtualFleet or VirtualBox) rather than real hardware?",
-            default="yes" if state["simulation"] else "no")
-        cfg.fleet_type = enum.values_by_name[
-            "FLEET_TYPE_SIMULATION" if state["simulation"] else "FLEET_TYPE_REAL"].number
-        # Proposed from what the config claims rather than from whether hub 30 is
-        # present, so editing one that has lost it still offers to put it back
-        state["cloudhub"] = cfg.includes_cloudhub and not state["simulation"]
 
     def choose_cloudhub():
         state["cloudhub"] = ui.yesno(
@@ -1424,19 +1419,35 @@ def create(schema, ui, banner=None, existing=None, test_keys=False):
             state["base_uri"] = proposed
             auth.base_uri = ui.inputbox("CloudHub base URI", current)
 
+        def jaia_smtp():
+            current = (auth.smtp_address in ("", JAIA_SMTP_ADDRESS) and not auth.HasField("smtp_sender")
+                       and not auth.HasField("smtp_credentials_ssm_parameter"))
+            state["jaia_smtp"] = ui.yesno(
+                "Are you using Jaia SMTP (Postmark, sending as noreply@auth.jaia.tech, "
+                "with the credentials in /jaia/cloudhub/smtp_credentials)?",
+                default="yes" if current else "no")
+            if state["jaia_smtp"]:
+                auth.smtp_address = JAIA_SMTP_ADDRESS
+                auth.ClearField("smtp_sender")
+                auth.ClearField("smtp_credentials_ssm_parameter")
+
         run_steps([
             Step(None, base_uri),
             Step(None, lambda: setattr(auth, "admin_email", ask_matching(
                 ui, "Enter the initial 'admin' user email", EMAIL_RE, "an email address", auth.admin_email))),
+            Step(None, jaia_smtp),
             Step(None, lambda: setattr(auth, "smtp_address", ui.inputbox(
-                "Enter the SMTP server address", auth.smtp_address or "submission://smtp.postmarkapp.com:587"))),
+                "Enter the SMTP server address", auth.smtp_address or JAIA_SMTP_ADDRESS)),
+                 enabled=lambda: not state["jaia_smtp"]),
             Step(None, lambda: optional_field(auth, "smtp_sender", ui.inputbox(
                 "Enter the email sender address, verified with the SMTP provider "
-                "(leave blank for the default, noreply@auth.jaia.tech)", auth.smtp_sender))),
+                "(leave blank for the default, noreply@auth.jaia.tech)", auth.smtp_sender)),
+                 enabled=lambda: not state["jaia_smtp"]),
             Step(None, lambda: optional_field(auth, "smtp_credentials_ssm_parameter", ui.inputbox(
                 "Enter the AWS SSM parameter (name or ARN) holding the SMTP credentials "
                 "(leave blank for the default, /jaia/cloudhub/smtp_credentials)",
-                auth.smtp_credentials_ssm_parameter))),
+                auth.smtp_credentials_ssm_parameter)),
+                 enabled=lambda: not state["jaia_smtp"]),
         ])
 
     def customer():
@@ -1574,7 +1585,6 @@ def create(schema, ui, banner=None, existing=None, test_keys=False):
 
     run_steps([
         Step("Choose fleet", choose_fleet),
-        Step("Fleet type", choose_fleet_type),
         Step("CloudHub", choose_cloudhub),
         Step("Choose hubs", choose_hubs),
         Step("Choose bots", choose_bots),
@@ -1609,7 +1619,7 @@ def ask_and_write(schema, args, existing, out):
         print(TEST_KEYS_WARNING, file=sys.stderr)
         ui.msgbox(TEST_KEYS_WARNING)
     try:
-        cfg = create(schema, ui, banner, existing, args.test_keys)
+        cfg = create(schema, ui, banner, existing, args.test_keys, getattr(args, "simulation", False))
     except GoBack:
         print("Cancelled; nothing written", file=sys.stderr)
         return 1
@@ -1655,6 +1665,8 @@ def build_parser():
     p.add_argument("--answers", help=argparse.SUPPRESS)
     p.add_argument("--test-keys", action="store_true",
                    help="Testing only: give new hubs ordinary SSH keys instead of Yubikeys. Never for a real deployment.")
+    p.add_argument("--simulation", action="store_true",
+                   help="A simulated fleet (VirtualFleet or VirtualBox) rather than real hardware")
     p.set_defaults(func=cmd_create)
 
     p = sub.add_parser("edit", help="Interactively re-answer the questions of an existing fleet configuration")

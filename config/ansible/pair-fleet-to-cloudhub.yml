@@ -16,6 +16,7 @@
     - name: Pair this node with the CloudHub
       shell: /etc/jaiabot/init/pair-with-cloudhub.sh
       register: pairing
+      changed_when: "'Paired with' in pairing.stdout"
 
     - name: Display the result
       debug:

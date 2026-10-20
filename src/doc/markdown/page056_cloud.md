@@ -480,6 +480,8 @@ jaiaf6      AAAA    2001:db8::42
 *.jaiaf6    CNAME   jaiaf6.gobysoft.org.
 ```
 
+Caddy stays stopped until every site's name resolves to the CloudHub's own addresses (`jaia-caddy-dns-ready.sh`; `journalctl -u caddy` says which name it is waiting for), and `jaia-caddy-start.timer` starts it within 30 seconds of that. Let's Encrypt is therefore not asked for certificates before the records exist, so it has no failed attempts to back off from.
+
 ### Required SMTP
 
 *This section written by Claude*
@@ -493,6 +495,8 @@ The relevant `cloudhub` fields of the fleet configuration are:
 | `smtp_address` | (required) | SMTP server Authelia sends through: `submission://smtp.postmarkapp.com:587` for Postmark |
 | `smtp_sender` | `noreply@auth.jaia.tech` | From address. It must be verified with the SMTP provider |
 | `smtp_credentials_ssm_parameter` | `/jaia/cloudhub/smtp_credentials` | AWS SSM Parameter Store SecureString holding the SMTP login as `{"username": "...", "password": "..."}`. A plain name is looked up in the CloudHub's own account and region; a full ARN can point anywhere the CloudHub's role is allowed to read |
+
+`jaia admin fleet create` asks "Are you using Jaia SMTP?"; yes sets Postmark and the two defaults, and no asks for all three.
 
 For example, a client that hosts their CloudHub in their own AWS account and sends from their own domain:
 
