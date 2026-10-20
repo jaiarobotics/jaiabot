@@ -249,6 +249,7 @@ filter-template-debian-builds: &filter-template-debian-builds
       only:
         - "3.y"
         - "task/3.y/iridium-sim-ci/SW-2679"
+        - "task/3.y/docker-sim-e2e-wifi-xbee/SW-2680"
 
 # which branches to run the normal source build
 filter-template-normal-builds: &filter-template-normal-builds
@@ -293,6 +294,7 @@ filter-template-docker-sim-builds: &filter-template-docker-sim-builds
       only:
         - "3.y"
         - "task/3.y/iridium-sim-ci/SW-2679"
+        - "task/3.y/docker-sim-e2e-wifi-xbee/SW-2680"
 
 ## Begin actual config
 version: 2.1
@@ -422,12 +424,21 @@ workflows:
             - arm64-docker-sim
             - amd64-docker-sim
 
-      # fast feedback on the mission driver itself, on every commit that builds the sim
+      # fast feedback on the mission driver itself, on every commit that builds the sim,
+      # with each link on its own
       - docker-sim-e2e:
+          name: docker-sim-e2e-wifi
+          comms: w
           <<: *filter-template-docker-sim-builds
           requires:
             - amd64-docker-sim
-      # the same mission with Iridium as the only link, through the Goby Iridium drivers and the 9602 simulator
+      - docker-sim-e2e:
+          name: docker-sim-e2e-xbee
+          comms: x
+          <<: *filter-template-docker-sim-builds
+          requires:
+            - amd64-docker-sim
+      # through the Goby Iridium drivers and the 9602 simulator
       - docker-sim-e2e:
           name: docker-sim-e2e-iridium
           comms: i
