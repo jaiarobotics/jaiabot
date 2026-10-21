@@ -269,7 +269,9 @@ cat <<EOF > /etc/authelia/configuration.yml
 server:
   address: 'tcp://:$authelia_port'
   asset_path: '$authelia_asset_dir'
-default_2fa_method: 'totp'
+# Blank: a user with no stored preference is offered the method they registered
+# (TOTP, then a security key); a named default would be offered first regardless
+default_2fa_method: ''
 webauthn:
   disable: false
   enable_passkey_login: false

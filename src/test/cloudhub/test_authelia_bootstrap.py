@@ -35,11 +35,13 @@ class AutheliaBootstrapTest(unittest.TestCase):
         self.assertIsNotNone(found, "the script no longer writes {}.json".format(name))
         return found.group(1)
 
-    def test_the_default_second_factor_is_the_one_time_password(self):
-        """A user who has registered only a TOTP is otherwise sent to the Security Key
-        page on every login and has to pick Methods first."""
-        self.assertIn("default_2fa_method: 'totp'", self.text)
+    def test_no_second_factor_method_is_forced_on_users(self):
+        """With a method named here, a user who registered only the other one is sent
+        to its page on every login and has to pick Methods first. Blank, Authelia
+        offers the method the user registered."""
+        self.assertIn("default_2fa_method: ''", self.text)
         self.assertRegex(self.text, r"totp:\n  disable: false")
+        self.assertRegex(self.text, r"webauthn:\n  disable: false")
 
     def test_the_admin_is_bootstrapped_without_a_password(self):
         self.assertNotIn("password", self.user_config("fleet_admin"))
