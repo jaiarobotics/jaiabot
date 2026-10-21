@@ -78,9 +78,10 @@ must match the host in the link, `auth.<base uri>`; `auth.jaia.tech/*` does not,
 Tenant Allow/Block List URL entry alone may not either. Then request a new reset
 email (older ones were already scanned) and check no Microsoft-IP `/identity/finish`
 precedes the user's. Not yet confirmed on a fleet. A bootstrap address outside Microsoft
-365 avoids it for the commissioning account. Planned Jaia-side fix: a custom email
-template that sends the link through a Caddy-served "Continue" page with the token
-after `#`, where a scanner cannot spend it.
+365 avoids it for the commissioning account. From SW-2701 (#1811) the CloudHub answers
+these links with a Continue page until the person presses its button, so a scanner's
+visit spends nothing; on such a CloudHub this entry applies only if the scanner also
+presses buttons.
 
 ## Nodes
 
