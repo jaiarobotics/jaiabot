@@ -276,6 +276,7 @@ filter-template-rootfs-builds: &filter-template-rootfs-builds
       only:
         - "3.y"
         - "task/3.y/fleet7-feedback/SW-2694"
+        - "task/3.y/scanner-safe-links/SW-2701"
 
 # which branches to run the AWS virtual machine conversion (must be same as or subset of filter-template-rootfs-builds)
 filter-template-aws-rootfs-builds: &filter-template-aws-rootfs-builds
@@ -286,6 +287,7 @@ filter-template-aws-rootfs-builds: &filter-template-aws-rootfs-builds
       only:
         - "3.y"
         - "task/3.y/fleet7-feedback/SW-2694"
+        - "task/3.y/scanner-safe-links/SW-2701"
 
 # which branches to build Docker simulator
 filter-template-docker-sim-builds: &filter-template-docker-sim-builds
