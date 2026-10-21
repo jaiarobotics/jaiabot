@@ -249,6 +249,7 @@ filter-template-debian-builds: &filter-template-debian-builds
       only:
         - "3.y"
         - "task/3.y/fleet7-feedback/SW-2694"
+        - "task/3.y/scanner-safe-links/SW-2701"
 
 # which branches to run the normal source build
 filter-template-normal-builds: &filter-template-normal-builds

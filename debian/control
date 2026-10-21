@@ -168,7 +168,7 @@ Depends: debconf, debconf-utils,
          moos-ivp-apps, moosdb10, libmoos-ivp,
          gpsd, chrony,
          dnsmasq-base,
-         ansible
+         ansible, python3-dnspython
 Section: science
 Architecture: all
 Description: Metapackage to install the required code for the embedded bot or hub computer and configure it using debconf.

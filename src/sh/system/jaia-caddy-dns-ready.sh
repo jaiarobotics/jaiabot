@@ -22,17 +22,16 @@ ipv4=$(meta public-ipv4) || {
 }
 ipv6s=$(meta "network/interfaces/macs/$(meta mac)/ipv6s") || ipv6s=""
 
-# A lookup made before the records existed is cached as not found
-resolvectl flush-caches 2>/dev/null || true
-
+# Asked at the zone's own name servers: a resolver on the way (the VPC's, this
+# host's) can hold an old answer for the record's whole TTL
 for name in "$@"; do
-    found=$(getent ahostsv4 "$name" | awk '{print $1}' | sort -u)
+    found=$(jaia-dns-lookup.py "$name" A | sort -u)
     if ! grep -qxF "$ipv4" <<< "$found"; then
         echo "Waiting for $name to resolve to $ipv4 (now: $(echo ${found:-nothing}))"
         exit 1
     fi
     # Let's Encrypt validates over IPv6 when there is an AAAA record, so a stale one fails it too
-    for addr in $(getent ahostsv6 "$name" | awk '{print $1}' | grep -v '^::ffff:' | sort -u); do
+    for addr in $(jaia-dns-lookup.py "$name" AAAA | sort -u); do
         if ! grep -qxF "$addr" <<< "$ipv6s"; then
             echo "Waiting for $name to resolve to this CloudHub's IPv6 address (now: $addr)"
             exit 1

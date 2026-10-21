@@ -510,6 +510,10 @@ cloudhub {
 }
 ```
 
+*This section written by Claude*
+
+Mail scanners such as Microsoft Defender Safe Links open the links in these emails before the person does, and Authelia's pages spend their one-time token or code as they load. Caddy therefore answers `GET /reset-password/step2`, `/revoke/reset-password` and `/revoke/one-time-code` on `auth.<base uri>` with a static Continue page (`/_jaia/continue.html`) until the request carries `confirmed=1`, which the page's button adds before reloading the same address; Authelia ignores the extra parameter. A scanner that also presses buttons would still spend the token; nothing on our side can stop that.
+
 `create_vpc.sh` grants the CloudHub's IAM role `ssm:GetParameter` on this parameter (and `kms:Decrypt` through SSM, for parameters encrypted with a customer managed key), and `jaia_configure_authelia.sh` reads it at configuration time. If the parameter cannot be read, Authelia is configured to send without authenticating, which only works with a relay that allowlists the CloudHub's IP addresses (e.g. Google Workspace SMTP Relay). Postmark will refuse it, and Authelia will not start.
 
 You can use `https://www.mail-tester.com/` to check the likelihood that your emails will be caught in spam.

@@ -269,7 +269,9 @@ cat <<EOF > /etc/authelia/configuration.yml
 server:
   address: 'tcp://:$authelia_port'
   asset_path: '$authelia_asset_dir'
-default_2fa_method: 'webauthn'
+# Blank: a user with no stored preference is offered the method they registered
+# (TOTP, then a security key); a named default would be offered first regardless
+default_2fa_method: ''
 webauthn:
   disable: false
   enable_passkey_login: false
@@ -500,6 +502,20 @@ $base_uri {
 auth.$base_uri {
         $caddy_tls
         import jaia_nav
+        # Mail scanners open the links in Authelia's emails before the person does, and
+        # the pages behind them spend their one-time token or code as they load. Until the
+        # person has pressed Continue (which adds confirmed=1), these are a static page.
+        @unconfirmed_link {
+                method GET
+                path /reset-password/step2 /revoke/reset-password /revoke/one-time-code
+                not query confirmed=1
+        }
+        handle @unconfirmed_link {
+                root * $jaia_cloud_web_dir
+                rewrite * /_jaia/continue.html
+                header Cache-Control no-store
+                file_server
+        }
         handle {
                 import jaia_nav_proxy localhost:$authelia_port
         }

@@ -23,23 +23,14 @@ case "$url" in
 esac
 """
 
-# STUB_V4/STUB_V6: "name=addr,name=addr"; getent prints a line per address as the real one does
-GETENT_STUB = """#!/bin/bash
-db=$1 name=$2
-[ "$db" = ahostsv4 ] && table=$STUB_V4 || table=$STUB_V6
-found=1
+# STUB_V4/STUB_V6: "name=addr,name=addr", what the zone's name servers answer
+LOOKUP_STUB = """#!/bin/bash
+name=$1 rtype=$2
+[ "$rtype" = A ] && table=$STUB_V4 || table=$STUB_V6
 for entry in ${table//,/ }; do
-    if [ "${entry%%=*}" = "$name" ]; then
-        echo "${entry#*=}      STREAM $name"
-        found=0
-    fi
+    [ "${entry%%=*}" = "$name" ] && echo "${entry#*=}"
 done
-if [ "$db" = ahostsv6 ]; then
-    for entry in ${STUB_V4//,/ }; do
-        [ "${entry%%=*}" = "$name" ] && echo "::ffff:${entry#*=} STREAM $name" && found=0
-    done
-fi
-exit $found
+exit 0
 """
 
 NAMES = ["fleet7.jaia.tech", "run.fleet7.jaia.tech"]
@@ -51,8 +42,7 @@ class CaddyDnsReadyTest(unittest.TestCase):
         self.addCleanup(self._tmp.cleanup)
         self.bin = os.path.join(self._tmp.name, "bin")
         os.makedirs(self.bin)
-        for name, body in (("curl", CURL_STUB), ("getent", GETENT_STUB),
-                           ("resolvectl", "#!/bin/bash\nexit 0\n")):
+        for name, body in (("curl", CURL_STUB), ("jaia-dns-lookup.py", LOOKUP_STUB)):
             path = os.path.join(self.bin, name)
             with open(path, "w") as f:
                 f.write(body)
