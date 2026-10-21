@@ -255,6 +255,13 @@ elif common.app == 'goby_liaison_prelaunch':
         major_upgrade_note='Requires Major Upgrade image to be connected to this Hub via USB Key or CD'
         major_upgrade_backup_values='value: "yes"\n            value: "no"'
 
+    # The first choice is the default, so it is the node's own: changing another
+    # setting must not quietly switch on a radio the node does not have
+    comms_link_choices=['xbee', 'wifi', 'iridium', 'xbee,wifi', 'xbee,iridium', 'wifi,iridium', 'xbee,wifi,iridium']
+    in_use=set(m.value for m in common.jaia_comms_modes)
+    comms_link_choices.sort(key=lambda choice: set(choice.split(',')) != in_use)
+    comms_link_values='\n            '.join('value: "' + c + '"' for c in comms_link_choices)
+
     print(config.template_substitute(templates_dir+'/hub/goby_liaison_prelaunch.pb.cfg.in',
                                      app_block=app_common,
                                      http_port=liaison_port,
@@ -271,6 +278,7 @@ elif common.app == 'goby_liaison_prelaunch':
                                      major_upgrade_limit=major_upgrade_limit,
                                      major_upgrade_note=major_upgrade_note,
                                      major_upgrade_backup_values=major_upgrade_backup_values,
+                                     comms_link_values=comms_link_values,
                                      ansible_log_dir=common.jaia_log_dir + '/ansible'))
 elif common.app == 'goby_gps':
     print(config.template_substitute(templates_dir+'/goby_gps.pb.cfg.in',
