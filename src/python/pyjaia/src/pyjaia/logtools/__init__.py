@@ -3,6 +3,7 @@ import h5py
 from pyjaia.series import Series
 from google.protobuf.message import Message
 from google.protobuf.descriptor import FieldDescriptor, Descriptor
+import pyjaia.monkey_patches.protobuf
 from typing import Callable, Set, Any, TypeVar, List
 import re
 import logging
@@ -342,13 +343,13 @@ class JaiaLogH5:
                     if index >= len(objects):
                         objects.append(ProtobufMessage())
                     if value is not None:
-                        if field.label == FieldDescriptor.LABEL_REPEATED:
+                        if field.is_repeated:
                             getattr(objects[index], field.name).extend(filter(lambda x: x is not None, value))
                         else:
                             setattr(objects[index], field.name, value)
 
             elif field.type == FieldDescriptor.TYPE_MESSAGE:
-                if field.label == FieldDescriptor.LABEL_REPEATED:
+                if field.is_repeated:
                     l.warning(color_text(f'Field {field.name} is a repeated message field.  This is not supported yet.', 'red'))
                     continue
 

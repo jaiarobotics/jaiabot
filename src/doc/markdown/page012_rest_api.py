@@ -1,6 +1,7 @@
 import jaiabot.messages.rest_api_pb2
 import google.protobuf.json_format
 from google.protobuf.descriptor import *
+import pyjaia.monkey_patches.protobuf
 import json
 from dataclasses import *
 from typing import *
@@ -285,7 +286,7 @@ def generate_simple_variant(action, parent):
             presence = field.GetOptions().Extensions[jaiabot.messages.option_extensions_pb2.field].rest_api.presence
             if presence != jaiabot.messages.option_extensions_pb2.RestAPI.GUARANTEED:
                 continue
-            elif field.label == google.protobuf.descriptor.FieldDescriptor.LABEL_REPEATED:
+            elif field.is_repeated:
                 continue
             elif field.cpp_type == field.CPPTYPE_INT32:
                 get_vars[field.name] = '<INT32>'
@@ -484,13 +485,13 @@ def introspect_and_populate(message, action, oneof_selection):
             if field.type == field.TYPE_MESSAGE:
                 # Recursively populate nested messages
                 nested_msg = getattr(msg, field.name)
-                if field.label == field.LABEL_REPEATED:
+                if field.is_repeated:
                     for rep in range(0, n_repeats):
                         nested_msg.add()
                         populate_message(nested_msg[-1], action)
                 else:
                     populate_message(nested_msg, action)
-            elif field.label == field.LABEL_REPEATED:
+            elif field.is_repeated:
                 for rep in range(0, n_repeats):
                     # Populate repeated fields with one dummy value
                     if field.type == field.TYPE_STRING:

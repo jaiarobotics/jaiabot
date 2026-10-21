@@ -15,6 +15,7 @@ import re
 import os
 import logging
 import threading
+import pyjaia.monkey_patches.protobuf
 
 from common.api_exception import APIException
 import common.target as target
@@ -173,7 +174,7 @@ def parse_get_args(jaia_request_action, action_field_desc):
     for field in jaia_request_action.DESCRIPTOR.fields:
         get_var = request.args.get(field.name)
         if get_var is not None:
-            if field.label == google.protobuf.descriptor.FieldDescriptor.LABEL_REPEATED:
+            if field.is_repeated:
                 raise APIException(jaiabot.messages.rest_api_pb2.API_ERROR__ACTION_REQUIRES_JSON_POST_DATA, "Repeated fields are not supported via GET. Use POST to pass JSON according to the '" + jaia_request_action.DESCRIPTOR.full_name + "' Protobuf message")
                 
             elif field.cpp_type in (field.CPPTYPE_INT32, 
