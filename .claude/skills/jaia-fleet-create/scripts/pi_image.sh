@@ -39,5 +39,7 @@ if [ -n "$DIR" ]; then
     mkdir -p "$DIR"
     out="${DIR}/${name}.img.gz"
     curl -fL -m 3600 --retry 3 -C - -o "$out" "$url"
-    [ "$(stat -c %s "$out")" = "$size" ] && echo "downloaded ${out}" || { echo "download incomplete: ${out}" >&2; exit 1; }
+    [ "$(stat -c %s "$out")" = "$size" ] || { echo "download incomplete: ${out}" >&2; exit 1; }
+    gzip -t "$out" || { echo "downloaded file is not a valid gzip: ${out}" >&2; exit 1; }
+    echo "downloaded ${out} (size and gzip verified)"
 fi

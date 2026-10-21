@@ -55,8 +55,10 @@ FAIL stops the part; explain every WARN. When something fails, look in
   (`--ip` ignores this workstation's resolver); it also reports port 22 closed.
 - **A8**: on a "Connection to Hub Dropped" banner, `scripts/check_cloudhub.sh … --ssh`
   during a pairing window (C1).
-- **B1**: `scripts/pi_image.sh <repo> [--download <dir>]` finds the image; by hand,
-  `gunzip -c <image> | sudo dd of=/dev/<card> bs=4M status=progress`. Confirm the device
+- **B1**: download the image for the technician without being asked:
+  `scripts/pi_image.sh <repo> --download <config dir>/image` (public HTTPS, no AWS; it
+  checks the size and the gzip), and give them the path. By hand it is written with
+  `gunzip -c <image> | sudo dd of=/dev/<card> bs=4M status=progress`; confirm the device
   with the technician before anything writes to it.
 - **B**: `scripts/preflight.sh --part B --config fleetN.cfg` (warns without the CloudHub
   key); `scripts/check_node.sh <address>` once a node is up (`jaia_ip h<id>f<N>` /
