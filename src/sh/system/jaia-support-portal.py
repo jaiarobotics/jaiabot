@@ -182,35 +182,13 @@ def recent_decisions():
 ## Page ##
 ##########
 
-STYLE = """
-body { font-family: sans-serif; margin: 0 auto; max-width: 52rem; padding: 2rem 1rem;
-       color: #202020; }
-h1 { font-size: 1.4rem; }
-h2 { font-size: 1.1rem; margin-top: 2rem; }
-textarea { width: 100%; height: 12rem; font-family: monospace; font-size: 0.8rem; }
-table { border-collapse: collapse; margin: 1rem 0; width: 100%; }
-th { text-align: left; padding: 0.3rem 1rem 0.3rem 0; vertical-align: top;
-     font-weight: normal; color: #606060; }
-td { padding: 0.3rem 1rem 0.3rem 0; vertical-align: top; }
-table.log { font-size: 0.85rem; }
-table.log td { border-top: 1px solid #e8e8e8; }
-.banner { padding: 0.8rem 1rem; border-radius: 4px; margin: 1rem 0; }
-.granted { background: #e8f4e8; border: 1px solid #93c293; }
-.none { background: #f0f0f0; border: 1px solid #c8c8c8; }
-.refused { background: #f8e8e8; border: 1px solid #c29393; }
-.quiet { color: #707070; font-size: 0.85rem; }
-ul.scopes { list-style: none; padding: 0; margin: 1rem 0; }
-ul.scopes li { margin: 0 0 1rem 0; }
-ul.scopes .quiet { display: block; margin-left: 1.6rem; }
-button { font-size: 1rem; padding: 0.5rem 1.2rem; }
-"""
 
 
 def page(title, body):
     return ("<!DOCTYPE html>\n<html lang=\"en\"><head><meta charset=\"utf-8\">"
             "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">"
-            "<title>{}</title><style>{}</style></head><body>{}</body></html>"
-            .format(html.escape(title), STYLE, body))
+            "<title>{}</title><link rel=\"stylesheet\" href=\"/_jaia/support.css\"></head>"
+            "<body>{}</body></html>".format(html.escape(title), body))
 
 
 def rows(pairs, css=""):
@@ -399,7 +377,7 @@ class Portal(http.server.BaseHTTPRequestHandler):
         # 'self' admits the navigation menu Caddy injects from /_jaia/
         self.send_header("Content-Security-Policy",
                          "default-src 'none'; script-src 'self'; connect-src 'self'; img-src 'self'; "
-                         "style-src 'self' 'unsafe-inline'")
+                         "style-src 'self'")
         if cookie:
             self.send_header("Set-Cookie", "{}={}; Path=/; HttpOnly; Secure; SameSite=Strict"
                              .format(CSRF_COOKIE, cookie))
