@@ -46,7 +46,7 @@ jaia admin fleet create fleet5.cfg
 
 *This section written by Claude*
 
-This will prompt you using a whiptail UI to set the various fleet related settings, and write the contents to `fleet5.cfg`. The bot/hub settings it asks for are the same questions, in the same order, as `jaiabot-embedded` asks on a node (both come from `fleet_config.proto`), first for the whole fleet and then, optionally, for sets of bots or hubs whose answers differ. Every dialog has a **Back** button that returns to the previous question; going back past the first one leaves without writing anything.
+This will prompt you using a whiptail UI to set the various fleet related settings, and write the contents to `fleet5.cfg`. The bot/hub settings it asks for are the same questions, in the same order, as `jaiabot-embedded` asks on a node (both come from `fleet_config.proto`), first for the whole fleet and then, optionally, for sets of bots or hubs whose answers differ. Every dialog has a **Back** button that returns to the previous question; going back past the first one leaves without writing anything. For a VirtualFleet or VirtualBox fleet, add `--simulation`; `edit` keeps the fleet's type.
 
 This tool will also create the hub keys (with a Yubikey per physical hub; the CloudHub makes its own key, see [CloudHub SSH key](page056_cloud.md#cloudhub-ssh-key)), VPN temporary keys as necessary and include those in the fleet configuration file. It needs `ssh-keygen`, `ykman` (yubikey-manager) and `whiptail` on the machine running it.
 
