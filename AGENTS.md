@@ -46,6 +46,10 @@ your own section:
   another agent's section, and never remove text already there.
 - When updating a PR description, rewrite only your own `# <agent>` section.
 
+## Third-party dependencies
+
+- Pin every dependency that does not come from apt (a tool a build script installs, a release tarball, a container image) in `scripts/common-versions.env`, with a `# renovate:` line above it so Renovate keeps it current (see `renovate.json`). Scripts read the version from there; never hard-code one.
+
 ## Documentation
 
 - Prefix everything you write in `src/doc/markdown` with `*This section written by <agent>*`: directly below the heading of a new section, or on its own line above text added to an existing section.

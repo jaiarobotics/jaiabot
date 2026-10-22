@@ -190,5 +190,5 @@ Conflicts: caddy, authelia
 Replaces: caddy, authelia
 Description: Caddy, Authelia and LLDAP for the JaiaBot CloudHub
  Caddy with the replace-response plugin, built from source, and the Authelia and
- LLDAP releases pinned in src/web/thirdparty/versions.env, so a CloudHub's first
+ LLDAP releases pinned in scripts/common-versions.env, so a CloudHub's first
  boot and upgrades install nothing from third-party servers.

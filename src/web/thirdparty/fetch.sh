@@ -1,6 +1,6 @@
 #!/bin/bash
-# Downloads the Authelia and LLDAP releases pinned in versions.env, checks them against
-# the recorded SHA-256s and lays them out as jaiabot-web-thirdparty installs them.
+# Downloads the Authelia and LLDAP releases pinned in scripts/common-versions.env, checks
+# them against the recorded SHA-256s and lays them out as jaiabot-web-thirdparty installs them.
 #
 #   fetch.sh <amd64|arm64> <stage dir>   the deb build
 #   fetch.sh --update-checksums          rewrite the SHA-256 lines after a version bump
@@ -8,7 +8,7 @@
 set -euo pipefail
 
 here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
-versions=$here/versions.env
+versions=$here/../../../scripts/common-versions.env
 source "$versions"
 
 download() {
@@ -16,7 +16,7 @@ download() {
 }
 
 authelia_url() {
-    echo "https://github.com/authelia/authelia/releases/download/v${AUTHELIA_VERSION}/authelia-v${AUTHELIA_VERSION}-linux-$1.tar.gz"
+    echo "https://github.com/authelia/authelia/releases/download/v${jaia_version_authelia}/authelia-v${jaia_version_authelia}-linux-$1.tar.gz"
 }
 
 lldap_url() {
@@ -26,11 +26,11 @@ lldap_url() {
         arm64) arch=aarch64 ;;
         *) echo "fetch.sh: no LLDAP release for $1" >&2; exit 1 ;;
     esac
-    echo "https://github.com/lldap/lldap/releases/download/v${LLDAP_VERSION}/${arch}-lldap.tar.gz"
+    echo "https://github.com/lldap/lldap/releases/download/v${jaia_version_lldap}/${arch}-lldap.tar.gz"
 }
 
 lldap_bootstrap_url() {
-    echo "https://raw.githubusercontent.com/lldap/lldap/v${LLDAP_VERSION}/scripts/bootstrap.sh"
+    echo "https://raw.githubusercontent.com/lldap/lldap/v${jaia_version_lldap}/scripts/bootstrap.sh"
 }
 
 sha256() {
@@ -41,33 +41,36 @@ verify() {
     local file=$1 expected=$2 actual
     actual=$(sha256 "$file")
     if [ "$actual" != "$expected" ]; then
-        echo "fetch.sh: $file: SHA-256 $actual, versions.env says $expected" >&2
+        echo "fetch.sh: $file: SHA-256 $actual, common-versions.env says $expected" >&2
         exit 1
     fi
 }
 
+record() {
+    sed -i "s/^$1=.*/$1=$(sha256 "$2")/" "$versions"
+}
+
 update_checksums() {
-    local arch key
+    local arch
     tmp=$(mktemp -d)
     trap 'rm -rf "$tmp"' EXIT
     for arch in amd64 arm64; do
-        key=${arch^^}
         download "$(authelia_url $arch)" "$tmp/authelia-$arch.tar.gz"
-        sed -i "s/^AUTHELIA_SHA256_$key=.*/AUTHELIA_SHA256_$key=$(sha256 "$tmp/authelia-$arch.tar.gz")/" "$versions"
+        record "jaia_sha256_authelia_$arch" "$tmp/authelia-$arch.tar.gz"
         download "$(lldap_url $arch)" "$tmp/lldap-$arch.tar.gz"
-        sed -i "s/^LLDAP_SHA256_$key=.*/LLDAP_SHA256_$key=$(sha256 "$tmp/lldap-$arch.tar.gz")/" "$versions"
+        record "jaia_sha256_lldap_$arch" "$tmp/lldap-$arch.tar.gz"
     done
     download "$(lldap_bootstrap_url)" "$tmp/bootstrap.sh"
-    sed -i "s/^LLDAP_BOOTSTRAP_SHA256=.*/LLDAP_BOOTSTRAP_SHA256=$(sha256 "$tmp/bootstrap.sh")/" "$versions"
-    grep SHA256 "$versions"
+    record jaia_sha256_lldap_bootstrap "$tmp/bootstrap.sh"
+    grep '^jaia_sha256_' "$versions"
 }
 
 stage() {
-    local arch=$1 stage=$2 key=${1^^}
+    local arch=$1 stage=$2
     tmp=$(mktemp -d)
     trap 'rm -rf "$tmp"' EXIT
 
-    local authelia_sha=AUTHELIA_SHA256_$key lldap_sha=LLDAP_SHA256_$key
+    local authelia_sha=jaia_sha256_authelia_$arch lldap_sha=jaia_sha256_lldap_$arch
     mkdir -p "$stage/usr/bin" "$stage/usr/share/lldap" "$stage/usr/libexec/lldap"
 
     download "$(authelia_url $arch)" "$tmp/authelia.tar.gz"
@@ -83,14 +86,14 @@ stage() {
     mv "$tmp/lldap/app" "$stage/usr/share/lldap/app"
 
     download "$(lldap_bootstrap_url)" "$tmp/bootstrap.sh"
-    verify "$tmp/bootstrap.sh" "$LLDAP_BOOTSTRAP_SHA256"
+    verify "$tmp/bootstrap.sh" "$jaia_sha256_lldap_bootstrap"
     install -m 0755 "$tmp/bootstrap.sh" "$stage/usr/libexec/lldap/bootstrap.sh"
 
     chmod 0755 "$stage/usr/bin/authelia" "$stage/usr/bin/lldap" "$stage/usr/bin/lldap_set_password"
 
     if [ "$(dpkg --print-architecture)" = "$arch" ]; then
-        "$stage/usr/bin/authelia" --version | grep -F "v${AUTHELIA_VERSION}"
-        "$stage/usr/bin/lldap" --version | grep -F "${LLDAP_VERSION}"
+        "$stage/usr/bin/authelia" --version | grep -F "v${jaia_version_authelia}"
+        "$stage/usr/bin/lldap" --version | grep -F "${jaia_version_lldap}"
     fi
 }
 
