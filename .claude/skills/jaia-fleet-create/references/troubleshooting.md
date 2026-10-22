@@ -92,10 +92,24 @@ must match the host in the link, `auth.<base uri>`; `auth.jaia.tech/*` does not,
 Tenant Allow/Block List URL entry alone may not either. Then request a new reset
 email (older ones were already scanned) and check no Microsoft-IP `/identity/finish`
 precedes the user's. Not yet confirmed on a fleet. A bootstrap address outside Microsoft
-365 avoids it for the commissioning account. From SW-2701 (#1811) the CloudHub answers
-these links with a Continue page until the person presses its button, so a scanner's
-visit spends nothing; on such a CloudHub this entry applies only if the scanner also
-presses buttons.
+365 avoids it for the commissioning account. From SW-2708 (#1817) a reset link only
+reaches Authelia from the browser that asked for the reset (a `jaia_reset` cookie), so
+a scanner gets a static page and spends nothing. The SW-2701 Continue page did not
+stop Defender, which presses buttons (Fleet 8, 2026-10-22). On such a CloudHub, a user
+who sees "Open this link where you asked for it" opened the email on another device:
+they ask again from the device they read mail on.
+
+**The emailed one-time code is refused when registering a second factor** (WebAuthn
+says invalid, or One-Time Password spins on Verify) — before SW-2708, Defender opened
+the code email's cancel link and cancelled the code. Authelia logs `"the code challenge
+has been revoked"` for the user. From SW-2708 the cancel links work only for someone
+signed in, so a scanner cancels nothing.
+
+**"Failed to generate the One-Time Code" or "too many requests"** — Authelia's rate
+limit on sending codes or reset emails, counted per address; a whole office shares
+one. `sudo journalctl -u authelia | grep "Rate Limit Exceeded"` shows it. From SW-2708
+it is 20 per 5 minutes and 100 per hour; otherwise wait
+it out, or restart Authelia to clear it.
 
 ## Nodes
 
