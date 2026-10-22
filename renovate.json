@@ -1,0 +1,34 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "baseBranches": ["3.y"],
+  "enabledManagers": ["gomod", "custom.regex"],
+  "labels": ["thirdparty"],
+  "gomod": {
+    "managerFilePatterns": ["/^src/web/thirdparty/caddy/go\\.mod$/"]
+  },
+  "postUpdateOptions": ["gomodTidy"],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Authelia and LLDAP releases pinned in src/web/thirdparty/versions.env",
+      "managerFilePatterns": ["/^src/web/thirdparty/versions\\.env$/"],
+      "matchStrings": [
+        "# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)(?: extractVersion=(?<extractVersion>\\S+))?\\n[A-Z_]+_VERSION=(?<currentValue>\\S+)"
+      ]
+    }
+  ],
+  "packageRules": [
+    {
+      "matchManagers": ["gomod"],
+      "groupName": "caddy",
+      "commitMessageTopic": "Caddy"
+    },
+    {
+      "matchManagers": ["custom.regex"],
+      "prBodyNotes": [
+        "Before merging, run `src/web/thirdparty/fetch.sh --update-checksums` and commit the new SHA-256 lines in `versions.env`; the deb build refuses a tarball whose checksum does not match."
+      ]
+    }
+  ]
+}

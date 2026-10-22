@@ -459,6 +459,22 @@ In short, Authelia manages authentication, Caddy manages the reverse proxy (betw
 
 An instance of all three of these runs on each CloudHub.
 
+#### The `jaiabot-web-thirdparty` package
+
+*This section written by Claude*
+
+All three come from one Debian package of the jaiabot source, `jaiabot-web-thirdparty`, which CircleCI builds and publishes alongside the other jaiabot packages for `amd64` and `arm64`:
+
+- **Caddy** is built from source by `go build` in the deb build, from `src/web/thirdparty/caddy` (a three-line `main.go` importing Caddy and the replace-response plugin; `go.mod`/`go.sum` pin every module). The package `Provides`, `Conflicts` with and `Replaces` Ubuntu's `caddy`, so it is the only Caddy on a CloudHub.
+- **Authelia** and **LLDAP** are the upstream release tarballs, downloaded in the deb build and checked against the SHA-256s recorded in `src/web/thirdparty/versions.env`. LLDAP runs natively from `/usr/bin/lldap` (web app in `/usr/share/lldap/app`, bootstrap script in `/usr/libexec/lldap`), so a CloudHub no longer needs Docker.
+- The AWS CLI comes from Ubuntu's `awscli` package, a dependency.
+
+The package is in the CloudHub image (`rootfs/customization/package-lists/cloud.list.chroot`), so a fresh CloudHub's first boot only configures what the image already holds: nothing is fetched from caddyserver.com, apt.authelia.com, Docker Hub or Amazon's CLI downloads, none of which had a bounded timeout before. First boot still needs AWS itself, Let's Encrypt and apt metadata. A Minor Upgrade upgrades the package with the rest of jaiabot (`config/ansible/tasks/install-jaiabot.yml`); a Major Upgrade's image carries it.
+
+The package enables none of its units: `jaia_configure_authelia.sh` writes each service's configuration, enables it and starts it (restarting Caddy only when the running process's binary has been replaced by an upgrade, and LLDAP only when its configuration changed, as it already does for Authelia).
+
+**Updating the versions.** `renovate.json` at the repository root tells [Renovate](https://docs.renovatebot.com/) to open PRs against `3.y`: one for Caddy and its modules (the `gomod` manager, which also moves the untagged replace-response plugin forward by commit), and one each for Authelia and LLDAP from their GitHub releases (a regex manager over `versions.env`). A version PR for Authelia or LLDAP needs its checksums refreshed before it can build: `src/web/thirdparty/fetch.sh --update-checksums` downloads the new tarballs and rewrites the `SHA256` lines. Authelia migrates its database forward and cannot read it once a newer release has, so never merge a downgrade. Renovate runs only once the Renovate GitHub app is enabled for the repository.
+
 ### Required DNS entries
 
 *This section written by Claude*
@@ -559,4 +575,4 @@ Replace `.fleetN.jaia.tech` with your custom domain in the examples above, where
 
 Every page on these sites shows a floating Jaia button in the bottom left corner with the fleet number and the login name of the signed-in user. It opens a menu linking to the landing page, Run (JCC, JCU, JDV), Sim (JCC, JCU, JDV), Users and Account, showing only the sites the user's groups allow, plus a Log out button. Sim is shown as "Not running" until the VirtualFleet has been started from JCU, and the sim site itself says so instead of a blank error while it is down.
 
-Caddy injects the menu into every HTML page, including the third-party Authelia and LLDAP pages, using the [replace-response](https://github.com/caddyserver/replace-response) plugin. Ubuntu's `caddy` package doesn't include it, so `jaia_configure_authelia.sh` downloads a build with the plugin from the Caddy download service, installs it as `/usr/bin/caddy.custom` and selects it with `dpkg-divert` and `update-alternatives` (the apt binary becomes `/usr/bin/caddy.default`), so package upgrades don't undo it. The plugin version is pinned in `common-versions.env` (`jaia_version_caddy_replace_response`). The menu (`/_jaia/nav.js`, `/_jaia/nav.css`) and the landing page are static files from `src/web/cloud`, installed by `jaiabot-web` to `/usr/share/jaiabot/web/cloud`; the menu learns who is signed in from `/_jaia/whoami`, which Caddy answers from the headers Authelia returns.
+Caddy injects the menu into every HTML page, including the third-party Authelia and LLDAP pages, using the [replace-response](https://github.com/caddyserver/replace-response) plugin. Ubuntu's `caddy` package doesn't include it, so the CloudHub runs the Caddy that `jaiabot-web-thirdparty` builds from source with the plugin (see below).

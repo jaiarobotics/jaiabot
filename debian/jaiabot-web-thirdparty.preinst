@@ -1,0 +1,16 @@
+#!/bin/sh
+set -e
+
+# A CloudHub configured before this package kept Ubuntu's caddy diverted to caddy.default
+# with an alternatives link at /usr/bin/caddy; clear both so this package's caddy lands there
+if [ "$1" = "install" ] || [ "$1" = "upgrade" ]; then
+    if [ -n "$(dpkg-divert --list /usr/bin/caddy)" ]; then
+        update-alternatives --remove-all caddy 2>/dev/null || true
+        rm -f /usr/bin/caddy /usr/bin/caddy.custom /usr/bin/caddy.default
+        dpkg-divert --remove --no-rename /usr/bin/caddy
+    fi
+fi
+
+#DEBHELPER#
+
+exit 0

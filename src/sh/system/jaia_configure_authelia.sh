@@ -14,12 +14,7 @@ jaia_auth_lldap_bootstrap_completed=false
 set -a
 source "/etc/jaiabot/jaia.env"
 source "/etc/jaiabot/cloud.env"
-source "/usr/share/jaiabot/common-versions.env"
 set +a
-
-## Versions
-# use whatever caddy Ubuntu ships with
-# caddy_version = ... # apt
 
 ## Ports
 lldap_ldap_port=3890
@@ -90,70 +85,25 @@ systemctl reload apache2
 ## APT ##
 #########
 
-# Apt repo for Authelia
-if [ ! -f /usr/share/keyrings/authelia-security.gpg ]; then
-    curl -fsSL https://www.authelia.com/keys/authelia-security.gpg -o /usr/share/keyrings/authelia-security.gpg
-    echo 'deb [arch='$(dpkg --print-architecture)' signed-by=/usr/share/keyrings/authelia-security.gpg] https://apt.authelia.com stable main' | tee /etc/apt/sources.list.d/authelia.list > /dev/null
+# Earlier releases installed Authelia from its own apt repository; jaiabot-web-thirdparty
+# now carries it, Caddy and LLDAP, and is already in a CloudHub's image
+rm -f /etc/apt/sources.list.d/authelia.list /etc/apt/preferences.d/authelia /usr/share/keyrings/authelia-security.gpg
+
+apt-get update && apt-get install -y --no-upgrade jaiabot-web-thirdparty
+
+# Not grep -q: under pipefail it exits on the first match and caddy dies of SIGPIPE
+if ! caddy list-modules 2>/dev/null | grep -x http.handlers.replace_response > /dev/null; then
+    echo "ERROR: $(command -v caddy) lacks the replace_response module; is jaiabot-web-thirdparty installed?" >&2
+    exit 1
 fi
-
-# A series, not an exact version: Authelia migrates its database forward and cannot read it
-# once a newer release has, so a node must never go back to an older one. Below 1000 so apt
-# never downgrades.
-cat <<EOF > /etc/apt/preferences.d/authelia
-Package: authelia
-Pin: version ${jaia_version_authelia_series}.*
-Pin-Priority: 990
-EOF
-
-apt-get update && apt-get install -y authelia caddy docker-compose-v2 fuse-overlayfs
-
-##################
-## Custom Caddy ##
-##################
-
-# Ubuntu's caddy lacks the replace-response plugin that injects the shared
-# navigation into every proxied page, so fetch a build with it from the Caddy
-# download service and install it beside the apt binary the way the Caddy docs
-# recommend for deb installs: apt keeps upgrading the diverted caddy.default
-# while update-alternatives points /usr/bin/caddy at caddy.custom.
-caddy_custom=/usr/bin/caddy.custom
-caddy_plugin=github.com/caddyserver/replace-response
-caddy_plugin_version=$jaia_version_caddy_replace_response
-caddy_binary_changed=false
-
-caddy_has_plugin() {
-    # list-modules prints "http.handlers.replace_response <version>" and build-info
-    # prints "dep <module> <version>"; either confirms the pinned plugin.
-    # Not grep -q: under pipefail it exits on the first match and caddy dies of SIGPIPE
-    [ -x "$1" ] && { "$1" list-modules --versions; "$1" build-info; } 2>/dev/null \
-        | grep -E "replace[-_]response[[:space:]]+${caddy_plugin_version}([[:space:]]|$)" >/dev/null
-}
-
-if ! caddy_has_plugin "$caddy_custom"; then
-    # Download next to the destination: /tmp may be mounted noexec
-    caddy_download=$caddy_custom.tmp
-    if curl -fsSL --retry 3 --retry-delay 10 -o "$caddy_download" \
-            "https://caddyserver.com/api/download?os=linux&arch=$(dpkg --print-architecture)&p=${caddy_plugin}@${caddy_plugin_version}" \
-            && chmod 0755 "$caddy_download" && caddy_has_plugin "$caddy_download"; then
-        mv "$caddy_download" "$caddy_custom"
-        caddy_binary_changed=true
-    elif [ -x "$caddy_custom" ] && "$caddy_custom" list-modules 2>/dev/null | grep '^http.handlers.replace_response$' >/dev/null; then
-        echo "WARNING: Could not download Caddy with ${caddy_plugin}@${caddy_plugin_version}; keeping the existing $caddy_custom" >&2
-    else
-        echo "ERROR: Could not download Caddy with ${caddy_plugin}@${caddy_plugin_version} from caddyserver.com and no usable $caddy_custom exists" >&2
-        rm -f "$caddy_download"
-        exit 1
-    fi
-    rm -f "$caddy_download"
-fi
-
-if [ -z "$(dpkg-divert --list /usr/bin/caddy)" ]; then
-    dpkg-divert --divert /usr/bin/caddy.default --rename /usr/bin/caddy
-fi
-update-alternatives --install /usr/bin/caddy caddy /usr/bin/caddy.default 10
-update-alternatives --install /usr/bin/caddy caddy "$caddy_custom" 50
-update-alternatives --set caddy "$caddy_custom"
 echo "Using $(caddy version)"
+
+# A running Caddy cannot reload into a binary apt has since replaced
+caddy_binary_changed=false
+caddy_pid=$(systemctl show -p MainPID --value caddy 2>/dev/null || echo 0)
+if [ "${caddy_pid:-0}" != 0 ] && [ "$(readlink "/proc/$caddy_pid/exe" 2>/dev/null)" != /usr/bin/caddy ]; then
+    caddy_binary_changed=true
+fi
 
 
 ##############
@@ -191,16 +141,6 @@ fi
 # allocates need not be the one that wrote the database before a major upgrade
 chown -R authelia:authelia $authelia_persistent_dir
 
-# Update docker to use fuse-overlayfs (required to use overlayfs as backing filesystem for docker as overlayfs-on-overlayfs isn't supported)
-if [ ! -f /etc/docker/daemon.json ]; then
-    cat <<EOF > /etc/docker/daemon.json
-{
-  "storage-driver": "fuse-overlayfs"
-}
-EOF
-    systemctl restart docker
-fi
-
 # Everything Authelia reads at startup, so we can restart it below only when
 # this run changed something (a restart signs everyone out: sessions are in memory)
 authelia_inputs_fingerprint() {
@@ -209,9 +149,6 @@ authelia_inputs_fingerprint() {
         /etc/authelia/smtp_password 2>/dev/null | sha256sum || true
 }
 authelia_inputs_before=$(authelia_inputs_fingerprint)
-
-# Authelia configuration
-mv /etc/authelia/configuration.yml /etc/authelia/configuration.yml.ex
 
 
 authelia_secrets_file=$authelia_persistent_dir/secrets
@@ -612,6 +549,7 @@ EOF
     systemctl enable jaia-caddy-start.timer
 fi
 systemctl daemon-reload
+systemctl enable caddy
 
 # Caddy starts with its stock Caddyfile when installed, so reload to apply ours
 # (graceful if running). The running process cannot reload into a new binary,
@@ -713,64 +651,68 @@ cat > /etc/lldap/bootstrap/user-configs/jaia_support.json <<EOF
 }
 EOF
 
-cat <<EOF > /etc/lldap/docker-compose.yaml
-services:
-  lldap:
-    image: lldap/lldap:$jaia_version_lldap
-    volumes:
-      - "$lldap_persistent_dir:/data"
-      - "/etc/lldap/bootstrap:/bootstrap"
-    ports:
-      # web portal
-      - "$lldap_web_port:$lldap_web_port"
-      # ldap
-      - "$lldap_ldap_port:$lldap_ldap_port"
-    environment:
-      - LLDAP_JWT_SECRET=$lldap_jwt_secret
-      - LLDAP_KEY_SEED=$lldap_key_seed
-      - LLDAP_LDAP_BASE_DN=dc=jaia,dc=tech
-      - LLDAP_LDAP_USER_DN=authelia
-      - LLDAP_LDAP_USER_PASS=$authelia_ldap_password
-      - LLDAP_LDAP_USER_EMAIL=authelia@$base_uri
+# An LLDAP configured before jaiabot-web-thirdparty ran in Docker from a unit written
+# here, which would shadow the package's
+if [ -f /etc/systemd/system/lldap.service ]; then
+    systemctl disable --now lldap || true
+    rm -f /etc/systemd/system/lldap.service /etc/lldap/docker-compose.yaml
+    systemctl daemon-reload
+fi
 
-      - LLDAP_URL=http://localhost:$lldap_web_port
-      - LLDAP_ADMIN_USERNAME=authelia
-      - LLDAP_ADMIN_PASSWORD=$authelia_ldap_password
-      - GROUP_CONFIGS_DIR=/bootstrap/group-configs
-      - USER_CONFIGS_DIR=/bootstrap/user-configs
-      - DO_CLEANUP=false
+# recursive, as for Authelia: the lldap uid differs between images, and the container ran as another
+chown -R lldap:lldap $lldap_persistent_dir
+
+lldap_inputs_fingerprint() {
+    cat /etc/lldap/lldap_config.toml /etc/systemd/system/lldap.service.d/jaia-swap.conf 2>/dev/null | sha256sum || true
+}
+lldap_inputs_before=$(lldap_inputs_fingerprint)
+
+cat <<EOF > /etc/lldap/lldap_config.toml
+ldap_host = "127.0.0.1"
+ldap_port = $lldap_ldap_port
+http_host = "127.0.0.1"
+http_port = $lldap_web_port
+jwt_secret = "$lldap_jwt_secret"
+key_seed = "$lldap_key_seed"
+ldap_base_dn = "dc=jaia,dc=tech"
+ldap_user_dn = "authelia"
+ldap_user_email = "authelia@$base_uri"
+ldap_user_pass = "$authelia_ldap_password"
+database_url = "sqlite://$lldap_persistent_dir/users.db?mode=rwc"
 EOF
-
-cat <<EOF > /etc/systemd/system/lldap.service
-[Unit]
-Description=LLDAP Docker
-Requires=docker.service
-After=docker.service
-
-[Service]
-Type=simple
-WorkingDirectory=/etc/lldap
-ExecStart=/usr/bin/docker compose -f /etc/lldap/docker-compose.yaml up --remove-orphans
-ExecStop=/usr/bin/docker compose -f /etc/lldap/docker-compose.yaml down
+chown root:lldap /etc/lldap/lldap_config.toml
+chmod 0640 /etc/lldap/lldap_config.toml
 
 # We need the swap file for Authelia + JCC running on EC2 micro
 # overlayroot won't allow swapfile in /etc/fstab, so we start it here
-ExecStartPre=-/usr/sbin/swapon $swapfile
-
-Restart=always
-TimeoutStopSec=30
-
-[Install]
-WantedBy=multi-user.target
+mkdir -p /etc/systemd/system/lldap.service.d
+cat <<EOF > /etc/systemd/system/lldap.service.d/jaia-swap.conf
+[Service]
+ExecStartPre=-+/usr/sbin/swapon $swapfile
 EOF
+systemctl daemon-reload
 systemctl enable lldap
-systemctl start lldap
+# LLDAP reads its configuration at startup only
+if [ "$(lldap_inputs_fingerprint)" != "$lldap_inputs_before" ]; then
+    systemctl restart lldap
+else
+    systemctl start lldap
+fi
 
 if ! $jaia_auth_lldap_bootstrap_completed; then
-    # -T because cloud-init gives this no TTY, and bounded because a first boot that
-    # never returns leaves the machine without the reboot that mounts overlayroot
+    # bounded because a first boot that never returns leaves the machine without the
+    # reboot that mounts overlayroot
     for attempt in $(seq 1 120); do
-        if docker compose -f /etc/lldap/docker-compose.yaml exec -T lldap /app/bootstrap.sh; then
+        if LLDAP_URL=http://127.0.0.1:$lldap_web_port \
+           LLDAP_ADMIN_USERNAME=authelia \
+           LLDAP_ADMIN_PASSWORD="$authelia_ldap_password" \
+           USER_CONFIGS_DIR=/etc/lldap/bootstrap/user-configs \
+           GROUP_CONFIGS_DIR=/etc/lldap/bootstrap/group-configs \
+           USER_SCHEMAS_DIR=/etc/lldap/bootstrap/user-schemas \
+           GROUP_SCHEMAS_DIR=/etc/lldap/bootstrap/group-schemas \
+           LLDAP_SET_PASSWORD_PATH=/usr/bin/lldap_set_password \
+           DO_CLEANUP=false \
+           /usr/libexec/lldap/bootstrap.sh; then
             echo "jaia_auth_lldap_bootstrap_completed=true" >> /etc/jaiabot/cloud.env
             mkdir -p "$auth_persistent_dir"
             touch "$jaia_bootstrap_marker"
