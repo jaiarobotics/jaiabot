@@ -5,11 +5,14 @@
 # This line is the whole of what that key can do, so it is written in one place
 # rather than by each caller. Its one caller is jaia-support-access.py, which
 # rewrites it on every run from the fleet pairing record so that it outlives a
-# reboot and ends when pairing does.
+# reboot and ends when pairing does. sshd reads the file only for connections to
+# the pairing port, and no other key file there.
 
 set -u -e
 
-AUTHORIZED_KEYS="${JAIA_TMP_AUTHORIZED_KEYS:-/etc/jaiabot/ssh/tmp_authorized_keys}"
+AUTHORIZED_KEYS="${JAIA_PAIRING_AUTHORIZED_KEYS:-/etc/jaiabot/ssh/pairing_authorized_keys}"
+# Where earlier releases kept the line, read on port 22 alongside every other key
+LEGACY_AUTHORIZED_KEYS="${JAIA_TMP_AUTHORIZED_KEYS:-/etc/jaiabot/ssh/tmp_authorized_keys}"
 ENROLL_COMMAND="/usr/bin/jaia-vpn-enroll.sh"
 
 usage()
@@ -56,10 +59,13 @@ mkdir -p "$(dirname "${AUTHORIZED_KEYS}")"
 touch "${AUTHORIZED_KEYS}"
 chmod 600 "${AUTHORIZED_KEYS}"
 
-# Only this key's entry: the file also holds the temporary keys of whoever
-# 'jaia admin ssh add' has let in. Dropping it first makes renewing a renewal
-# rather than a second, still-expired entry.
+# Only this key's entry: dropping it first makes renewing a renewal rather than a
+# second, still-expired entry. The legacy file also holds the temporary keys of
+# whoever 'jaia admin ssh add' has let in, which stay.
 sed -i "\|${blob}|d" "${AUTHORIZED_KEYS}"
+if [ -f "${LEGACY_AUTHORIZED_KEYS}" ]; then
+    sed -i "\|${blob}|d" "${LEGACY_AUTHORIZED_KEYS}"
+fi
 # sshd reads this file as the user logging in, and both touch and sed -i leave it
 # owned by whoever runs this (root, from the reconcile timer)
 chown --reference="$(dirname "${AUTHORIZED_KEYS}")" "${AUTHORIZED_KEYS}"

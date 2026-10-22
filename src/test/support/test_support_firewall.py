@@ -22,7 +22,7 @@ import time
 import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from support_stubs import FLEET, CloudHub
+from support_stubs import FLEET, PAIRING_PORT, CloudHub
 
 SOURCE_DIR = pathlib.Path(__file__).resolve().parents[3]
 ACCESS = SOURCE_DIR / "src" / "sh" / "system" / "jaia-support-access.py"
@@ -329,8 +329,8 @@ class FirewallTest(unittest.TestCase):
         self.assertEqual(self.WEB_GROUPS, self.hub.web_groups())
 
 
-    ## Fleet pairing: port 22 open to everyone, and the bootstrap key authorized,
-    ## for as long as someone chose and no longer
+    ## Fleet pairing: the pairing port open to everyone, and the bootstrap key
+    ## authorized, for as long as someone chose and no longer
 
     def keep_key(self):
         self.access("set-bootstrap-key", "--key", self.hub.bootstrap_key)
@@ -355,6 +355,7 @@ class FirewallTest(unittest.TestCase):
         self.hub.hand_over()
         self.access("reconcile")
         self.assertIsNone(self.hub.enrollment_line())
+        self.assertFalse(self.hub.pairing_port_open())
         self.assertFalse(self.hub.open_to_everyone())
 
     def test_opening_pairing_authorizes_the_bootstrap_key_until_it_ends(self):
@@ -367,12 +368,70 @@ class FirewallTest(unittest.TestCase):
             re.search(r'expiry-time="([^"]+)"', line).group(1), "%Y%m%d%H%M%SZ"))
         self.assertAlmostEqual(before + 8 * 3600, until, delta=5)
 
-    def test_after_hand_over_pairing_opens_the_port_to_everyone(self):
+    def test_after_hand_over_pairing_opens_the_pairing_port_to_everyone(self):
         """A new node enrolls from wherever it happens to be."""
         self.keep_key()
         self.hub.hand_over()
         self.open_pairing()
-        self.assertTrue(self.hub.open_to_everyone())
+        self.assertTrue(self.hub.pairing_port_open())
+
+    def test_pairing_never_opens_port_22(self):
+        """Port 22 reads Jaia's root keys; only a support grant opens it."""
+        self.keep_key()
+        self.hub.hand_over()
+        self.open_pairing()
+        self.assertEqual([], self.hub.open_to(22))
+        self.assertFalse(any('"FromPort": 22,' in call and "0.0.0.0/0" in call
+                             and "authorize-security-group-ingress" in call
+                             for call in self.hub.aws_calls()))
+
+    def test_opening_pairing_closes_the_provisioning_rule_too(self):
+        with open(self.hub.security_group, "w") as f:
+            json.dump(["0.0.0.0/0", "::/0"], f)
+        self.keep_key()
+        self.hub.hand_over()
+        self.open_pairing()
+        self.assertFalse(self.hub.open_to_everyone())
+        self.assertTrue(self.hub.pairing_port_open())
+
+    def test_a_cloudhub_that_paired_on_port_22_moves_to_the_pairing_port(self):
+        """Upgraded with pairing open: the old record says open, with no port."""
+        with open(self.hub.security_group, "w") as f:
+            json.dump(["0.0.0.0/0", "::/0"], f)
+        self.keep_key()
+        self.hub.hand_over()
+        self.open_pairing()
+        port_file = os.path.join(self.hub.state, "pairing-port.json")
+        with open(port_file) as f:
+            held = json.load(f)
+        held.pop("port")
+        with open(port_file, "w") as f:
+            json.dump(held, f)
+        with open(self.hub.security_group, "w") as f:
+            json.dump(["0.0.0.0/0", "::/0"], f)
+        self.access("reconcile")
+        self.assertFalse(self.hub.open_to_everyone())
+        self.assertTrue(self.hub.pairing_port_open())
+
+    def test_closing_pairing_drops_the_enrollment_sessions(self):
+        self.keep_key()
+        self.hub.hand_over()
+        self.open_pairing()
+        self.access("close-pairing", "--by", "operator")
+        self.assertIn("-K state established ( sport = :{} )".format(PAIRING_PORT),
+                      self.hub.ss_calls())
+
+    def test_the_enrollment_line_is_taken_out_of_the_shared_key_file(self):
+        """Where earlier releases kept it, read on port 22 with every other key."""
+        line = 'restrict,command="/usr/bin/jaia-vpn-enroll.sh" ' + self.hub.bootstrap_key
+        with open(self.hub.tmp_authorized_keys, "w") as f:
+            f.write(line + "\n" + 'expiry-time="20991231" ssh-ed25519 AAAAoperator\n')
+        self.keep_key()
+        self.open_pairing()
+        with open(self.hub.tmp_authorized_keys) as f:
+            shared = f.read()
+        self.assertNotIn(self.hub.bootstrap_key.split()[1], shared)
+        self.assertIn("AAAAoperator", shared)
 
     def test_before_hand_over_the_port_is_left_to_provisioning(self):
         """create_vpc.sh owns that rule until it hands over; two writers could leave it
@@ -397,25 +456,26 @@ class FirewallTest(unittest.TestCase):
         self.rewrite_pairing(expires_at=int(time.time()) - 1)
         self.access("reconcile")
         self.assertIsNone(self.hub.enrollment_line())
-        self.assertFalse(self.hub.open_to_everyone())
+        self.assertFalse(self.hub.pairing_port_open())
         self.assertFalse(os.path.exists(self.pairing_file()))
 
     def test_close_pairing_ends_it_sooner(self):
         self.keep_key()
         self.hub.hand_over()
-        self.open_pairing("2_weeks")
+        self.open_pairing("8_hours")
         self.access("close-pairing", "--by", "operator")
         self.assertIsNone(self.hub.enrollment_line())
-        self.assertFalse(self.hub.open_to_everyone())
+        self.assertFalse(self.hub.pairing_port_open())
 
     def test_every_duration_the_jcu_offers_is_accepted(self):
         self.keep_key()
-        for duration in ("1_hour", "8_hours", "1_day", "3_days", "1_week", "2_weeks"):
+        for duration in ("1_hour", "2_hours", "8_hours"):
             self.open_pairing(duration)
 
-    def test_pairing_for_longer_than_a_grant_is_refused(self):
+    def test_pairing_for_longer_than_eight_hours_is_refused(self):
+        """Pairing is for nodes being switched on now, not a standing opening."""
         self.keep_key()
-        for duration in ("3_weeks", "15d", "337h"):
+        for duration in ("9_hours", "1_day", "2_weeks", "3d", "0_hours"):
             self.open_pairing(duration, expect=1)
         self.assertIsNone(self.hub.enrollment_line())
 
@@ -423,31 +483,28 @@ class FirewallTest(unittest.TestCase):
         """The record is on a machine Jaia can have a shell on while pairing is open."""
         self.keep_key()
         self.hub.hand_over()
-        self.open_pairing("1_day")
+        self.open_pairing("2_hours")
         self.rewrite_pairing(expires_at=int(time.time()) + 365 * 86400,
-                             opened_at=int(time.time()) - 15 * 86400)
+                             opened_at=int(time.time()) - 9 * 3600)
         self.access("reconcile")
         self.assertIsNone(self.hub.enrollment_line())
-        self.assertFalse(self.hub.open_to_everyone())
+        self.assertFalse(self.hub.pairing_port_open())
 
     def test_the_key_line_comes_back_after_the_file_is_lost(self):
         """Rewritten from the record on every run, so a reboot that loses
-        tmp_authorized_keys does not quietly end pairing early."""
+        the pairing key file does not quietly end pairing early."""
         self.keep_key()
         self.open_pairing()
-        os.unlink(self.hub.tmp_authorized_keys)
+        os.unlink(self.hub.pairing_authorized_keys)
         self.access("reconcile")
         self.assertIsNotNone(self.hub.enrollment_line())
 
     def test_a_key_line_removed_on_its_own_is_put_back(self):
-        """The file also holds the temporary keys of whoever jaia admin ssh add let in,
-        so it can outlive the enrollment line; the line is reasserted, not the file."""
+        """The file can outlive the enrollment line; the line is reasserted, not the file."""
         self.keep_key()
         self.open_pairing()
-        with open(self.hub.tmp_authorized_keys) as f:
-            kept = [line for line in f if self.hub.bootstrap_key.split()[1] not in line]
-        with open(self.hub.tmp_authorized_keys, "w") as f:
-            f.writelines(kept + ['expiry-time="20991231" ssh-ed25519 AAAAoperator\n'])
+        with open(self.hub.pairing_authorized_keys, "w") as f:
+            f.write("")
         self.access("reconcile")
         self.assertIsNotNone(self.hub.enrollment_line())
 

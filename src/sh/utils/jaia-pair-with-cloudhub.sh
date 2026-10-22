@@ -13,6 +13,7 @@ FLEET_CFG_DIR="${JAIA_FLEET_CFG_DIR:-/etc/jaiabot}"
 HUB_KEYS_FILE="${JAIA_HUB_KEYS_FILE:-/etc/jaiabot/ssh/hub_authorized_keys}"
 # PersistentKeepalive keeps a live tunnel handshaking every two minutes or so
 STALE_SECONDS="${JAIA_TUNNEL_STALE_SECONDS:-300}"
+PAIRING_PORT="${JAIA_PAIRING_PORT:-2222}"
 
 # First boot names the CloudHub, or passes an empty name for a node that should not
 # enroll. The name is kept so that running this again with no argument - as "Pair
@@ -157,6 +158,7 @@ fi
 # and pairing again is the deliberate step that accepts it
 if [ -e "${WG_CONF}" ] || ${REPAIRING}; then
     ssh-keygen -R "${CLOUDHUB_HOST}" >/dev/null 2>&1 || true
+    ssh-keygen -R "[${CLOUDHUB_HOST}]:${PAIRING_PORT}" >/dev/null 2>&1 || true
 fi
 
 # The CloudHub is told the public half only, and answers with a config whose
@@ -164,8 +166,15 @@ fi
 # a CloudHub not open for pairing drops the connection rather than refusing it.
 SSH_ERR=$(mktemp)
 trap 'rm -f ${CONF} ${SSH_ERR}' EXIT
-if ! ssh -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15 -i ${PRIVATE_KEY} \
-    jaia@${CLOUDHUB_HOST} "$type $id $(sudo cat ${WG_DIR}/publickey)" > ${CONF} 2> ${SSH_ERR}; then
+enroll()
+{
+    ssh -p "$1" -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15 -i ${PRIVATE_KEY} \
+        jaia@${CLOUDHUB_HOST} "$type $id $(sudo cat ${WG_DIR}/publickey)" > ${CONF} 2> ${SSH_ERR}
+}
+# A CloudHub from before the pairing port enrolled on 22: one that refuses the pairing
+# port or never answers on it is asked there instead
+if ! { enroll "${PAIRING_PORT}" \
+       || { grep -qiE "connection refused|timed out" ${SSH_ERR} && enroll 22; }; }; then
     if grep -qiE "host key verification failed|remote host identification has changed" ${SSH_ERR}; then
         echo "${CLOUDHUB_HOST}'s SSH host key is not the one this node recorded for it, so ${type} ${id}" \
              "was not paired. If the CloudHub was replaced, remove the old key" \

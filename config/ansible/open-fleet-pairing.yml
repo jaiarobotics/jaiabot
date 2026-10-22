@@ -3,9 +3,9 @@
 # "Pair Fleet to CloudHub" from a hub on site, or switch new nodes on while it is
 # open: a node enrolls at first boot, and again whenever that playbook runs.
 #
-# While it is open, port 22 on the CloudHub is open to every address - a node
-# enrolls over SSH from wherever it is - and Jaia's root keys reach the CloudHub with
-# it. It closes itself when the time runs out, at most two weeks.
+# While it is open, the CloudHub's pairing port is open to every address - a node
+# enrolls over SSH from wherever it is - and admits nothing but enrollment. It closes
+# itself when the time runs out, at most eight hours.
 - name: Open fleet pairing
   hosts: all
   connection: local
@@ -15,7 +15,7 @@
       assert:
         that:
           - duration is defined
-          - duration in ["1_hour", "8_hours", "1_day", "3_days", "1_week", "2_weeks"]
+          - duration in ["1_hour", "2_hours", "8_hours"]
         fail_msg: "Choose how long fleet pairing should stay open"
 
     - name: Ask the CloudHub to open fleet pairing

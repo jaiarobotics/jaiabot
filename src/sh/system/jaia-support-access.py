@@ -19,14 +19,15 @@ support account in the directory's operator groups, so Jaia can sign in to
 JCC, JDV, the JCU and the API. That is not read-only: the run group lets JCC
 command the bots.
 
-Port 22 has a third reason to be open, and it is not support at all. A new bot or hub
+Fleet pairing is not support at all, and has a port of its own. A new bot or hub
 joins the CloudHub VPN over SSH, from whatever address it happens to have, so while
-fleet pairing is open the port is open to every address and the fleet's bootstrap key
-is authorized to enroll. A CloudHub starts with pairing closed; it is opened deliberately
-from the JCU's Fleet Changes, and never for longer than a grant. That
-is a real cost: while it is open the root keys reach this CloudHub without a grant,
-and the support page says so rather than claiming no access. Closing it shuts new
-connections only; a session opened during it is not dropped.
+fleet pairing is open the pairing port is open to every address and the fleet's
+bootstrap key is authorized to enroll. sshd on that port reads no key but the
+bootstrap key and runs nothing but the enrollment command, so opening it lets nobody
+in to a shell, Jaia's root keys included: port 22 stays the support grant's alone. A
+CloudHub starts with pairing closed; it is opened deliberately from the JCU's Fleet
+Changes, for at most eight hours. Closing it also drops the enrollment sessions it
+admitted.
 
 They converge differently, and the difference is worth knowing. Closing the port
 also drops the sessions it admitted. Taking the groups away does not end a web
@@ -51,6 +52,10 @@ import urllib.request
 
 MAX_DAYS = 14
 SSH_PORT = 22
+# Only the bootstrap key, only the enrollment command: see jaia_configure_authelia.sh
+PAIRING_PORT = 2222
+# Pairing is for nodes being switched on now, so it is held open for hours, not days
+PAIRING_MAX_HOURS = 8
 
 SCOPES = ("shell", "web")
 SECURITY_GROUP_GATE = "security-group"
@@ -182,15 +187,15 @@ def gate():
     return SECURITY_GROUP_GATE if security_group() else UFW_GATE
 
 
-def permissions(cidr):
+def permissions(cidr, port=SSH_PORT):
     ranges = ("Ipv6Ranges" if is_v6(cidr) else "IpRanges",
               "CidrIpv6" if is_v6(cidr) else "CidrIp")
-    return json.dumps([{"IpProtocol": "tcp", "FromPort": SSH_PORT, "ToPort": SSH_PORT,
+    return json.dumps([{"IpProtocol": "tcp", "FromPort": port, "ToPort": port,
                         ranges[0]: [{ranges[1]: cidr,
                                      "Description": "jaia support access"}]}])
 
 
-def security_group_rule(action, cidr):
+def security_group_rule(action, cidr, port=SSH_PORT):
     """Absent when it should go and present when it should come is success either
     way: this runs on a timer, so it must converge rather than complain."""
     group = security_group()
@@ -201,7 +206,7 @@ def security_group_rule(action, cidr):
                            "could not work out which group")
     done = subprocess.run(
         [AWS, "ec2", "{}-security-group-ingress".format(action),
-         "--group-id", group, "--ip-permissions", permissions(cidr)],
+         "--group-id", group, "--ip-permissions", permissions(cidr, port)],
         stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True)
     if done.returncode == 0:
         return
@@ -212,18 +217,18 @@ def security_group_rule(action, cidr):
     raise RuntimeError(done.stderr.strip() or "aws {} failed".format(action))
 
 
-def ufw_rule(action, cidr):
+def ufw_rule(action, cidr, port=SSH_PORT):
     command = [UFW, "--force"] if action == "delete" else [UFW]
     command += (["delete"] if action == "delete" else [])
-    command += ["allow", "from", cidr, "to", "any", "port", str(SSH_PORT), "proto", "tcp"]
+    command += ["allow", "from", cidr, "to", "any", "port", str(port), "proto", "tcp"]
     subprocess.run(command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
-def firewall_rule(using, action, cidr):
+def firewall_rule(using, action, cidr, port=SSH_PORT):
     if using == SECURITY_GROUP_GATE:
-        security_group_rule("authorize" if action == "open" else "revoke", cidr)
+        security_group_rule("authorize" if action == "open" else "revoke", cidr, port)
     else:
-        ufw_rule("allow" if action == "open" else "delete", cidr)
+        ufw_rule("allow" if action == "open" else "delete", cidr, port)
 
 
 def open_to(cidr):
@@ -234,11 +239,12 @@ def open_to(cidr):
     return using
 
 
-def disconnect(cidr):
+def disconnect(cidr=None, port=SSH_PORT):
     # Neither the security group nor ufw ends a connection it is already tracking,
     # so closing the port alone would leave an open session running
-    subprocess.run([SS, "-K", "state", "established", "( sport = :{} )".format(SSH_PORT),
-                    "dst", cidr], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    command = [SS, "-K", "state", "established", "( sport = :{} )".format(port)]
+    command += ["dst", cidr] if cidr else []
+    subprocess.run(command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
 def close_to(cidr, using=None):
@@ -258,19 +264,19 @@ def pairing_window(now):
     if not held:
         return 0
     ends = min(int(held.get("expires_at", 0)),
-               int(held.get("opened_at", 0)) + MAX_DAYS * 86400)
+               int(held.get("opened_at", 0)) + PAIRING_MAX_HOURS * 3600)
     return ends if ends > now else 0
 
 
 def parse_duration(text):
-    """'8_hours', '3_days', '2_weeks' as the JCU offers them - underscores, since it
-    passes every value through one whitespace-split -e - or 8h / 3d / 2w."""
-    found = re.fullmatch(r"\s*(\d+)[\s_]*(h|hours?|d|days?|w|weeks?)\s*", text.lower())
+    """'1_hour', '2_hours', '8_hours' as the JCU offers them - underscores, since it
+    passes every value through one whitespace-split -e - or 1h / 8h."""
+    found = re.fullmatch(r"\s*(\d+)[\s_]*(h|hours?)\s*", text.lower())
     if not found:
-        sys.exit("--duration must be a number of hours, days or weeks, not {!r}".format(text))
-    seconds = int(found.group(1)) * {"h": 3600, "d": 86400, "w": 7 * 86400}[found.group(2)[0]]
-    if not 0 < seconds <= MAX_DAYS * 86400:
-        sys.exit("fleet pairing can be opened for at most {} days".format(MAX_DAYS))
+        sys.exit("--duration must be a number of hours, not {!r}".format(text))
+    seconds = int(found.group(1)) * 3600
+    if not 0 < seconds <= PAIRING_MAX_HOURS * 3600:
+        sys.exit("fleet pairing can be opened for at most {} hours".format(PAIRING_MAX_HOURS))
     return seconds
 
 
@@ -306,23 +312,30 @@ def converge_enrollment_key(until):
 
 def converge_pairing_port(now, pairing):
     """A new node enrolls over SSH from wherever it happens to be, so while pairing is
-    open port 22 is open to every address. That rule is the provisioning run's until it
-    hands the CloudHub over and this one's alone afterwards - two writers would have a
-    revoke by one and a record of "open" by the other leaving it shut for the whole
-    window. So it is not touched before hand-over, and a rule closed by hand in the
-    customer's console stays closed rather than being reasserted on the next run."""
+    open the pairing port is open to every address. Port 22 is open to every address
+    only while create_vpc.sh provisions, and that rule is the provisioning run's until it
+    hands the CloudHub over and this one's to remove afterwards - two writers would have
+    a revoke by one and a record of "open" by the other fighting over it. So neither is
+    touched before hand-over, and a rule closed by hand in the customer's console stays
+    closed rather than being reasserted on the next run. A record from a release that
+    paired on port 22 is converged again, which closes that port to everyone."""
     if not os.path.exists(HANDED_OVER_FILE):
         return
     wanted = bool(pairing)
     held = read_json(PAIRING_PORT_FILE)
-    if held is not None and bool(held.get("open")) == wanted:
+    if (held is not None and bool(held.get("open")) == wanted
+            and held.get("port") == PAIRING_PORT):
         return
     using = gate() if wanted else ((held or {}).get("gate") or gate())
     for cidr in EVERYWHERE:
-        firewall_rule(using, "open" if wanted else "close", cidr)
+        firewall_rule(using, "close", cidr, SSH_PORT)
+        firewall_rule(using, "open" if wanted else "close", cidr, PAIRING_PORT)
+    if not wanted:
+        disconnect(port=PAIRING_PORT)
     os.makedirs(STATE_DIR, mode=0o700, exist_ok=True)
-    write_json(PAIRING_PORT_FILE, {"open": wanted, "gate": using, "at": now})
-    audit("pairing-port", {"open": wanted})
+    write_json(PAIRING_PORT_FILE, {"open": wanted, "gate": using, "port": PAIRING_PORT,
+                                   "at": now})
+    audit("pairing-port", {"open": wanted, "port": PAIRING_PORT})
 
 
 ###########
@@ -637,8 +650,8 @@ def cmd_list(args):
         time.strftime("%Y-%m-%d %H:%M UTC", time.gmtime(approved)) if approved else "- (none)"))
     print("port {} open to {}".format(SSH_PORT, held["cidr"] if held else "- (nobody)"))
     pairing = pairing_window(int(time.time()))
-    print("fleet pairing open until {}: port {} open to every address".format(
-        time.strftime("%Y-%m-%d %H:%M UTC", time.gmtime(pairing)), SSH_PORT)
+    print("fleet pairing open until {}: port {} open to every address, for enrollment only".format(
+        time.strftime("%Y-%m-%d %H:%M UTC", time.gmtime(pairing)), PAIRING_PORT)
           if pairing else "fleet pairing closed")
     try:
         print("web sign-in {}".format("granted" if web_access_held() else "- (not granted)"))
@@ -669,8 +682,8 @@ def main():
     open_pairing = actions.add_parser("open-pairing",
                                       help="let new bots and hubs enroll on the VPN for a while")
     open_pairing.add_argument("--duration", required=True,
-                              help="how long, at most {} days: 1 hour, 3 days, 2 weeks, "
-                                   "or 1h / 3d / 2w".format(MAX_DAYS))
+                              help="how long, at most {} hours: 1_hour, 2_hours, 8_hours, "
+                                   "or 1h / 2h / 8h".format(PAIRING_MAX_HOURS))
     open_pairing.add_argument("--by", default="")
     open_pairing.set_defaults(run=cmd_open_pairing)
 
