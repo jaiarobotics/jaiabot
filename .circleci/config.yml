@@ -91,7 +91,7 @@ job-template-amd64: &job-template-amd64
         command: |
           apt-get update &&
           apt-get dist-upgrade -y &&
-          apt-get install -y ccache python3-venv python3-goby3 pybind11-dev libpython3-dev:${TARGET_ARCH}
+          apt-get install -y ccache python3-venv python3-goby3 pybind11-dev libpython3-dev:${TARGET_ARCH} golang-go curl ca-certificates
           [[ "${TARGET_ARCH}" == "amd64" && ( "${JAIABOT_APT_REPO}" != "test" || "${BUILD_DOC_FOR_TEST_REPO}" == "true" ) ]] && apt-get install -y goby3-clang-tool || true
           [[ "${TARGET_ARCH}" == "amd64" ]] && apt-get install -y gcc-arm-none-eabi libnewlib-arm-none-eabi curl || true
     - run: &run-zero-ccache-stats
@@ -248,8 +248,7 @@ filter-template-debian-builds: &filter-template-debian-builds
     branches:
       only:
         - "3.y"
-        - "task/3.y/fleet7-feedback/SW-2694"
-        - "task/3.y/scanner-safe-links/SW-2701"
+        - "task/3.y/web-thirdparty/SW-2702"
 
 # which branches to run the normal source build
 filter-template-normal-builds: &filter-template-normal-builds
@@ -275,8 +274,7 @@ filter-template-rootfs-builds: &filter-template-rootfs-builds
     branches:
       only:
         - "3.y"
-        - "task/3.y/fleet7-feedback/SW-2694"
-        - "task/3.y/scanner-safe-links/SW-2701"
+        - "task/3.y/web-thirdparty/SW-2702"
 
 # which branches to run the AWS virtual machine conversion (must be same as or subset of filter-template-rootfs-builds)
 filter-template-aws-rootfs-builds: &filter-template-aws-rootfs-builds
@@ -286,8 +284,7 @@ filter-template-aws-rootfs-builds: &filter-template-aws-rootfs-builds
     branches:
       only:
         - "3.y"
-        - "task/3.y/fleet7-feedback/SW-2694"
-        - "task/3.y/scanner-safe-links/SW-2701"
+        - "task/3.y/web-thirdparty/SW-2702"
 
 # which branches to build Docker simulator
 filter-template-docker-sim-builds: &filter-template-docker-sim-builds

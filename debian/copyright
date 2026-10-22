@@ -21,3 +21,17 @@ The Debian packaging is:
 and is licensed under the GPL version 3,
 see "/usr/share/common-licenses/GPL-3".
 
+
+jaiabot-web-thirdparty carries, unmodified, binaries of:
+
+    Caddy (https://github.com/caddyserver/caddy) and the replace-response
+    plugin (https://github.com/caddyserver/replace-response), built from the
+    sources that src/web/thirdparty/caddy/go.mod pins: Apache License 2.0,
+    see "/usr/share/common-licenses/Apache-2.0".
+
+    Authelia (https://github.com/authelia/authelia), from its release
+    tarball: Apache License 2.0, see "/usr/share/common-licenses/Apache-2.0".
+
+    LLDAP (https://github.com/lldap/lldap), from its release tarball,
+    together with its bootstrap script: GNU General Public License version 3,
+    see "/usr/share/common-licenses/GPL-3".

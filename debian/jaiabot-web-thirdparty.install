@@ -1,0 +1,5 @@
+debian/thirdparty-build/stage/usr/bin/* usr/bin
+debian/thirdparty-build/stage/usr/share/lldap usr/share
+debian/thirdparty-build/stage/usr/libexec/lldap usr/libexec
+src/web/thirdparty/systemd/*.service usr/lib/systemd/system
+src/web/thirdparty/tmpfiles/authelia.conf usr/lib/tmpfiles.d
