@@ -5,9 +5,9 @@ set -u -e -o pipefail
 ## This script must be idempotent!!
 # Installs and (re)configures Authelia, Caddy, and LLDAP to provide a web-based authentication portal with user management for Cloudhub and friends.
 
-##############
-## Preamble ##
-##############
+###############
+## Constants ##
+###############
 
 jaia_auth_lldap_bootstrap_completed=false
 
@@ -22,6 +22,8 @@ lldap_web_port=17170
 jcc_port=8080
 authelia_port=9991
 support_portal_port=9992
+# Fleet pairing's own SSH port: only the bootstrap key, only the enrollment command
+pairing_port=2222
 
 ## IP/URLs
 base_uri=$jaia_auth_base_uri
@@ -42,36 +44,71 @@ auth_persistent_dir=/var/log/jaiabot/auth
 authelia_persistent_dir=$auth_persistent_dir/authelia
 # Not under /etc/authelia: the package's tmpfiles.d rule sets 0640 on everything there, directories included
 authelia_asset_dir=$authelia_persistent_dir/assets
+authelia_secrets_file=$authelia_persistent_dir/secrets
 lldap_persistent_dir=$auth_persistent_dir/lldap
 support_persistent_dir=$auth_persistent_dir/support
+swapfile=$auth_persistent_dir/swapfile
+smtp_password_file=/etc/authelia/smtp_password
+
+jaia_bootstrap_marker=$auth_persistent_dir/jaia_bootstrap_created
+jaia_bootstrap_config=/etc/lldap/bootstrap/user-configs/jaia_bootstrap.json
+
+caddy_names=("$base_uri" "auth.$base_uri" "users.$base_uri" "support.$base_uri" "run.$base_uri" "sim.$base_uri")
+caddy_wait_for_dns=/etc/systemd/system/caddy.service.d/jaia-wait-for-dns.conf
+sshd_pairing_conf=/etc/ssh/sshd_config.d/jaia_pairing.conf
 
 
-if [ ! -d "$lldap_persistent_dir" ]; then
-    mkdir -p $lldap_persistent_dir
-fi
-
+#############
+## General ##
+#############
 
 # Swapfile (need more RAM to run both Authelia and Apache2/JCC)
-swapfile=$auth_persistent_dir/swapfile
-if [ ! -f $swapfile ]; then
-    btrfs filesystem mkswapfile --size 2G $swapfile
-    swapon $swapfile
-fi
+setup_swapfile()
+{
+    mkdir -p "$auth_persistent_dir"
+    if [ ! -f $swapfile ]; then
+        btrfs filesystem mkswapfile --size 2G $swapfile
+        swapon $swapfile
+    fi
+}
 
-#################
-## Apache Mods ##
-#################
+# RFC 2606 and RFC 6761 reserve these names, so this is a CI or bench CloudHub rather than
+# one anybody reaches: no public CA can issue for it and there is no mail relay behind it
+detect_deployment()
+{
+    case "$base_uri" in
+        *.invalid|*.test|*.example|*.localhost|localhost)
+            throwaway_deployment=true
+            echo "$base_uri is a reserved domain: serving TLS from Caddy's own CA and not dialling SMTP at startup"
+            ;;
+        *)
+            throwaway_deployment=false
+            ;;
+    esac
+
+    if $throwaway_deployment; then
+        caddy_tls="tls internal"
+        # Authelia dials the relay at startup and exits fatally when it cannot connect, which
+        # with Restart=on-failure is an endless restart loop and a 502 from Caddy for good
+        notifier_startup_check="disable_startup_check: true"
+    else
+        caddy_tls=""
+        notifier_startup_check="disable_startup_check: false"
+    fi
+}
 
 ## Move JCC from port 80 to port 8080
-sed -i -E \
-    -e 's/^Listen[[:space:]]+80$/Listen 8080/' \
-    /etc/apache2/ports.conf
-sed -i -E \
-    -e 's/<VirtualHost[[:space:]]+\*:80>/<VirtualHost *:8080>/I' \
-    /etc/apache2/sites-available/jcc.conf
+configure_apache()
+{
+    sed -i -E \
+        -e 's/^Listen[[:space:]]+80$/Listen 8080/' \
+        /etc/apache2/ports.conf
+    sed -i -E \
+        -e 's/<VirtualHost[[:space:]]+\*:80>/<VirtualHost *:8080>/I' \
+        /etc/apache2/sites-available/jcc.conf
 
-# Authelia authenticates the REST API's callers; it has no key of its own
-cat <<EOF > /etc/jaiabot/rest_api.pb.cfg
+    # Authelia authenticates the REST API's callers; it has no key of its own
+    cat <<EOF > /etc/jaiabot/rest_api.pb.cfg
 streaming_endpoint {
     hub_id: $jaia_hub_id
     hostname: "::1"
@@ -79,129 +116,113 @@ streaming_endpoint {
 }
 EOF
 
-systemctl reload apache2
+    systemctl reload apache2
+}
 
-#########
-## APT ##
-#########
+install_packages()
+{
+    # Earlier releases installed Authelia from its own apt repository; jaiabot-web-thirdparty
+    # now carries it, Caddy and LLDAP, and is already in a CloudHub's image
+    rm -f /etc/apt/sources.list.d/authelia.list /etc/apt/preferences.d/authelia /usr/share/keyrings/authelia-security.gpg
 
-# Earlier releases installed Authelia from its own apt repository; jaiabot-web-thirdparty
-# now carries it, Caddy and LLDAP, and is already in a CloudHub's image
-rm -f /etc/apt/sources.list.d/authelia.list /etc/apt/preferences.d/authelia /usr/share/keyrings/authelia-security.gpg
+    apt-get update && apt-get install -y --no-upgrade jaiabot-web-thirdparty
 
-apt-get update && apt-get install -y --no-upgrade jaiabot-web-thirdparty
+    # Not grep -q: under pipefail it exits on the first match and caddy dies of SIGPIPE
+    if ! caddy list-modules 2>/dev/null | grep -x http.handlers.replace_response > /dev/null; then
+        echo "ERROR: $(command -v caddy) lacks the replace_response module; is jaiabot-web-thirdparty installed?" >&2
+        exit 1
+    fi
+    echo "Using $(caddy version)"
 
-# Not grep -q: under pipefail it exits on the first match and caddy dies of SIGPIPE
-if ! caddy list-modules 2>/dev/null | grep -x http.handlers.replace_response > /dev/null; then
-    echo "ERROR: $(command -v caddy) lacks the replace_response module; is jaiabot-web-thirdparty installed?" >&2
-    exit 1
-fi
-echo "Using $(caddy version)"
-
-# A running Caddy cannot reload into a binary apt has since replaced
-caddy_binary_changed=false
-caddy_pid=$(systemctl show -p MainPID --value caddy 2>/dev/null || echo 0)
-if [ "${caddy_pid:-0}" != 0 ] && [ "$(readlink "/proc/$caddy_pid/exe" 2>/dev/null)" != /usr/bin/caddy ]; then
-    caddy_binary_changed=true
-fi
+    # A running Caddy cannot reload into a binary apt has since replaced
+    caddy_binary_changed=false
+    local caddy_pid
+    caddy_pid=$(systemctl show -p MainPID --value caddy 2>/dev/null || echo 0)
+    if [ "${caddy_pid:-0}" != 0 ] && [ "$(readlink "/proc/$caddy_pid/exe" 2>/dev/null)" != /usr/bin/caddy ]; then
+        caddy_binary_changed=true
+    fi
+}
 
 
 ##############
 ## Authelia ##
 ##############
 
-# RFC 2606 and RFC 6761 reserve these names, so this is a CI or bench CloudHub rather than
-# one anybody reaches: no public CA can issue for it and there is no mail relay behind it
-case "$base_uri" in
-    *.invalid|*.test|*.example|*.localhost|localhost)
-        throwaway_deployment=true
-        echo "$base_uri is a reserved domain: serving TLS from Caddy's own CA and not dialling SMTP at startup"
-        ;;
-    *)
-        throwaway_deployment=false
-        ;;
-esac
-
-if $throwaway_deployment; then
-    caddy_tls="tls internal"
-    # Authelia dials the relay at startup and exits fatally when it cannot connect, which
-    # with Restart=on-failure is an endless restart loop and a 502 from Caddy for good
-    notifier_startup_check="disable_startup_check: true"
-else
-    caddy_tls=""
-    notifier_startup_check="disable_startup_check: false"
-fi
-
-
-
-if [ ! -d "$authelia_persistent_dir" ]; then
-    mkdir -p $authelia_persistent_dir
-fi
-# recursive: this directory outlives the rootfs, and the authelia uid a new image
-# allocates need not be the one that wrote the database before a major upgrade
-chown -R authelia:authelia $authelia_persistent_dir
-
 # Everything Authelia reads at startup, so we can restart it below only when
 # this run changed something (a restart signs everyone out: sessions are in memory)
-authelia_inputs_fingerprint() {
+authelia_inputs_fingerprint()
+{
     cat /etc/authelia/configuration.yml \
         /etc/systemd/system/authelia.service.d/override.conf \
         /etc/authelia/smtp_password 2>/dev/null | sha256sum || true
 }
-authelia_inputs_before=$(authelia_inputs_fingerprint)
 
+# Secrets for Authelia and LLDAP, made once and kept with the persistent data
+load_secrets()
+{
+    mkdir -p "$authelia_persistent_dir"
+    # recursive: this directory outlives the rootfs, and the authelia uid a new image
+    # allocates need not be the one that wrote the database before a major upgrade
+    chown -R authelia:authelia $authelia_persistent_dir
 
-authelia_secrets_file=$authelia_persistent_dir/secrets
-if [ ! -f "$authelia_secrets_file" ]; then
-    # generate secrets
-    cat <<EOF > "$authelia_secrets_file"
+    if [ ! -f "$authelia_secrets_file" ]; then
+        cat <<EOF > "$authelia_secrets_file"
 jwt_secret=$(openssl rand -hex 64)
 session_secret=$(openssl rand -hex 64)
 storage_encryption_key=$(openssl rand -hex 64)
 lldap_jwt_secret=$(openssl rand -hex 64)
 lldap_key_seed=$(openssl rand -hex 64)
 EOF
-    chmod 0600 $authelia_secrets_file
-fi
-if ! grep -q '^authelia_ldap_password=' "$authelia_secrets_file"; then
-    echo "authelia_ldap_password=$(openssl rand -hex 64)" >> "$authelia_secrets_file"
-fi
-set -a; source "$authelia_secrets_file"; set +a;
+        chmod 0600 $authelia_secrets_file
+    fi
+    if ! grep -q '^authelia_ldap_password=' "$authelia_secrets_file"; then
+        echo "authelia_ldap_password=$(openssl rand -hex 64)" >> "$authelia_secrets_file"
+    fi
+    set -a; source "$authelia_secrets_file"; set +a;
+}
 
-# An SSM parameter ARN names its own region, which may not be ours
-smtp_credentials_region=$jaia_aws_region
-if [[ "$smtp_credentials_parameter" == arn:* ]]; then
-    smtp_credentials_region=$(cut -d: -f4 <<< "$smtp_credentials_parameter")
-fi
+load_smtp_credentials()
+{
+    # An SSM parameter ARN names its own region, which may not be ours
+    local region=$jaia_aws_region
+    if [[ "$smtp_credentials_parameter" == arn:* ]]; then
+        region=$(cut -d: -f4 <<< "$smtp_credentials_parameter")
+    fi
 
-smtp_password_file=/etc/authelia/smtp_password
-smtp_username_line=""
-smtp_password_env=""
-if smtp_credentials=$(aws ssm get-parameter --region "$smtp_credentials_region" --name "$smtp_credentials_parameter" --with-decryption --query Parameter.Value --output text) \
-        && smtp_username=$(python3 -c 'import json,sys; print(json.load(sys.stdin)["username"])' <<< "$smtp_credentials") \
-        && smtp_password=$(python3 -c 'import json,sys; print(json.load(sys.stdin)["password"])' <<< "$smtp_credentials"); then
-    (umask 077; printf '%s' "$smtp_password" > "$smtp_password_file")
-    chown authelia:authelia "$smtp_password_file"
-    smtp_username_line="username: '$smtp_username'"
-    smtp_password_env="Environment=AUTHELIA_NOTIFIER_SMTP_PASSWORD_FILE=$smtp_password_file"
-else
-    # Not fatal: an IP-allowlisted relay (e.g. Google Workspace) needs no credentials
-    echo "WARNING: Could not read SMTP credentials from SSM parameter $smtp_credentials_parameter ($smtp_credentials_region). Authelia will send without authenticating." >&2
-    rm -f "$smtp_password_file"
-fi
+    local credentials username password
+    smtp_username_line=""
+    smtp_password_env=""
+    if credentials=$(aws ssm get-parameter --region "$region" --name "$smtp_credentials_parameter" --with-decryption --query Parameter.Value --output text) \
+            && username=$(python3 -c 'import json,sys; print(json.load(sys.stdin)["username"])' <<< "$credentials") \
+            && password=$(python3 -c 'import json,sys; print(json.load(sys.stdin)["password"])' <<< "$credentials"); then
+        (umask 077; printf '%s' "$password" > "$smtp_password_file")
+        chown authelia:authelia "$smtp_password_file"
+        smtp_username_line="username: '$username'"
+        smtp_password_env="Environment=AUTHELIA_NOTIFIER_SMTP_PASSWORD_FILE=$smtp_password_file"
+    else
+        # Not fatal: an IP-allowlisted relay (e.g. Google Workspace) needs no credentials
+        echo "WARNING: Could not read SMTP credentials from SSM parameter $smtp_credentials_parameter ($region). Authelia will send without authenticating." >&2
+        rm -f "$smtp_password_file"
+    fi
+}
 
 # Portal branding. Authelia serves an override instead of its own file, but
 # portal.json keys are the English text, so keys left out still read correctly.
 # Authelia rejects a value that drops a placeholder the key has.
-mkdir -p $authelia_asset_dir/locales/en
-cp $jaia_cloud_web_dir/authelia/logo.png $jaia_cloud_web_dir/authelia/favicon.ico $authelia_asset_dir/
-cat <<EOF > $authelia_asset_dir/locales/en/portal.json
+write_authelia_assets()
+{
+    mkdir -p $authelia_asset_dir/locales/en
+    cp $jaia_cloud_web_dir/authelia/logo.png $jaia_cloud_web_dir/authelia/favicon.ico $authelia_asset_dir/
+    cat <<EOF > $authelia_asset_dir/locales/en/portal.json
 {
     "Login - {{authelia}}": "Jaia Cloud Fleet ${jaia_fleet_id} - {{authelia}}"
 }
 EOF
+}
 
-cat <<EOF > /etc/authelia/configuration.yml
+write_authelia_config()
+{
+    cat <<EOF > /etc/authelia/configuration.yml
 ---
 server:
   address: 'tcp://:$authelia_port'
@@ -269,7 +290,7 @@ access_control:
     - domain: run.$base_uri
       resources:
         - '^/jaia/v[0-9]+/(status|metadata|task_packets|missions)(?:/.*)?$'
-      subject: 
+      subject:
         - 'group:rest_api_read'
         - 'group:super_admin'
       policy: one_factor
@@ -277,7 +298,7 @@ access_control:
     - domain: run.$base_uri
       resources:
         - '^/jaia(?:/.*)?$'
-      subject: 
+      subject:
         - 'group:rest_api_all'
         - 'group:super_admin'
       policy: one_factor
@@ -336,16 +357,46 @@ notifier:
 ...
 EOF
 
-# Enable Authelia service
-systemctl enable authelia
+    systemctl enable authelia
+}
+
+# Started after LLDAP, which it authenticates against
+start_authelia()
+{
+    mkdir -p /etc/systemd/system/authelia.service.d
+    cat <<EOF > /etc/systemd/system/authelia.service.d/override.conf
+[Unit]
+Requires=lldap.service
+After=lldap.service
+
+[Service]
+ExecStartPre=-/bin/bash -c 'for i in {1..110}; do (exec 3<>/dev/tcp/127.0.0.1/$lldap_ldap_port) 2>/dev/null && exit 0; sleep 1; done; exit 1'
+TimeoutStartSec=120
+Restart=on-failure
+RestartSec=10s
+$smtp_password_env
+EOF
+
+    systemctl daemon-reload
+    # Authelia only reads its configuration at startup, so 'start' alone would leave a
+    # running instance enforcing the old access_control rules
+    if [ "$(authelia_inputs_fingerprint)" != "$authelia_inputs_before" ]; then
+        systemctl restart authelia
+    else
+        systemctl start authelia
+    fi
+}
+
 
 ###########
 ## Caddy ##
 ###########
 
-cat <<EOF > /etc/caddy/Caddyfile
+write_caddyfile()
 {
-        # replace-response plugin (custom build, see above)
+    cat <<EOF > /etc/caddy/Caddyfile
+{
+        # replace-response plugin (Caddy from jaiabot-web-thirdparty)
         order replace after encode
 }
 
@@ -510,16 +561,18 @@ sim.$base_uri {
 
 EOF
 
-caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+    caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+}
 
 # Caddy runs only once its names resolve here (see jaia-caddy-dns-ready.sh), and the
 # timer starts it when they do
-caddy_names=("$base_uri" "auth.$base_uri" "users.$base_uri" "support.$base_uri" "run.$base_uri" "sim.$base_uri")
-caddy_wait_for_dns=/etc/systemd/system/caddy.service.d/jaia-wait-for-dns.conf
-if $throwaway_deployment; then
-    rm -f "$caddy_wait_for_dns"
-    systemctl disable --now jaia-caddy-start.timer 2>/dev/null || true
-else
+configure_caddy_dns_wait()
+{
+    if $throwaway_deployment; then
+        rm -f "$caddy_wait_for_dns"
+        systemctl disable --now jaia-caddy-start.timer 2>/dev/null || true
+        return
+    fi
     mkdir -p "$(dirname "$caddy_wait_for_dns")"
     cat <<EOF > "$caddy_wait_for_dns"
 [Service]
@@ -547,56 +600,54 @@ AccuracySec=5s
 WantedBy=timers.target
 EOF
     systemctl enable jaia-caddy-start.timer
-fi
-systemctl daemon-reload
-systemctl enable caddy
+}
 
 # Caddy starts with its stock Caddyfile when installed, so reload to apply ours
 # (graceful if running). The running process cannot reload into a new binary,
 # and a stock binary rejects 'replace', so restart when the binary changed. A
 # restart while the names do not resolve leaves it stopped, for the timer.
-if $caddy_binary_changed || { ! $throwaway_deployment && ! /usr/bin/jaia-caddy-dns-ready.sh "${caddy_names[@]}"; }; then
-    systemctl restart caddy
-else
-    systemctl reload-or-restart caddy
-fi
-if ! $throwaway_deployment && ! systemctl is-active --quiet caddy; then
-    systemctl start jaia-caddy-start.timer
-fi
+start_caddy()
+{
+    systemctl daemon-reload
+    systemctl enable caddy
+
+    if $caddy_binary_changed || { ! $throwaway_deployment && ! /usr/bin/jaia-caddy-dns-ready.sh "${caddy_names[@]}"; }; then
+        systemctl restart caddy
+    else
+        systemctl reload-or-restart caddy
+    fi
+    if ! $throwaway_deployment && ! systemctl is-active --quiet caddy; then
+        systemctl start jaia-caddy-start.timer
+    fi
+}
+
 
 ###########
 ## LLDAP ##
 ###########
-mkdir -p /etc/lldap/bootstrap/group-configs
-mkdir -p /etc/lldap/bootstrap/user-configs
 
-# Create initial LLDAP group and user configurations
-groups=(
-    run
-    sim
-    jcu_user
-    jcu_advanced
-    jcu_developer
-    jdv
-    lldap_admin
-    super_admin
-    rest_api_read
-    rest_api_all
-)
-
-# Create group config files
-for group in "${groups[@]}"; do
-    cat > "/etc/lldap/bootstrap/group-configs/${group}.json" <<EOF
+write_lldap_group_configs()
+{
+    mkdir -p /etc/lldap/bootstrap/group-configs
+    local group
+    for group in run sim jcu_user jcu_advanced jcu_developer jdv lldap_admin super_admin \
+                 rest_api_read rest_api_all; do
+        cat > "/etc/lldap/bootstrap/group-configs/${group}.json" <<EOF
 {
   "name": "${group}"
 }
 EOF
-done
+    done
+}
 
-# No password: bootstrap.sh reapplies every password its user configs carry, so one
-# here would be restored over whatever the admin has since chosen. They set their
-# own through the portal's reset link.
-cat > /etc/lldap/bootstrap/user-configs/fleet_admin.json <<EOF
+write_lldap_user_configs()
+{
+    mkdir -p /etc/lldap/bootstrap/user-configs
+
+    # No password: bootstrap.sh reapplies every password its user configs carry, so one
+    # here would be restored over whatever the admin has since chosen. They set their
+    # own through the portal's reset link.
+    cat > /etc/lldap/bootstrap/user-configs/fleet_admin.json <<EOF
 {
   "id": "fleet_admin",
   "email": "$admin_email",
@@ -604,12 +655,23 @@ cat > /etc/lldap/bootstrap/user-configs/fleet_admin.json <<EOF
   ]
 }
 EOF
-chmod 0600 /etc/lldap/bootstrap/user-configs/fleet_admin.json
+    chmod 0600 /etc/lldap/bootstrap/user-configs/fleet_admin.json
 
-# Groupless, and no "groups" key rather than an empty one, so re-running bootstrap
-# cannot withdraw a grant that is in force. The account exists so the support page
-# has something to move in and out of the web groups, and so the customer has one
-# name to audit; it reaches nothing until a grant puts it somewhere.
+    write_jaia_bootstrap_config
+
+    # Groupless, and no "groups" key rather than an empty one, so re-running bootstrap
+    # cannot withdraw a grant that is in force. The account exists so the support page
+    # has something to move in and out of the web groups, and so the customer has one
+    # name to audit; it reaches nothing until a grant puts it somewhere.
+    cat > /etc/lldap/bootstrap/user-configs/jaia_support.json <<EOF
+{
+  "id": "jaia_support",
+  "email": "support@jaia.tech",
+  "displayName": "Jaia support"
+}
+EOF
+}
+
 # Jaia's account for commissioning: testing the CloudHub and pairing its first fleet,
 # deleted from the directory before the CloudHub is shipped. Created only the first
 # time this CloudHub bootstraps, which the marker in the persistent directory records:
@@ -617,57 +679,57 @@ chmod 0600 /etc/lldap/bootstrap/user-configs/fleet_admin.json
 # cloud.env, on the root filesystem the upgrade replaces - and would otherwise bring a
 # deleted account back with super_admin on a fleet the customer already owns. No
 # password, as for the administrator; Jaia sets one through the reset link.
-jaia_bootstrap_marker=$auth_persistent_dir/jaia_bootstrap_created
-jaia_bootstrap_config=/etc/lldap/bootstrap/user-configs/jaia_bootstrap.json
-jaia_bootstrap_email=$(cat "$auth_persistent_dir/jaia_bootstrap_email" 2>/dev/null || true)
-if $jaia_auth_lldap_bootstrap_completed; then
-    mkdir -p "$auth_persistent_dir"
-    touch "$jaia_bootstrap_marker"
-fi
-if [ -e "$jaia_bootstrap_marker" ]; then
-    rm -f "$jaia_bootstrap_config"
-elif [ -z "$jaia_bootstrap_email" ]; then
-    # create_cloudhub --bootstrap-email names it; a CloudHub made any other way has no one to send the reset link to
-    echo "No jaia_bootstrap email in $auth_persistent_dir/jaia_bootstrap_email: not creating jaia_bootstrap"
-    rm -f "$jaia_bootstrap_config"
-else
-    cat > "$jaia_bootstrap_config" <<EOF
+write_jaia_bootstrap_config()
+{
+    local email
+    email=$(cat "$auth_persistent_dir/jaia_bootstrap_email" 2>/dev/null || true)
+    if $jaia_auth_lldap_bootstrap_completed; then
+        mkdir -p "$auth_persistent_dir"
+        touch "$jaia_bootstrap_marker"
+    fi
+    if [ -e "$jaia_bootstrap_marker" ]; then
+        rm -f "$jaia_bootstrap_config"
+    elif [ -z "$email" ]; then
+        # create_cloudhub --bootstrap-email names it; a CloudHub made any other way has no one to send the reset link to
+        echo "No jaia_bootstrap email in $auth_persistent_dir/jaia_bootstrap_email: not creating jaia_bootstrap"
+        rm -f "$jaia_bootstrap_config"
+    else
+        cat > "$jaia_bootstrap_config" <<EOF
 {
   "id": "jaia_bootstrap",
-  "email": "$jaia_bootstrap_email",
+  "email": "$email",
   "displayName": "Jaia commissioning",
   "groups": ["super_admin", "lldap_admin"
   ]
 }
 EOF
-    chmod 0600 "$jaia_bootstrap_config"
-fi
-
-cat > /etc/lldap/bootstrap/user-configs/jaia_support.json <<EOF
-{
-  "id": "jaia_support",
-  "email": "support@jaia.tech",
-  "displayName": "Jaia support"
+        chmod 0600 "$jaia_bootstrap_config"
+    fi
 }
-EOF
 
-# An LLDAP configured before jaiabot-web-thirdparty ran in Docker from a unit written
-# here, which would shadow the package's
-if [ -f /etc/systemd/system/lldap.service ]; then
-    systemctl disable --now lldap || true
-    rm -f /etc/systemd/system/lldap.service /etc/lldap/docker-compose.yaml
-    systemctl daemon-reload
-fi
-
-# recursive, as for Authelia: the lldap uid differs between images, and the container ran as another
-chown -R lldap:lldap $lldap_persistent_dir
-
-lldap_inputs_fingerprint() {
+lldap_inputs_fingerprint()
+{
     cat /etc/lldap/lldap_config.toml /etc/systemd/system/lldap.service.d/jaia-swap.conf 2>/dev/null | sha256sum || true
 }
-lldap_inputs_before=$(lldap_inputs_fingerprint)
 
-cat <<EOF > /etc/lldap/lldap_config.toml
+start_lldap()
+{
+    # An LLDAP configured before jaiabot-web-thirdparty ran in Docker from a unit written
+    # here, which would shadow the package's
+    if [ -f /etc/systemd/system/lldap.service ]; then
+        systemctl disable --now lldap || true
+        rm -f /etc/systemd/system/lldap.service /etc/lldap/docker-compose.yaml
+        systemctl daemon-reload
+    fi
+
+    # recursive, as for Authelia: the lldap uid differs between images, and the container ran as another
+    mkdir -p "$lldap_persistent_dir"
+    chown -R lldap:lldap $lldap_persistent_dir
+
+    local before
+    before=$(lldap_inputs_fingerprint)
+
+    cat <<EOF > /etc/lldap/lldap_config.toml
 ldap_host = "127.0.0.1"
 ldap_port = $lldap_ldap_port
 http_host = "127.0.0.1"
@@ -680,28 +742,34 @@ ldap_user_email = "authelia@$base_uri"
 ldap_user_pass = "$authelia_ldap_password"
 database_url = "sqlite://$lldap_persistent_dir/users.db?mode=rwc"
 EOF
-chown root:lldap /etc/lldap/lldap_config.toml
-chmod 0640 /etc/lldap/lldap_config.toml
+    chown root:lldap /etc/lldap/lldap_config.toml
+    chmod 0640 /etc/lldap/lldap_config.toml
 
-# We need the swap file for Authelia + JCC running on EC2 micro
-# overlayroot won't allow swapfile in /etc/fstab, so we start it here
-mkdir -p /etc/systemd/system/lldap.service.d
-cat <<EOF > /etc/systemd/system/lldap.service.d/jaia-swap.conf
+    # We need the swap file for Authelia + JCC running on EC2 micro
+    # overlayroot won't allow swapfile in /etc/fstab, so we start it here
+    mkdir -p /etc/systemd/system/lldap.service.d
+    cat <<EOF > /etc/systemd/system/lldap.service.d/jaia-swap.conf
 [Service]
 ExecStartPre=-+/usr/sbin/swapon $swapfile
 EOF
-systemctl daemon-reload
-systemctl enable lldap
-# LLDAP reads its configuration at startup only
-if [ "$(lldap_inputs_fingerprint)" != "$lldap_inputs_before" ]; then
-    systemctl restart lldap
-else
-    systemctl start lldap
-fi
+    systemctl daemon-reload
+    systemctl enable lldap
+    # LLDAP reads its configuration at startup only
+    if [ "$(lldap_inputs_fingerprint)" != "$before" ]; then
+        systemctl restart lldap
+    else
+        systemctl start lldap
+    fi
+}
 
-if ! $jaia_auth_lldap_bootstrap_completed; then
+bootstrap_lldap()
+{
+    if $jaia_auth_lldap_bootstrap_completed; then
+        return
+    fi
     # bounded because a first boot that never returns leaves the machine without the
     # reboot that mounts overlayroot
+    local attempt
     for attempt in $(seq 1 120); do
         if LLDAP_URL=http://127.0.0.1:$lldap_web_port \
            LLDAP_ADMIN_USERNAME=authelia \
@@ -725,30 +793,7 @@ if ! $jaia_auth_lldap_bootstrap_completed; then
         fi
         sleep 1
     done
-fi
-
-mkdir -p /etc/systemd/system/authelia.service.d
-cat <<EOF > /etc/systemd/system/authelia.service.d/override.conf
-[Unit]
-Requires=lldap.service
-After=lldap.service
-
-[Service]
-ExecStartPre=-/bin/bash -c 'for i in {1..110}; do (exec 3<>/dev/tcp/127.0.0.1/$lldap_ldap_port) 2>/dev/null && exit 0; sleep 1; done; exit 1'
-TimeoutStartSec=120
-Restart=on-failure
-RestartSec=10s
-$smtp_password_env
-EOF
-
-systemctl daemon-reload
-# Authelia only reads its configuration at startup, so 'start' alone would leave a
-# running instance enforcing the old access_control rules
-if [ "$(authelia_inputs_fingerprint)" != "$authelia_inputs_before" ]; then
-    systemctl restart authelia
-else
-    systemctl start authelia
-fi
+}
 
 
 ##################
@@ -760,13 +805,20 @@ fi
 # and runs only the enrollment command: port 22, where Jaia's root keys are read, is
 # opened only by a support grant. The first matching block sets a keyword, so the
 # narrower one comes first.
-pairing_port=2222
-touch /etc/jaiabot/ssh/pairing_authorized_keys
-chown jaia:jaia /etc/jaiabot/ssh/pairing_authorized_keys
-chmod 600 /etc/jaiabot/ssh/pairing_authorized_keys
-sshd_pairing_conf=/etc/ssh/sshd_config.d/jaia_pairing.conf
-sshd_pairing_before=$(cat "$sshd_pairing_conf" 2>/dev/null || true)
-cat > "$sshd_pairing_conf.new" <<EOF
+configure_pairing_port()
+{
+    local socket_activated=false
+    if systemctl is-enabled --quiet ssh.socket 2>/dev/null; then
+        socket_activated=true
+    fi
+
+    touch /etc/jaiabot/ssh/pairing_authorized_keys
+    chown jaia:jaia /etc/jaiabot/ssh/pairing_authorized_keys
+    chmod 600 /etc/jaiabot/ssh/pairing_authorized_keys
+
+    local before
+    before=$(cat "$sshd_pairing_conf" 2>/dev/null || true)
+    cat > "$sshd_pairing_conf.new" <<EOF
 Match LocalPort $pairing_port User *,!jaia
     AuthorizedKeysFile none
     AuthorizedPrincipalsFile none
@@ -784,51 +836,55 @@ Match LocalPort $pairing_port
     PermitTunnel no
     ForceCommand /usr/bin/jaia-vpn-enroll.sh
 EOF
-if systemctl is-enabled --quiet ssh.socket 2>/dev/null; then
-    mkdir -p /etc/systemd/system/ssh.socket.d
-    cat > /etc/systemd/system/ssh.socket.d/jaia-pairing.conf <<EOF
+    if $socket_activated; then
+        mkdir -p /etc/systemd/system/ssh.socket.d
+        cat > /etc/systemd/system/ssh.socket.d/jaia-pairing.conf <<EOF
 [Socket]
 ListenStream=$pairing_port
 EOF
-else
-    printf 'Port 22\nPort %s\n' "$pairing_port" | cat - "$sshd_pairing_conf.new" > "$sshd_pairing_conf.tmp"
-    mv "$sshd_pairing_conf.tmp" "$sshd_pairing_conf.new"
-fi
-mv "$sshd_pairing_conf.new" "$sshd_pairing_conf"
-sshd -t
-if [ "$(cat "$sshd_pairing_conf")" != "$sshd_pairing_before" ]; then
-    systemctl daemon-reload
-    if systemctl is-enabled --quiet ssh.socket 2>/dev/null; then
-        systemctl restart ssh.socket
     else
-        systemctl reload-or-restart ssh
+        printf 'Port 22\nPort %s\n' "$pairing_port" | cat - "$sshd_pairing_conf.new" > "$sshd_pairing_conf.tmp"
+        mv "$sshd_pairing_conf.tmp" "$sshd_pairing_conf.new"
     fi
-fi
-if ufw status 2>/dev/null | grep -q "^Status: active"; then
-    ufw allow in on eth0 to any port $pairing_port proto tcp >/dev/null
-fi
+    mv "$sshd_pairing_conf.new" "$sshd_pairing_conf"
+    sshd -t
+
+    if [ "$(cat "$sshd_pairing_conf")" != "$before" ]; then
+        systemctl daemon-reload
+        if $socket_activated; then
+            systemctl restart ssh.socket
+        else
+            systemctl reload-or-restart ssh
+        fi
+    fi
+    if ufw status 2>/dev/null | grep -q "^Status: active"; then
+        ufw allow in on eth0 to any port $pairing_port proto tcp >/dev/null
+    fi
+}
 
 
 ####################
 ## Support portal ##
 ####################
 
-if [ ! -d "$support_persistent_dir" ]; then
-    mkdir -p $support_persistent_dir
-    chmod 0700 $support_persistent_dir
-fi
+configure_support_portal()
+{
+    if [ ! -d "$support_persistent_dir" ]; then
+        mkdir -p $support_persistent_dir
+        chmod 0700 $support_persistent_dir
+    fi
 
-# The portal's trust root, in the form ssh-keygen -Y verify reads. Derived from
-# the root keys the image already carries rather than from a list kept here, so
-# adding or retiring a Yubikey is the one edit it has always been. Written whole
-# so a request is never checked against a half-written file.
-mkdir -p /etc/jaiabot/support
-awk '$1 ~ /^(ssh|sk-ssh|ecdsa|sk-ecdsa)-/ { print "jaia-support", $1, $2 }' \
-    /etc/jaiabot/ssh/root_authorized_keys > /etc/jaiabot/support/allowed_signers.new
-[ -s /etc/jaiabot/support/allowed_signers.new ]
-mv /etc/jaiabot/support/allowed_signers.new /etc/jaiabot/support/allowed_signers
+    # The portal's trust root, in the form ssh-keygen -Y verify reads. Derived from
+    # the root keys the image already carries rather than from a list kept here, so
+    # adding or retiring a Yubikey is the one edit it has always been. Written whole
+    # so a request is never checked against a half-written file.
+    mkdir -p /etc/jaiabot/support
+    awk '$1 ~ /^(ssh|sk-ssh|ecdsa|sk-ecdsa)-/ { print "jaia-support", $1, $2 }' \
+        /etc/jaiabot/ssh/root_authorized_keys > /etc/jaiabot/support/allowed_signers.new
+    [ -s /etc/jaiabot/support/allowed_signers.new ]
+    mv /etc/jaiabot/support/allowed_signers.new /etc/jaiabot/support/allowed_signers
 
-cat > /etc/systemd/system/jaia_support_portal.service <<EOF
+    cat > /etc/systemd/system/jaia_support_portal.service <<EOF
 [Unit]
 Description=Jaia support access portal
 
@@ -849,9 +905,9 @@ RestartSec=5s
 WantedBy=multi-user.target
 EOF
 
-# A firewall rule has no expiry of its own, so this is the one mechanism that
-# ends a grant nobody remembers to end.
-cat > /etc/systemd/system/jaia_support_reconcile.service <<EOF
+    # A firewall rule has no expiry of its own, so this is the one mechanism that
+    # ends a grant nobody remembers to end.
+    cat > /etc/systemd/system/jaia_support_reconcile.service <<EOF
 [Unit]
 Description=Bring Jaia's support access back in line with what the customer granted
 # Web access lives in the directory, so a run before it is up has nothing to say;
@@ -864,7 +920,7 @@ ExecStart=/usr/bin/jaia-support-access.py reconcile
 Environment=JAIA_FLEET_ID=$jaia_fleet_id
 EOF
 
-cat > /etc/systemd/system/jaia_support_reconcile.timer <<EOF
+    cat > /etc/systemd/system/jaia_support_reconcile.timer <<EOF
 [Unit]
 Description=Bring Jaia's support access back in line with what the customer granted
 
@@ -878,15 +934,52 @@ OnUnitActiveSec=5min
 WantedBy=timers.target
 EOF
 
-systemctl daemon-reload
-systemctl enable jaia_support_portal
-systemctl restart jaia_support_portal
-systemctl enable --now jaia_support_reconcile.timer
+    systemctl daemon-reload
+    systemctl enable jaia_support_portal
+    systemctl restart jaia_support_portal
+    systemctl enable --now jaia_support_reconcile.timer
+}
 
-##############
-## Firewall ##
-##############
+# HTTP(S) through ufw; the security group is set when the CloudHub is created
+open_firewall()
+{
+    ufw allow in on eth0 to any port 80 proto tcp
+    ufw allow in on eth0 to any port 443 proto tcp
+}
 
-# Add firewall to UFW (AWS done at CloudHub creation time)
-ufw allow in on eth0 to any port 80 proto tcp
-ufw allow in on eth0 to any port 443 proto tcp
+
+##########
+## Main ##
+##########
+
+main()
+{
+    setup_swapfile
+    detect_deployment
+    configure_apache
+    install_packages
+
+    load_secrets
+    # Before anything Authelia reads at startup is rewritten, the SMTP password included
+    authelia_inputs_before=$(authelia_inputs_fingerprint)
+    load_smtp_credentials
+    write_authelia_assets
+    write_authelia_config
+
+    write_caddyfile
+    configure_caddy_dns_wait
+    start_caddy
+
+    write_lldap_group_configs
+    write_lldap_user_configs
+    start_lldap
+    bootstrap_lldap
+
+    start_authelia
+
+    configure_pairing_port
+    configure_support_portal
+    open_firewall
+}
+
+main "$@"
