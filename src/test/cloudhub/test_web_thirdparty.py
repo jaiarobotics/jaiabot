@@ -20,9 +20,12 @@ FIRST_BOOT_SCRIPTS = [
 THIRD_PARTY_HOSTS = ["caddyserver.com", "authelia.com", "awscli.amazonaws.com", "docker compose", "docker.io", "lldap/lldap:"]
 
 
+COMMON_VERSIONS = SOURCE_DIR / "scripts" / "common-versions.env"
+
+
 def versions():
     pairs = {}
-    for line in (THIRDPARTY / "versions.env").read_text().splitlines():
+    for line in COMMON_VERSIONS.read_text().splitlines():
         if "=" in line and not line.startswith("#"):
             key, value = line.split("=", 1)
             pairs[key] = value
@@ -143,28 +146,29 @@ class PackageTest(unittest.TestCase):
 
 
 class PinsTest(unittest.TestCase):
-    def test_versions_env_pins_every_tarball(self):
+    def test_common_versions_pins_every_tarball(self):
         pins = versions()
-        for key in ("AUTHELIA_VERSION", "LLDAP_VERSION"):
+        for key in ("jaia_version_authelia", "jaia_version_lldap"):
             self.assertRegex(pins[key], r"^\d+\.\d+\.\d+$", key)
-        for key in ("AUTHELIA_SHA256_AMD64", "AUTHELIA_SHA256_ARM64", "LLDAP_SHA256_AMD64",
-                    "LLDAP_SHA256_ARM64", "LLDAP_BOOTSTRAP_SHA256"):
+        for key in ("jaia_sha256_authelia_amd64", "jaia_sha256_authelia_arm64",
+                    "jaia_sha256_lldap_amd64", "jaia_sha256_lldap_arm64",
+                    "jaia_sha256_lldap_bootstrap"):
             self.assertRegex(pins[key], r"^[0-9a-f]{64}$", key)
+        self.assertIn("scripts/common-versions.env", (THIRDPARTY / "fetch.sh").read_text())
 
     def test_renovate_finds_each_version_line(self):
         config = json.loads((SOURCE_DIR / "renovate.json").read_text())
         manager = next(m for m in config["customManagers"] if m["customType"] == "regex")
         pattern = re.compile(manager["matchStrings"][0].replace("(?<", "(?P<"))
         found = {m.group("depName"): m.group("currentValue")
-                 for m in pattern.finditer((THIRDPARTY / "versions.env").read_text())}
+                 for m in pattern.finditer(COMMON_VERSIONS.read_text())}
         pins = versions()
-        self.assertEqual(found, {"authelia/authelia": pins["AUTHELIA_VERSION"],
-                                 "lldap/lldap": pins["LLDAP_VERSION"]})
-        common = (SOURCE_DIR / "scripts" / "common-versions.env").read_text()
-        announced = {m.group("depName") for m in pattern.finditer(common)}
-        self.assertEqual(announced, {"arduino/arduino-cli", "node", "nvm-sh/nvm", "npm", "webpack",
-                                     "webpack-cli", "raspberrypi/firmware"})
-        self.assertIn("/^scripts/common-versions\\.env$/", manager["managerFilePatterns"])
+        self.assertEqual(found["authelia/authelia"], pins["jaia_version_authelia"])
+        self.assertEqual(found["lldap/lldap"], pins["jaia_version_lldap"])
+        self.assertEqual(set(found), {"authelia/authelia", "lldap/lldap", "arduino/arduino-cli",
+                                      "node", "nvm-sh/nvm", "npm", "webpack", "webpack-cli",
+                                      "raspberrypi/firmware"})
+        self.assertEqual(manager["managerFilePatterns"], ["/^scripts/common-versions\\.env$/"])
         self.assertIn("3.y", config["baseBranchPatterns"])
         self.assertEqual(config["gomod"]["managerFilePatterns"],
                          ["/^src/web/thirdparty/caddy/go\\.mod$/"])

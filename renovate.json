@@ -11,13 +11,10 @@
   "customManagers": [
     {
       "customType": "regex",
-      "description": "Versions pinned in an env file, each announced by a `# renovate:` line above it",
-      "managerFilePatterns": [
-        "/^src/web/thirdparty/versions\\.env$/",
-        "/^scripts/common-versions\\.env$/"
-      ],
+      "description": "Versions in scripts/common-versions.env, each announced by a `# renovate:` line above it",
+      "managerFilePatterns": ["/^scripts/common-versions\\.env$/"],
       "matchStrings": [
-        "# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)(?: versioning=(?<versioning>\\S+))?(?: extractVersion=(?<extractVersion>\\S+))?\\n[a-zA-Z_]+=(?<currentValue>\\S+)"
+        "# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)(?: versioning=(?<versioning>\\S+))?(?: extractVersion=(?<extractVersion>\\S+))?\\njaia_version_[a-z_]+=(?<currentValue>\\S+)"
       ]
     }
   ],
@@ -28,13 +25,12 @@
       "commitMessageTopic": "Caddy"
     },
     {
-      "matchFileNames": ["src/web/thirdparty/versions.env"],
+      "matchPackageNames": ["authelia/authelia", "lldap/lldap"],
       "prBodyNotes": [
-        "Before merging, run `src/web/thirdparty/fetch.sh --update-checksums` and commit the new SHA-256 lines in `versions.env`; the deb build refuses a tarball whose checksum does not match."
+        "Before merging, run `src/web/thirdparty/fetch.sh --update-checksums` and commit the new `jaia_sha256_*` lines in `scripts/common-versions.env`; the deb build refuses a tarball whose checksum does not match."
       ]
     },
     {
-      "matchFileNames": ["scripts/common-versions.env"],
       "matchPackageNames": ["npm", "webpack", "webpack-cli", "node"],
       "groupName": "web build tools",
       "commitMessageTopic": "web build tools"
