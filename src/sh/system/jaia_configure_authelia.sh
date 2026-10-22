@@ -751,6 +751,64 @@ else
 fi
 
 
+##################
+## Pairing port ##
+##################
+
+# New bots and hubs enroll in the CloudHub VPN over SSH on a port of their own. Fleet
+# pairing opens it to every address, so sshd there reads only the bootstrap key's file
+# and runs only the enrollment command: port 22, where Jaia's root keys are read, is
+# opened only by a support grant. The first matching block sets a keyword, so the
+# narrower one comes first.
+pairing_port=2222
+touch /etc/jaiabot/ssh/pairing_authorized_keys
+chown jaia:jaia /etc/jaiabot/ssh/pairing_authorized_keys
+chmod 600 /etc/jaiabot/ssh/pairing_authorized_keys
+sshd_pairing_conf=/etc/ssh/sshd_config.d/jaia_pairing.conf
+sshd_pairing_before=$(cat "$sshd_pairing_conf" 2>/dev/null || true)
+cat > "$sshd_pairing_conf.new" <<EOF
+Match LocalPort $pairing_port User *,!jaia
+    AuthorizedKeysFile none
+    AuthorizedPrincipalsFile none
+    AuthenticationMethods publickey
+    PermitTTY no
+    DisableForwarding yes
+    ForceCommand /bin/false
+Match LocalPort $pairing_port
+    AuthorizedKeysFile /etc/jaiabot/ssh/pairing_authorized_keys
+    AuthorizedPrincipalsFile none
+    AuthenticationMethods publickey
+    PermitTTY no
+    DisableForwarding yes
+    PermitUserRC no
+    PermitTunnel no
+    ForceCommand /usr/bin/jaia-vpn-enroll.sh
+EOF
+if systemctl is-enabled --quiet ssh.socket 2>/dev/null; then
+    mkdir -p /etc/systemd/system/ssh.socket.d
+    cat > /etc/systemd/system/ssh.socket.d/jaia-pairing.conf <<EOF
+[Socket]
+ListenStream=$pairing_port
+EOF
+else
+    printf 'Port 22\nPort %s\n' "$pairing_port" | cat - "$sshd_pairing_conf.new" > "$sshd_pairing_conf.tmp"
+    mv "$sshd_pairing_conf.tmp" "$sshd_pairing_conf.new"
+fi
+mv "$sshd_pairing_conf.new" "$sshd_pairing_conf"
+sshd -t
+if [ "$(cat "$sshd_pairing_conf")" != "$sshd_pairing_before" ]; then
+    systemctl daemon-reload
+    if systemctl is-enabled --quiet ssh.socket 2>/dev/null; then
+        systemctl restart ssh.socket
+    else
+        systemctl reload-or-restart ssh
+    fi
+fi
+if ufw status 2>/dev/null | grep -q "^Status: active"; then
+    ufw allow in on eth0 to any port $pairing_port proto tcp >/dev/null
+fi
+
+
 ####################
 ## Support portal ##
 ####################

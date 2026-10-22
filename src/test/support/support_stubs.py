@@ -55,7 +55,10 @@ with open(os.environ["STUB_AWS_LOG"], "a") as f:
 
 action = argv[1] if len(argv) > 1 else ""
 permissions = json.loads(argv[argv.index("--ip-permissions") + 1])
-cidrs = [r.get("CidrIp") or r.get("CidrIpv6")
+# A rule on port 22 is held as its address alone, as before ports were told apart
+def held_as(cidr, port):
+    return cidr if port == 22 else "{} port {}".format(cidr, port)
+cidrs = [held_as(r.get("CidrIp") or r.get("CidrIpv6"), p.get("FromPort", 22))
          for p in permissions for key in ("IpRanges", "Ipv6Ranges") for r in p.get(key, [])]
 
 try:
@@ -96,6 +99,7 @@ with open(os.environ["STUB_SS_LOG"], "a") as f:
 
 
 LLDAP_PASSWORD = "not-the-real-one"
+PAIRING_PORT = 2222
 LLDAP_GROUPS = ("run", "sim", "jdv", "jcu_developer", "rest_api_read", "lldap_admin")
 
 
@@ -184,6 +188,7 @@ class CloudHub:
         self.ss_log = os.path.join(directory, "ss.log")
         self.secrets = os.path.join(directory, "secrets")
         self.tmp_authorized_keys = os.path.join(directory, "tmp_authorized_keys")
+        self.pairing_authorized_keys = os.path.join(directory, "pairing_authorized_keys")
         os.makedirs(self.bin)
 
         key = os.path.join(directory, "id_vpn_tmp")
@@ -223,6 +228,7 @@ class CloudHub:
                     JAIA_AUTH_SECRETS=self.secrets,
                     JAIA_VPN_AUTHORIZE=str(AUTHORIZE),
                     JAIA_TMP_AUTHORIZED_KEYS=self.tmp_authorized_keys,
+                    JAIA_PAIRING_AUTHORIZED_KEYS=self.pairing_authorized_keys,
                     JAIA_LLDAP_URL="http://127.0.0.1:{}".format(self.lldap.port))
         held.update(extra)
         return held
@@ -235,13 +241,17 @@ class CloudHub:
 
     ## What the CloudHub ended up with
 
-    def open_to(self):
-        """The addresses the security group admits, as the stub holds them."""
+    def open_to(self, port=22):
+        """The addresses the security group admits on a port, as the stub holds them."""
         try:
             with open(self.security_group) as f:
-                return sorted(json.load(f))
+                held = json.load(f)
         except (OSError, ValueError):
             return []
+        if port == 22:
+            return sorted(c for c in held if " port " not in c)
+        suffix = " port {}".format(port)
+        return sorted(c[:-len(suffix)] for c in held if c.endswith(suffix))
 
     def _log(self, path):
         try:
@@ -259,15 +269,18 @@ class CloudHub:
         """The line authorizing the bootstrap key, as sshd would read it, or None."""
         blob = self.bootstrap_key.split()[1]
         try:
-            with open(self.tmp_authorized_keys) as f:
+            with open(self.pairing_authorized_keys) as f:
                 lines = [line.strip() for line in f if blob in line]
         except OSError:
             return None
         return lines[0] if lines else None
 
-    def open_to_everyone(self):
-        held = self.open_to()
+    def open_to_everyone(self, port=22):
+        held = self.open_to(port)
         return "0.0.0.0/0" in held and "::/0" in held
+
+    def pairing_port_open(self):
+        return self.open_to_everyone(PAIRING_PORT)
 
     def web_groups(self):
         """The groups the support account is in, as the directory holds them."""

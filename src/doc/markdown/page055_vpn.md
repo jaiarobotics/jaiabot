@@ -210,15 +210,28 @@ comes back with a new key, so enrolling one that is already a peer replaces it.
 
 That entry exists only while **fleet pairing** is open. A CloudHub is built with
 pairing closed, keeping the fleet's bootstrap public key for later; pairing is opened
-for a set time - at most two weeks - from **Open Fleet Pairing** in the JCU's Fleet
-Changes, and closes itself. While it is open, `jaia-support-access.py` on the
-CloudHub writes the entry through `jaia-vpn-authorize.sh`, so it has one author, and
-opens port 22 at the security group to every address, since a node enrolls over SSH
-from wherever it is. The entry is rewritten on every run of the CloudHub's reconcile
-timer from a record in its persistent support directory, so it survives a reboot and
-ends when pairing does; the expiry it carries is a full UTC timestamp, since sshd reads
-a bare date as midnight at the start of that day. It leaves the temporary keys of
-whoever `jaia admin ssh add` has let into the same file alone.
+for 1, 2 or 8 hours from **Open Fleet Pairing** in the JCU's Fleet Changes, and closes
+itself. While it is open, `jaia-support-access.py` on the CloudHub writes the entry
+through `jaia-vpn-authorize.sh`, so it has one author, and opens the **pairing port**
+(TCP 2222) at the security group to every address, since a node enrolls over SSH from
+wherever it is. The entry is rewritten on every run of the CloudHub's reconcile timer
+from a record in its persistent support directory, so it survives a reboot and ends
+when pairing does; the expiry it carries is a full UTC timestamp, since sshd reads a
+bare date as midnight at the start of that day. Closing pairing also drops the
+enrollment sessions it admitted.
+
+*This section written by Claude*
+
+The pairing port is a second listener of the CloudHub's sshd (a `ssh.socket` drop-in,
+or a `Port` line where sshd is not socket-activated), set up by
+`jaia_configure_authelia.sh`. A `Match LocalPort 2222` block makes it read one key
+file, `/etc/jaiabot/ssh/pairing_authorized_keys`, which holds only the bootstrap key,
+and run only `jaia-vpn-enroll.sh`, with no terminal and no forwarding; any user but
+`jaia` has no keys there at all. So opening pairing admits nothing but enrollment:
+Jaia's root keys, the hub keys and the permanent keys are read only on port 22, which
+only a customer's support grant opens. A node asks the pairing port first and falls
+back to port 22 only when the pairing port refuses or never answers, as a CloudHub
+from before it does.
 
 **Pair Fleet to CloudHub**, run from a hub on site, re-runs enrollment on every bot
 and hub over the fleet WLAN. A node remembers the CloudHub it was given at first boot,

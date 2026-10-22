@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 
-"""What the bootstrap key may do is one line in one file, and that file is shared.
+"""What the bootstrap key may do is one line in one file, read only on the pairing port.
 
-tmp_authorized_keys also holds whatever temporary keys 'jaia admin ssh add' has
-let in, so authorizing enrollment must touch its own entry and no other. Renewing
-it has to replace the entry too: a second line for the same key leaves the
-expired one behind, and sshd takes the first match it finds.
+Earlier releases kept the line in tmp_authorized_keys, which also holds whatever
+temporary keys 'jaia admin ssh add' has let in and is read on port 22, so
+authorizing takes it out of there and touches no other entry. Renewing has to
+replace the entry too: a second line for the same key leaves the expired one
+behind, and sshd takes the first match it finds.
 """
 
 import datetime
@@ -47,8 +48,10 @@ class AuthorizeTest(unittest.TestCase):
     def setUp(self):
         self.dir = tempfile.mkdtemp()
         self.addCleanup(shutil.rmtree, self.dir, True)
-        self.path = os.path.join(self.dir, "ssh", "tmp_authorized_keys")
-        self.env = dict(os.environ, JAIA_TMP_AUTHORIZED_KEYS=self.path)
+        self.path = os.path.join(self.dir, "ssh", "pairing_authorized_keys")
+        self.legacy = os.path.join(self.dir, "ssh", "tmp_authorized_keys")
+        self.env = dict(os.environ, JAIA_PAIRING_AUTHORIZED_KEYS=self.path,
+                        JAIA_TMP_AUTHORIZED_KEYS=self.legacy)
 
     def run_script(self, *args):
         return subprocess.run(["bash", str(SCRIPT)] + list(args),
@@ -60,10 +63,16 @@ class AuthorizeTest(unittest.TestCase):
         with open(self.path) as f:
             return f.read()
 
-    def seed_operator_key(self):
-        os.makedirs(os.path.dirname(self.path), exist_ok=True)
-        with open(self.path, "w") as f:
+    def seed_operator_key(self, with_old_enrollment=False):
+        os.makedirs(os.path.dirname(self.legacy), exist_ok=True)
+        with open(self.legacy, "w") as f:
             f.write(OPERATOR_ENTRY + "\n")
+            if with_old_enrollment:
+                f.write('restrict,command="/usr/bin/jaia-vpn-enroll.sh" ' + BOOTSTRAP_KEY + "\n")
+
+    def legacy_contents(self):
+        with open(self.legacy) as f:
+            return f.read()
 
     def until(self, seconds):
         return int(time.time()) + seconds
@@ -91,10 +100,16 @@ class AuthorizeTest(unittest.TestCase):
         self.assertEqual(until, calendar.timegm(time.strptime(found, "%Y%m%d%H%M%SZ")))
 
     def test_other_peoples_temporary_keys_are_left_alone(self):
-        self.seed_operator_key()
+        self.seed_operator_key(with_old_enrollment=True)
         self.assertEqual(self.run_script("--until", str(self.until(60)), BOOTSTRAP_KEY).returncode, 0)
-        self.assertIn(OPERATOR_ENTRY, self.contents())
+        self.assertIn(OPERATOR_ENTRY, self.legacy_contents())
         self.assertIn(BOOTSTRAP_BLOB, self.contents())
+
+    def test_the_line_is_taken_out_of_the_file_port_22_reads(self):
+        self.seed_operator_key(with_old_enrollment=True)
+        self.assertEqual(self.run_script("--until", str(self.until(60)), BOOTSTRAP_KEY).returncode, 0)
+        self.assertNotIn(BOOTSTRAP_BLOB, self.legacy_contents())
+        self.assertNotIn(OPERATOR_ENTRY, self.contents())
 
     def test_renewing_replaces_the_entry(self):
         first, second = self.until(60), self.until(7 * 86400)
@@ -110,7 +125,7 @@ class AuthorizeTest(unittest.TestCase):
         result = self.run_script("--rm", BOOTSTRAP_KEY)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertNotIn(BOOTSTRAP_BLOB, self.contents())
-        self.assertIn(OPERATOR_ENTRY, self.contents())
+        self.assertIn(OPERATOR_ENTRY, self.legacy_contents())
 
     def test_the_file_is_not_world_readable(self):
         self.run_script("--until", str(self.until(60)), BOOTSTRAP_KEY)
