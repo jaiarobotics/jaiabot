@@ -184,7 +184,7 @@ The config it writes carries no private key, so it can be copied to the node by 
 *This section written by Claude*
 
 A bot or hub enrolls with its own fleet's CloudHub rather than `vpn.jaia.tech`:
-`/etc/jaiabot/init/pair-with-cloudhub.sh` generates the node's key
+`/usr/bin/jaia-pair-with-cloudhub.sh` (from `jaiabot-apps`) generates the node's key
 pair, hands the public half to the CloudHub over SSH, and writes the config that
 comes back to `/etc/wireguard/wg_jaia_ch<fleet>.conf` with its own private key in
 it. `jaia admin fleet generate` puts the CloudHub's base URI in the preseed, and
@@ -238,6 +238,11 @@ name, which makes a new key at its first boot, can run fleet actions (Minor Upgr
 Reboot, Comms Links, …) on nodes provisioned before the rebuild as soon as they have
 paired again. A node already holding the key leaves the file alone; an answer without
 the line (an older CloudHub) changes nothing.
+
+The script is packaged rather than part of the image, so a Minor Upgrade brings this to
+nodes already in the field. **Pair Fleet to CloudHub** runs the packaged copy where a
+node has it, and the one its image carried otherwise; such a node pairs, but keeps
+the CloudHub key it was imaged with until it is upgraded and pairs again.
 
 *This section written by Claude*
 

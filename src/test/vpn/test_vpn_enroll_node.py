@@ -17,8 +17,11 @@ import tempfile
 import unittest
 
 SOURCE_DIR = pathlib.Path(__file__).resolve().parents[3]
-SCRIPT = (SOURCE_DIR / "rootfs" / "customization" / "includes.chroot" / "etc" / "jaiabot" /
-          "init" / "pair-with-cloudhub.sh")
+SCRIPT = SOURCE_DIR / "src" / "sh" / "utils" / "jaia-pair-with-cloudhub.sh"
+PLAYBOOK = SOURCE_DIR / "config" / "ansible" / "pair-fleet-to-cloudhub.yml"
+PRESEED = (SOURCE_DIR / "rootfs" / "customization" / "includes.chroot" / "etc" / "jaiabot" /
+           "init" / "first-boot.preseed.yml.j2")
+INSTALL_LIST = SOURCE_DIR / "src" / "sh" / "CMakeLists.txt"
 
 PLACEHOLDER = "REPLACE_WITH_THE_CONTENTS_OF_/etc/wireguard/privatekey"
 
@@ -82,6 +85,25 @@ exit ${JAIA_TEST_SSH_STATUS:-0}
             'while [ $# -gt 0 ]; do [ "$1" = --bootdir ] && dir=$2; shift; done\n'
             'echo "restored bootstrap key" > "$dir/jaiabot/init/id_vpn_tmp"\n',
 }
+
+
+class PackagingTest(unittest.TestCase):
+    """A Minor Upgrade must be able to change pairing on nodes already in the field,
+    so the script ships in a package rather than in the image."""
+
+    def test_the_script_is_installed_by_a_package(self):
+        self.assertIn("utils/jaia-pair-with-cloudhub.sh", INSTALL_LIST.read_text())
+
+    def test_first_boot_runs_the_packaged_script(self):
+        text = PRESEED.read_text()
+        self.assertIn("/usr/bin/jaia-pair-with-cloudhub.sh", text)
+        self.assertNotIn("/etc/jaiabot/init/pair-with-cloudhub.sh", text)
+
+    def test_the_playbook_prefers_the_packaged_script_and_falls_back(self):
+        text = PLAYBOOK.read_text()
+        packaged = text.index("exec /usr/bin/jaia-pair-with-cloudhub.sh")
+        self.assertLess(packaged, text.index("exec /etc/jaiabot/init/pair-with-cloudhub.sh"))
+        self.assertIn("become: yes", text)
 
 
 class NodeEnrollTest(unittest.TestCase):
