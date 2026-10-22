@@ -58,6 +58,14 @@ if [ ! -z "$jaiabot_systemd_type" ]; then
 
 fi
 
+echo "🟢 Configuring SPI device permissions"
+# mirrors rootfs/.../udev/rules.d/90-jaiabot_spi.rules and init/setup-spi.sh, which only apply to fresh images
+echo 'SUBSYSTEM=="spidev", GROUP="spi", MODE="0660"' | sudo tee /etc/udev/rules.d/90-jaiabot_spi.rules > /dev/null
+sudo groupadd -f spi
+sudo usermod -aG spi ${USER}
+sudo udevadm control --reload-rules
+sudo udevadm trigger --subsystem-match=spidev
+
 sudo cp ${HOME}/jaiabot/scripts/75-jaiabot-status /etc/update-motd.d/
 # use symlink so this gets updated if the user re-installs the packaged version
 sudo ln -s -f /etc/update-motd.d/75-jaiabot-status /usr/local/bin/jaiabot-status
