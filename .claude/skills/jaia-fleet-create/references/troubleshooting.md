@@ -57,6 +57,13 @@ minute or two** — the reconfigure it runs stops the JCU's own service, which e
 playbook. From SW-2686 the node starts its services again by itself; check it with
 `check_node.sh` rather than running the playbook again.
 
+**"Incorrect username or password" right after a successful password reset** — three
+failed logins within two minutes ban the account for five, and while banned Authelia
+gives the same message and checks nothing, so a correct new password fails too. `sudo
+journalctl -u authelia` says `… and they are banned until <time>`. Wait it out and try
+once with the password from the latest reset; the first failures are usually an
+autofilled older password.
+
 **Sim says the VirtualFleet isn't running** — expected until one is created (part A,
 step 7).
 
