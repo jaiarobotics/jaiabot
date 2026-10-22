@@ -817,7 +817,7 @@ configure_pairing_port()
     chmod 600 /etc/jaiabot/ssh/pairing_authorized_keys
 
     local before
-    before=$(cat "$sshd_pairing_conf" 2>/dev/null || true)
+    before=$(cat "$sshd_pairing_conf" /etc/systemd/system/ssh.socket.d/jaia-pairing.conf 2>/dev/null || true)
     cat > "$sshd_pairing_conf.new" <<EOF
 Match LocalPort $pairing_port User *,!jaia
     AuthorizedKeysFile none
@@ -838,9 +838,12 @@ Match LocalPort $pairing_port
 EOF
     if $socket_activated; then
         mkdir -p /etc/systemd/system/ssh.socket.d
+        # Both, as Ubuntu's ssh.socket lists 22: with its BindIPv6Only=ipv6-only a bare port
+        # would listen on IPv6 alone
         cat > /etc/systemd/system/ssh.socket.d/jaia-pairing.conf <<EOF
 [Socket]
-ListenStream=$pairing_port
+ListenStream=0.0.0.0:$pairing_port
+ListenStream=[::]:$pairing_port
 EOF
     else
         printf 'Port 22\nPort %s\n' "$pairing_port" | cat - "$sshd_pairing_conf.new" > "$sshd_pairing_conf.tmp"
@@ -849,7 +852,7 @@ EOF
     mv "$sshd_pairing_conf.new" "$sshd_pairing_conf"
     sshd -t
 
-    if [ "$(cat "$sshd_pairing_conf")" != "$before" ]; then
+    if [ "$(cat "$sshd_pairing_conf" /etc/systemd/system/ssh.socket.d/jaia-pairing.conf 2>/dev/null || true)" != "$before" ]; then
         systemctl daemon-reload
         if $socket_activated; then
             systemctl restart ssh.socket

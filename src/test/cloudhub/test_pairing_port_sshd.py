@@ -89,7 +89,10 @@ class SocketTest(unittest.TestCase):
         text = configure_text()
         dropin = re.search(r"cat > /etc/systemd/system/ssh\.socket\.d/jaia-pairing\.conf <<EOF\n(.*?)\nEOF",
                            text, re.DOTALL).group(1)
-        self.assertIn("ListenStream=$pairing_port", dropin)
+        # Ubuntu's ssh.socket has BindIPv6Only=ipv6-only, so a bare port would be IPv6 alone
+        self.assertIn("ListenStream=0.0.0.0:$pairing_port", dropin)
+        self.assertIn("ListenStream=[::]:$pairing_port", dropin)
+        self.assertNotRegex(dropin, r"^ListenStream=\$pairing_port$")
         self.assertIn("systemctl restart ssh.socket", text)
 
     def test_the_config_is_checked_before_sshd_is_restarted(self):
