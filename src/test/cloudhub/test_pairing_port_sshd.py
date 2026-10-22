@@ -94,7 +94,8 @@ class SocketTest(unittest.TestCase):
 
     def test_the_config_is_checked_before_sshd_is_restarted(self):
         text = configure_text()
-        self.assertLess(text.index("\nsshd -t\n"), text.index("systemctl restart ssh.socket"))
+        checked = re.search(r"^\s*sshd -t$", text, re.MULTILINE).start()
+        self.assertLess(checked, text.index("systemctl restart ssh.socket"))
 
 
 if __name__ == "__main__":
