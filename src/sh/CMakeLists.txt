@@ -43,6 +43,8 @@ set(scripts_to_install
   system/jaia-update-dns.sh
   system/jaia-iridium-tunnel.sh
   system/jaia_configure_authelia.sh
+  system/jaia-caddy-dns-ready.sh
+  system/jaia-dns-lookup.py
   system/jaia-support-portal.py
   system/jaia-support-access.py
   system/jaia_configure_cloudhub.sh
