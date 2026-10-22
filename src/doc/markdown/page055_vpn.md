@@ -230,6 +230,17 @@ it having to be re-imaged. The key is deleted only once a config has been instal
 
 *This section written by Claude*
 
+The answer also carries the CloudHub's own SSH public key, on a line the node
+strips before installing the config (`# jaia-cloudhub-ssh-key: from="<CloudHub VPN
+address>" ssh-ed25519 …`). The node puts it in `/etc/jaiabot/ssh/hub_authorized_keys`
+in place of the CloudHub line it was imaged with, so a CloudHub rebuilt under the same
+name, which makes a new key at its first boot, can run fleet actions (Minor Upgrade,
+Reboot, Comms Links, …) on nodes provisioned before the rebuild as soon as they have
+paired again. A node already holding the key leaves the file alone; an answer without
+the line (an older CloudHub) changes nothing.
+
+*This section written by Claude*
+
 ### Starting at boot
 
 Whether a node's tunnel starts by itself at boot is the fleet configuration's

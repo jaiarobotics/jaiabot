@@ -18,6 +18,8 @@ from test_vpn_gen import Env, GENERATOR, NODE_PUBKEY, PLACEHOLDER, SOURCE_DIR
 ENROLL = SOURCE_DIR / "src" / "sh" / "utils" / "jaia-vpn-enroll.sh"
 
 OTHER_PUBKEY = "YW5vdGhlciBub2RlIGtleSBhZnRlciByZWltYWdpbmc="
+CLOUDHUB_SSH_PUBKEY = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIC1vdWRodWIgc3NoIGtleSBmb3IgdGhlIHRlc3Rz hub30_fleet7"
+CLOUDHUB_SSH_SECRET = "cloudhub ssh secret half, never sent\n"
 
 
 class EnrollTest(unittest.TestCase):
@@ -28,9 +30,22 @@ class EnrollTest(unittest.TestCase):
         # the forced command finds the generator on PATH, as it does on a CloudHub
         shutil.copyfile(GENERATOR, os.path.join(self.env.dir, "bin", "jaia-vpn-gen.sh"))
         os.chmod(os.path.join(self.env.dir, "bin", "jaia-vpn-gen.sh"), 0o755)
+        # the CloudHub's hub id, which the shared stub (made for the fleet bounds) does not know
+        bounds = os.path.join(self.env.dir, "bin", "jaia_bounds")
+        with open(bounds, "w") as f:
+            f.write('#!/bin/sh\ncase "$1" in --cloudhub_id) echo 30 ;; *) echo 250 ;; esac\n')
+        os.chmod(bounds, 0o755)
+        self.ssh_dir = os.path.join(self.env.dir, "ssh")
+        os.makedirs(self.ssh_dir)
+
+    def give_the_cloudhub_a_key(self):
+        with open(os.path.join(self.ssh_dir, "hub30_fleet7.pub"), "w") as f:
+            f.write(CLOUDHUB_SSH_PUBKEY + "\n")
+        with open(os.path.join(self.ssh_dir, "hub30_fleet7"), "w") as f:
+            f.write(CLOUDHUB_SSH_SECRET)
 
     def enroll(self, request):
-        env = dict(self.env.env, SSH_ORIGINAL_COMMAND=request)
+        env = dict(self.env.env, SSH_ORIGINAL_COMMAND=request, JAIA_SSH_DIR=self.ssh_dir)
         import subprocess
         return subprocess.run(["bash", str(ENROLL)], capture_output=True, text=True, env=env)
 
@@ -62,6 +77,26 @@ class EnrollTest(unittest.TestCase):
         result = self.enroll("bot 3 not-a-key")
         self.assertNotEqual(result.returncode, 0)
         self.assertIsNone(self.env.peer_fragment("wg_cloudhub", "bot3"))
+
+    def test_the_answer_carries_the_cloudhubs_ssh_key(self):
+        """A rebuilt CloudHub has a new key; the node learns it here, restricted to the
+        CloudHub's VPN address as its fleet config restricts it, on a line wg-quick
+        reads as a comment should an older node install it unstripped."""
+        self.give_the_cloudhub_a_key()
+        result = self.enroll("bot 3 " + NODE_PUBKEY)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        config = self.env.client_config("bot3", "wg_jaia_ch7")
+        self.assertTrue(result.stdout.startswith(config))
+        extra = result.stdout[len(config):]
+        self.assertEqual(extra, '# jaia-cloudhub-ssh-key: from="fd0f:77ac:4fdf:7::203" {}\n'.format(
+            CLOUDHUB_SSH_PUBKEY))
+        self.assertNotIn("never sent", result.stdout)
+
+    def test_a_cloudhub_without_its_key_still_enrolls_the_node(self):
+        result = self.enroll("bot 3 " + NODE_PUBKEY)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout, self.env.client_config("bot3", "wg_jaia_ch7"))
+        self.assertIn("WARNING", result.stderr)
 
     def test_a_reimaged_node_may_enroll_again(self):
         """Re-flashing a bot gives it a new key, and the directory refuses to add a

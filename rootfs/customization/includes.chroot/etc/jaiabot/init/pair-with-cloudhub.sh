@@ -10,6 +10,7 @@ DEBCONF_SH="${JAIA_DEBCONF_SH:-/usr/bin/jaia-debconf.sh}"
 HOST_FILE="${JAIA_CLOUDHUB_HOST_FILE:-/etc/jaiabot/cloudhub_host}"
 PORTAL_UNIT="${JAIA_PORTAL_UNIT:-jaiabot_goby_intervehicle_portal}"
 FLEET_CFG_DIR="${JAIA_FLEET_CFG_DIR:-/etc/jaiabot}"
+HUB_KEYS_FILE="${JAIA_HUB_KEYS_FILE:-/etc/jaiabot/ssh/hub_authorized_keys}"
 # PersistentKeepalive keeps a live tunnel handshaking every two minutes or so
 STALE_SECONDS="${JAIA_TUNNEL_STALE_SECONDS:-300}"
 
@@ -75,6 +76,27 @@ tunnel_is_stale()
     started=$(systemctl show -p ActiveEnterTimestamp --value wg-quick@${WG_PROFILE} 2>/dev/null || true)
     [ -n "${started}" ] && started=$(date -d "${started}" +%s 2>/dev/null) || return 1
     (( now - started > STALE_SECONDS ))
+}
+
+# The CloudHub's own SSH key, as an authorized_keys line restricted to its VPN address:
+# it replaces the one this node was imaged with, which a rebuilt CloudHub no longer holds
+accept_cloudhub_ssh_key()
+{
+    local line=$1 from key tmp
+    if ! [[ "${line}" =~ ^from=\"([0-9A-Fa-f:.]+)\"\ ((sk-)?(ssh|ecdsa)-[a-z0-9@.-]+\ [A-Za-z0-9+/=]+)(\ [^[:space:]]+)?$ ]]; then
+        echo "Ignoring the SSH key ${CLOUDHUB_HOST} sent: not an authorized_keys line for one address" >&2
+        return 0
+    fi
+    from=${BASH_REMATCH[1]}
+    key=${BASH_REMATCH[2]}
+    if [ -f "${HUB_KEYS_FILE}" ] && grep -qF -- "${key}" "${HUB_KEYS_FILE}"; then
+        return 0
+    fi
+    tmp=$(mktemp)
+    { [ ! -f "${HUB_KEYS_FILE}" ] || grep -v "^from=\"${from}\" " "${HUB_KEYS_FILE}" || true; echo "${line}"; } > "${tmp}"
+    sudo install -m 644 "${tmp}" "${HUB_KEYS_FILE}"
+    rm -f "${tmp}"
+    echo "Accepted ${CLOUDHUB_HOST}'s SSH key: its fleet actions reach this ${type} again"
 }
 
 REPAIRING=false
@@ -161,6 +183,8 @@ if ! grep -q "^PrivateKey = ${PLACEHOLDER}\$" ${CONF}; then
     exit 1
 fi
 
+CLOUDHUB_SSH_KEY=$(sed -n 's/^# jaia-cloudhub-ssh-key: //p' ${CONF} | head -1)
+sed -i '/^# jaia-cloudhub-ssh-key: /d' ${CONF}
 sed -i "s|^PrivateKey =.*|PrivateKey = $(sudo cat ${WG_DIR}/privatekey)|" ${CONF}
 sudo install -m 600 ${CONF} ${WG_CONF}
 
@@ -169,6 +193,10 @@ sudo install -m 600 ${CONF} ${WG_CONF}
 # before the tunnel is brought up rather than after, so a tunnel that will not
 # start is retried on its own next time, not by enrolling again.
 rm -f ${PRIVATE_KEY}
+
+if [ -n "${CLOUDHUB_SSH_KEY}" ]; then
+    accept_cloudhub_ssh_key "${CLOUDHUB_SSH_KEY}"
+fi
 
 # Started now only if it is set to start at boot: whether the tunnel comes up by
 # itself is the fleet config's choice, made at first boot, and pairing leaves it be

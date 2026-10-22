@@ -37,6 +37,14 @@ Endpoint = 203.0.113.7:51821
 PersistentKeepalive = 52
 """.format(PLACEHOLDER, SERVER_PUBKEY)
 
+CLOUDHUB_VPN_IP = "fd0f:77ac:4fdf:7::1:1e"
+OLD_CLOUDHUB_SSH_KEY = 'from="{}" ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIG9sZCBjbG91ZGh1YiBrZXk hub30_fleet7'.format(
+    CLOUDHUB_VPN_IP)
+NEW_CLOUDHUB_SSH_KEY = 'from="{}" ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIG5ldyBjbG91ZGh1YiBrZXk hub30_fleet7'.format(
+    CLOUDHUB_VPN_IP)
+HUB1_SSH_KEY = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGh1YiAxIHlhYmlrZXkga2V5 hub1_fleet7"
+ANSWER_WITH_KEY = CLOUDHUB_ANSWER + "# jaia-cloudhub-ssh-key: " + NEW_CLOUDHUB_SSH_KEY + "\n"
+
 STUBS = {
     "sudo": 'exec "$@"\n',
     "mount": 'echo "mount $*" >> "$JAIA_TEST_CALLS"\n',
@@ -116,6 +124,10 @@ class NodeEnrollTest(unittest.TestCase):
         with open(self.stored_cfg, "w") as f:
             f.write("version: 2\nfleet: 7\n")
 
+        self.hub_keys = os.path.join(self.dir, "hub_authorized_keys")
+        with open(self.hub_keys, "w") as f:
+            f.write(HUB1_SSH_KEY + "\n" + OLD_CLOUDHUB_SSH_KEY + "\n")
+
         self.env = dict(
             os.environ,
             PATH=fake_bin + os.pathsep + os.environ["PATH"],
@@ -125,6 +137,7 @@ class NodeEnrollTest(unittest.TestCase):
             JAIA_DEBCONF_SH=debconf,
             JAIA_CLOUDHUB_HOST_FILE=os.path.join(self.dir, "cloudhub_host"),
             JAIA_FLEET_CFG_DIR=self.fleet_cfg_dir,
+            JAIA_HUB_KEYS_FILE=self.hub_keys,
             JAIA_TEST_CALLS=self.calls,
             JAIA_TEST_ANSWER=self.answer,
         )
@@ -155,6 +168,70 @@ class NodeEnrollTest(unittest.TestCase):
             return None
         with open(path) as f:
             return f.read()
+
+    def hub_keys_lines(self):
+        with open(self.hub_keys) as f:
+            return f.read().splitlines()
+
+    ## The CloudHub's SSH key, so its fleet actions reach the node
+
+    def test_the_cloudhubs_ssh_key_replaces_the_one_the_node_was_imaged_with(self):
+        self.write_answer(ANSWER_WITH_KEY)
+        result = self.run_script()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.hub_keys_lines(), [HUB1_SSH_KEY, NEW_CLOUDHUB_SSH_KEY])
+        self.assertIn("Accepted fleet7.jaia.tech's SSH key", result.stdout)
+        self.assertEqual(oct(os.stat(self.hub_keys).st_mode & 0o777), oct(0o644))
+
+    def test_the_key_line_is_stripped_from_the_wireguard_config(self):
+        self.write_answer(ANSWER_WITH_KEY)
+        self.assertEqual(self.run_script().returncode, 0)
+        self.assertEqual(self.installed_config(), CLOUDHUB_ANSWER.replace(PLACEHOLDER, NODE_PRIVKEY))
+
+    def test_an_answer_without_a_key_changes_nothing(self):
+        self.assertEqual(self.run_script().returncode, 0)
+        self.assertEqual(self.hub_keys_lines(), [HUB1_SSH_KEY, OLD_CLOUDHUB_SSH_KEY])
+
+    def test_a_key_already_trusted_is_left_alone(self):
+        with open(self.hub_keys, "w") as f:
+            f.write(HUB1_SSH_KEY + "\n" + NEW_CLOUDHUB_SSH_KEY + "\n")
+        before = os.stat(self.hub_keys).st_mtime_ns
+        self.write_answer(ANSWER_WITH_KEY)
+        result = self.run_script()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(os.stat(self.hub_keys).st_mtime_ns, before)
+        self.assertNotIn("Accepted", result.stdout)
+
+    def test_a_key_line_that_is_not_one_address_and_one_key_is_ignored(self):
+        """The answer comes from whoever holds the CloudHub's name; what goes into
+        authorized_keys is one restricted key, never options or a second key."""
+        for line in ('ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIG5vIGZyb20gcmVzdHJpY3Rpb24 hub30_fleet7',
+                     'from="*" ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGFueSBhZGRyZXNz hub30_fleet7',
+                     'from="{}",command="rm -rf /" ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGNvbW1hbmQ x'.format(
+                         CLOUDHUB_VPN_IP),
+                     'from="{}" ssh-ed25519 AAAA; cat /etc/shadow'.format(CLOUDHUB_VPN_IP)):
+            with self.subTest(line=line):
+                with open(self.hub_keys, "w") as f:
+                    f.write(HUB1_SSH_KEY + "\n" + OLD_CLOUDHUB_SSH_KEY + "\n")
+                self.write_answer(CLOUDHUB_ANSWER + "# jaia-cloudhub-ssh-key: " + line + "\n")
+                if os.path.exists(self.wg_dir + "/wg_jaia_ch7.conf"):
+                    os.remove(self.wg_dir + "/wg_jaia_ch7.conf")
+                with open(self.bootstrap_key, "w") as f:
+                    f.write("bootstrap\n")
+                result = self.run_script()
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertIn("Ignoring the SSH key", result.stderr)
+                self.assertEqual(self.hub_keys_lines(), [HUB1_SSH_KEY, OLD_CLOUDHUB_SSH_KEY])
+                self.assertNotIn("jaia-cloudhub-ssh-key", self.installed_config())
+
+    def test_pairing_again_after_a_rebuild_accepts_the_new_cloudhubs_key(self):
+        self.assertEqual(self.run_script().returncode, 0)
+        self.write_answer(ANSWER_WITH_KEY)
+        self.env["JAIA_TEST_HANDSHAKE"] = "1000000000"
+        result = self.run_again()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("pairing again", result.stdout)
+        self.assertEqual(self.hub_keys_lines(), [HUB1_SSH_KEY, NEW_CLOUDHUB_SSH_KEY])
 
     def test_the_cloudhub_is_told_the_public_key_only(self):
         result = self.run_script()
