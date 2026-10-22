@@ -160,7 +160,12 @@ class PinsTest(unittest.TestCase):
         pins = versions()
         self.assertEqual(found, {"authelia/authelia": pins["AUTHELIA_VERSION"],
                                  "lldap/lldap": pins["LLDAP_VERSION"]})
-        self.assertIn("3.y", config["baseBranches"])
+        common = (SOURCE_DIR / "scripts" / "common-versions.env").read_text()
+        announced = {m.group("depName") for m in pattern.finditer(common)}
+        self.assertEqual(announced, {"arduino/arduino-cli", "node", "nvm-sh/nvm", "npm", "webpack",
+                                     "webpack-cli", "raspberrypi/firmware"})
+        self.assertIn("/^scripts/common-versions\\.env$/", manager["managerFilePatterns"])
+        self.assertIn("3.y", config["baseBranchPatterns"])
         self.assertEqual(config["gomod"]["managerFilePatterns"],
                          ["/^src/web/thirdparty/caddy/go\\.mod$/"])
 

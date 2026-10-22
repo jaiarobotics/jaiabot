@@ -1,7 +1,7 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["config:recommended"],
-  "baseBranches": ["3.y"],
+  "baseBranchPatterns": ["3.y"],
   "enabledManagers": ["gomod", "custom.regex"],
   "labels": ["thirdparty"],
   "gomod": {
@@ -11,10 +11,13 @@
   "customManagers": [
     {
       "customType": "regex",
-      "description": "Authelia and LLDAP releases pinned in src/web/thirdparty/versions.env",
-      "managerFilePatterns": ["/^src/web/thirdparty/versions\\.env$/"],
+      "description": "Versions pinned in an env file, each announced by a `# renovate:` line above it",
+      "managerFilePatterns": [
+        "/^src/web/thirdparty/versions\\.env$/",
+        "/^scripts/common-versions\\.env$/"
+      ],
       "matchStrings": [
-        "# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)(?: extractVersion=(?<extractVersion>\\S+))?\\n[A-Z_]+_VERSION=(?<currentValue>\\S+)"
+        "# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)(?: versioning=(?<versioning>\\S+))?(?: extractVersion=(?<extractVersion>\\S+))?\\n[a-zA-Z_]+=(?<currentValue>\\S+)"
       ]
     }
   ],
@@ -25,10 +28,16 @@
       "commitMessageTopic": "Caddy"
     },
     {
-      "matchManagers": ["custom.regex"],
+      "matchFileNames": ["src/web/thirdparty/versions.env"],
       "prBodyNotes": [
         "Before merging, run `src/web/thirdparty/fetch.sh --update-checksums` and commit the new SHA-256 lines in `versions.env`; the deb build refuses a tarball whose checksum does not match."
       ]
+    },
+    {
+      "matchFileNames": ["scripts/common-versions.env"],
+      "matchPackageNames": ["npm", "webpack", "webpack-cli", "node"],
+      "groupName": "web build tools",
+      "commitMessageTopic": "web build tools"
     }
   ]
 }
