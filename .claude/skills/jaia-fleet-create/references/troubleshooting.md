@@ -60,6 +60,13 @@ playbook. From SW-2686 the node starts its services again by itself; check it wi
 **Sim says the VirtualFleet isn't running** — expected until one is created (part A,
 step 7).
 
+**Authelia asks for a security key (or another method) first, not the one-time
+password, even though TOTP is the default** — the browser remembers the method the
+person last chose on this `auth.<base uri>` origin (Authelia keeps it in the browser's
+local storage, which outlives a rebuilt CloudHub under the same name) and that choice
+wins over the server default. "Methods" → One-Time Password sets it right for that
+browser; a fresh browser or profile lands on the one-time password straight away.
+
 **Password-reset email doesn't arrive** — the SMTP credentials parameter is missing or
 wrong in the region (`preflight.sh` warns), or the provider hasn't verified the sender.
 
