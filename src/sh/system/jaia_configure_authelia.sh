@@ -227,6 +227,21 @@ write_authelia_config()
 server:
   address: 'tcp://:$authelia_port'
   asset_path: '$authelia_asset_dir'
+  # A customer's whole office usually reaches the CloudHub from one address
+  endpoints:
+    rate_limits:
+      reset_password_start:
+        buckets:
+          - period: '5 minutes'
+            requests: 20
+          - period: '1 hour'
+            requests: 100
+      session_elevation_start:
+        buckets:
+          - period: '5 minutes'
+            requests: 20
+          - period: '1 hour'
+            requests: 100
 # Blank: a user with no stored preference is offered the method they registered
 # (TOTP, then a security key); a named default would be offered first regardless
 default_2fa_method: ''
@@ -252,6 +267,14 @@ authentication_backend:
 access_control:
   default_policy: 'deny'
   rules: # order matters!
+    # Cancel links in Authelia's emails work only for someone signed in, which a mail scanner never is
+    - domain: auth.$base_uri
+      resources:
+        - '^/revoke/(reset-password|one-time-code)([?].*)?$'
+        - '^/api/reset-password$'
+        - '^/api/user/session/elevation/[^/]+$'
+      policy: one_factor
+
     # The navigation menu asks Caddy who is signed in (/_jaia/whoami on every site)
     - domain:
         - '$base_uri'
@@ -490,19 +513,51 @@ $base_uri {
 auth.$base_uri {
         $caddy_tls
         import jaia_nav
-        # Mail scanners open the links in Authelia's emails before the person does, and
-        # the pages behind them spend their one-time token or code as they load. Until the
-        # person has pressed Continue (which adds confirmed=1), these are a static page.
-        @unconfirmed_link {
-                method GET
-                path /reset-password/step2 /revoke/reset-password /revoke/one-time-code
-                not query confirmed=1
+        # Mail scanners open the links in Authelia's emails, and press buttons, before the
+        # person does. A reset link spends its token in whichever browser opens it, so it
+        # only reaches Authelia from the browser that asked for the reset.
+        @reset_requested {
+                method POST
+                path /api/reset-password/identity/start
         }
-        handle @unconfirmed_link {
+        handle @reset_requested {
+                header +Set-Cookie "jaia_reset=1; Path=/; Max-Age=600; Secure; HttpOnly; SameSite=Lax"
+                import jaia_nav_proxy localhost:$authelia_port
+        }
+        @reset_link_elsewhere {
+                method GET
+                path /reset-password/step2
+                not header Cookie *jaia_reset=1*
+        }
+        handle @reset_link_elsewhere {
                 root * $jaia_cloud_web_dir
-                rewrite * /_jaia/continue.html
+                rewrite * /_jaia/reset-elsewhere.html
                 header Cache-Control no-store
                 file_server
+        }
+        @reset_finish_elsewhere {
+                path /api/reset-password/identity/finish
+                not header Cookie *jaia_reset=1*
+        }
+        handle @reset_finish_elsewhere {
+                respond 403
+        }
+        # A cancel link acts as it loads, so only for someone signed in
+        @cancel_link {
+                method GET
+                path /revoke/reset-password /revoke/one-time-code
+        }
+        handle @cancel_link {
+                import authelia_forward_auth
+                import jaia_nav_proxy localhost:$authelia_port
+        }
+        @cancel_call {
+                method DELETE
+                path /api/reset-password /api/user/session/elevation/*
+        }
+        handle @cancel_call {
+                import authelia_forward_auth
+                import jaia_nav_proxy localhost:$authelia_port
         }
         handle {
                 import jaia_nav_proxy localhost:$authelia_port
