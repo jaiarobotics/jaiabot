@@ -44,3 +44,17 @@ sudo jaia-vpn-inventory.sh >&2 || echo "WARNING: could not update the CloudHub's
 
 set -a; source "${CLOUD_ENV}"; set +a
 cat "${OUT_DIR}/${node_type}${node_id}/wg_jaia_ch${jaia_fleet_id}.conf"
+
+# The node lets the CloudHub in for fleet actions by this key, restricted to the
+# CloudHub's own VPN address as its fleet config does. A rebuilt CloudHub has a new
+# key, and pairing is when the node can learn it; the node strips this line from
+# the config it installs.
+SSH_DIR="${JAIA_SSH_DIR:-/home/jaia/.ssh}"
+if cloudhub_id=$(jaia_bounds --cloudhub_id 2>/dev/null) \
+    && cloudhub_pubkey="${SSH_DIR}/hub${cloudhub_id}_fleet${jaia_fleet_id}.pub" && [ -r "${cloudhub_pubkey}" ] \
+    && cloudhub_ip=$(jaia_ip --query_type addr --node_type hub --ip_net cloudhub_vpn \
+                             --fleet_id "${jaia_fleet_id}" --node_id "${cloudhub_id}" 2>/dev/null); then
+    echo "# jaia-cloudhub-ssh-key: from=\"${cloudhub_ip}\" $(cut -d' ' -f1,2 "${cloudhub_pubkey}") hub${cloudhub_id}_fleet${jaia_fleet_id}"
+else
+    echo "WARNING: this CloudHub's SSH public key was not found, so ${node_type} ${node_id} will not accept its fleet actions" >&2
+fi
