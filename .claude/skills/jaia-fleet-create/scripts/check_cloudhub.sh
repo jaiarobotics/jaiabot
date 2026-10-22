@@ -1,9 +1,10 @@
 #!/bin/bash
 
 # What can be checked of a new CloudHub. From outside: every site serves a valid
-# certificate and answers the way it should, and SSH is closed unless fleet pairing
-# is open. With --ssh, while fleet pairing is open: its services, its release, and
-# whether the REST API JCC talks to has loaded.
+# certificate and answers the way it should, port 22 is closed unless a support grant
+# admits this address, and the pairing port is closed unless fleet pairing is open.
+# With --ssh, under a shell support grant: its services, its release, and whether the
+# REST API JCC talks to has loaded.
 
 usage()
 {
@@ -56,16 +57,21 @@ expiry=$(echo | openssl s_client -connect "${HOST}:443" -servername "$BASE_URI" 
 [ -n "$expiry" ] && echo "note  certificate for $BASE_URI expires $expiry"
 
 if nc -z -w 5 "$HOST" 22 2>/dev/null; then
-    echo "note  port 22 is open: fleet pairing (or a support grant) is open"
+    echo "note  port 22 is open to this address: a support grant admits it"
     port22=open
 else
-    echo "note  port 22 is closed (fleet pairing closed)"
+    echo "note  port 22 is closed to this address (no support grant for it)"
     port22=closed
+fi
+if nc -z -w 5 "$HOST" 2222 2>/dev/null; then
+    echo "note  pairing port 2222 is open: fleet pairing is open"
+else
+    echo "note  pairing port 2222 is closed (fleet pairing closed)"
 fi
 
 if $SSH; then
     if [ "$port22" != open ]; then
-        fail "--ssh needs port 22 open: Open Fleet Pairing in the CloudHub's JCU first"
+        fail "--ssh needs a shell support grant for this address: jaia admin fleet support_request, approved on https://support.$BASE_URI"
     else
         echo "--- on the CloudHub"
         # A new CloudHub's host key is unknown here, and a rebuilt one's has changed

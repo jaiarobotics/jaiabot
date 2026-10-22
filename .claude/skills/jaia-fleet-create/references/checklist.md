@@ -4,7 +4,8 @@ For a technician, with or without Claude. Three parts; A and B in either order o
 `fleetN.cfg` exists, C last. Keep a record (`record-template.md`) as you go.
 
 Rules: `fleetN.cfg` holds private keys — `chmod 600`, never paste it anywhere. Port 22
-on a CloudHub opens only through the JCU's "Open Fleet Pairing". No hand fixes on
+on a CloudHub opens only through a support grant; "Open Fleet Pairing" opens only the
+enrollment port. No hand fixes on
 CloudHubs or nodes; a workaround is your call and goes in the record.
 
 ## A. CloudHub
@@ -80,8 +81,9 @@ right type, id and fleet, and a hub's JCC (`http://<address>/`) shows the hub it
 Needs: a browser as `jaia_bootstrap`, the fleet Wi-Fi, `fleetN.cfg` with the CloudHub's
 key. No AWS.
 
-1. **Open Fleet Pairing**: CloudHub JCU → Fleet Changes → "Open Fleet Pairing", 1 hour.
-   Port 22 is open to everyone meanwhile: don't leave it open.
+1. **Open Fleet Pairing**: CloudHub JCU → Fleet Changes → "Open Fleet Pairing", 1 hour
+   (2 or 8 if many nodes come later). The pairing port is open to everyone meanwhile,
+   for enrollment only: close it when done.
 2. **Pair** (nodes that did not pair at first boot): hub 1's JCU on the fleet Wi-Fi
    (`http://10.23.<N>.11/jcu/`) → "Pair Fleet to CloudHub". "Already paired" is fine.
 3. **Verify**: CloudHub JCU → "Check CloudHub VPN Status" lists every node's handshake;

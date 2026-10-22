@@ -52,9 +52,11 @@ FAIL stops the part; explain every WARN. When something fails, look in
 - **A4**: give the records exactly as printed; `scripts/check_dns.sh <base uri> <IPv4> --wait 1800`
   (the zone's own name servers and public resolvers) while they enter them.
 - **A5**: `scripts/check_cloudhub.sh <base uri> --ip <IPv4>` until every site passes
-  (`--ip` ignores this workstation's resolver); it also reports port 22 closed.
+  (`--ip` ignores this workstation's resolver); it also reports ports 22 and 2222 closed.
 - **A8**: on a "Connection to Hub Dropped" banner, `scripts/check_cloudhub.sh … --ssh`
-  during a pairing window (C1).
+  under a shell support grant: `jaia admin fleet support_request --scopes shell` (a
+  Yubikey touch), approved by the technician as `jaia_bootstrap` on
+  `https://support.<base uri>`. Fleet pairing no longer opens port 22.
 - **B1**: download the image for the technician without being asked:
   `scripts/pi_image.sh <repo> --download <config dir>/image` (public HTTPS, no AWS; it
   checks the size and the gzip), and give them the path. By hand it is written with
@@ -65,7 +67,7 @@ FAIL stops the part; explain every WARN. When something fails, look in
   `b<id>f<N>` on the fleet Wi-Fi): id, release, units, radios; waits up to two minutes
   for a hub's first health report.
 - **C**: `scripts/preflight.sh --part C --config fleetN.cfg`; **C1**
-  `scripts/check_cloudhub.sh <base uri> --ssh` (services, release, REST API); **C3**
+  `scripts/check_cloudhub.sh <base uri>` shows the pairing port (2222) open; **C3**
   `scripts/check_node.sh <address> --paired` on every node (tunnel, handshake, UDP
   32000), then the JCC check; **C4** `scripts/check_cloudhub.sh <base uri>` shows
-  port 22 closed.
+  it closed again.

@@ -36,7 +36,7 @@ registrar). `dig @<zone name server> <base uri>`.
 **Some or all sites have no certificate, and DNS is right** — Let's Encrypt allows 50
 new certificates per registered domain per week, and each CloudHub takes about six.
 Many CloudHubs under one domain in a week (testing) hits it. On the CloudHub
-(`check_cloudhub.sh --ssh` during a pairing window, or `journalctl -u caddy`): "429
+(`check_cloudhub.sh --ssh` under a support grant, or `journalctl -u caddy`): "429
 rateLimited … retry after <time>". Nothing to do but wait for that time; Caddy retries
 by itself. Use a different domain for test fleets.
 

@@ -35,7 +35,7 @@
 | Pair Fleet to CloudHub | | technician | JCU output |
 | Every node `check_node.sh --paired` | | Claude | |
 | JCC shows every node | | technician | |
-| Close Fleet Pairing | | technician | port 22 closed at |
+| Close Fleet Pairing | | technician | pairing port closed at |
 | `fleet_admin` claimed, `jaia_bootstrap` deleted | | customer | or "later" |
 
 ## Left running
