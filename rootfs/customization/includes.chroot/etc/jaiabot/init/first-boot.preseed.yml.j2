@@ -55,4 +55,4 @@ runcmd:
   # Setup wireguard VPN (if temporary key is provided)
   - networkctl reload
   - networkctl up wlan0
-  - /etc/jaiabot/init/pair-with-cloudhub.sh {{ cloudhub.baseUri if pair_with_cloudhub else "" }}
+  - /usr/bin/jaia-pair-with-cloudhub.sh {{ cloudhub.baseUri if pair_with_cloudhub else "" }}

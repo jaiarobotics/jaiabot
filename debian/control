@@ -18,7 +18,10 @@ Build-Depends: debhelper-compat (= 13),
                pybind11-dev,
                libpython3-dev,
                python3:native,
-               python3-protobuf:native
+               python3-protobuf:native,
+               golang-go:native (>= 2:1.26~),
+               curl,
+               ca-certificates
 Build-Depends-Indep:
                goby3-clang-tool [amd64] <!nodoc>,
                goby3-interfaces [amd64] <!nodoc>,
@@ -173,3 +176,19 @@ Section: science
 Architecture: all
 Description: Metapackage to install the required code for the embedded bot or hub computer and configure it using debconf.
  The jaiabot project provides binaries and libraries for the Jaiabot Autonomous Underwater Vehicle: https://www.jaia.tech/
+
+Package: jaiabot-web-thirdparty
+Section: web
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends},
+         awscli,
+         curl,
+         jq,
+         jo
+Provides: caddy, authelia
+Conflicts: caddy, authelia
+Replaces: caddy, authelia
+Description: Caddy, Authelia and LLDAP for the JaiaBot CloudHub
+ Caddy with the replace-response plugin, built from source, and the Authelia and
+ LLDAP releases pinned in scripts/common-versions.env, so a CloudHub's first
+ boot and upgrades install nothing from third-party servers.

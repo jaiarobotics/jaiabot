@@ -121,7 +121,14 @@ class BootstrapTest(unittest.TestCase):
         """Break-glass depends on it: if the directory will not start, the customer
         opens the port from the AWS console and a Yubikey is what gets in."""
         self.assertNotIn("AuthorizedKeysCommand", self.text)
-        self.assertNotIn("sshd_config.d", self.text)
+        # Its only sshd settings are the pairing port's, all inside Match LocalPort blocks
+        self.assertEqual(self.text.count("sshd_config.d/"), 1)
+        pairing = heredoc(SCRIPT, '$sshd_pairing_conf.new')
+        settings = [line for line in pairing.splitlines() if line.strip()]
+        self.assertTrue(settings[0].startswith("Match LocalPort $pairing_port"))
+        for line in settings:
+            self.assertTrue(line.startswith("Match LocalPort $pairing_port") or line.startswith("    "),
+                            line)
 
 
 class ProvisioningTest(unittest.TestCase):

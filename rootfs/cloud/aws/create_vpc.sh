@@ -523,7 +523,7 @@ echo ">>>>>> Recorded the CloudHub's SSH public key in ${FLEET_CONFIG}"
 # rule. Last, because the reconcile closes the door this run came in by.
 HANDOVER_FAILED=10
 handover_status=0
-ssh "${SSH_OPTS[@]}" jaia@${PUBLIC_IPV4_ADDRESS} "sudo ufw allow in on eth0 to any port 22 proto tcp; sudo ufw allow in on eth0 proto udp to any port 51820; sudo ufw allow in on eth0 proto udp to any port 51821; sudo ufw allow in on wg_cloudhub; sudo ufw --force enable || exit; sudo mkdir -p -m 0700 /var/log/jaiabot/auth/support && sudo touch /var/log/jaiabot/auth/support/handed-over && sudo jaia-support-access.py reconcile || exit ${HANDOVER_FAILED}" \
+ssh "${SSH_OPTS[@]}" jaia@${PUBLIC_IPV4_ADDRESS} "sudo ufw allow in on eth0 to any port 22 proto tcp; sudo ufw allow in on eth0 to any port 2222 proto tcp; sudo ufw allow in on eth0 proto udp to any port 51820; sudo ufw allow in on eth0 proto udp to any port 51821; sudo ufw allow in on wg_cloudhub; sudo ufw --force enable || exit; sudo mkdir -p -m 0700 /var/log/jaiabot/auth/support && sudo touch /var/log/jaiabot/auth/support/handed-over && sudo jaia-support-access.py reconcile || exit ${HANDOVER_FAILED}" \
     || handover_status=$?
 if (( handover_status != 0 && handover_status != HANDOVER_FAILED )); then
     echo ">>>>>> Could not update the CloudHub's ufw firewall rules" >&2
