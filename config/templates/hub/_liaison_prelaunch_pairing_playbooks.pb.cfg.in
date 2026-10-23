@@ -3,18 +3,15 @@
 # CloudHub's own JCU, since no hub on site can reach it yet.
 ansible_playbook {
     file: "open-fleet-pairing.yml"
-    name: "Open Fleet Pairing (opens the CloudHub's SSH port to every address until it closes)"
+    name: "Open Fleet Pairing (opens the CloudHub's pairing port to every address until it closes)"
     section: "Fleet Changes"
     role: ADVANCED
     input_var {
         name: "duration"
         display_name: "Open For"
         value: "1_hour"
+        value: "2_hours"
         value: "8_hours"
-        value: "1_day"
-        value: "3_days"
-        value: "1_week"
-        value: "2_weeks"
     }
     output_var {
         name: "fleet_pairing"

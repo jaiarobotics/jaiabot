@@ -526,7 +526,12 @@ cloudhub {
 
 *This section written by Claude*
 
-Mail scanners such as Microsoft Defender Safe Links open the links in these emails before the person does, and Authelia's pages spend their one-time token or code as they load. Caddy therefore answers `GET /reset-password/step2`, `/revoke/reset-password` and `/revoke/one-time-code` on `auth.<base uri>` with a static Continue page (`/_jaia/continue.html`) until the request carries `confirmed=1`, which the page's button adds before reloading the same address; Authelia ignores the extra parameter. A scanner that also presses buttons would still spend the token; nothing on our side can stop that.
+Mail scanners such as Microsoft Defender Safe Links open the links in these emails, and press the buttons on the pages behind them, before the person does. Authelia's reset page spends its one-time token as it loads, and its cancel pages act as they load. So on `auth.<base uri>`, Caddy:
+
+- sets a `jaia_reset` cookie (10 minutes, this host only) on the browser that asks for a reset, and passes `GET /reset-password/step2` and `/api/reset-password/identity/finish` to Authelia only from a browser that carries it. Any other browser gets `/_jaia/reset-elsewhere.html`, which asks the person to open the link where they asked for it, or to ask again;
+- passes the cancel links (`/revoke/reset-password`, `/revoke/one-time-code`) and the calls behind them (`DELETE /api/reset-password`, `DELETE /api/user/session/elevation/<id>`) to Authelia only for someone signed in. Anyone else is sent to sign in first.
+
+Authelia's limits on sending reset emails and one-time codes are 20 per 5 minutes and 100 per hour for each address, since a customer's office usually reaches the CloudHub from one address.
 
 `create_vpc.sh` grants the CloudHub's IAM role `ssm:GetParameter` on this parameter (and `kms:Decrypt` through SSM, for parameters encrypted with a customer managed key), and `jaia_configure_authelia.sh` reads it at configuration time. If the parameter cannot be read, Authelia is configured to send without authenticating, which only works with a relay that allowlists the CloudHub's IP addresses (e.g. Google Workspace SMTP Relay). Postmark will refuse it, and Authelia will not start.
 

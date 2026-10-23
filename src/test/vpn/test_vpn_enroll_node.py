@@ -72,8 +72,14 @@ case "$1" in
     show) echo "%(server)s	${JAIA_TEST_HANDSHAKE:-$(date +%%s)}" ;;
 esac
 """ % {"priv": NODE_PRIVKEY, "pub": NODE_PUBKEY, "server": SERVER_PUBKEY},
+    # JAIA_TEST_PAIRING_PORT_STDERR makes the pairing port fail with that message, as a
+    # CloudHub from before it does, while port 22 answers as usual
     "ssh": """
 echo "ssh $*" >> "$JAIA_TEST_CALLS"
+if [ "$2" = 2222 ] && [ -n "${JAIA_TEST_PAIRING_PORT_STDERR:-}" ]; then
+    echo "$JAIA_TEST_PAIRING_PORT_STDERR" >&2
+    exit 255
+fi
 cat "$JAIA_TEST_ANSWER"
 [ -n "${JAIA_TEST_SSH_STDERR:-}" ] && echo "$JAIA_TEST_SSH_STDERR" >&2
 exit ${JAIA_TEST_SSH_STATUS:-0}
@@ -421,6 +427,34 @@ class NodeEnrollTest(unittest.TestCase):
 
     ## Reaching the CloudHub
 
+    def test_enrollment_uses_the_pairing_port(self):
+        result = self.run_script()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        calls = [c for c in self.recorded().splitlines() if c.startswith("ssh -p")]
+        self.assertEqual(1, len(calls))
+        self.assertTrue(calls[0].startswith("ssh -p 2222 "))
+
+    def test_a_cloudhub_from_before_the_pairing_port_is_asked_on_22(self):
+        for message in ("ssh: connect to host fleet7.jaia.tech port 2222: Connection refused",
+                        "ssh: connect to host fleet7.jaia.tech port 2222: Connection timed out"):
+            with self.subTest(message=message):
+                self.setUp()
+                self.env["JAIA_TEST_PAIRING_PORT_STDERR"] = message
+                result = self.run_script()
+                self.assertEqual(result.returncode, 0, result.stderr)
+                ports = [c.split()[2] for c in self.recorded().splitlines() if c.startswith("ssh -p")]
+                self.assertEqual(["2222", "22"], ports)
+                self.assertIsNotNone(self.installed_config())
+
+    def test_a_refusal_on_the_pairing_port_is_not_retried_on_22(self):
+        """A CloudHub that answered and turned the key away is not asked again elsewhere."""
+        self.env["JAIA_TEST_PAIRING_PORT_STDERR"] = "jaia@fleet7.jaia.tech: Permission denied (publickey)."
+        result = self.run_script()
+        self.assertNotEqual(result.returncode, 0)
+        ports = [c.split()[2] for c in self.recorded().splitlines() if c.startswith("ssh -p")]
+        self.assertEqual(["2222"], ports)
+        self.assertIn("is fleet pairing open", result.stderr)
+
     def test_the_cloudhub_is_reached_over_tcp_not_ping(self):
         """Some ship, satellite and corporate networks pass TCP but block ICMP"""
         result = self.run_script()
@@ -504,7 +538,8 @@ class NodeEnrollTest(unittest.TestCase):
         self.paired_then_replaced(**self.stale())
         calls = self.recorded()
         self.assertIn("ssh-keygen -R fleet7.jaia.tech", calls)
-        self.assertLess(calls.index("ssh-keygen -R"), calls.index("ssh -o"))
+        self.assertLess(calls.index("ssh-keygen -R"), calls.index("ssh -p"))
+        self.assertIn("ssh-keygen -R [fleet7.jaia.tech]:2222", calls)
 
     def test_pairing_again_keeps_the_nodes_wireguard_identity(self):
         for name, value in (("privatekey", "a" * 43 + "="), ("publickey", "b" * 43 + "=")):

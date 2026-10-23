@@ -198,16 +198,15 @@ def rows(pairs, css=""):
 
 
 def pairing_banner(current):
-    """Said whenever it is true, grant or no grant: while fleet pairing holds the port
-    open to every address, "Jaia has no access" would be the comfortable answer rather
-    than the true one."""
+    """Said whenever it is true, grant or no grant: the pairing port is open to every
+    address, even though all it admits is a new node joining the VPN."""
     window = current.get("pairing") or {}
     if not window.get("open"):
         return ""
-    return ("<p class=\"banner refused\">Fleet pairing is open until {}, so the CloudHub's "
-            "SSH port is open to every address for new bots and hubs to join. Until it "
-            "closes Jaia's engineers can reach this CloudHub with their own keys whether or "
-            "not you have granted access. Close Fleet Pairing in the Upgrade GUI ends it "
+    return ("<p class=\"banner none\">Fleet pairing is open until {}: the CloudHub's "
+            "pairing port is open to every address so that new bots and hubs can join "
+            "its VPN. It admits nothing else; Jaia can reach this CloudHub only through "
+            "access you grant here. Close Fleet Pairing in the Upgrade GUI ends it "
             "sooner.</p>".format(html.escape(stamp(window.get("until") or 0))))
 
 
