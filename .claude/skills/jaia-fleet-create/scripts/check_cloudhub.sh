@@ -1,0 +1,109 @@
+#!/bin/bash
+
+# What can be checked of a new CloudHub. From outside: every site serves a valid
+# certificate and answers the way it should, port 22 is closed unless a support grant
+# admits this address, and the pairing port is closed unless fleet pairing is open.
+# With --ssh, under a shell support grant: its services, its release, and whether the
+# REST API JCC talks to has loaded.
+
+usage()
+{
+    echo "Usage: $0 <base uri> [--ip <IPv4>] [--ssh]"
+    exit 2
+}
+
+[ $# -ge 1 ] || usage
+BASE_URI=$1
+shift
+SSH=false
+IP=""
+while (( $# > 0 )); do
+    case "$1" in
+        --ssh) SSH=true; shift ;;
+        --ip) IP="$2"; shift 2 ;;
+        *) usage ;;
+    esac
+done
+# With --ip (the IPv4 'cloudhub create' printed) nothing here depends on this
+# workstation's resolver, which may still hold the name's old address or none
+HOST=${IP:-$BASE_URI}
+
+failures=0
+ok() { echo "ok    $*"; }
+fail() { echo "FAIL  $*"; failures=$((failures + 1)); }
+[ -n "$IP" ] && echo "note  checking at $IP rather than what $BASE_URI resolves to here"
+
+# Signed in, each is a page; signed out, each sends the browser to auth. for its
+# login, and auth. itself answers. A 502 from sim. means no VirtualFleet is running.
+for site in "" run. auth. users. support. sim.; do
+    url="https://${site}${BASE_URI}/"
+    resolve=()
+    [ -n "$IP" ] && resolve=(--resolve "${site}${BASE_URI}:443:${IP}")
+    result=$(curl -sS -m 15 "${resolve[@]}" -o /dev/null -w '%{http_code} %{ssl_verify_result}' "$url" 2>&1 | tail -1)
+    read -r code verify <<<"$result"
+    if [ "$verify" != 0 ]; then
+        fail "$url: no valid certificate yet (${result})"
+    elif [[ "$code" =~ ^(200|302)$ ]]; then
+        ok "$url: $code, certificate valid"
+    elif [ "$site" = sim. ] && [ "$code" = 502 ]; then
+        ok "$url: 502 (no VirtualFleet running), certificate valid"
+    else
+        fail "$url: HTTP $code"
+    fi
+done
+
+expiry=$(echo | openssl s_client -connect "${HOST}:443" -servername "$BASE_URI" 2>/dev/null \
+             | openssl x509 -noout -enddate 2>/dev/null | cut -d= -f2)
+[ -n "$expiry" ] && echo "note  certificate for $BASE_URI expires $expiry"
+
+if nc -z -w 5 "$HOST" 22 2>/dev/null; then
+    echo "note  port 22 is open to this address: a support grant admits it"
+    port22=open
+else
+    echo "note  port 22 is closed to this address (no support grant for it)"
+    port22=closed
+fi
+if nc -z -w 5 "$HOST" 2222 2>/dev/null; then
+    echo "note  pairing port 2222 is open: fleet pairing is open"
+else
+    echo "note  pairing port 2222 is closed (fleet pairing closed)"
+fi
+
+if $SSH; then
+    if [ "$port22" != open ]; then
+        fail "--ssh needs a shell support grant for this address: jaia admin fleet support_request, approved on https://support.$BASE_URI"
+    else
+        echo "--- on the CloudHub"
+        # A new CloudHub's host key is unknown here, and a rebuilt one's has changed
+        ssh_err=$(mktemp)
+        ssh -o BatchMode=yes -o ConnectTimeout=15 -o StrictHostKeyChecking=accept-new \
+            -o "HostKeyAlias=${BASE_URI}" "jaia@${HOST}" 'bash -s' 2>"$ssh_err" <<'EOF' || failures=$((failures + 1))
+bad=0
+echo "note  $(dpkg-query -W -f='jaiabot-embedded ${Version}' jaiabot-embedded 2>/dev/null) on $(lsb_release -cs 2>/dev/null)"
+for unit in apache2 caddy authelia lldap jaia_support_portal jaia_support_reconcile.timer jaiabot_web_portal jaiabot_hub_manager; do
+    if systemctl is-active --quiet "$unit"; then echo "ok    $unit active"; else echo "FAIL  $unit not active"; bad=1; fi
+done
+code=$(curl -s -m 10 -o /dev/null -w '%{http_code}' -X POST -H 'Content-Type: application/json' \
+       -d '{"target":{"all":true},"status":true}' http://localhost:8080/jaia/v1)
+if [ "$code" = 200 ]; then echo "ok    REST API answers (JCC can reach the CloudHub)"; else
+    echo "FAIL  REST API answers $code: JCC will show 'Connection to Hub Dropped' (see /var/log/apache2/error.log)"; bad=1; fi
+failed=$(systemctl --failed --no-legend --plain | awk '{print $1}' | tr '\n' ' ')
+[ -n "$failed" ] && echo "note  failed units: $failed(grub-initrd-fallback, grub2-common and jaiabot_update_ufw_rules are known and harmless on a CloudHub)"
+exit $bad
+EOF
+        if grep -qiE "host key verification failed|remote host identification has changed" "$ssh_err"; then
+            echo "FAIL  ${BASE_URI}'s SSH host key is not the one this workstation recorded: if the CloudHub" \
+                 "was rebuilt, 'ssh-keygen -R ${BASE_URI}' and run this again"
+        elif [ -s "$ssh_err" ]; then
+            sed 's/^/  ssh: /' "$ssh_err"
+        fi
+        rm -f "$ssh_err"
+    fi
+fi
+
+echo
+if (( failures > 0 )); then
+    echo "$failures check(s) failed"
+    exit 1
+fi
+echo "CloudHub checks passed"

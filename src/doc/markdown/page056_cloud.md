@@ -250,6 +250,8 @@ config holds (see below).
 
 *This section written by Claude*
 
+To build a new fleet with a CloudHub with Claude Code's help, open Claude Code in a JaiaBot checkout of the release and ask it to create the fleet: the `jaia-fleet-create` skill (`.claude/skills/jaia-fleet-create`) walks through its checklist (`references/checklist.md` there, which a technician can also follow without Claude) in three parts that can be done separately — the CloudHub, provisioning the nodes, and final pairing — with the fleet config as what they share.
+
 A new CloudHub's directory has two accounts, neither with a password: set one with
 **Reset password?** on the login page, which emails the address shown.
 
