@@ -60,18 +60,9 @@ done
 ## Tooling ##
 #############
 
-# The VirtualFleet playbooks need boto3; the discovery below needs the aws CLI
-apt-get -y install python3-boto3
-
-if ! command -v aws > /dev/null; then
-    awscli_version=2.18.8
-    tmp=$(mktemp -d)
-    trap 'rm -rf "$tmp"' EXIT
-    curl -sS "https://awscli.amazonaws.com/awscli-exe-linux-x86_64-${awscli_version}.zip" \
-         -o "${tmp}/awscliv2.zip"
-    unzip -q "${tmp}/awscliv2.zip" -d "$tmp"
-    "${tmp}/aws/install"
-fi
+# The VirtualFleet playbooks need boto3; the discovery below needs the aws CLI. Both are
+# in a CloudHub's image, so this installs nothing there
+apt-get -y install --no-upgrade python3-boto3 awscli
 
 ###############
 ## Discovery ##

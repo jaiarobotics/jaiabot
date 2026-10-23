@@ -315,18 +315,19 @@ class PortalTest(unittest.TestCase):
         self.assertIn("could not be confirmed", page)
 
     def test_while_fleet_pairing_is_open_the_page_does_not_claim_no_access(self):
-        """Pairing holds the port open to every address, and the root keys reach the
-        CloudHub through it; "Jaia has no access" would then be false."""
+        """Pairing holds a port open to every address; the page says so, and that it
+        admits only enrollment."""
         access = [sys.executable, str(ACCESS)]
         env = self.hub.environment()
         subprocess.run(access + ["set-bootstrap-key", "--key", self.hub.bootstrap_key],
                        env=env, check=True, stdout=subprocess.DEVNULL)
-        subprocess.run(access + ["open-pairing", "--duration", "1_day"],
+        subprocess.run(access + ["open-pairing", "--duration", "2_hours"],
                        env=env, check=True, stdout=subprocess.DEVNULL)
         page = self.get()
         self.assertNotIn("Jaia has no access", page)
         self.assertIn("Fleet pairing is open until", page)
-        self.assertIn("whether or not you have granted access", page)
+        self.assertIn("It admits nothing else", page)
+        self.assertNotIn("whether or not you have granted access", page)
 
     def test_with_pairing_closed_the_page_says_no_access(self):
         self.assertIn("Jaia has no access to this fleet", self.get())

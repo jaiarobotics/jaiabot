@@ -92,14 +92,20 @@ class AutheliaBootstrapTest(unittest.TestCase):
 
     def test_jaia_bootstrap_takes_its_email_from_create_cloudhub(self):
         """There is no Jaia address built in: create_cloudhub --bootstrap-email names it."""
-        self.assertIn('"email": "$jaia_bootstrap_email"', self.jaia_bootstrap_config())
+        self.assertIn('"email": "$email"', self.jaia_bootstrap_config())
+        self.assertIn('email=$(cat "$auth_persistent_dir/jaia_bootstrap_email"', self.text)
         self.assertNotIn("bootstrap@jaia.tech", self.text)
+
+    def function(self, name):
+        """A function of the script, as written, so it can be run on its own."""
+        # A heredoc inside may close a JSON object in column 0 too; the function's own brace is not followed by EOF
+        found = re.search(r"^{}\(\)\n\{{\n.*?^\}}\n(?!EOF)".format(name), self.text, re.DOTALL | re.MULTILINE)
+        self.assertIsNotNone(found, "the script no longer defines {}".format(name))
+        return found.group(0)
 
     def run_guard(self, bootstrapped_before=False, marker=False, then_bootstrap=False,
                   email="ops@example.com"):
         """The account's guard as the script runs it, against a scratch directory."""
-        start = self.text.index("jaia_bootstrap_marker=")
-        end = self.text.index("cat > /etc/lldap/bootstrap/user-configs/jaia_support.json")
         work = tempfile.mkdtemp()
         self.addCleanup(shutil.rmtree, work, True)
         configs = os.path.join(work, "user-configs")
@@ -111,12 +117,14 @@ class AutheliaBootstrapTest(unittest.TestCase):
         if email is not None:
             with open(os.path.join(persistent, "jaia_bootstrap_email"), "w") as f:
                 f.write(email + "\n")
-        block = self.text[start:end].replace("/etc/lldap/bootstrap/user-configs", configs)
+        guard = self.function("write_jaia_bootstrap_config")
         success = re.search(r"then\n(\s+echo \"jaia_auth_lldap_bootstrap_completed=true\".*?)\s+break",
                             self.text, re.DOTALL).group(1)
         success = success.replace("/etc/jaiabot/cloud.env", os.path.join(work, "cloud.env"))
-        script = "set -e\nauth_persistent_dir={}\njaia_auth_lldap_bootstrap_completed={}\n{}\n{}\n".format(
-            persistent, "true" if bootstrapped_before else "false", block,
+        script = ("set -e\nauth_persistent_dir={0}\njaia_auth_lldap_bootstrap_completed={1}\n"
+                  "jaia_bootstrap_marker={0}/jaia_bootstrap_created\n"
+                  "jaia_bootstrap_config={2}/jaia_bootstrap.json\n{3}\nwrite_jaia_bootstrap_config\n{4}\n").format(
+            persistent, "true" if bootstrapped_before else "false", configs, guard,
             success if then_bootstrap else "")
         subprocess.run(["bash", "-c", script], check=True, stdout=subprocess.DEVNULL)
         config = os.path.join(configs, "jaia_bootstrap.json")

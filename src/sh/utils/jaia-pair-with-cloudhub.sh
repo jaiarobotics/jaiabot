@@ -10,8 +10,10 @@ DEBCONF_SH="${JAIA_DEBCONF_SH:-/usr/bin/jaia-debconf.sh}"
 HOST_FILE="${JAIA_CLOUDHUB_HOST_FILE:-/etc/jaiabot/cloudhub_host}"
 PORTAL_UNIT="${JAIA_PORTAL_UNIT:-jaiabot_goby_intervehicle_portal}"
 FLEET_CFG_DIR="${JAIA_FLEET_CFG_DIR:-/etc/jaiabot}"
+HUB_KEYS_FILE="${JAIA_HUB_KEYS_FILE:-/etc/jaiabot/ssh/hub_authorized_keys}"
 # PersistentKeepalive keeps a live tunnel handshaking every two minutes or so
 STALE_SECONDS="${JAIA_TUNNEL_STALE_SECONDS:-300}"
+PAIRING_PORT="${JAIA_PAIRING_PORT:-2222}"
 
 # First boot names the CloudHub, or passes an empty name for a node that should not
 # enroll. The name is kept so that running this again with no argument - as "Pair
@@ -77,6 +79,27 @@ tunnel_is_stale()
     (( now - started > STALE_SECONDS ))
 }
 
+# The CloudHub's own SSH key, as an authorized_keys line restricted to its VPN address:
+# it replaces the one this node was imaged with, which a rebuilt CloudHub no longer holds
+accept_cloudhub_ssh_key()
+{
+    local line=$1 from key tmp
+    if ! [[ "${line}" =~ ^from=\"([0-9A-Fa-f:.]+)\"\ ((sk-)?(ssh|ecdsa)-[a-z0-9@.-]+\ [A-Za-z0-9+/=]+)(\ [^[:space:]]+)?$ ]]; then
+        echo "Ignoring the SSH key ${CLOUDHUB_HOST} sent: not an authorized_keys line for one address" >&2
+        return 0
+    fi
+    from=${BASH_REMATCH[1]}
+    key=${BASH_REMATCH[2]}
+    if [ -f "${HUB_KEYS_FILE}" ] && grep -qF -- "${key}" "${HUB_KEYS_FILE}"; then
+        return 0
+    fi
+    tmp=$(mktemp)
+    { [ ! -f "${HUB_KEYS_FILE}" ] || grep -v "^from=\"${from}\" " "${HUB_KEYS_FILE}" || true; echo "${line}"; } > "${tmp}"
+    sudo install -m 644 "${tmp}" "${HUB_KEYS_FILE}"
+    rm -f "${tmp}"
+    echo "Accepted ${CLOUDHUB_HOST}'s SSH key: its fleet actions reach this ${type} again"
+}
+
 REPAIRING=false
 if [ ! -e "${BOOT_KEY}" ] && [ ! -e "${PRIVATE_KEY}" ]; then
     if [ ! -e "${WG_CONF}" ]; then
@@ -135,6 +158,7 @@ fi
 # and pairing again is the deliberate step that accepts it
 if [ -e "${WG_CONF}" ] || ${REPAIRING}; then
     ssh-keygen -R "${CLOUDHUB_HOST}" >/dev/null 2>&1 || true
+    ssh-keygen -R "[${CLOUDHUB_HOST}]:${PAIRING_PORT}" >/dev/null 2>&1 || true
 fi
 
 # The CloudHub is told the public half only, and answers with a config whose
@@ -142,8 +166,15 @@ fi
 # a CloudHub not open for pairing drops the connection rather than refusing it.
 SSH_ERR=$(mktemp)
 trap 'rm -f ${CONF} ${SSH_ERR}' EXIT
-if ! ssh -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15 -i ${PRIVATE_KEY} \
-    jaia@${CLOUDHUB_HOST} "$type $id $(sudo cat ${WG_DIR}/publickey)" > ${CONF} 2> ${SSH_ERR}; then
+enroll()
+{
+    ssh -p "$1" -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15 -i ${PRIVATE_KEY} \
+        jaia@${CLOUDHUB_HOST} "$type $id $(sudo cat ${WG_DIR}/publickey)" > ${CONF} 2> ${SSH_ERR}
+}
+# A CloudHub from before the pairing port enrolled on 22: one that refuses the pairing
+# port or never answers on it is asked there instead
+if ! { enroll "${PAIRING_PORT}" \
+       || { grep -qiE "connection refused|timed out" ${SSH_ERR} && enroll 22; }; }; then
     if grep -qiE "host key verification failed|remote host identification has changed" ${SSH_ERR}; then
         echo "${CLOUDHUB_HOST}'s SSH host key is not the one this node recorded for it, so ${type} ${id}" \
              "was not paired. If the CloudHub was replaced, remove the old key" \
@@ -161,6 +192,8 @@ if ! grep -q "^PrivateKey = ${PLACEHOLDER}\$" ${CONF}; then
     exit 1
 fi
 
+CLOUDHUB_SSH_KEY=$(sed -n 's/^# jaia-cloudhub-ssh-key: //p' ${CONF} | head -1)
+sed -i '/^# jaia-cloudhub-ssh-key: /d' ${CONF}
 sed -i "s|^PrivateKey =.*|PrivateKey = $(sudo cat ${WG_DIR}/privatekey)|" ${CONF}
 sudo install -m 600 ${CONF} ${WG_CONF}
 
@@ -169,6 +202,10 @@ sudo install -m 600 ${CONF} ${WG_CONF}
 # before the tunnel is brought up rather than after, so a tunnel that will not
 # start is retried on its own next time, not by enrolling again.
 rm -f ${PRIVATE_KEY}
+
+if [ -n "${CLOUDHUB_SSH_KEY}" ]; then
+    accept_cloudhub_ssh_key "${CLOUDHUB_SSH_KEY}"
+fi
 
 # Started now only if it is set to start at boot: whether the tunnel comes up by
 # itself is the fleet config's choice, made at first boot, and pairing leaves it be

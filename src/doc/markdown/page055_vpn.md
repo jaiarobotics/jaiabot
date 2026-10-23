@@ -184,7 +184,7 @@ The config it writes carries no private key, so it can be copied to the node by 
 *This section written by Claude*
 
 A bot or hub enrolls with its own fleet's CloudHub rather than `vpn.jaia.tech`:
-`/etc/jaiabot/init/pair-with-cloudhub.sh` generates the node's key
+`/usr/bin/jaia-pair-with-cloudhub.sh` (from `jaiabot-apps`) generates the node's key
 pair, hands the public half to the CloudHub over SSH, and writes the config that
 comes back to `/etc/wireguard/wg_jaia_ch<fleet>.conf` with its own private key in
 it. `jaia admin fleet generate` puts the CloudHub's base URI in the preseed, and
@@ -210,15 +210,28 @@ comes back with a new key, so enrolling one that is already a peer replaces it.
 
 That entry exists only while **fleet pairing** is open. A CloudHub is built with
 pairing closed, keeping the fleet's bootstrap public key for later; pairing is opened
-for a set time - at most two weeks - from **Open Fleet Pairing** in the JCU's Fleet
-Changes, and closes itself. While it is open, `jaia-support-access.py` on the
-CloudHub writes the entry through `jaia-vpn-authorize.sh`, so it has one author, and
-opens port 22 at the security group to every address, since a node enrolls over SSH
-from wherever it is. The entry is rewritten on every run of the CloudHub's reconcile
-timer from a record in its persistent support directory, so it survives a reboot and
-ends when pairing does; the expiry it carries is a full UTC timestamp, since sshd reads
-a bare date as midnight at the start of that day. It leaves the temporary keys of
-whoever `jaia admin ssh add` has let into the same file alone.
+for 1, 2 or 8 hours from **Open Fleet Pairing** in the JCU's Fleet Changes, and closes
+itself. While it is open, `jaia-support-access.py` on the CloudHub writes the entry
+through `jaia-vpn-authorize.sh`, so it has one author, and opens the **pairing port**
+(TCP 2222) at the security group to every address, since a node enrolls over SSH from
+wherever it is. The entry is rewritten on every run of the CloudHub's reconcile timer
+from a record in its persistent support directory, so it survives a reboot and ends
+when pairing does; the expiry it carries is a full UTC timestamp, since sshd reads a
+bare date as midnight at the start of that day. Closing pairing also drops the
+enrollment sessions it admitted.
+
+*This section written by Claude*
+
+The pairing port is a second listener of the CloudHub's sshd (a `ssh.socket` drop-in,
+or a `Port` line where sshd is not socket-activated), set up by
+`jaia_configure_authelia.sh`. A `Match LocalPort 2222` block makes it read one key
+file, `/etc/jaiabot/ssh/pairing_authorized_keys`, which holds only the bootstrap key,
+and run only `jaia-vpn-enroll.sh`, with no terminal and no forwarding; any user but
+`jaia` has no keys there at all. So opening pairing admits nothing but enrollment:
+Jaia's root keys, the hub keys and the permanent keys are read only on port 22, which
+only a customer's support grant opens. A node asks the pairing port first and falls
+back to port 22 only when the pairing port refuses or never answers, as a CloudHub
+from before it does.
 
 **Pair Fleet to CloudHub**, run from a hub on site, re-runs enrollment on every bot
 and hub over the fleet WLAN. A node remembers the CloudHub it was given at first boot,
@@ -227,6 +240,22 @@ so the re-run needs no argument; one already paired is left as it is.
 A node whose enrollment is refused keeps `id_vpn_tmp` in `/home/jaia/.ssh`, so
 once fleet pairing is open again **Pair Fleet to CloudHub** picks it up rather than
 it having to be re-imaged. The key is deleted only once a config has been installed.
+
+*This section written by Claude*
+
+The answer also carries the CloudHub's own SSH public key, on a line the node
+strips before installing the config (`# jaia-cloudhub-ssh-key: from="<CloudHub VPN
+address>" ssh-ed25519 …`). The node puts it in `/etc/jaiabot/ssh/hub_authorized_keys`
+in place of the CloudHub line it was imaged with, so a CloudHub rebuilt under the same
+name, which makes a new key at its first boot, can run fleet actions (Minor Upgrade,
+Reboot, Comms Links, …) on nodes provisioned before the rebuild as soon as they have
+paired again. A node already holding the key leaves the file alone; an answer without
+the line (an older CloudHub) changes nothing.
+
+The script is packaged rather than part of the image, so a Minor Upgrade brings this to
+nodes already in the field. **Pair Fleet to CloudHub** runs the packaged copy where a
+node has it, and the one its image carried otherwise; such a node pairs, but keeps
+the CloudHub key it was imaged with until it is upgraded and pairs again.
 
 *This section written by Claude*
 
