@@ -15,6 +15,7 @@ jaia_electronics_stack='0'
 jaia_imu_type='bno055'
 jaia_arduino_type='spi'
 jaia_pam_connection_type='none'
+jaia_power_board_mcu='stm32'
 jaia_tail_serial_number = os.environ.get('jaia_tail_serial_number', default='unknown_serial_number')
 jaia_bot_vin = os.environ.get('jaia_bot_vin', default='unknown_vin')
 
@@ -156,6 +157,7 @@ verbosities = \
   'jaiabot_turner_c_fluor_sensor_driver':         { 'runtime': { 'tty': 'WARN', 'log': 'WARN' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'jaiabot_aml_sensor_driver':                    { 'runtime': { 'tty': 'WARN', 'log': 'WARN' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'jaiabot_ctd_manager':                          { 'runtime': { 'tty': 'WARN', 'log': 'WARN' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
+  'jaiabot_power_board':                          { 'runtime': { 'tty': 'WARN', 'log': 'WARN' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'jaiabot_ppk':                                  { 'runtime': { 'tty': 'WARN', 'log': 'WARN' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'jaiabot_storm_manager':                        { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  }, 'simulation': { 'tty': 'WARN', 'log': 'WARN' }}
 }
@@ -428,6 +430,13 @@ elif common.app == 'jaiabot_sensors':
                                      fluorometer_coefficients=fluorometer_coefficients,
                                      fluorometer_2_config=fluorometer_2_config,
                                      tsys01_config=tsys01_config))
+elif common.app == 'jaiabot_power_board':
+    print(config.template_substitute(templates_dir+'/bot/jaiabot_power_board.pb.cfg.in',
+                                     app_block=app_common,
+                                     interprocess_block=interprocess_common,
+                                     port='/dev/power-board',
+                                     baud=115200,
+                                     bounds=jaiabot_driver_arduino_bounds))
 elif common.app == 'jaiabot_engineering':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_engineering.pb.cfg.in',
                                      app_block=app_common,
