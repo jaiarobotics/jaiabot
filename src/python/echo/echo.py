@@ -1,15 +1,13 @@
-from dataclasses import dataclass
-from enum import Enum
-from typing import *
 import glob
 import logging
-from math import *
-from jaiabot.messages.echo_pb2 import EchoData
+import os
 import serial
 import termios
 import time
+
 from datetime import datetime
-from threading import *
+from enum import Enum
+from threading import Lock
 
 logging.basicConfig(format='%(asctime)s %(levelname)10s %(message)s')
 log = logging.getLogger('echo')
@@ -38,7 +36,7 @@ class EchoCommands(Enum):
     CMD_TIME = b'$REC,TIME'
     CMD_VER = b'$REC,VER'
     CMD_HELP = b'$REC,HELP'
-    
+
 class EarCommands(Enum):
     CMD_START = b'$EAR,RECORD,ON'
     CMD_STOP = b'$EAR,RECORD,OFF'
@@ -53,13 +51,27 @@ class EarCommands(Enum):
     # EP only: GET of RECORD (ON/OFF), used to derive the recorder state
     CMD_RECORD = b'$EAR,RECORD'
 
+class PamStackType(Enum):
+    LEGACY = 'Legacy ($REC)'
+    EP = 'EP ($EAR)'
+
 # Edge Processing (EP) recorders enumerate two USB serial ports named
 # DBV_EAR_STREAM and DBV_EAR_CMD, and take $EAR,KEY[,VALUE] commands on the CMD
-# port (replies: $RSP,KEY,VALUE). Legacy recorders take $REC on /dev/ttyACM0.
+# port (replies: $RSP,KEY,VALUE). Legacy recorders take $REC on /dev/ttyACM0
+# over USB, or on /dev/pam-stack over UART.
 EAR_INTERFACES = ('DBV_EAR_STREAM', 'DBV_EAR_CMD')
 EAR_REPLY_TIMEOUT_SEC = 2.0
+LEGACY_USB_PORT = '/dev/ttyACM0'
+LEGACY_UART_PORT = '/dev/pam-stack'
+SERIAL_BAUD = 115200
 
-def find_ear_ports():
+# How long to wait at startup for a USB recorder to enumerate, and how long a
+# USB recorder must be present without EP interfaces before it's taken as legacy
+PAM_DETECT_TIMEOUT_SEC = 30.0
+PAM_DETECT_SETTLE_SEC = 5.0
+PAM_DETECT_POLL_SEC = 0.5
+
+def find_ear_ports() -> dict[str, str]:
     """Map EP interface name -> /dev/ttyACM* for an EP recorder, if one is enumerated."""
     ports = {}
     for path in glob.glob('/sys/class/tty/ttyACM*/device/interface'):
@@ -72,7 +84,29 @@ def find_ear_ports():
             ports[name] = '/dev/' + path.split('/')[4]
     return ports
 
-def gpzda(with_checksum):
+def detect_pam_stack_type(connection_type) -> PamStackType | None:
+    """Determine the PAM stack type once, at startup. Returns PamStackType or None if no recorder is present."""
+    if connection_type == 'uart':
+        return PamStackType.LEGACY
+
+    deadline = time.monotonic() + PAM_DETECT_TIMEOUT_SEC
+    legacy_port_seen_at = None
+    while time.monotonic() < deadline:
+        if find_ear_ports():
+            return PamStackType.EP
+
+        if not os.path.exists(LEGACY_USB_PORT):
+            legacy_port_seen_at = None
+        elif legacy_port_seen_at is None:
+            legacy_port_seen_at = time.monotonic()
+        elif time.monotonic() - legacy_port_seen_at >= PAM_DETECT_SETTLE_SEC:
+            return PamStackType.LEGACY
+
+        time.sleep(PAM_DETECT_POLL_SEC)
+
+    return None
+
+def gpzda(with_checksum) -> str:
     """$GPZDA time message. EP recorders get the NMEA checksum, as in the EP user
     guide example; legacy recorders have always been sent a bare '*'."""
     body = datetime.utcnow().strftime("GPZDA,%H%M%S.00,%d,%m,%Y,00,00")
@@ -83,66 +117,39 @@ def gpzda(with_checksum):
         checksum ^= c
     return f"${body}*{checksum:02X}"
 
-class Echo:
-    _lock: Lock
+class EchoCommon:
+    """Behavior shared by both PAM stack types. Use LegacyEcho or EpEcho, chosen
+    once at startup with detect_pam_stack_type()."""
+    PAM_STACK_TYPE: PamStackType
+    COMMANDS: type
+    SERIAL_TIMEOUT_SEC = None
+    GPZDA_WITH_CHECKSUM = False
 
-    def __init__(self, connection_type):
-        log.info('Device: MAI')
+    def __init__(self):
+        log.info(f'Device: MAI {self.PAM_STACK_TYPE.value}')
 
         self.is_setup = False
         self.echo_state = None
-        self.connection_type = connection_type
         self.uart = None
         self.sensor = None
-        self.is_ear = False
         self._lock = Lock()
 
-
-    def setup(self):
+    def setup(self) -> None:
         if not self.is_setup:
             try:
                 log.debug('We are not setup')
-                
-                if self.connection_type == "uart":
-                    self.uart = "/dev/pam-stack" # /dev/ttyAMA5
-                elif self.connection_type == "usb":
-                    ear_ports = find_ear_ports()
-                    if ear_ports:
-                        self.is_ear = True
-                    # Stays EP once seen, so a recorder that is mid-reset (or only
-                    # half enumerated) is never mistaken for a legacy one
-                    if self.is_ear:
-                        if 'DBV_EAR_CMD' not in ear_ports:
-                            log.warning('EP recorder CMD port not present, will retry')
-                            return
-                        self.uart = ear_ports['DBV_EAR_CMD']
-                    else:
-                        self.uart = "/dev/ttyACM0"
-                else:
-                    log.error('Invalid PAM connection type specified')
-                    exit(1)
+
+                self.uart = self._findPort()
+                if self.uart is None:
+                    return
 
                 try:
-                    # EP replies are read against a deadline; legacy reads stay blocking
-                    self.sensor = serial.Serial(f"{self.uart}", 115200,
-                                                timeout=0.2 if self.is_ear else None)
-                    log.info(f"{'EP ($EAR)' if self.is_ear else 'Legacy ($REC)'} recorder on {self.uart}")
-                    physical_device_available = True
-                except ModuleNotFoundError:
-                    log.warning('ModuleNotFoundError, so physical device not available')
-                    physical_device_available = False
-                except NotImplementedError:
-                    log.warning('NotImplementedError, so physical device not available')
-                    physical_device_available = False
-                except serial.serialutil.SerialException:
-                    log.warning('SerialException, so physical device not available')
-                    physical_device_available = False
-
-                if not physical_device_available:
-                    log.error('No physical device available')
+                    self.sensor = serial.Serial(self.uart, SERIAL_BAUD,
+                                                timeout=self.SERIAL_TIMEOUT_SEC)
+                    log.info(f"{self.PAM_STACK_TYPE.value} recorder on {self.uart}")
+                except serial.serialutil.SerialException as error:
+                    log.error(f'No physical device available: {error}')
                     exit(1)
-
-                log.debug('Connected, now lets enable output')
 
                 self.is_setup = True
 
@@ -152,55 +159,90 @@ class Echo:
 
             except Exception as error:
                 self.is_setup = False
-                log.warning("Error trying to setup driver!")
+                log.warning(f"Error trying to setup driver! {error}")
 
-    def sendCMD(self, command):
-        """Thread-safe sendCMD function. Takes an EchoCommands member (sent as its
-        EarCommands counterpart to an EP recorder), an EP-only EarCommands member,
-        or a raw str line such as $GPZDA.
-
-        For EP enum commands, waits for the $RSP,KEY reply and returns the fields
-        after KEY; None on an error reply or no reply. Legacy commands return None
-        and the caller reads any reply itself."""
+    def sendCMD(self, command) -> list[str] | None:
+        """Thread-safe sendCMD function. Takes a member of this recorder's COMMANDS
+        enum, or a raw str line such as $GPZDA."""
         if not self.is_setup:
             self.setup()
         if not self.is_setup:
             log.warning("Device is not set up. Command not sent.")
             return None
 
-        if isinstance(command, EchoCommands) and self.is_ear:
-            command = EarCommands[command.name]
-        elif isinstance(command, EarCommands) and not self.is_ear:
-            log.warning(f"{command.name} is only supported by EP recorders")
-            return None
-
         with self._lock:
-            if self.is_ear:
-                if isinstance(command, EarCommands):
-                    line = command.value.decode('utf-8')
-                    return self._sendEar(line, reply_key=line.split(',')[1])
-                return self._sendEar(command)
+            return self._send(command)
 
-            message = command.value if isinstance(command, EchoCommands) else command.encode('utf-8')
-            time.sleep(0.01)
-            self.sensor.write(message)
-            return None
+    def getStatus(self) -> None:
+        if not self.is_setup:
+            self.setup()
+        if not self.is_setup:
+            return
 
-    def getStatus(self):
+        log.info("Get Status From Echo")
+        self._readStatus()
+
+    def getState(self) -> int | None:
         if not self.is_setup:
             self.setup()
 
-        if self.is_ear:
-            self._getStatusEar()
-            return
+        log.debug(f'State: {self.echo_state}')
+        return self.echo_state
+
+    def startDevice(self) -> None:
+        if not self.is_setup:
+            self.setup()
 
         try:
-            # This should query the echo device
-            log.info("Get Status From Echo")
+            log.debug("Attempting Starting Echo")
+            if self.echo_state != EchoState.RUNNING.value:
+                log.debug("Starting Echo")
+                self.sendCMD(gpzda(with_checksum=self.GPZDA_WITH_CHECKSUM))
+                self.sendCMD(self.COMMANDS.CMD_START)
+                self.getStatus()
+
+        except Exception as error:
+            log.warning(f"Error trying to start device {error}")
+
+    def stopDevice(self) -> None:
+        if not self.is_setup:
+            self.setup()
+
+        try:
+            log.debug("Attempting Stopping Echo")
+            if self.echo_state != EchoState.READY.value:
+                log.debug("Stopping Echo")
+                self.sendCMD(self.COMMANDS.CMD_STOP)
+                self.getStatus()
+
+        except Exception as error:
+            log.warning(f"Error trying to stop device {error}")
+
+class LegacyEcho(EchoCommon):
+    """Legacy recorder: $REC commands, write-only sends, blocking reads."""
+    PAM_STACK_TYPE = PamStackType.LEGACY
+    COMMANDS = EchoCommands
+
+    def __init__(self, connection_type):
+        self.connection_type = connection_type
+        super().__init__()
+
+    def _findPort(self) -> str:
+        return LEGACY_UART_PORT if self.connection_type == 'uart' else LEGACY_USB_PORT
+
+    def _send(self, command) -> None:
+        """Not thread-safe; caller must hold _lock. The caller reads any reply."""
+        message = command.value if isinstance(command, EchoCommands) else command.encode('utf-8')
+        time.sleep(0.01)
+        self.sensor.write(message)
+        return None
+
+    def _readStatus(self) -> None:
+        try:
             self.sendCMD(EchoCommands.CMD_STATUS)
-            
+
             while True:
-                cc=str(self.sensor.readline().decode('utf-8').strip())
+                cc = str(self.sensor.readline().decode('utf-8').strip())
                 log.debug(cc)
                 if cc.startswith('$ECHO'):
                     # Split the string by comma and get the last part
@@ -218,53 +260,42 @@ class Echo:
                     self.echo_state = None
 
         except Exception as error:
-            log.warning("Error trying to get status!")
+            log.warning(f"Error trying to get status! {error}")
 
-    def getState(self):
-        if not self.is_setup:
-            self.setup()
-        elif self.is_ear and self.echo_state is None:
+class EpEcho(EchoCommon):
+    """Edge Processing recorder: $EAR commands on the DBV_EAR_CMD port, with each
+    command's $RSP reply read against a deadline."""
+    PAM_STACK_TYPE = PamStackType.EP
+    COMMANDS = EarCommands
+    SERIAL_TIMEOUT_SEC = 0.2
+    GPZDA_WITH_CHECKSUM = True
+
+    def _findPort(self) -> str | None:
+        # Looked up on every setup, as the port can change when the recorder resets
+        port = find_ear_ports().get('DBV_EAR_CMD')
+        if port is None:
+            log.warning('EP recorder CMD port not present, will retry')
+        return port
+
+    def getState(self) -> int | None:
+        if self.is_setup and self.echo_state is None:
             # EP recorders drop off USB when they reset; keep asking until one answers
             self.getStatus()
-            
-        log.debug(f'State: {self.echo_state}')
-        return self.echo_state
+        return super().getState()
 
-    def startDevice(self):
-        if not self.is_setup:
-            self.setup()
+    def _send(self, command) -> list[str] | None:
+        """Not thread-safe; caller must hold _lock. For EarCommands, waits for the
+        $RSP,KEY reply and returns the fields after KEY; None on an error reply or
+        no reply."""
+        if isinstance(command, EarCommands):
+            line = command.value.decode('utf-8')
+            return self._sendLine(line, reply_key=line.split(',')[1])
+        return self._sendLine(command)
 
-        try:
-            log.debug("Attempting Starting Echo")
-            if self.echo_state != EchoState.RUNNING.value:    
-                # This should start the echo device
-                log.debug("Starting Echo")
-                self.sendCMD(gpzda(with_checksum=self.is_ear))
-                self.sendCMD(EchoCommands.CMD_START)
-                self.getStatus()
-
-        except Exception as error:
-            log.warning("Error trying to start device")
-    
-    def stopDevice(self):
-        if not self.is_setup:
-            self.setup()
-
-        try:
-            log.debug("Attempting Stopping Echo")
-            if self.echo_state != EchoState.READY.value:
-                # This should stop the echo device
-                log.debug("Stopping Echo")
-                self.sendCMD(EchoCommands.CMD_STOP)
-                self.getStatus()
-
-        except Exception as error:
-            log.warning("Error trying to stop device")
-            
-    def _sendEar(self, line, reply_key=None):
-        """Thread unsafe; only called by sendCMD with the lock held. Send one
-        command line to an EP recorder. With reply_key, wait for its $RSP,KEY
-        reply and return the fields after KEY; None on an error reply or no reply."""
+    def _sendLine(self, line, reply_key=None) -> list[str] | None:
+        """Not thread-safe; caller must hold _lock. Send one command line. With
+        reply_key, wait for its $RSP,KEY reply and return the fields after KEY;
+        None on an error reply or no reply."""
         try:
             self.sensor.reset_input_buffer()
             # The recorder takes each write as one complete command
@@ -295,18 +326,17 @@ class Echo:
         log.warning(f'No reply to {line}')
         return None
 
-    def _getStatusEar(self):
+    def _readStatus(self) -> None:
         """EP STATUS values don't match EchoState (an idle EP recorder reports 5,
         legacy READY is 6), so derive the legacy state from RECORD and STORAGE."""
         try:
-            log.info("Get Status From Echo")
             record = self.sendCMD(EarCommands.CMD_RECORD)
             if record is None:
                 self.echo_state = None
             elif record[0] == 'ON':
                 self.echo_state = EchoState.RUNNING.value
             else:
-                storage = self.sendCMD(EchoCommands.CMD_STORAGE)
+                storage = self.sendCMD(EarCommands.CMD_STORAGE)
                 if storage is None:
                     self.echo_state = None
                 elif int(storage[0]) > 0:
@@ -317,26 +347,28 @@ class Echo:
             log.debug(f'State: {self.echo_state}')
 
         except Exception as error:
-            log.warning("Error trying to get status!")
+            # e.g. a $RSP with no value; don't keep reporting the previous state
+            self.echo_state = None
+            log.warning(f"Error trying to get status! {error}")
 
 class EchoSimulator:
     def __init__(self):
         log.info('Device: Simulator')
 
-    def setup(self):
+    def setup(self) -> None:
         pass
 
-    def sendCMD(self, message):
+    def sendCMD(self, message) -> None:
         pass
 
-    def getStatus(self):
+    def getStatus(self) -> None:
         pass
 
-    def getState(self):
+    def getState(self) -> int:
         return EchoState.READY.value
 
-    def startDevice(self):
+    def startDevice(self) -> None:
         pass
-    
-    def stopDevice(self):
-        pass            
+
+    def stopDevice(self) -> None:
+        pass
