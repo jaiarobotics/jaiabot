@@ -115,7 +115,7 @@ done
 echo ">>> Copying ${#files[@]} files from ${OLD_HOST} to ${NEW_HOST}"
 # Streamed root to root, so no key is ever on a command line or in a log
 on_old "sudo tar -C ${OLD_ETC} -cf - ${files[*]}" \
-    | on_new "sudo mkdir -p -m 700 ${NEW_ETC}/wireguard && sudo mkdir -p ${NEW_ETC}/jaiabot && sudo tar -C ${NEW_ETC} -xf - && sudo chmod 700 ${NEW_ETC}/wireguard && sudo chmod 600 ${NEW_ETC}/wireguard/*"
+    | on_new "sudo mkdir -p -m 700 ${NEW_ETC}/wireguard && sudo mkdir -p ${NEW_ETC}/jaiabot && sudo tar -C ${NEW_ETC} -xf - && sudo chmod 700 ${NEW_ETC}/wireguard && sudo sh -c 'chmod 600 ${NEW_ETC}/wireguard/*'"
 for file in "${files[@]}"; do
     echo "    ${file}"
 done
