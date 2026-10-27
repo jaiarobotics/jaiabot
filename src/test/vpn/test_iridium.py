@@ -15,6 +15,7 @@ from test_vpn_gen import SOURCE_DIR
 
 TUNNEL = SOURCE_DIR / "src" / "sh" / "system" / "jaia-iridium-tunnel.sh"
 ENROLL = SOURCE_DIR / "src" / "sh" / "system" / "jaia-iridium-enroll.sh"
+STAGE = SOURCE_DIR / "rootfs" / "cloud" / "aws" / "iridium" / "stage_migration.sh"
 
 SECRET_KEY = "SXJpZGl1bSBzZXJ2ZXIgcHJpdmF0ZSBrZXkgZm9yIDc="
 PUBLIC_KEY = "SXJpZGl1bSBzZXJ2ZXIgcHVibGljIGtleSBmb3IgNyE="
@@ -87,6 +88,15 @@ class TunnelTest(unittest.TestCase):
         result = self.tunnel(36, "fd0f:77ac:4fdf:24::19")
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("TCP:[fd0f:77ac:4fdf:24::1e]:11800", self.box.recorded())
+
+    def test_it_can_report_the_cloudhub_address_without_starting_anything(self):
+        with open(os.path.join(self.box.wg_dir, "wg_jaia_ch8.conf"), "w") as f:
+            f.write("[Interface]\nAddress = fd0f:77ac:4fdf:8::1:19/128\n")
+        result = subprocess.run(["bash", str(TUNNEL), "8", "--cloudhub-address"], capture_output=True,
+                                text=True, env=self.box.env, timeout=10)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout, "fd0f:77ac:4fdf:8::1:1e\n")
+        self.assertEqual(self.box.recorded(), "")
 
     def test_a_tunnel_that_is_not_hub_25_starts_nothing(self):
         result = self.tunnel(8, "fd0f:77ac:4fdf:8::1:1")
@@ -172,6 +182,120 @@ esac""".format(secret=SECRET_KEY, public=PUBLIC_KEY))
             result = self.enroll(fleet, "fleet8.example.org", self.bootstrap)
             self.assertNotEqual(result.returncode, 0, fleet)
         self.assertNotIn("ssh ", self.box.recorded())
+
+
+class StageMigrationTest(unittest.TestCase):
+    """Copies the fleet tunnels from the running server to its replacement and starts
+    nothing there. The stub ssh runs each remote command here, against one directory
+    standing in for each server's /etc."""
+
+    FLEETS = {"6": "fd0f:77ac:4fdf:6::19", "71": "fd0f:77ac:4fdf:47::19", "7": "fd0f:77ac:4fdf:7::1:19"}
+
+    def setUp(self):
+        self.box = Sandbox()
+        self.addCleanup(self.box.cleanup)
+        self.old = os.path.join(self.box.dir, "old-etc")
+        self.new = os.path.join(self.box.dir, "new-etc")
+        os.makedirs(os.path.join(self.old, "wireguard"))
+        os.makedirs(os.path.join(self.old, "jaiabot"))
+        for fleet, address in self.FLEETS.items():
+            self.write(self.old, "wireguard/wg_jaia_ch{}.conf".format(fleet),
+                       "[Interface]\nPrivateKey = secret-of-fleet-{}\nAddress = {}/128\n".format(fleet, address))
+        self.write(self.old, "wireguard/wg_jaia_ch67", "a stray copy\n")
+        self.write(self.old, "wireguard/privatekey", "shared-secret\n")
+        self.write(self.old, "wireguard/publickey", "shared-public\n")
+        self.write(self.old, "jaiabot/iridium.json", "{}\n")
+        self.box.stub("ssh", """args=()
+while [ $# -gt 0 ]; do case "$1" in -o) shift 2 ;; *) args+=("$1"); shift ;; esac; done
+echo "ssh ${args[*]}" >> "$JAIA_TEST_CALLS"
+exec bash -c "${args[1]}"
+""")
+        self.box.stub("sudo", 'while [[ "$1" == *=* ]]; do export "$1"; shift; done\nexec "$@"')
+        self.box.stub("systemctl", 'echo "systemctl $*" >> "$JAIA_TEST_CALLS"\n'
+                                   '[ "$1" = list-units ] && printf "%s" "${JAIA_TEST_RUNNING:-}"\nexit 0')
+        tunnel = os.path.join(self.box.bin, "jaia-iridium-tunnel.sh")
+        with open(tunnel, "w") as f:
+            f.write(TUNNEL.read_text())
+        os.chmod(tunnel, 0o755)
+        self.box.stub("jaia-iridium-enroll.sh", "exit 0")
+        self.box.env.update(JAIA_OLD_ETC=self.old, JAIA_NEW_ETC=self.new)
+
+    def write(self, root, path, text):
+        with open(os.path.join(root, path), "w") as f:
+            f.write(text)
+
+    def stage(self, *args):
+        return subprocess.run(["bash", str(STAGE)] + list(args), capture_output=True, text=True,
+                              env=self.box.env, timeout=30)
+
+    def staged(self):
+        return sorted(os.listdir(os.path.join(self.new, "wireguard")))
+
+    def test_release_2_tunnels_and_the_settings_are_copied(self):
+        result = self.stage("new.example.org")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.staged(), ["privatekey", "publickey", "wg_jaia_ch6.conf", "wg_jaia_ch71.conf"])
+        with open(os.path.join(self.new, "wireguard", "wg_jaia_ch71.conf")) as f:
+            self.assertIn("secret-of-fleet-71", f.read())
+        self.assertTrue(os.path.exists(os.path.join(self.new, "jaiabot", "iridium.json")))
+
+    def test_release_3_fleets_are_left_to_enroll_again(self):
+        result = self.stage("new.example.org")
+        self.assertNotIn("wg_jaia_ch7.conf", self.staged())
+        self.assertIn("fleet 7 is release 3", result.stdout)
+
+    def test_release_3_fleets_can_be_carried_too(self):
+        result = self.stage("--include-release-3", "new.example.org", "7")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("wg_jaia_ch7.conf", self.staged())
+
+    def test_only_the_named_fleets_are_copied(self):
+        self.assertEqual(self.stage("new.example.org", "71").returncode, 0)
+        self.assertEqual(self.staged(), ["privatekey", "publickey", "wg_jaia_ch71.conf"])
+
+    def test_a_fleet_the_old_server_lacks_stops_everything(self):
+        result = self.stage("new.example.org", "71", "99")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertFalse(os.path.exists(os.path.join(self.new, "wireguard")))
+
+    def test_the_keys_are_readable_only_by_root(self):
+        self.assertEqual(self.stage("new.example.org").returncode, 0)
+        wireguard = os.path.join(self.new, "wireguard")
+        self.assertEqual(stat.S_IMODE(os.stat(wireguard).st_mode), 0o700)
+        for name in self.staged():
+            self.assertEqual(stat.S_IMODE(os.stat(os.path.join(wireguard, name)).st_mode), 0o600, name)
+
+    def test_no_key_is_ever_on_a_command_line(self):
+        self.assertEqual(self.stage("new.example.org").returncode, 0)
+        calls = self.box.recorded()
+        self.assertNotIn("secret", calls)
+
+    def test_each_relay_reports_its_cloudhub_and_nothing_is_started(self):
+        result = self.stage("new.example.org")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("CloudHub fd0f:77ac:4fdf:47::1e", result.stdout)
+        self.assertIn("CloudHub fd0f:77ac:4fdf:6::1e", result.stdout)
+        for line in self.box.recorded().splitlines():
+            if line.startswith("systemctl"):
+                self.assertTrue(line.startswith("systemctl list-units"), line)
+
+    def test_a_new_server_already_running_fleets_is_refused(self):
+        self.box.env["JAIA_TEST_RUNNING"] = "wg-quick@wg_jaia_ch71.service\n"
+        result = self.stage("new.example.org")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("already runs", result.stderr)
+        self.assertFalse(os.path.exists(os.path.join(self.new, "wireguard")))
+
+    def test_a_new_server_without_the_release_3_scripts_is_refused(self):
+        os.remove(os.path.join(self.box.bin, "jaia-iridium-enroll.sh"))
+        result = self.stage("new.example.org")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("release 3 iridium scripts", result.stderr)
+
+    def test_the_old_server_defaults_to_iridium_jaia_tech(self):
+        self.assertEqual(self.stage("new.example.org").returncode, 0)
+        self.assertIn("ssh jaia@iridium.jaia.tech", self.box.recorded())
+        self.assertIn("ssh jaia@new.example.org", self.box.recorded())
 
 
 class PackagingTest(unittest.TestCase):

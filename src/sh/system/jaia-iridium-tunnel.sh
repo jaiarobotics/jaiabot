@@ -36,6 +36,10 @@ case "${own_address}" in
         exit 1
         ;;
 esac
+if [ "${2:-}" = --cloudhub-address ]; then
+    echo "${CLOUDHUB_ADDRESS}"
+    exit 0
+fi
 
 # Iridium DirectIP (MetOcean)
 ## MO Tunnel
