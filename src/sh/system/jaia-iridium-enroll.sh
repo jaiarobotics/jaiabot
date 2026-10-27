@@ -44,7 +44,7 @@ pubkey=$(wg pubkey < "${private_key}")
 ssh-keygen -R "[${host}]:${PAIRING_PORT}" >/dev/null 2>&1 || true
 if ! ssh -p "${PAIRING_PORT}" -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new \
         -o ConnectTimeout=15 -i "${tmp}/id_vpn_tmp" "jaia@${host}" "iridium ${pubkey}" > "${tmp}/answer"; then
-    echo "ERROR: ${host} did not enroll this server. Is Fleet Pairing open on its JCU?" >&2
+    echo "ERROR: ${host} did not enroll this server. Is Fleet Pairing open on its JCU, and is ${bootstrap_key} the bootstrap key of the fleet config its CloudHub was built from?" >&2
     exit 1
 fi
 if ! grep -q '^\[Interface\]' "${tmp}/answer" || ! grep -q '^PrivateKey *=' "${tmp}/answer"; then
