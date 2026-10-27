@@ -341,7 +341,7 @@ In addition to the CloudHub and VirtualFleet mentioned above, Jaia runs a number
 - `packages.jaia.tech`: Hosts Ubuntu (*.deb) packages
 - `docs.jaia.tech`: Documentation
 - `vpn.jaia.tech`: Service VPN for remote support.
-- `*.cloud.jaia.tech`: Web access with 2-factor authentication to Jaia's own web services (`cc`, `sandbox.cc`, `launchpad`, `data`). See "auth.cloud.jaia.tech" below.
+- `*.cloud.jaia.tech`: Web access with 2-factor authentication to Jaia's own web services (`cc`, `sandbox.cc`, `launchpad`, `data`). Its build, deployment and migration are documented in Confluence: [auth.cloud.jaia.tech](https://jaia-innovation.atlassian.net/wiki/spaces/PD/pages/3103588353/auth.cloud.jaia.tech).
 
 We want to be able to recreate these servers from scratch for consistency of implementation, security, and AWS instance type. We want to be able to upgrade to the latest Ubuntu/Jaiabot release by rebuilding servers, and have the tools in place to recreate them in the event of an instance disk corruption or AWS failure.
 
@@ -441,59 +441,6 @@ To upgrade an existing server, the following set of steps is recommended:
 5. Ensure the new server is fully functional now with these IP addresses (which should map to the correct domain names as well).
 6. Power down (stop) the old server.
 7. After some period (e.g., 1-2 weeks or so) of the new server functioning correctly,  disable termination protection for the old server and enable termination protection for the new server (if not already set) under (in the AWS console) `Actions->Instance Settings->Change termination protection`. Terminate (delete) the old instance.
-
-## auth.cloud.jaia.tech
-
-*This section written by Claude*
-
-`auth.cloud.jaia.tech` signs people in to Jaia's own web services, with the same Authelia, LLDAP and Caddy (from `jaiabot-web-thirdparty`) that each CloudHub runs, but its own sites and groups:
-
-| Site | Upstream | Group |
-|---|---|---|
-| `auth.cloud.jaia.tech` | Authelia | everyone |
-| `lldap.cloud.jaia.tech` | LLDAP's user admin | `lldap_admin` |
-| `cc`, `sandbox.cc`, `launchpad` | cc_db server | `cc_db` |
-| `data.cloud.jaia.tech` | data server | `data` |
-
-cc's `/test-results/api/submit/` is open, so test runners can post results. Everything else is denied.
-
-It runs in GovCloud (us-gov-east-1). cc_db and data run in AWS commercial and have no sign-in of their own, so Caddy reaches them over a WireGuard tunnel (`fd63:7ac0:9603::/64`); their security groups admit only the tunnel's UDP port from the auth server.
-
-Everything is in `rootfs/cloud/aws/authelia`:
-
-- `authelia.conf`: the production server. `authelia-test.conf`: a copy at `auth.jaiacloud.gobysoft.org` for testing, which reads `authelia.conf` and changes only what differs.
-- `configure.sh`: configures Authelia, LLDAP, Caddy and the tunnel. It is idempotent, and is the only way the server's configuration should change. The sign-in page, the Authelia and LLDAP setup and how they are started come from `src/sh/system/jaia-authelia-common.sh`, which a CloudHub's `jaia_configure_authelia.sh` uses too; `configure.sh` adds this server's sites, access rules and session lengths.
-- `deploy.sh`: installs `configure.sh`, the shared setup, its settings and static pages on the server, and runs it.
-- `migrate-from.sh`: copies every account from another auth server and checks the copy.
-- `upstream-peer.sh`: adds the auth server as a WireGuard peer of cc_db or data and opens the upstream's security group to it.
-- `create_iam_role.sh`: the instance profile, which may read the Postmark credentials (`/jaia/cloudhub/smtp_credentials`) and keep the server's WireGuard key in SSM under `/jaia/auth-server/<server name>/`.
-
-Run these from `rootfs/cloud/aws`, with GovCloud credentials (`AWS_PROFILE`) and the YubiKey SSH agent.
-
-### Build a server
-
-```
-./authelia/create_iam_role.sh authelia/authelia-test.conf      # once
-./create_specialty_server.sh authelia/authelia-test.conf
-# wait for cloud-init to finish, and for DNS: auth., lldap., cc., sandbox.cc., launchpad. and data.
-./authelia/deploy.sh authelia/authelia-test.conf
-./authelia/upstream-peer.sh authelia/authelia-test.conf cc_db  # once per server name
-./authelia/upstream-peer.sh authelia/authelia-test.conf data
-# set the printed CC_DB_WG_PUBLIC_KEY and DATA_WG_PUBLIC_KEY in authelia.conf, then
-./authelia/deploy.sh authelia/authelia-test.conf
-```
-
-The WireGuard key survives a rebuild (it is in SSM), so the upstreams only need `upstream-peer.sh` once per server name. `upstream-peer.sh --remove` takes a server off again.
-
-### Move accounts across
-
-```
-./authelia/migrate-from.sh authelia/authelia-test.conf <old server>
-```
-
-This copies Authelia's and LLDAP's databases, Authelia's storage encryption key (which protects TOTP secrets), LLDAP's key seed (without which no password opens) and the LLDAP admin's password. It removes the retired `f1`/`f2`/`f3` groups. It then checks that the admin signs in to LLDAP, that Authelia's encryption check passes, and that the users, groups, TOTP and WebAuthn registrations match the source. The source is only read; `--final` also stops its Authelia and LLDAP first, for cutover.
-
-WebAuthn registrations are bound to `auth.cloud.jaia.tech`, so they only work on a server answering at that name.
 
 ## Cloud Login server (auth.fleetN.jaia.tech / auth.custom_domain)
 
