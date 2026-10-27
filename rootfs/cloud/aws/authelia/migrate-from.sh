@@ -86,6 +86,10 @@ set -e -u -o pipefail
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
 tar -C "$tmp" -xzf -
+if [ ! -e /etc/jaiabot/auth-server-built ]; then
+    echo "$(hostname) was not built as an auth server by create_specialty_server.sh; not importing" >&2
+    exit 1
+fi
 if ! sudo test -x /usr/local/sbin/jaia-auth-server-configure; then
     echo "Run deploy.sh on this server first" >&2
     exit 1

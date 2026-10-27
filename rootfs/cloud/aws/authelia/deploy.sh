@@ -30,14 +30,8 @@ CADDY_ACME_CA=$CADDY_ACME_CA
 AUTH_SMTP_ADDRESS=$AUTH_SMTP_ADDRESS
 AUTH_SMTP_SENDER=$AUTH_SMTP_SENDER
 AUTH_SMTP_CREDENTIALS_PARAMETER=$AUTH_SMTP_CREDENTIALS_PARAMETER
-AUTH_WG_ADDRESS=$AUTH_WG_ADDRESS
-AUTH_WG_PRIVATE_KEY_PARAMETER=$AUTH_WG_PRIVATE_KEY_PARAMETER
-CC_DB_WG_ADDRESS=$CC_DB_WG_ADDRESS
-CC_DB_WG_ENDPOINT=$CC_DB_WG_ENDPOINT
-CC_DB_WG_PUBLIC_KEY=$CC_DB_WG_PUBLIC_KEY
-DATA_WG_ADDRESS=$DATA_WG_ADDRESS
-DATA_WG_ENDPOINT=$DATA_WG_ENDPOINT
-DATA_WG_PUBLIC_KEY=$DATA_WG_PUBLIC_KEY
+CC_DB_UPSTREAM=$CC_DB_UPSTREAM
+DATA_UPSTREAM=$DATA_UPSTREAM
 EOF
 cp "$HERE/configure.sh" "$COMMON" "$stage/"
 mkdir "$stage/_jaia"
@@ -48,6 +42,11 @@ set -e -u
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
 tar -C "$tmp" -xzf -
+# Before cutover the production name is still the server this one replaces
+if [ ! -e /etc/jaiabot/auth-server-built ]; then
+    echo "$(hostname) was not built as an auth server by create_specialty_server.sh; not deploying" >&2
+    exit 1
+fi
 sudo install -D -m 0755 "$tmp/configure.sh" /usr/local/sbin/jaia-auth-server-configure
 sudo install -D -m 0644 "$tmp/auth-server.env" /etc/jaiabot/auth-server.env
 sudo install -D -m 0644 "$tmp/jaia-authelia-common.sh" /usr/local/share/jaia-auth-server/jaia-authelia-common.sh

@@ -3,8 +3,8 @@
 set -u -e -o pipefail
 
 ## This script must be idempotent!!
-# (Re)configures Authelia, LLDAP and Caddy (from jaiabot-web-thirdparty) and the WireGuard
-# tunnel to the upstreams on the auth.cloud.jaia.tech server. deploy.sh installs and runs it.
+# (Re)configures Authelia, LLDAP and Caddy (from jaiabot-web-thirdparty) on the
+# auth.cloud.jaia.tech server. deploy.sh installs and runs it.
 
 set -a
 source "${AUTH_SERVER_ENV:-/etc/jaiabot/auth-server.env}"
@@ -19,8 +19,6 @@ lldap_ldap_port=3890
 lldap_web_port=17170
 authelia_port=9091
 authelia_address="tcp://127.0.0.1:$authelia_port"
-wg_listen_port=51820
-wg_interface=wg_jaia_upstreams
 
 state_dir=/var/lib/jaia-auth-server
 secrets_file=$state_dir/secrets
@@ -55,79 +53,6 @@ load_postmark_credentials()
     if ! load_smtp_credentials; then
         echo "ERROR: could not read the SMTP credentials from SSM parameter $smtp_credentials_parameter" >&2
         exit 1
-    fi
-}
-
-
-###############
-## WireGuard ##
-###############
-
-# The private key lives in SSM so a rebuilt server keeps it, and the upstreams' peer entries with it
-wireguard_private_key()
-{
-    local err key
-    err=$(mktemp)
-    if key=$(aws ssm get-parameter --region "$AWS_REGION" --name "$AUTH_WG_PRIVATE_KEY_PARAMETER" \
-                 --with-decryption --query Parameter.Value --output text 2> "$err"); then
-        rm -f "$err"
-        echo "$key"
-    elif grep -q ParameterNotFound "$err"; then
-        key=$(wg genkey)
-        # A file, so the key is never on a command line
-        (umask 077; printf '%s' "$key" > "$err")
-        aws ssm put-parameter --region "$AWS_REGION" --name "$AUTH_WG_PRIVATE_KEY_PARAMETER" \
-            --type SecureString --value "file://$err" > /dev/null
-        rm -f "$err"
-        echo "$key"
-    else
-        cat "$err" >&2
-        rm -f "$err"
-        return 1
-    fi
-}
-
-wireguard_peer()
-{
-    local name=$1 public_key=$2 address=$3 endpoint=$4
-    if [ -z "$public_key" ]; then
-        echo "WARNING: no WireGuard public key for $name yet; run upstream-peer.sh for it" >&2
-        return
-    fi
-    cat <<EOF
-
-# $name
-[Peer]
-PublicKey = $public_key
-AllowedIPs = $address/128
-Endpoint = [$endpoint]:$wg_listen_port
-EOF
-}
-
-configure_wireguard()
-{
-    local conf=/etc/wireguard/$wg_interface.conf
-    local private_key
-    private_key=$(wireguard_private_key)
-    wireguard_public_key=$(wg pubkey <<< "$private_key")
-
-    (umask 077; {
-        cat <<EOF
-[Interface]
-PrivateKey = $private_key
-Address = $AUTH_WG_ADDRESS/64
-EOF
-        wireguard_peer cc_db "$CC_DB_WG_PUBLIC_KEY" "$CC_DB_WG_ADDRESS" "$CC_DB_WG_ENDPOINT"
-        wireguard_peer data "$DATA_WG_PUBLIC_KEY" "$DATA_WG_ADDRESS" "$DATA_WG_ENDPOINT"
-    } > "$conf.new")
-
-    if ! cmp -s "$conf.new" "$conf"; then
-        mv "$conf.new" "$conf"
-        systemctl enable wg-quick@$wg_interface
-        systemctl restart wg-quick@$wg_interface
-    else
-        rm "$conf.new"
-        systemctl enable --now wg-quick@$wg_interface
     fi
 }
 
@@ -264,12 +189,12 @@ lldap.$base_uri {
 
 cc.$base_uri, sandbox.cc.$base_uri, launchpad.$base_uri {
         import authelia_forward_auth
-        reverse_proxy [$CC_DB_WG_ADDRESS]:80
+        reverse_proxy $CC_DB_UPSTREAM
 }
 
 data.$base_uri {
         import authelia_forward_auth
-        reverse_proxy [$DATA_WG_ADDRESS]:80
+        reverse_proxy $DATA_UPSTREAM
 }
 EOF
 }
@@ -305,8 +230,6 @@ main()
     authelia_inputs_before=$(authelia_inputs_fingerprint)
     load_postmark_credentials
 
-    configure_wireguard
-
     start_lldap
     bootstrap_authelia_account
 
@@ -315,8 +238,6 @@ main()
 
     write_caddyfile
     start_caddy
-
-    echo "WireGuard public key for the upstreams: $wireguard_public_key"
 }
 
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then

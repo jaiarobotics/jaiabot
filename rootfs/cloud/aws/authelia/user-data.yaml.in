@@ -12,6 +12,10 @@ users:
     lock_passwd: true
 
 write_files:
+  # deploy.sh and migrate-from.sh change only a server that has this
+  - path: /etc/jaiabot/auth-server-built
+    content: |
+      Built by create_specialty_server.sh as an auth server
   - path: /etc/ssh/sshd_config.d/jaia_sshd.conf
     content: |
       AuthorizedKeysFile .ssh/authorized_keys /etc/jaiabot/ssh/root_authorized_keys /etc/jaiabot/ssh/tmp_authorized_keys
@@ -42,7 +46,6 @@ apt:
       
 packages:
   - zile
-  - wireguard-tools
   - jaiabot-web-thirdparty
 
 runcmd:

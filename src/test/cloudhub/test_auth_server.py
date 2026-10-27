@@ -33,20 +33,14 @@ COMMON = SOURCE_DIR / "src" / "sh" / "system" / "jaia-authelia-common.sh"
 
 BASE = "cloud.example.test"
 ENV = {
-    "AWS_REGION": "us-gov-east-1",
+    "AWS_REGION": "us-west-2",
     "AUTH_BASE_DOMAIN": BASE,
     "CADDY_ACME_CA": "",
     "AUTH_SMTP_ADDRESS": "submission://smtp.postmarkapp.com:587",
     "AUTH_SMTP_SENDER": "noreply@auth.jaia.tech",
-    "AUTH_SMTP_CREDENTIALS_PARAMETER": "/jaia/cloudhub/smtp_credentials",
-    "AUTH_WG_ADDRESS": "fd63:7ac0:9603::1",
-    "AUTH_WG_PRIVATE_KEY_PARAMETER": "/jaia/auth-server/x/wireguard_private_key",
-    "CC_DB_WG_ADDRESS": "fd63:7ac0:9603::2",
-    "CC_DB_WG_ENDPOINT": "2600:1f13::2",
-    "CC_DB_WG_PUBLIC_KEY": "",
-    "DATA_WG_ADDRESS": "fd63:7ac0:9603::3",
-    "DATA_WG_ENDPOINT": "2600:1f13::3",
-    "DATA_WG_PUBLIC_KEY": "",
+    "AUTH_SMTP_CREDENTIALS_PARAMETER": "arn:aws:ssm:us-east-1:123456789012:parameter/jaia/cloudhub/smtp_credentials",
+    "CC_DB_UPSTREAM": "172.31.24.45:80",
+    "DATA_UPSTREAM": "172.31.24.227:80",
 }
 # What load_secrets and load_smtp_credentials would have set
 LOADED = {
@@ -117,6 +111,13 @@ class AccessTest(unittest.TestCase):
         cc_db = next(i for i, r in enumerate(rules) if r.get("subject") == "group:cc_db")
         self.assertLess(bypass[0], cc_db, "the bypass must come before the cc_db rule, or it never applies")
 
+    def test_each_upstream_is_proxied_only_after_a_sign_in(self):
+        text = caddyfile()
+        for sites, upstream in (("cc.%s, sandbox.cc.%s, launchpad.%s" % (BASE, BASE, BASE), "172.31.24.45:80"),
+                                ("data.%s" % BASE, "172.31.24.227:80")):
+            site = block(text, sites + " {")
+            self.assertLess(site.index("import authelia_forward_auth"), site.index("reverse_proxy " + upstream))
+
     def test_everything_else_is_denied(self):
         self.assertIn("default_policy: 'deny'", authelia_config())
 
@@ -126,6 +127,7 @@ class AccessTest(unittest.TestCase):
         self.assertNotIn("domain_regex", text)
         self.assertNotIn("f1.", text)
         self.assertNotIn("wg_jaia_ch1", text)
+        self.assertNotIn("wireguard", text.lower(), "cc_db and data are reached in the VPC")
 
     def test_authelia_binds_as_the_lldap_admin_as_on_a_cloudhub(self):
         self.assertIn("user: 'UID=authelia,OU=people,DC=jaia,DC=tech'", authelia_config())
