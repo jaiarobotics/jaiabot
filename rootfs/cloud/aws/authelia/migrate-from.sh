@@ -31,7 +31,7 @@ trap 'rm -rf "$work"' EXIT
 
 echo ">>>>>> Exporting from $old"
 ssh $SSH_OPTS "jaia@$old" "sudo python3 - $final" > "$work/export.tar.gz" <<'EOF'
-import io, json, shlex, sqlite3, subprocess, sys, tarfile, tempfile, yaml
+import io, json, shlex, shutil, sqlite3, subprocess, sys, tarfile, tempfile, yaml
 
 if sys.argv[1] == "true":
     subprocess.run(["systemctl", "stop", "authelia", "lldap"], check=True)
@@ -50,33 +50,38 @@ secrets = {
     "lldap_admin_password": authelia["authentication_backend"]["ldap"]["password"],
 }
 
+# The copies hold every password hash and TOTP secret, so none outlives this run
 out = tempfile.mkdtemp()
 def backup(src, name):
-    source, copy = sqlite3.connect(src), sqlite3.connect(out + "/" + name)
+    # Read-only: a write-mode open by root could leave files the running service can't write
+    source, copy = sqlite3.connect("file:%s?mode=ro" % src, uri=True), sqlite3.connect(out + "/" + name)
     source.backup(copy)
     copy.close()
     source.close()
     return sqlite3.connect(out + "/" + name)
 
-a = backup("/var/lib/authelia/db.sqlite3", "authelia.sqlite3")
-l = backup("/var/lib/lldap/users.db", "users.db")
-counts = {
-    "users": sorted(r[0] for r in l.execute("select user_id from users")),
-    "groups": sorted(r[0] for r in l.execute("select display_name from groups")),
-    "totp": a.execute("select count(*) from totp_configurations").fetchone()[0],
-    "webauthn": a.execute("select count(*) from webauthn_credentials").fetchone()[0],
-    "preferences": a.execute("select count(*) from user_preferences").fetchone()[0],
-}
+try:
+    a = backup("/var/lib/authelia/db.sqlite3", "authelia.sqlite3")
+    l = backup("/var/lib/lldap/users.db", "users.db")
+    counts = {
+        "users": sorted(r[0] for r in l.execute("select user_id from users")),
+        "groups": sorted(r[0] for r in l.execute("select display_name from groups")),
+        "totp": a.execute("select count(*) from totp_configurations").fetchone()[0],
+        "webauthn": a.execute("select count(*) from webauthn_credentials").fetchone()[0],
+        "preferences": a.execute("select count(*) from user_preferences").fetchone()[0],
+    }
 
-with tarfile.open(fileobj=sys.stdout.buffer, mode="w|gz") as tar:
-    for name in ("authelia.sqlite3", "users.db"):
-        tar.add(out + "/" + name, arcname=name)
-    for name, text in (("secrets", "".join("%s=%s\n" % (k, shlex.quote(v)) for k, v in secrets.items())),
-                       ("counts.json", json.dumps(counts))):
-        data = text.encode()
-        info = tarfile.TarInfo(name)
-        info.size, info.mode = len(data), 0o600
-        tar.addfile(info, io.BytesIO(data))
+    with tarfile.open(fileobj=sys.stdout.buffer, mode="w|gz") as tar:
+        for name in ("authelia.sqlite3", "users.db"):
+            tar.add(out + "/" + name, arcname=name)
+        for name, text in (("secrets", "".join("%s=%s\n" % (k, shlex.quote(v)) for k, v in secrets.items())),
+                           ("counts.json", json.dumps(counts))):
+            data = text.encode()
+            info = tarfile.TarInfo(name)
+            info.size, info.mode = len(data), 0o600
+            tar.addfile(info, io.BytesIO(data))
+finally:
+    shutil.rmtree(out)
 EOF
 chmod 0600 "$work/export.tar.gz"
 
