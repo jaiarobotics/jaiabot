@@ -137,6 +137,12 @@ for group in groups:
                                "variables": {"id": group["id"]}}, token)
         print("OK   removed retired group %s" % group["displayName"])
 
+authelia = lldap("/api/graphql", {"query": '{user(userId:"authelia"){groups{displayName}}}'}, token)
+if "lldap_admin" in [g["displayName"] for g in authelia["data"]["user"]["groups"]]:
+    print("OK   authelia is an LLDAP admin")
+else:
+    failures.append("authelia is not in lldap_admin")
+
 for _ in range(60):
     try:
         with urllib.request.urlopen("http://127.0.0.1:9091/api/health", timeout=2) as r:

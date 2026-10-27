@@ -112,13 +112,17 @@ class AccessTest(unittest.TestCase):
         self.assertNotIn("f1.", text)
         self.assertNotIn("wg_jaia_ch1", text)
 
-    def test_authelia_binds_as_its_own_account_not_admin(self):
+    def test_authelia_binds_as_the_lldap_admin_as_on_a_cloudhub(self):
         text = authelia_config()
         self.assertIn("user: 'UID=authelia,OU=people,DC=jaia,DC=tech'", text)
         self.assertNotIn("UID=admin", text)
+        lldap = heredoc("/etc/lldap/lldap_config.toml")
+        self.assertIn('ldap_user_dn = "authelia"', lldap)
+        self.assertIn('ldap_user_pass = "$authelia_ldap_password"', lldap)
+        # a migrated directory has admins already, so LLDAP leaves the account to bootstrap
         account = CONFIGURE.read_text()
         account = account[account.index('"id": "authelia"'):]
-        self.assertIn('"groups": ["lldap_password_manager"]', account[:account.index("}")])
+        self.assertIn('"groups": ["lldap_admin"]', account[:account.index("}")])
 
     def test_passkeys_still_need_a_password(self):
         self.assertRegex(authelia_config(), r"enable_passkey_login: false")

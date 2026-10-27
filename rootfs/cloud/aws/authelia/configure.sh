@@ -38,7 +38,7 @@ load_secrets()
     chmod 0700 "$state_dir"
     local name
     for name in jwt_secret session_secret storage_encryption_key lldap_jwt_secret lldap_key_seed \
-                lldap_admin_password authelia_ldap_password; do
+                authelia_ldap_password; do
         if ! grep -q "^$name=" "$secrets_file" 2>/dev/null; then
             echo "$name=$(openssl rand -hex 64)" >> "$secrets_file"
         fi
@@ -144,7 +144,7 @@ start_lldap()
 
     local before
     before=$(sha256sum /etc/lldap/lldap_config.toml 2>/dev/null || true)
-    # ldap_user_pass only creates the admin; an existing admin keeps its password
+    # LLDAP creates this admin only in a directory that has none, as on a CloudHub
     cat <<EOF > /etc/lldap/lldap_config.toml
 ldap_host = "127.0.0.1"
 ldap_port = $lldap_ldap_port
@@ -154,8 +154,9 @@ http_url = "https://lldap.$base"
 jwt_secret = "$lldap_jwt_secret"
 key_seed = "$lldap_key_seed"
 ldap_base_dn = "dc=jaia,dc=tech"
-ldap_user_dn = "admin"
-ldap_user_pass = "$lldap_admin_password"
+ldap_user_dn = "authelia"
+ldap_user_email = "authelia@$base"
+ldap_user_pass = "$authelia_ldap_password"
 database_url = "sqlite://$lldap_dir/users.db?mode=rwc"
 EOF
     chown root:lldap /etc/lldap/lldap_config.toml
@@ -170,10 +171,13 @@ EOF
     fi
 }
 
-# Authelia binds as this account rather than as admin. lldap_password_manager can read the
-# directory and reset passwords, but not change any admin's.
+# A migrated directory already has admins, so LLDAP does not create the authelia admin there;
+# the admin login migrate-from.sh brings across adds it.
 bootstrap_authelia_account()
 {
+    if [ -z "${lldap_admin_password:-}" ]; then
+        return
+    fi
     local dir
     dir=$(mktemp -d)
     mkdir -p "$dir/user-configs" "$dir/group-configs" "$dir/user-schemas" "$dir/group-schemas"
@@ -184,7 +188,7 @@ bootstrap_authelia_account()
   "email": "authelia@$base",
   "displayName": "Authelia",
   "password_file": "$dir/authelia_password",
-  "groups": ["lldap_password_manager"]
+  "groups": ["lldap_admin"]
 }
 EOF
 
@@ -207,7 +211,7 @@ EOF
         sleep 1
     done
     rm -rf "$dir"
-    echo "ERROR: could not create the authelia account in LLDAP after ${attempt} attempts" >&2
+    echo "ERROR: could not add the authelia admin to LLDAP after ${attempt} attempts" >&2
     exit 1
 }
 
