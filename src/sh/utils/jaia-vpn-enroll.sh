@@ -7,7 +7,10 @@
 set -u -e
 
 CLOUD_ENV="${JAIA_CLOUD_ENV:-/etc/jaiabot/cloud.env}"
-OUT_DIR="${JAIA_VPN_OUT_DIR:-/tmp}"
+# Its own directory for each enrollment: one left in /tmp by an earlier run as another
+# user would stop the reply being written after the peer had already been replaced
+OUT_DIR=$(mktemp -d "${JAIA_VPN_OUT_DIR:-/tmp}/jaia-vpn-enroll.XXXXXX")
+trap 'rm -rf "${OUT_DIR}"' EXIT
 SERVER_IFACE=wg_cloudhub
 
 fail()
@@ -46,7 +49,7 @@ esac
 sudo jaia-vpn-peers.sh remove "${SERVER_IFACE}" "${node_type}${node_id}" >/dev/null 2>&1 || true
 
 # Nothing but the config may reach stdout: that is the channel the node reads.
-jaia-vpn-gen.sh cloudhub_vpn "${node_type}" "${node_id}" "${pubkey}" >&2
+JAIA_VPN_OUT_DIR="${OUT_DIR}" jaia-vpn-gen.sh cloudhub_vpn "${node_type}" "${node_id}" "${pubkey}" >&2
 
 # The CloudHub's JCU acts on the nodes in its inventory, and enrolment is the only
 # time it learns of one. A stale inventory must not cost the node its pairing.
