@@ -1,9 +1,9 @@
 #cloud-config
 
-hostname: jaia-authelia
+hostname: jaia-auth
 
 ssh_pwauth: false
-  
+
 users:
   - name: jaia
     groups: users,adm,dialout,audio,netdev,video,plugdev,cdrom,games,input,gpio,spi,i2c,render,sudo
@@ -42,14 +42,8 @@ apt:
       
 packages:
   - zile
-  - ca-certificates
-  - curl
-  - gnupg
-  - wireguard
-  - docker-compose
-  - yq
-  - netcat-openbsd
-  - jaiabot-apps
+  - wireguard-tools
+  - jaiabot-web-thirdparty
 
 runcmd:
   - ln -s /usr/bin/zile /usr/local/bin/emacs

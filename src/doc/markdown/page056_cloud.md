@@ -341,7 +341,7 @@ In addition to the CloudHub and VirtualFleet mentioned above, Jaia runs a number
 - `packages.jaia.tech`: Hosts Ubuntu (*.deb) packages
 - `docs.jaia.tech`: Documentation
 - `vpn.jaia.tech`: Service VPN for remote support.
-- `*.cloud.jaia.tech`: Web access with 2-factor authentication for accessing CloudHubs.
+- `*.cloud.jaia.tech`: Web access with 2-factor authentication to Jaia's own web services (`cc`, `sandbox.cc`, `launchpad`, `data`). See "auth.cloud.jaia.tech" below.
 
 We want to be able to recreate these servers from scratch for consistency of implementation, security, and AWS instance type. We want to be able to upgrade to the latest Ubuntu/Jaiabot release by rebuilding servers, and have the tools in place to recreate them in the event of an instance disk corruption or AWS failure.
 
@@ -378,6 +378,12 @@ The `docs` and `iridium `server configurations are fairly simple, and one of the
 - `ARCH=arm64`: Architecture for the instance (must match INSTANCE_TYPE architecture). Default is `arm64` to match `t4g.nano`
 - `INSTANCE_TYPE=t4g.nano`: Instance type: default is `t4g.nano` (very small arm64 instance).
 - `REGION=us-west-2`: Region, default is `us-west-2`
+
+*This section written by Claude*
+
+- `SUBNET_ID=subnet-...`: Subnet to launch in. Required for any region but `us-west-2`. For IPv6, the subnet needs an IPv6 block.
+- `SERVER_NAME=foo.example.com`: Name tag for the instance and its resources, default `${SERVER_TYPE}.jaia.tech`. Set it to run a second server of the same type (a test copy) beside the first; `delete_specialty_server.sh` given the conf then deletes only that one.
+- `IAM_INSTANCE_PROFILE_NAME=...`: Instance profile to launch with. It must exist already.
 - `DISK_SIZE_GB=8`: Size of disk in GB (default 8).
 - Any other variables to be used in preprocessing `user-data.*.in` (see below).
 
@@ -420,6 +426,10 @@ When testing the creation of a new server type, you may be creating and deleting
 
 so that you can easily delete the new server until it works correctly. Once you have a working server you can go in to the AWS console and enable termination protection for that instance (or delete and rebuild one last time with `ENABLE_TERMINATION_PROTECTION=true`).
 
+*This section written by Claude*
+
+`delete_specialty_server.sh` also takes the server's `.conf` in place of a server type: it then works in the conf's `REGION` and deletes only the server named by its `SERVER_NAME`. This is how to delete a test copy without touching the production server of the same type.
+
 ### Upgrade an existing specialty server type
 
 To upgrade an existing server, the following set of steps is recommended:
@@ -431,6 +441,59 @@ To upgrade an existing server, the following set of steps is recommended:
 5. Ensure the new server is fully functional now with these IP addresses (which should map to the correct domain names as well).
 6. Power down (stop) the old server.
 7. After some period (e.g., 1-2 weeks or so) of the new server functioning correctly,  disable termination protection for the old server and enable termination protection for the new server (if not already set) under (in the AWS console) `Actions->Instance Settings->Change termination protection`. Terminate (delete) the old instance.
+
+## auth.cloud.jaia.tech
+
+*This section written by Claude*
+
+`auth.cloud.jaia.tech` signs people in to Jaia's own web services, with the same Authelia, LLDAP and Caddy (from `jaiabot-web-thirdparty`) that each CloudHub runs, but its own sites and groups:
+
+| Site | Upstream | Group |
+|---|---|---|
+| `auth.cloud.jaia.tech` | Authelia | everyone |
+| `lldap.cloud.jaia.tech` | LLDAP's user admin | `lldap_admin` |
+| `cc`, `sandbox.cc`, `launchpad` | cc_db server | `cc_db` |
+| `data.cloud.jaia.tech` | data server | `data` |
+
+cc's `/test-results/api/submit/` is open, so test runners can post results. Everything else is denied.
+
+It runs in GovCloud (us-gov-east-1). cc_db and data run in AWS commercial and have no sign-in of their own, so Caddy reaches them over a WireGuard tunnel (`fd63:7ac0:9603::/64`); their security groups admit only the tunnel's UDP port from the auth server.
+
+Everything is in `rootfs/cloud/aws/authelia`:
+
+- `authelia.conf`: the production server. `authelia-test.conf`: a copy at `auth.jaiacloud.gobysoft.org` for testing, which reads `authelia.conf` and changes only what differs.
+- `configure.sh`: configures Authelia, LLDAP, Caddy and the tunnel. It is idempotent, and is the only way the server's configuration should change.
+- `deploy.sh`: installs `configure.sh`, its settings and static pages on the server, and runs it.
+- `migrate-from.sh`: copies every account from another auth server and checks the copy.
+- `upstream-peer.sh`: adds the auth server as a WireGuard peer of cc_db or data and opens the upstream's security group to it.
+- `create_iam_role.sh`: the instance profile, which may read the Postmark credentials (`/jaia/cloudhub/smtp_credentials`) and keep the server's WireGuard key in SSM under `/jaia/auth-server/<server name>/`.
+
+Run these from `rootfs/cloud/aws`, with GovCloud credentials (`AWS_PROFILE`) and the YubiKey SSH agent.
+
+### Build a server
+
+```
+./authelia/create_iam_role.sh authelia/authelia-test.conf      # once
+./create_specialty_server.sh authelia/authelia-test.conf
+# wait for cloud-init to finish, and for DNS: auth., lldap., cc., sandbox.cc., launchpad. and data.
+./authelia/deploy.sh authelia/authelia-test.conf
+./authelia/upstream-peer.sh authelia/authelia-test.conf cc_db  # once per server name
+./authelia/upstream-peer.sh authelia/authelia-test.conf data
+# set the printed CC_DB_WG_PUBLIC_KEY and DATA_WG_PUBLIC_KEY in authelia.conf, then
+./authelia/deploy.sh authelia/authelia-test.conf
+```
+
+The WireGuard key survives a rebuild (it is in SSM), so the upstreams only need `upstream-peer.sh` once per server name. `upstream-peer.sh --remove` takes a server off again.
+
+### Move accounts across
+
+```
+./authelia/migrate-from.sh authelia/authelia-test.conf <old server>
+```
+
+This copies Authelia's and LLDAP's databases, Authelia's storage encryption key (which protects TOTP secrets), LLDAP's key seed (without which no password opens) and the LLDAP admin's password. It removes the retired `f1`/`f2`/`f3` groups. It then checks that the admin signs in to LLDAP, that Authelia's encryption check passes, and that the users, groups, TOTP and WebAuthn registrations match the source. The source is only read; `--final` also stops its Authelia and LLDAP first, for cutover.
+
+WebAuthn registrations are bound to `auth.cloud.jaia.tech`, so they only work on a server answering at that name.
 
 ## Cloud Login server (auth.fleetN.jaia.tech / auth.custom_domain)
 

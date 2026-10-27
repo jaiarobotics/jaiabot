@@ -1,0 +1,17 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "ReadSmtpCredentials",
+            "Effect": "Allow",
+            "Action": "ssm:GetParameter",
+            "Resource": "{{ARN_PREFIX}}:ssm:{{REGION}}:{{ACCOUNT_ID}}:parameter{{SMTP_CREDENTIALS_PARAMETER}}"
+        },
+        {
+            "Sid": "KeepWireGuardKey",
+            "Effect": "Allow",
+            "Action": ["ssm:GetParameter", "ssm:PutParameter"],
+            "Resource": "{{ARN_PREFIX}}:ssm:{{REGION}}:{{ACCOUNT_ID}}:parameter/jaia/auth-server/*"
+        }
+    ]
+}
