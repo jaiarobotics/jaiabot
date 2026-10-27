@@ -108,7 +108,7 @@ class AutheliaTest(unittest.TestCase):
 
     def test_rate_limits_fit_an_office_behind_one_address(self):
         text = COMMON.read_text()
-        for endpoint in ("reset_password_start", "session_elevation_start"):
+        for endpoint in ("reset_password_start", "session_elevation_start", "session_elevation_finish"):
             block = text[text.index("      %s:" % endpoint):]
             block = block[:block.index("requests: 100") + len("requests: 100")]
             self.assertIn("period: '5 minutes'\n            requests: 20", block)

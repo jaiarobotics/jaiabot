@@ -124,6 +124,13 @@ EOF
             requests: 20
           - period: '1 hour'
             requests: 100
+      # Entering the emailed code; Authelia's default allows 3 in 10 minutes per address
+      session_elevation_finish:
+        buckets:
+          - period: '5 minutes'
+            requests: 20
+          - period: '1 hour'
+            requests: 100
 # Blank: a user with no stored preference is offered the method they registered
 # (TOTP, then a security key); a named default would be offered first regardless
 default_2fa_method: ''
