@@ -1,5 +1,6 @@
 #!/bin/bash
-# Installs configure.sh, its settings and static pages on an auth server and runs it.
+# Installs configure.sh, the setup it shares with a CloudHub, its settings and static pages on an
+# auth server and runs it.
 # Run again after changing any of them: this, not editing the server, is how it changes.
 
 set -u -e -o pipefail
@@ -14,6 +15,7 @@ fi
 SCRIPT_PATH=$(cd "$(dirname "$0")/.." && pwd)
 HERE=$SCRIPT_PATH/authelia
 WEB=$SCRIPT_PATH/../../../src/web/cloud/_jaia
+COMMON=$SCRIPT_PATH/../../../src/sh/system/jaia-authelia-common.sh
 set -a; source "$1"; set +a
 host=${2:-$SERVER_NAME}
 SSH_OPTS=${SSH_OPTS:-}
@@ -37,7 +39,7 @@ DATA_WG_ADDRESS=$DATA_WG_ADDRESS
 DATA_WG_ENDPOINT=$DATA_WG_ENDPOINT
 DATA_WG_PUBLIC_KEY=$DATA_WG_PUBLIC_KEY
 EOF
-cp "$HERE/configure.sh" "$stage/"
+cp "$HERE/configure.sh" "$COMMON" "$stage/"
 mkdir "$stage/_jaia"
 cp "$WEB/reset-elsewhere.html" "$WEB/support.css" "$WEB/logo.svg" "$stage/_jaia/"
 
@@ -48,6 +50,7 @@ trap 'rm -rf "$tmp"' EXIT
 tar -C "$tmp" -xzf -
 sudo install -D -m 0755 "$tmp/configure.sh" /usr/local/sbin/jaia-auth-server-configure
 sudo install -D -m 0644 "$tmp/auth-server.env" /etc/jaiabot/auth-server.env
+sudo install -D -m 0644 "$tmp/jaia-authelia-common.sh" /usr/local/share/jaia-auth-server/jaia-authelia-common.sh
 sudo rm -rf /usr/local/share/jaia-auth-server/web/_jaia
 sudo install -d -m 0755 /usr/local/share/jaia-auth-server/web/_jaia
 sudo install -m 0644 "$tmp"/_jaia/* /usr/local/share/jaia-auth-server/web/_jaia/

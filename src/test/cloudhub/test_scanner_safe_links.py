@@ -18,6 +18,7 @@ import urllib.request
 
 SOURCE_DIR = pathlib.Path(__file__).resolve().parents[3]
 CONFIGURE = SOURCE_DIR / "src" / "sh" / "system" / "jaia_configure_authelia.sh"
+COMMON = SOURCE_DIR / "src" / "sh" / "system" / "jaia-authelia-common.sh"
 WEB = SOURCE_DIR / "src" / "web" / "cloud" / "_jaia"
 PORTAL = SOURCE_DIR / "src" / "sh" / "system" / "jaia-support-portal.py"
 
@@ -29,9 +30,16 @@ def auth_site():
 
 
 def snippet(name):
-    text = CONFIGURE.read_text()
-    start = text.index("(%s) {" % name)
-    return text[start:text.index("\n}\n", start) + 2]
+    """From the CloudHub's script, or the setup it shares with the auth.cloud.jaia.tech server"""
+    for text in (CONFIGURE.read_text(), COMMON.read_text()):
+        if "(%s) {" % name in text:
+            start = text.index("(%s) {" % name)
+            return text[start:text.index("\n}\n", start) + 2]
+    raise ValueError(name)
+
+
+def portal():
+    return snippet("authelia_portal")
 
 
 def matcher(site, name):
@@ -44,8 +52,11 @@ def handle(site, name):
 
 
 class CaddyTest(unittest.TestCase):
+    def test_the_auth_site_is_the_portal_behind_the_menu(self):
+        self.assertIn("import authelia_portal jaia_nav_proxy localhost:$authelia_port", auth_site())
+
     def test_asking_for_a_reset_marks_the_browser(self):
-        site = auth_site()
+        site = portal()
         self.assertIn("method POST", matcher(site, "reset_requested"))
         self.assertIn("path /api/reset-password/identity/start", matcher(site, "reset_requested"))
         cookie = re.search(r'header \+Set-Cookie "([^"]+)"', handle(site, "reset_requested")).group(1)
@@ -55,7 +66,7 @@ class CaddyTest(unittest.TestCase):
         self.assertNotIn("Domain=", cookie, "the cookie belongs to the auth host alone")
 
     def test_a_reset_link_without_the_mark_spends_nothing(self):
-        site = auth_site()
+        site = portal()
         link = matcher(site, "reset_link_elsewhere")
         self.assertIn("path /reset-password/step2", link)
         self.assertIn("not header Cookie *jaia_reset=1*", link)
@@ -66,7 +77,7 @@ class CaddyTest(unittest.TestCase):
         self.assertIn("respond 403", handle(site, "reset_finish_elsewhere"))
 
     def test_cancel_links_and_calls_need_a_sign_in(self):
-        site = auth_site()
+        site = portal()
         self.assertEqual(sorted(re.search(r"path (.*)", matcher(site, "cancel_link")).group(1).split()),
                          ["/revoke/one-time-code", "/revoke/reset-password"])
         self.assertIn("method DELETE", matcher(site, "cancel_call"))
@@ -74,17 +85,17 @@ class CaddyTest(unittest.TestCase):
                          ["/api/reset-password", "/api/user/session/elevation/*"])
         for name in ("cancel_link", "cancel_call"):
             block = handle(site, name)
-            self.assertLess(block.index("import authelia_forward_auth"), block.index("import jaia_nav_proxy"))
+            self.assertLess(block.index("import authelia_forward_auth"), block.index("import {args[:]}"))
 
     def test_the_continue_page_is_gone(self):
-        self.assertNotIn("confirmed=1", CONFIGURE.read_text())
+        self.assertNotIn("confirmed=1", CONFIGURE.read_text() + COMMON.read_text())
         self.assertFalse((WEB / "continue.html").exists())
         self.assertFalse((WEB / "continue.js").exists())
 
 
 class AutheliaTest(unittest.TestCase):
     def test_the_cancel_paths_need_one_factor(self):
-        text = CONFIGURE.read_text()
+        text = COMMON.read_text()
         rules = text[text.index("  rules: # order matters!"):]
         first = rules[:rules.index("\n\n")]
         self.assertIn("- domain: auth.$base_uri", first)
@@ -96,7 +107,7 @@ class AutheliaTest(unittest.TestCase):
                              for p in re.findall(r"- '(\^[^']+)'", first)))
 
     def test_rate_limits_fit_an_office_behind_one_address(self):
-        text = CONFIGURE.read_text()
+        text = COMMON.read_text()
         for endpoint in ("reset_password_start", "session_elevation_start"):
             block = text[text.index("      %s:" % endpoint):]
             block = block[:block.index("requests: 100") + len("requests: 100")]
@@ -159,7 +170,7 @@ class CaddyBehaviourTest(unittest.TestCase):
         shutil.copytree(WEB, web / "_jaia")
         site = auth_site().replace("auth.$base_uri {", "http://127.0.0.1:%d {" % cls.port, 1)
         caddyfile = "{\n        admin off\n        order replace after encode\n}\n" + "\n".join(
-            snippet(n) for n in ("authelia_forward_auth", "jaia_nav", "jaia_nav_proxy")) + "\n" + site
+            snippet(n) for n in ("authelia_forward_auth", "authelia_portal", "jaia_nav", "jaia_nav_proxy")) + "\n" + site
         caddyfile = (caddyfile.replace("$authelia_port", str(stub_port)).replace("$caddy_tls", "")
                      .replace("$jaia_cloud_web_dir", str(web)).replace("[$vh1_ip]:80", "127.0.0.1:9")
                      .replace("${jaia_fleet_id}", "9"))

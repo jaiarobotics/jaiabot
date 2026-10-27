@@ -462,8 +462,8 @@ It runs in GovCloud (us-gov-east-1). cc_db and data run in AWS commercial and ha
 Everything is in `rootfs/cloud/aws/authelia`:
 
 - `authelia.conf`: the production server. `authelia-test.conf`: a copy at `auth.jaiacloud.gobysoft.org` for testing, which reads `authelia.conf` and changes only what differs.
-- `configure.sh`: configures Authelia, LLDAP, Caddy and the tunnel. It is idempotent, and is the only way the server's configuration should change.
-- `deploy.sh`: installs `configure.sh`, its settings and static pages on the server, and runs it.
+- `configure.sh`: configures Authelia, LLDAP, Caddy and the tunnel. It is idempotent, and is the only way the server's configuration should change. The sign-in page, the Authelia and LLDAP setup and how they are started come from `src/sh/system/jaia-authelia-common.sh`, which a CloudHub's `jaia_configure_authelia.sh` uses too; `configure.sh` adds this server's sites, access rules and session lengths.
+- `deploy.sh`: installs `configure.sh`, the shared setup, its settings and static pages on the server, and runs it.
 - `migrate-from.sh`: copies every account from another auth server and checks the copy.
 - `upstream-peer.sh`: adds the auth server as a WireGuard peer of cc_db or data and opens the upstream's security group to it.
 - `create_iam_role.sh`: the instance profile, which may read the Postmark credentials (`/jaia/cloudhub/smtp_credentials`) and keep the server's WireGuard key in SSM under `/jaia/auth-server/<server name>/`.
