@@ -190,6 +190,22 @@ The figure below diagrams the flow for messages between the bots and hubs using 
 
 Communication between the Cloudhub and iridium.jaia.tech happens within the Cloudhub (Wireguard) VPN, where iridium.jaia.tech is assigned the address of hub25 (and Cloudhub is hub30 as usual). 
 
+*This section written by Claude*
+
+iridium.jaia.tech runs one WireGuard tunnel (`wg_jaia_ch<fleet>`) and one relay (`jaiabot__iridium_fleet@<fleet>`, running `jaia-iridium-tunnel.sh`) for each fleet. It serves release 2 and release 3 fleets side by side, although their CloudHub VPNs number hubs differently: hub 25 and the CloudHub are `::19` and `::1e` on a release 2 fleet, and `::1:19` and `::1:1e` on a release 3 fleet. The relay therefore takes the CloudHub's address from its own end of the fleet's tunnel. Hub 25 is `jaia_bounds --iridium_id`.
+
+A release 3 CloudHub admits a peer only through Fleet Pairing, so iridium.jaia.tech joins a fleet the way a node does:
+
+1. On a workstation holding the fleet config, write the fleet's bootstrap key: `jaia admin fleet generate fleet<id>.cfg hub 1 --action vpn_key --bootdir <dir>` writes `<dir>/jaiabot/init/id_vpn_tmp`. Copy it to iridium.jaia.tech.
+2. Open Fleet Pairing on the CloudHub's JCU.
+3. On iridium.jaia.tech, run `sudo jaia-iridium-enroll.sh <fleet id> <base uri> <id_vpn_tmp>`. It:
+    - makes a WireGuard key for that fleet (`/etc/wireguard/wg_jaia_ch<fleet>.key`);
+    - enrolls with the request `iridium <public key>` on the pairing port;
+    - writes the tunnel's config without the key passing through a command line;
+    - enables and starts the tunnel and the relay.
+4. Delete the copied `id_vpn_tmp`, and close Fleet Pairing.
+
+The CloudHub enrolls it as hub 25, leaves it out of its JCU inventory (the JCU never acts on it), and doesn't send it the CloudHub's SSH key. Running the script again re-enrolls with the same key; deleting `wg_jaia_ch<fleet>.key` first replaces the key.
 
 ### Simulation
 

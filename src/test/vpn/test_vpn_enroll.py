@@ -33,7 +33,7 @@ class EnrollTest(unittest.TestCase):
         # the CloudHub's hub id, which the shared stub (made for the fleet bounds) does not know
         bounds = os.path.join(self.env.dir, "bin", "jaia_bounds")
         with open(bounds, "w") as f:
-            f.write('#!/bin/sh\ncase "$1" in --cloudhub_id) echo 30 ;; *) echo 250 ;; esac\n')
+            f.write('#!/bin/sh\ncase "$1" in --cloudhub_id) echo 30 ;; --iridium_id) echo 25 ;; *) echo 250 ;; esac\n')
         os.chmod(bounds, 0o755)
         self.ssh_dir = os.path.join(self.env.dir, "ssh")
         os.makedirs(self.ssh_dir)
@@ -107,6 +107,22 @@ class EnrollTest(unittest.TestCase):
         fragment = self.env.peer_fragment("wg_cloudhub", "bot3")
         self.assertIn(OTHER_PUBKEY, fragment)
         self.assertNotIn(NODE_PUBKEY, fragment)
+
+    def test_iridium_enrolls_as_its_hub_id_without_the_cloudhubs_key(self):
+        """iridium.jaia.tech relays the fleet's Iridium messages; the CloudHub never
+        acts on it, so it gets its config and nothing else."""
+        self.give_the_cloudhub_a_key()
+        result = self.enroll("iridium " + NODE_PUBKEY)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout, self.env.client_config("hub25", "wg_jaia_ch7"))
+        self.assertIn(NODE_PUBKEY, self.env.peer_fragment("wg_cloudhub", "hub25"))
+        self.assertNotIn("jaia-cloudhub-ssh-key", result.stdout)
+
+    def test_iridium_takes_only_a_key(self):
+        for request in ("iridium", "iridium 3 " + NODE_PUBKEY, "iridium not-a-key"):
+            result = self.enroll(request)
+            self.assertNotEqual(result.returncode, 0, "'{}' was accepted".format(request))
+        self.assertIsNone(self.env.peer_fragment("wg_cloudhub", "hub25"))
 
 
 if __name__ == "__main__":

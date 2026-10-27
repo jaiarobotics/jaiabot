@@ -17,11 +17,21 @@ fail()
 }
 
 read -r -a request <<<"${SSH_ORIGINAL_COMMAND:-}"
-[ ${#request[@]} -eq 3 ] || fail "expected 'bot|hub <node id> <wireguard public key>'"
+usage="expected 'bot|hub <node id> <wireguard public key>' or 'iridium <wireguard public key>'"
 
-node_type=${request[0]}
-node_id=${request[1]}
-pubkey=${request[2]}
+iridium=false
+if [ ${#request[@]} -eq 2 ] && [ "${request[0]}" = iridium ]; then
+    # iridium.jaia.tech relays the fleet's Iridium messages, always as the same hub id
+    iridium=true
+    node_type=hub
+    node_id=$(jaia_bounds --iridium_id)
+    pubkey=${request[1]}
+else
+    [ ${#request[@]} -eq 3 ] || fail "${usage}"
+    node_type=${request[0]}
+    node_id=${request[1]}
+    pubkey=${request[2]}
+fi
 
 case "$node_type" in
     bot | hub) ;;
@@ -44,6 +54,9 @@ sudo jaia-vpn-inventory.sh >&2 || echo "WARNING: could not update the CloudHub's
 
 set -a; source "${CLOUD_ENV}"; set +a
 cat "${OUT_DIR}/${node_type}${node_id}/wg_jaia_ch${jaia_fleet_id}.conf"
+
+# iridium.jaia.tech never lets the CloudHub in, so it is not sent the CloudHub's key
+[ "${iridium}" = false ] || exit 0
 
 # The node lets the CloudHub in for fleet actions by this key, restricted to the
 # CloudHub's own VPN address as its fleet config does. A rebuilt CloudHub has a new
