@@ -24,6 +24,8 @@ import SoundEffects from "../style/audio/sound-effects";
 import { jaia_rest_api } from "../utils/jaia-rest-api";
 
 const MAX_REQUEST_TIME = 10000; // ms;
+// Frees a poll stuck on a request the hub will never answer
+const REQUEST_TIMEOUT = 30000; // ms
 const VERSION_LENGTH = 3;
 
 const CONNECTION_WARNING = "connection-warning";
@@ -64,18 +66,24 @@ export async function pollStatus() {
         statusRequestStartTime = new Date().getTime();
 
         const [rest_response, engineering_response] = await Promise.all([
-            jaia_rest_api.request({
-                target: {
-                    all: true,
+            jaia_rest_api.request(
+                {
+                    target: {
+                        all: true,
+                    },
+                    status: true,
                 },
-                status: true,
-            }),
-            jaia_rest_api.request({
-                target: {
-                    all: true,
+                REQUEST_TIMEOUT,
+            ),
+            jaia_rest_api.request(
+                {
+                    target: {
+                        all: true,
+                    },
+                    engineering_status: true,
                 },
-                engineering_status: true,
-            }),
+                REQUEST_TIMEOUT,
+            ),
         ]);
 
         const status = rest_response.status;
@@ -185,17 +193,20 @@ async function fetchTaskPacketsForWindow(knownVersion?: number): Promise<TaskPac
         known_version?: number,
     ) =>
         jaia_rest_api
-            .request({
-                target: {
-                    all: true,
+            .request(
+                {
+                    target: {
+                        all: true,
+                    },
+                    task_packets: {
+                        start_time: String(taskPacketFilter.getStartDate().getTime() * 1000),
+                        end_time: String(taskPacketFilter.getEndDate().getTime() * 1000),
+                        known_version,
+                        ...inclusion,
+                    },
                 },
-                task_packets: {
-                    start_time: String(taskPacketFilter.getStartDate().getTime() * 1000),
-                    end_time: String(taskPacketFilter.getEndDate().getTime() * 1000),
-                    known_version,
-                    ...inclusion,
-                },
-            })
+                REQUEST_TIMEOUT,
+            )
             .then((response) => response.task_packets ?? {});
 
     // Any change bumps the hub's single version, so the included query's version covers both
@@ -225,12 +236,15 @@ export async function pollMetadata() {
     try {
         metadataRequestInFlight = true;
 
-        const metadata_response = await jaia_rest_api.request({
-            target: {
-                all: true,
+        const metadata_response = await jaia_rest_api.request(
+            {
+                target: {
+                    all: true,
+                },
+                metadata: true,
             },
-            metadata: true,
-        });
+            REQUEST_TIMEOUT,
+        );
 
         // Get metadata for the first hub
         const metadata = metadata_response.metadata?.hubs?.[0];
