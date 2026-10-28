@@ -452,16 +452,6 @@ workflows:
           requires:
             - aws-sync
 
-  # TEMPORARY: trials the published test/3.y images straight away, without building
-  # them again, to iterate on the joined sea trial. Drop before this branch merges.
-  sea-trial-iterate:
-    jobs:
-      - sea-trial-virtualfleet:
-          filters:
-            branches:
-              only:
-                - "task/3.y/sea-trial-hub2hub-joined-mode/SW-2721"
-
 commands:
   aws-sync-command:
     parameters:
@@ -702,15 +692,6 @@ jobs:
             rootfs/cloud/aws/circleci/check-cloudhub-auth.sh \
               --fleet "${JAIA_CI_FLEET}" \
               --result-file /tmp/sea-trial/auth-check.txt
-      - run:
-          # TEMPORARY: the published images still carry the one-hub VirtualFleet playbooks,
-          # so the CloudHub gets this branch's. Drop with the sea-trial-iterate workflow.
-          name: Use this branch's VirtualFleet playbooks
-          command: |
-            rsync -a -e "ssh -o StrictHostKeyChecking=no" config/ansible/cloud/ \
-              "jaia@cloudhub-fleet${JAIA_CI_FLEET}:/tmp/vfleet-playbooks/"
-            ssh -o StrictHostKeyChecking=no "jaia@cloudhub-fleet${JAIA_CI_FLEET}" \
-              "sudo rsync -a /tmp/vfleet-playbooks/ /usr/share/jaiabot/config/ansible/cloud/"
       - run:
           name: Raise the VirtualFleet from the same AMI
           command: |
