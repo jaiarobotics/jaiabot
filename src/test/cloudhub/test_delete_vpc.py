@@ -20,7 +20,8 @@ SCRIPT = SOURCE_DIR / "rootfs" / "cloud" / "aws" / "delete_vpc.sh"
 EXPIRED = "aws: [ERROR]: Your session has expired. Please reauthenticate using 'aws login'."
 
 # $JAIA_TEST_FAIL names the calls ("sts", "describe-instances", ...) that fail;
-# $JAIA_TEST_FLEET=present gives the fleet an instance, an Elastic IP and a VPC
+# $JAIA_TEST_FLEET=present gives the fleet an instance, an Elastic IP and a VPC;
+# =partial is a create killed before launching: an Elastic IP, a VPC and an unattached gateway
 STUB = r"""#!/bin/bash
 echo "aws $*" >> "$JAIA_TEST_CALLS"
 call=$1; [ "$1" = ec2 ] || [ "$1" = iam ] && call=$2
@@ -28,12 +29,14 @@ for f in ${JAIA_TEST_FAIL:-}; do
     if [ "$f" = "$call" ] || [ "$f" = all ]; then echo "%(expired)s" >&2; exit 254; fi
 done
 present() { [ "${JAIA_TEST_FLEET:-}" = present ]; }
+partial() { [ "${JAIA_TEST_FLEET:-}" = partial ]; }
 case "$call" in
     sts) echo "arn:aws:iam::123456789012:user/tech" ;;
     describe-instances) present && echo "i-0123456789abcdef0" || echo "" ;;
-    describe-addresses) present && echo "eipalloc-0123" || echo "" ;;
-    describe-vpcs) present && echo "vpc-0123" || echo "" ;;
-    describe-internet-gateways|describe-subnets|describe-route-tables|describe-security-groups) echo "" ;;
+    describe-addresses) present || partial && echo "eipalloc-0123" || echo "" ;;
+    describe-vpcs) present || partial && echo "vpc-0123" || echo "" ;;
+    describe-internet-gateways) partial && [[ "$*" == *tag:jaia_fleet* ]] && echo "igw-0123" || echo "" ;;
+    describe-subnets|describe-route-tables|describe-security-groups) echo "" ;;
     get-instance-profile|get-role) echo "An error occurred (NoSuchEntity) when calling the operation" >&2; exit 254 ;;
     *) exit 0 ;;
 esac
@@ -97,6 +100,16 @@ class DeleteVpcTest(unittest.TestCase):
         calls = self.recorded()
         self.assertIn("release-address --allocation-id eipalloc-0123", calls)
         self.assertIn("terminate-instances", calls)
+        self.assertIn("delete-vpc --vpc-id vpc-0123", calls)
+
+    def test_a_create_stopped_before_launch_leaves_nothing_behind(self):
+        result = self.run_delete(JAIA_TEST_FLEET="partial")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        calls = self.recorded()
+        self.assertNotIn("terminate-instances", calls)
+        self.assertIn("release-address --allocation-id eipalloc-0123", calls)
+        self.assertIn("delete-internet-gateway --internet-gateway-id igw-0123", calls)
+        self.assertIn("Deleting unattached internet gateways: igw-0123", result.stdout)
         self.assertIn("delete-vpc --vpc-id vpc-0123", calls)
 
     def test_a_lookup_that_fails_inside_the_vpc_leaves_the_teardown_incomplete(self):
