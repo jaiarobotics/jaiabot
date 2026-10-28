@@ -228,7 +228,9 @@ done
 
 # A gateway is attached only after it is created, so one from a stopped create has no VPC to be found through
 if lookup IGW_IDS "unattached internet gateways" aws ec2 describe-internet-gateways --filters "$TAG_FILTER" \
-        --query 'InternetGateways[?length(Attachments)==`0`].InternetGatewayId' --output text; then
+        --query 'InternetGateways[?length(Attachments)==`0`].InternetGatewayId' --output text \
+        && [ -n "$IGW_IDS" ]; then
+    echo "Deleting unattached internet gateways: $IGW_IDS"
     for IGW_ID in $IGW_IDS; do
         attempt "delete internet gateway $IGW_ID" aws ec2 delete-internet-gateway --internet-gateway-id "$IGW_ID"
     done

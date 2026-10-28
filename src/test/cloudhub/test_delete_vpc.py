@@ -109,6 +109,7 @@ class DeleteVpcTest(unittest.TestCase):
         self.assertNotIn("terminate-instances", calls)
         self.assertIn("release-address --allocation-id eipalloc-0123", calls)
         self.assertIn("delete-internet-gateway --internet-gateway-id igw-0123", calls)
+        self.assertIn("Deleting unattached internet gateways: igw-0123", result.stdout)
         self.assertIn("delete-vpc --vpc-id vpc-0123", calls)
 
     def test_a_lookup_that_fails_inside_the_vpc_leaves_the_teardown_incomplete(self):
