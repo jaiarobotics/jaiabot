@@ -47,6 +47,13 @@ class Data:
     # Dict from hub_id => MetaData
     hub_metadata: Dict[int, DeviceMetadata] = {}
 
+    # Dict from hub_id => label of the streaming endpoint its status last arrived on.
+    # A portal also reports the hubs it hears over hub-to-hub, so several hubs can share one.
+    hub_endpoints: Dict[int, int] = {}
+
+    # Dict from hub_id => label of the streaming endpoint whose portal runs on that hub
+    portal_endpoints: Dict[int, int] = {}
+
     # Task Packets
     task_packet_database = TaskPacketDatabase()
 
@@ -64,7 +71,7 @@ class Data:
         pass
 
 
-    def process_portal_to_client_message(self, hub_id, msg: PortalToClientMessage):
+    def process_portal_to_client_message(self, endpoint, msg: PortalToClientMessage):
         if msg.HasField('bot_status'):
             msg.bot_status.received_time = utc_now_microseconds()
             self.bots[msg.bot_status.bot_id] = msg.bot_status
@@ -84,6 +91,7 @@ class Data:
         if msg.HasField('hub_status'):            
             msg.hub_status.received_time = utc_now_microseconds()
             self.hubs[msg.hub_status.hub_id] = msg.hub_status
+            self.hub_endpoints[msg.hub_status.hub_id] = endpoint
 
             # Task packets that weren't sent over the radio arrive in files from the offload
             if msg.hub_status.bot_offload.offload_succeeded:
@@ -95,7 +103,14 @@ class Data:
             self.task_packet_database.add_task_packet(MessageToDict(packet, preserving_proto_field_name=True))
 
         if msg.HasField('device_metadata'):
+            # The endpoint's label is only a guess at its hub's ID when no config names it
+            hub_id = msg.device_metadata.hub_id if msg.device_metadata.HasField('hub_id') else endpoint
             self.hub_metadata[hub_id] = msg.device_metadata
+            self.portal_endpoints[hub_id] = endpoint
+
+    def endpoints_for_hubs(self, hub_ids) -> Set[int]:
+        """The streaming endpoints that reach these hubs, so a command goes once through each portal."""
+        return {self.hub_endpoints[hub_id] for hub_id in hub_ids if hub_id in self.hub_endpoints}
 
 
 # Access must be locked!    
@@ -109,5 +124,5 @@ def create_queues(streaming_endpoints):
         # thread safe queue for outbound messages
         to_portal_queue[ep.hub_id] = Queue()
 
-def get_queue(hub_id):
-    return to_portal_queue[hub_id]
+def get_queue(endpoint):
+    return to_portal_queue[endpoint]
