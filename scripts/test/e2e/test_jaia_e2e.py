@@ -217,11 +217,14 @@ class OffloadQueueTest(unittest.TestCase):
 
 class Hub2HubCheckTest(unittest.TestCase):
     def test_layout_names_the_hub_that_hears_nothing(self):
-        result = checks.hub2hub_layout_checks(
-            {'hubs': [{'hub_id': 1}, {'hub_id': 30}]},
-            {'hubs': [{'hub_id': 30}], 'bots': [bot(1, checks.READY)]}, 1, 30, [1, 2])
-        self.assertEqual([c.name for c in result if not c.passed],
-                         ['hub 30 hears hub 1', 'hub 30 hears the bots through hub 1'])
+        both_bots = [bot(1, checks.READY), bot(2, checks.READY)]
+        result = checks.hub2hub_layout_checks({
+            1: {'hubs': [{'hub_id': 1}, {'hub_id': 30}], 'bots': both_bots},
+            30: {'hubs': [{'hub_id': 30}], 'bots': [bot(1, checks.READY)]},
+        }, [1, 2])
+        self.assertEqual([(c.name, c.detail) for c in result if not c.passed],
+                         [('hub 30 hears every other hub', 'missing hubs [1]'),
+                          ('hub 30 hears every bot', 'missing bots [2]')])
 
     def test_a_relayed_command_for_hub_must_be_refused_as_json(self):
         refused = checks.relayed_command_for_hub_check(
@@ -235,11 +238,11 @@ class Hub2HubCheckTest(unittest.TestCase):
         self.assertFalse(sent.passed)
         self.assertIn('run on hub 30', sent.detail)
 
-    def test_a_peer_that_offloaded_a_bot_fails(self):
+    def test_a_relay_only_hub_that_offloaded_a_bot_fails(self):
         observations = checks.Observations()
         observations.ingest({'hubs': [{'hub_id': 30, 'bot_offload': {'bot_id': 2}}]})
-        self.assertFalse(checks.peer_offload_checks(observations, 30)[0].passed)
-        self.assertTrue(checks.peer_offload_checks(checks.Observations(), 30)[0].passed)
+        self.assertFalse(checks.relay_only_offload_checks(observations, 30)[0].passed)
+        self.assertTrue(checks.relay_only_offload_checks(checks.Observations(), 30)[0].passed)
 
 
 class CheckTest(unittest.TestCase):

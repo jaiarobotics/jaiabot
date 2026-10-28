@@ -189,15 +189,7 @@ def offload_checks(observations, expected_bots, offloaded_logs=None):
     """offloaded_logs maps a bot to the log files the hub holds for it, where the run
     can see the hub's offload directory; the DATA_OFFLOAD state itself is too short
     to poll for reliably."""
-    checks = []
-    # a gap only fails a run when a poll happens to land in it, so polling can miss one
-    # but never invent one
-    for hub_id in sorted(observations.hub_offloaded_bots, key=str):
-        gaps = observations.hub_offload_gaps[hub_id]
-        checks.append(Check(OFFLOAD, f'hub {hub_id} kept its offload queue between bots',
-                            not gaps,
-                            f'the queue went missing on {gaps} poll(s) with bots still waiting'
-                            if gaps else 'never missing while bots waited'))
+    checks = offload_queue_checks(observations)
     for bot_id in expected_bots:
         if offloaded_logs is not None:
             logs = offloaded_logs.get(bot_id, [])
@@ -215,21 +207,36 @@ def offload_checks(observations, expected_bots, offloaded_logs=None):
     return checks
 
 
+def offload_queue_checks(observations):
+    # a gap only fails a run when a poll happens to land in it, so polling can miss one
+    # but never invent one
+    checks = []
+    for hub_id in sorted(observations.hub_offloaded_bots, key=str):
+        gaps = observations.hub_offload_gaps[hub_id]
+        checks.append(Check(OFFLOAD, f'hub {hub_id} kept its offload queue between bots',
+                            not gaps,
+                            f'the queue went missing on {gaps} poll(s) with bots still waiting'
+                            if gaps else 'never missing while bots waited'))
+    return checks
+
+
 def hub_ids(status):
     return sorted(hub['hub_id'] for hub in api.hub_statuses(status) if 'hub_id' in hub)
 
 
-def hub2hub_layout_checks(status, peer_status, hub_id, peer_id, expected_bots):
-    """Whether two hubs hear each other, and the bots, as a field hub and its CloudHub do."""
+def hub2hub_layout_checks(statuses, expected_bots):
+    """Whether every hub hears every other one, and the bots, as a fleet's hubs and its
+    CloudHub do. statuses maps each hub to the status its own REST API last reported."""
     checks = []
-    for this, seen, other in ((hub_id, status, peer_id), (peer_id, peer_status, hub_id)):
-        heard = hub_ids(seen)
-        checks.append(Check(HUB2HUB, f'hub {this} hears hub {other}', other in heard,
-                            f'hears hubs {heard}'))
-    missing = sorted(set(expected_bots) - set(api.bot_ids(peer_status)))
-    checks.append(Check(HUB2HUB, f'hub {peer_id} hears the bots through hub {hub_id}',
-                        not missing, f'missing bots {missing}' if missing
-                        else f'bots {api.bot_ids(peer_status)}'))
+    for hub_id, status in sorted(statuses.items()):
+        missing = sorted(set(statuses) - set(hub_ids(status)))
+        checks.append(Check(HUB2HUB, f'hub {hub_id} hears every other hub', not missing,
+                            f'missing hubs {missing}' if missing
+                            else f'hears hubs {hub_ids(status)}'))
+        missing = sorted(set(expected_bots) - set(api.bot_ids(status)))
+        checks.append(Check(HUB2HUB, f'hub {hub_id} hears every bot', not missing,
+                            f'missing bots {missing}' if missing
+                            else f'hears bots {api.bot_ids(status)}'))
     return checks
 
 
@@ -247,9 +254,9 @@ def relayed_command_for_hub_check(via_id, target_id, response, error_code, error
                  refused, detail)
 
 
-def peer_offload_checks(peer_observations, peer_id):
-    offloaded = sorted(peer_observations.hub_offloaded_bots.get(peer_id, ()))
-    return [Check(HUB2HUB, f'hub {peer_id} offloads no bot it only hears relayed',
+def relay_only_offload_checks(observations, hub_id):
+    offloaded = sorted(observations.hub_offloaded_bots.get(hub_id, ()))
+    return [Check(HUB2HUB, f'hub {hub_id} offloads no bot it only hears relayed',
                   not offloaded, f'offloaded bots {offloaded}' if offloaded else 'none')]
 
 

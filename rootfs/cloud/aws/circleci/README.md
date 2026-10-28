@@ -34,7 +34,7 @@ A CI fleet is one reserved id, so trials queue rather than collide. A trial hold
 fleet for about a quarter of an hour and a day's merges can reach `aws-sync` together,
 so the wait tolerates a few queued ahead before giving up.
 
-The parameters - `sea-trial-bots`, `sea-trial-goals`, `sea-trial-warp`,
+The parameters - `sea-trial-bots`, `sea-trial-hubs`, `sea-trial-goals`, `sea-trial-warp`,
 `sea-trial-repo` and `sea-trial-keep-fleet` - are for triggering a pipeline by hand to
 reproduce a failure. `sea-trial-keep-fleet` leaves the fleet up for inspection; the
 reaper still clears it on the next run.
@@ -80,29 +80,33 @@ hand from a checkout in the same order the job runs them:
 
 ```
 ./install-jaiabot-tooling.sh                 # needs JAIA_CI_REPO, JAIABOT_APT_VERSION
-./create-ci-cloudhub.sh --bots 2 --warp 5    # needs JAIA_CI_CUSTOMER, AWS_DEFAULT_REGION
+./create-ci-cloudhub.sh --bots 2 --hubs 2 --warp 5   # needs JAIA_CI_CUSTOMER, AWS_DEFAULT_REGION
 ./check-cloudhub-auth.sh
-./raise-ci-virtualfleet.sh --bots 2 --warp 5
-./join-ci-virtualfleet.sh
-./run-ci-sea-trial.sh --bots 2 --goals 2 --warp 5
-./collect-ci-results.sh --bots 2
+./raise-ci-virtualfleet.sh --bots 2 --hubs 2 --warp 5
+./join-ci-virtualfleet.sh --hubs 2
+./run-ci-sea-trial.sh --bots 2 --hubs 2 --goals 2 --warp 5
+./collect-ci-results.sh --bots 2 --hubs 2
 ./teardown-ci-fleet.sh
 ```
 
 All of them take `--fleet`, defaulting to `JAIA_CI_FLEET` and then to 9.
 
-`join-ci-virtualfleet.sh` enrolls the VirtualHub on the CloudHub's fleet VPN, as a
+The CI fleet has two VirtualHubs (`sea-trial-hubs`) besides the CloudHub. The
+VirtualFleet playbooks take the count as `n_hubs` and default to one, so customers'
+VirtualFleets are unchanged.
+
+`join-ci-virtualfleet.sh` enrolls each VirtualHub on the CloudHub's fleet VPN, as a
 field hub pairs. Only CI does this: a VirtualFleet otherwise reaches its CloudHub only
-over the VirtualFleet VPN, which carries no hub-to-hub. Joined, the two hubs relay each
-other's statuses and commands, so the trial's `hub2hub` tier can drive the fleet
-through both hubs (see `scripts/test/e2e/README.md`).
+over the VirtualFleet VPN, which carries no hub-to-hub. Joined, the hubs relay each
+other's statuses and commands, so the trial's `hub2hub` tier can drive the fleet through
+all of them (see `scripts/test/e2e/README.md`).
 
 - **Enrollment:** it calls the CloudHub's `jaia-vpn-enroll.sh` directly rather than
   over the pairing port, which stays closed in CI.
-- **Endpoint:** it points the tunnel at the CloudHub's VPC IPv6 address, as the
+- **Endpoint:** it points each tunnel at the CloudHub's VPC IPv6 address, as the
   VirtualFleet VPN does.
-- **Hub-to-hub:** it restarts the VirtualHub's intervehicle portal, which only addresses
-  hubs over the VPN if the tunnel is up when it starts.
+- **Hub-to-hub:** it restarts each VirtualHub's intervehicle portal, which only
+  addresses hubs over the VPN if the tunnel is up when it starts.
 
 A tunnel that never handshakes is reported, not fatal, so the trial still runs and its
 `hub2hub` tier fails.

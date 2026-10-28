@@ -2,8 +2,8 @@
 """Runs a fleet through a dive mission over the REST API and checks what came back.
 
 Points --hub-url at any hub: the docker sim on localhost:9092, a VirtualHub, or a real
-one. --peer-hub-url adds a second hub that hears the first over hub-to-hub, such as the
-fleet's CloudHub. Run with --help for the options.
+one. --peer-hub adds more hubs that hear it over hub-to-hub, such as another VirtualHub
+and the fleet's CloudHub. Run with --help for the options.
 """
 
 import argparse
@@ -38,121 +38,164 @@ def wait_for(predicate, timeout, what, interval, progress=None, report_every=0):
 
 
 class SeaTrial:
-    def __init__(self, hub, args, peer=None):
+    def __init__(self, hub, args, peers=None):
         self.hub = hub
-        self.peer = peer
         self.args = args
+        # every hub this trial talks to, by id, the --hub-url one first
+        self.hubs = {args.hub_id: hub, **(peers or {})}
         self.observations = checks.Observations()
-        self.peer_observations = checks.Observations()
+        self.hub_observations = {hub_id: checks.Observations() for hub_id in self.hubs}
+        self.hub_observations[args.hub_id] = self.observations
+        self.last_statuses = {}
         self.goals_by_bot = {}
         self.started_at = None
         self.last_status = None
-        self.last_peer_status = None
-        # bots whose commands go through the peer, once the two hubs hear each other
-        self.peer_bots = []
-        self.peer_command_errors = {}
+        # where each bot's commands, and the fleet-wide ones, go once the hubs hear each other
+        self.bot_hubs = {}
+        self.fleet_hub = args.hub_id
+        self.routing_errors = {}
         self.hub2hub_results = []
+
+    @property
+    def joined(self):
+        return bool(self.bot_hubs) or self.fleet_hub != self.args.hub_id
 
     def poll(self):
         # every sample is recorded, so progress reporting reads this rather than
         # asking the hub again and discarding what it sees
         self.last_status = self.hub.status()
         self.observations.ingest(self.last_status)
+        self.last_statuses[self.args.hub_id] = self.last_status
         return self.last_status
 
-    def poll_peer(self):
-        self.last_peer_status = self.peer.status()
-        self.peer_observations.ingest(self.last_peer_status)
-        return self.last_peer_status
+    def poll_hub(self, hub_id):
+        if hub_id == self.args.hub_id:
+            return self.poll()
+        status = self.hubs[hub_id].status()
+        self.hub_observations[hub_id].ingest(status)
+        self.last_statuses[hub_id] = status
+        return status
 
-    def command(self, bot_id, command):
-        via_peer = bot_id in self.peer_bots
+    def poll_others(self):
+        for hub_id in self.hubs:
+            if hub_id != self.args.hub_id:
+                self.poll_hub(hub_id)
+
+    def _routed(self, hub_id, what, send):
         try:
-            return (self.peer if via_peer else self.hub).command(bot_id, command)
+            return send(self.hubs[hub_id])
         except api.ApiError as e:
-            if via_peer:
-                self.peer_command_errors.setdefault(bot_id, f'{command["type"]}: {e}')
+            if hub_id != self.args.hub_id:
+                self.routing_errors.setdefault(what, f'hub {hub_id}: {e}')
             raise
 
-    def join_peer(self, bots):
-        """Waits for the two hubs to hear each other, then splits the bots between them.
-        If they never do, every bot stays on --hub-url so the other tiers still run."""
-        if not self.peer:
+    def command(self, bot_id, command):
+        hub_id = self.bot_hubs.get(bot_id, self.args.hub_id)
+        return self._routed(hub_id, f'bot {bot_id}',
+                            lambda hub: hub.command(bot_id, command))
+
+    def command_all(self, command):
+        return self._routed(self.fleet_hub, 'the fleet',
+                            lambda hub: hub.command_all(command))
+
+    def join_hubs(self, bots):
+        """Waits for every hub to hear every other one and the bots, then shares the
+        commands out among them. If they never do, every command stays on --hub-url so
+        the other tiers still run."""
+        if len(self.hubs) < 2:
             return
-        hub_id, peer_id = self.args.hub_id, self.args.peer_hub_id
+        hub_ids = sorted(self.hubs)
 
         def heard():
-            status, peer_status = self.poll(), self.poll_peer()
-            return (peer_id in checks.hub_ids(status)
-                    and hub_id in checks.hub_ids(peer_status)
-                    and set(bots) <= set(api.bot_ids(peer_status)))
+            for hub_id in hub_ids:
+                self.poll_hub(hub_id)
+            return all(set(hub_ids) <= set(checks.hub_ids(self.last_statuses[hub_id]))
+                       and set(bots) <= set(api.bot_ids(self.last_statuses[hub_id]))
+                       for hub_id in hub_ids)
 
         try:
             wait_for(heard, self.args.hub2hub_timeout,
-                     f'hubs {hub_id} and {peer_id} to hear each other and the bots',
-                     self.args.poll_interval,
-                     progress=lambda: f'hub {hub_id} hears {checks.hub_ids(self.last_status)}, '
-                                      f'hub {peer_id} hears {checks.hub_ids(self.last_peer_status)} '
-                                      f'and bots {api.bot_ids(self.last_peer_status)}')
-            self.peer_bots = bots[1::2]
-            log(f'bots {self.peer_bots} take their commands through hub {peer_id}')
+                     f'hubs {hub_ids} to hear each other and the bots', self.args.poll_interval,
+                     progress=lambda: '; '.join(
+                         f'hub {h} hears hubs {checks.hub_ids(self.last_statuses.get(h))} and '
+                         f'bots {api.bot_ids(self.last_statuses.get(h))}' for h in hub_ids))
+            # a relay-only hub, such as the CloudHub, hears the bots only through the
+            # others, so it sends the commands meant for all of them
+            direct = [h for h in self.hubs if h not in self.args.relay_only_hub]
+            self.bot_hubs = {bot_id: direct[index % len(direct)]
+                             for index, bot_id in enumerate(bots)}
+            self.fleet_hub = next((h for h in self.hubs if h in self.args.relay_only_hub),
+                                  self.args.hub_id)
+            log(f'commands for {self.bot_hubs} (bot: hub) and for the fleet through '
+                f'hub {self.fleet_hub}')
         except TrialFailure as e:
-            log(f'{e}; commanding every bot through hub {hub_id}')
-        self.hub2hub_results += checks.hub2hub_layout_checks(
-            self.last_status, self.last_peer_status, hub_id, peer_id, bots)
-        if self.peer_bots:
+            log(f'{e}; commanding everything through hub {self.args.hub_id}')
+        self.hub2hub_results += checks.hub2hub_layout_checks(self.last_statuses, bots)
+        if self.joined:
             self.probe_relayed_command_for_hub()
 
     def probe_relayed_command_for_hub(self):
         # a scan for bot 0 does nothing, so a hub that wrongly runs it comes to no harm
         probe = {'type': 'SCAN_FOR_BOTS', 'scan_for_bot_id': 0}
-        hub_id, peer_id = self.args.hub_id, self.args.peer_hub_id
-        for via, via_id, target_id in ((self.hub, hub_id, peer_id),
-                                       (self.peer, peer_id, hub_id)):
-            response = via.try_command_for_hub(target_id, probe)
-            self.hub2hub_results.append(checks.relayed_command_for_hub_check(
-                via_id, target_id, response, via.last_error_code, via.last_error))
+        for via_id, via in self.hubs.items():
+            for target_id in self.hubs:
+                if target_id == via_id:
+                    continue
+                response = via.try_command_for_hub(target_id, probe)
+                self.hub2hub_results.append(checks.relayed_command_for_hub_check(
+                    via_id, target_id, response, via.last_error_code, via.last_error))
 
     def check_control(self):
-        """An operator's command on one hub shows every client of the other that it is no
+        """An operator's command on one hub shows every client of the others that it is no
         longer in control, until one of them takes control back."""
-        if not self.peer_bots:
+        if not self.joined:
             return
-        hub_id, peer_id = self.args.hub_id, self.args.peer_hub_id
-        expected = f'hub{hub_id}'
-        controller = lambda: (self.last_peer_status or {}).get('controlling_client_id')
+        expected = f'hub{self.fleet_hub}'
+        others = [h for h in self.hubs if h != self.fleet_hub]
+        controller = lambda h: (self.last_statuses.get(h) or {}).get('controlling_client_id')
+
+        def moved():
+            for hub_id in others:
+                self.poll_hub(hub_id)
+            return all(controller(h) == expected for h in others)
+
+        # the last operator command was the fleet-wide one, at the offload
         try:
-            # the last operator command went through --hub-url, at the offload
-            wait_for(lambda: (self.poll_peer() or {}).get('controlling_client_id') == expected,
-                     self.args.control_timeout, f'hub {peer_id} to hand control to {expected}',
-                     self.args.poll_interval, progress=lambda: f'controlled by {controller()!r}')
-            moved = True
+            wait_for(moved, self.args.control_timeout,
+                     f'hubs {others} to hand control to {expected}', self.args.poll_interval,
+                     progress=lambda: ', '.join(f'hub {h}: {controller(h)!r}' for h in others))
         except TrialFailure:
-            moved = False
-        self.hub2hub_results.append(checks.Check(
-            checks.HUB2HUB, f'a command through hub {hub_id} takes control on hub {peer_id}',
-            moved, f'controlled by {controller()!r}, expected {expected!r}'))
-        if not moved:
-            return
+            pass
 
-        bot_id = self.peer_bots[0]
-        response = self.peer.try_engineering_command(bot_id, {})
-        refused = response is None and self.peer.last_error_code == 'API_ERROR__NOT_IN_CONTROL'
-        self.hub2hub_results.append(checks.Check(
-            checks.HUB2HUB, f'hub {peer_id} refuses engineering commands while {expected} '
-                            'is in control', refused,
-            'refused with API_ERROR__NOT_IN_CONTROL' if refused
-            else f'answered {response if response is not None else self.peer.last_error}'))
+        for hub_id in others:
+            hub = self.hubs[hub_id]
+            took = controller(hub_id) == expected
+            self.hub2hub_results.append(checks.Check(
+                checks.HUB2HUB, f'a command through hub {self.fleet_hub} takes control on '
+                                f'hub {hub_id}',
+                took, f'controlled by {controller(hub_id)!r}, expected {expected!r}'))
+            if not took:
+                continue
 
-        try:
-            self.peer.take_control()
-            regained = (self.poll_peer() or {}).get('controlling_client_id') == self.peer.client_id
-            detail = f'controlled by {controller()!r}'
-        except api.ApiError as e:
-            regained, detail = False, str(e)
-        self.hub2hub_results.append(checks.Check(
-            checks.HUB2HUB, f'hub {peer_id} gives control back to a client that takes it',
-            regained, detail))
+            bot_id = sorted(self.bot_hubs)[0]
+            response = hub.try_engineering_command(bot_id, {})
+            refused = response is None and hub.last_error_code == 'API_ERROR__NOT_IN_CONTROL'
+            self.hub2hub_results.append(checks.Check(
+                checks.HUB2HUB, f'hub {hub_id} refuses engineering commands while {expected} '
+                                'is in control', refused,
+                'refused with API_ERROR__NOT_IN_CONTROL' if refused
+                else f'answered {response if response is not None else hub.last_error}'))
+
+            try:
+                hub.take_control()
+                regained = ((self.poll_hub(hub_id) or {}).get('controlling_client_id')
+                            == hub.client_id)
+                detail = f'controlled by {controller(hub_id)!r}'
+            except api.ApiError as e:
+                regained, detail = False, str(e)
+            self.hub2hub_results.append(checks.Check(
+                checks.HUB2HUB, f'hub {hub_id} gives control back to a client that takes it',
+                regained, detail))
 
     def wait_for_fleet(self):
         log(f'waiting for the REST API at {self.hub.base}')
@@ -168,11 +211,17 @@ class SeaTrial:
         return bots
 
     def set_hub_location(self):
-        # the simulator will not place the fleet until the hub has a position
-        log(f'setting hub {self.args.hub_id} location')
-        self.hub.command_for_hub(self.args.hub_id, {
-            'type': 'SET_HUB_LOCATION',
-            'hub_location': {'lat': self.args.lat, 'lon': self.args.lon}})
+        # the simulator will not place the fleet until the hub has a position; each hub is
+        # told through its own REST API, as a hub command only reaches the hub it is sent to
+        located = [self.args.hub_id]
+        if self.joined:
+            located += [h for h in self.hubs
+                        if h != self.args.hub_id and h not in self.args.relay_only_hub]
+        for hub_id in located:
+            log(f'setting hub {hub_id} location')
+            self.hubs[hub_id].command_for_hub(hub_id, {
+                'type': 'SET_HUB_LOCATION',
+                'hub_location': {'lat': self.args.lat, 'lon': self.args.lon}})
 
     def activate(self, bot_id):
         def describe(bot_id):
@@ -264,13 +313,13 @@ class SeaTrial:
 
     def offload(self, bots):
         # RECOVERED is what moves a bot into DATA_OFFLOAD, which is what the hub acts on
-        self.hub.command_all({'type': 'STOP'})
-        self.hub.command_all({'type': 'RECOVERED'})
+        self.command_all({'type': 'STOP'})
+        self.command_all({'type': 'RECOVERED'})
 
         def settled():
             status = self.poll()
-            if self.peer_bots:
-                self.poll_peer()
+            if self.joined:
+                self.poll_others()
             return all((api.bot_status(status, b) or {}).get('mission_state')
                        in (checks.POST_IDLE, checks.POST_FAILED) for b in bots)
 
@@ -371,21 +420,39 @@ class SeaTrial:
         results = []
         results += checks.liveness_checks(status, metadata, bots, self.args.expect_version)
         results += self.hub2hub_results
-        for bot_id in self.peer_bots:
-            error = self.peer_command_errors.get(bot_id)
-            results.append(checks.Check(
-                checks.HUB2HUB, f'bot {bot_id} took its commands through hub {self.args.peer_hub_id}',
-                not error, error or 'every command sent'))
-        if self.peer_bots:
-            results += checks.peer_offload_checks(self.peer_observations, self.args.peer_hub_id)
+        if self.joined:
+            routes = {f'bot {b}': h for b, h in sorted(self.bot_hubs.items())}
+            routes['the fleet'] = self.fleet_hub
+            for what, hub_id in routes.items():
+                if hub_id == self.args.hub_id:
+                    continue
+                error = self.routing_errors.get(what)
+                results.append(checks.Check(
+                    checks.HUB2HUB, f'commands for {what} went through hub {hub_id}',
+                    not error, error or 'every command sent'))
+            for hub_id in self.args.relay_only_hub:
+                if hub_id in self.hub_observations:
+                    results += checks.relay_only_offload_checks(self.hub_observations[hub_id],
+                                                                hub_id)
         results += checks.execution_checks(self.observations, bots, self.args.goals,
                                            self.goals_by_bot, self.args.position_tolerance)
         results += checks.offload_checks(self.observations, bots,
                                          self.offloaded_logs(bots))
+        # a hub's own status is the only one carrying its offload queue
+        for hub_id, observations in self.hub_observations.items():
+            if hub_id != self.args.hub_id:
+                results += checks.offload_queue_checks(observations)
         results += checks.content_checks(packets, bots, self.args.goals, self.args.dive_depth,
                                          self.args.depth_tolerance, self.args.drift_time,
                                          self.args.drift_tolerance)
         return results
+
+
+def parse_peer_hub(value):
+    hub_id, _, url = value.partition('=')
+    if not hub_id.isdigit() or not url:
+        raise argparse.ArgumentTypeError(f'expected ID=URL, got {value!r}')
+    return int(hub_id), url
 
 
 def parse_args(argv):
@@ -394,11 +461,17 @@ def parse_args(argv):
     parser.add_argument('--hub-url', default='http://localhost:9092',
                         help='base URL of the hub REST API (default: %(default)s)')
     parser.add_argument('--hub-id', type=int, default=1)
-    parser.add_argument('--peer-hub-url', default='',
-                        help='REST API of a second hub that hears --hub-url over hub-to-hub, '
-                             'such as the CloudHub: adds the hub2hub tier, and every other '
-                             'bot is commanded through it')
-    parser.add_argument('--peer-hub-id', type=int, default=30)
+    parser.add_argument('--peer-hub', action='append', default=[], metavar='ID=URL',
+                        type=parse_peer_hub,
+                        help='REST API of another hub that hears --hub-url over hub-to-hub, '
+                             'such as a second VirtualHub or the CloudHub; repeat for more. '
+                             'Adds the hub2hub tier, and shares the bots\' commands out '
+                             'among the hubs')
+    parser.add_argument('--relay-only-hub', action='append', type=int, default=[],
+                        metavar='ID',
+                        help='a --peer-hub that hears the bots only through the others, such '
+                             'as the CloudHub: it sends the fleet-wide commands and must '
+                             'offload nothing')
     parser.add_argument('--hub2hub-timeout', type=float, default=300.0, metavar='S',
                         help='how long the two hubs have to start hearing each other')
     parser.add_argument('--control-timeout', type=float, default=60.0, metavar='S',
@@ -459,9 +532,9 @@ def parse_args(argv):
 def main(argv):
     args = parse_args(argv)
     hub = api.HubApi(args.hub_url, client_id=f'sea-trial-hub{args.hub_id}')
-    peer = (api.HubApi(args.peer_hub_url, client_id=f'sea-trial-hub{args.peer_hub_id}')
-            if args.peer_hub_url else None)
-    trial = SeaTrial(hub, args, peer)
+    peers = {hub_id: api.HubApi(url, client_id=f'sea-trial-hub{hub_id}')
+             for hub_id, url in args.peer_hub}
+    trial = SeaTrial(hub, args, peers)
     started = time.time()
     failure = None
     results = []
@@ -469,7 +542,7 @@ def main(argv):
 
     try:
         bots = trial.wait_for_fleet()
-        trial.join_peer(bots)
+        trial.join_hubs(bots)
         trial.set_hub_location()
         trial.send_missions(bots)
         trial.run_mission(bots)

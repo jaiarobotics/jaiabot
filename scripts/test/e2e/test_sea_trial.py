@@ -50,40 +50,69 @@ class SeaTrialAgainstFakeHub(unittest.TestCase):
         self.assertEqual(set(summary['tiers']),
                          {checks.LIVENESS, checks.EXECUTION, checks.OFFLOAD, checks.CONTENT})
 
-    def run_joined_trial(self, hub, peer, extra=()):
-        peer_url, shutdown = fake_hub.serve(peer)
+    def run_joined_trial(self, hub, peers, relay_only=(), extra=()):
+        served = [(peer, *fake_hub.serve(peer)) for peer in peers]
         try:
-            return self.run_trial(hub, ['--peer-hub-url', peer_url, *extra])
+            return self.run_trial(hub, [
+                *(arg for peer, url, _ in served for arg in ('--peer-hub', f'{peer.hub_id}={url}')),
+                *(arg for hub_id in relay_only for arg in ('--relay-only-hub', str(hub_id))),
+                *extra])
         finally:
-            shutdown()
+            for _, _, shutdown in served:
+                shutdown()
 
     def hub2hub_failures(self, summary):
         return [f['name'] for f in summary['tiers'].get(checks.HUB2HUB, {}).get('failures', [])]
 
-    def test_a_joined_run_passes_every_tier_including_hub2hub(self):
+    def ci_fleet(self):
+        """Two VirtualHubs and a CloudHub that hears the bots only through them, as CI runs."""
         hub = fake_hub.FakeHub(bots=2, dives_to_run=10)
-        peer = fake_hub.FakePeerHub(hub)
-        code, summary, _ = self.run_joined_trial(hub, peer)
+        return hub, fake_hub.FakePeerHub(hub, 2), fake_hub.FakePeerHub(hub, 30)
+
+    def test_a_joined_run_passes_every_tier_including_hub2hub(self):
+        hub, second, cloudhub = self.ci_fleet()
+        code, summary, _ = self.run_joined_trial(hub, [second, cloudhub], relay_only=[30])
         self.assertEqual(code, 0, summary['tiers'])
-        self.assertIn(checks.HUB2HUB, summary['tiers'])
         self.assertEqual(summary['tiers'][checks.HUB2HUB]['failed'], 0)
-        # bot 2 was activated and sent its plan through the second hub
-        self.assertIn('MISSION_PLAN', [c.get('type') for c in peer.commands])
-        self.assertEqual(peer.controlling_client_id, 'sea-trial-hub30')
+        # bot 2 through the second VirtualHub, and the fleet-wide commands through the CloudHub
+        self.assertIn('MISSION_PLAN', [c.get('type') for c in second.commands])
+        self.assertNotIn('MISSION_PLAN', [c.get('type') for c in cloudhub.commands])
+        self.assertIn('RECOVERED', [c.get('type') for c in cloudhub.commands])
+        self.assertNotIn('RECOVERED', [c.get('type') for c in hub.commands])
+        # each hub was told its location through its own REST API, the CloudHub excepted
+        self.assertIsNotNone(second.hub_location)
+        self.assertIsNone(cloudhub.hub_location)
+        # control went to the CloudHub, and each VirtualHub's own client took it back
+        self.assertEqual((hub.controlling_client_id, second.controlling_client_id),
+                         ('sea-trial-hub1', 'sea-trial-hub2'))
+        names = [f['name'] for f in summary['tiers'][checks.HUB2HUB].get('failures', [])]
+        self.assertEqual(names, [])
+
+    def test_two_hubs_without_a_relay_only_one_share_the_bots(self):
+        hub = fake_hub.FakeHub(bots=2, dives_to_run=10)
+        second = fake_hub.FakePeerHub(hub, 2)
+        code, summary, _ = self.run_joined_trial(hub, [second])
+        self.assertEqual(code, 0, summary['tiers'])
+        self.assertIn('MISSION_PLAN', [c.get('type') for c in second.commands])
+        # with no relay-only hub the fleet-wide commands stay on the first
+        self.assertIn('RECOVERED', [c.get('type') for c in hub.commands])
 
     def test_hubs_that_never_hear_each_other_fail_only_the_hub2hub_tier(self):
-        hub = fake_hub.FakeHub(bots=2, dives_to_run=10)
-        peer = fake_hub.FakePeerHub(hub)
-        hub.heard_hubs, peer.heard_hubs = [], []
-        code, summary, _ = self.run_joined_trial(hub, peer, ['--hub2hub-timeout', '1'])
+        hub, second, cloudhub = self.ci_fleet()
+        for each in (hub, second, cloudhub):
+            each.heard_hubs = []
+        code, summary, _ = self.run_joined_trial(hub, [second, cloudhub], relay_only=[30],
+                                                 extra=['--hub2hub-timeout', '1'])
         self.assertEqual(code, 1)
         self.assertEqual(summary['first_failing_tier'], checks.HUB2HUB)
         self.assertEqual(self.hub2hub_failures(summary),
-                         ['hub 1 hears hub 30', 'hub 30 hears hub 1'])
-        # every bot fell back to the first hub, so the rest of the run is still judged
+                         ['hub 1 hears every other hub', 'hub 2 hears every other hub',
+                          'hub 30 hears every other hub'])
+        # everything fell back to the first hub, so the rest of the run is still judged
         for tier in (checks.EXECUTION, checks.OFFLOAD, checks.CONTENT):
             self.assertEqual(summary['tiers'][tier]['failed'], 0, tier)
-        self.assertNotIn('MISSION_PLAN', [c.get('type') for c in peer.commands])
+        self.assertEqual(second.commands, [])
+        self.assertEqual(cloudhub.commands, [])
 
     def test_a_hub_that_offloads_bots_it_only_hears_relayed_fails_hub2hub(self):
         class OffloadsRelayedBots(fake_hub.FakePeerHub):
@@ -91,27 +120,46 @@ class SeaTrialAgainstFakeHub(unittest.TestCase):
                 return {'bot_id': 1, 'data_offload_percentage': 10}
 
         hub = fake_hub.FakeHub(bots=2, dives_to_run=10)
-        code, summary, _ = self.run_joined_trial(hub, OffloadsRelayedBots(hub))
+        second = fake_hub.FakePeerHub(hub, 2)
+        code, summary, _ = self.run_joined_trial(
+            hub, [second, OffloadsRelayedBots(hub, 30)], relay_only=[30])
         self.assertEqual(code, 1)
         self.assertEqual(self.hub2hub_failures(summary),
                          ['hub 30 offloads no bot it only hears relayed'])
         self.assertEqual(summary['tiers'][checks.OFFLOAD]['failed'], 0)
 
     def test_a_command_for_a_relayed_hub_that_is_sent_fails_hub2hub(self):
-        hub = fake_hub.FakeHub(bots=2, dives_to_run=10)
-        peer = fake_hub.FakePeerHub(hub)
-        peer.refuses_other_hubs = False
-        _, summary, _ = self.run_joined_trial(hub, peer)
+        hub, second, cloudhub = self.ci_fleet()
+        cloudhub.refuses_other_hubs = False
+        _, summary, _ = self.run_joined_trial(hub, [second, cloudhub], relay_only=[30])
         self.assertEqual(self.hub2hub_failures(summary),
-                         ['hub 30 refuses a command for hub 1 as JSON'])
+                         ['hub 30 refuses a command for hub 1 as JSON',
+                          'hub 30 refuses a command for hub 2 as JSON'])
 
-    def test_a_hub_that_keeps_control_after_the_others_command_fails_hub2hub(self):
-        hub = fake_hub.FakeHub(bots=2, dives_to_run=10)
-        peer = fake_hub.FakePeerHub(hub)
-        hub.relays_control = False
-        _, summary, _ = self.run_joined_trial(hub, peer, ['--control-timeout', '1'])
+    def test_a_hub_that_keeps_control_after_anothers_command_fails_hub2hub(self):
+        hub, second, cloudhub = self.ci_fleet()
+        cloudhub.relays_control = False
+        _, summary, _ = self.run_joined_trial(hub, [second, cloudhub], relay_only=[30],
+                                              extra=['--control-timeout', '1'])
         self.assertEqual(self.hub2hub_failures(summary),
-                         ['a command through hub 1 takes control on hub 30'])
+                         ['a command through hub 30 takes control on hub 1',
+                          'a command through hub 30 takes control on hub 2'])
+
+    def test_a_second_hub_whose_queue_drops_out_fails_the_offload_tier(self):
+        class DropsQueueBetweenBots(fake_hub.FakePeerHub):
+            polls = 0
+
+            def bot_offload(self):
+                queue = [{'bot_id': 1, 'data_offload_percentage': 100, 'bots_pending': [2]},
+                         None, {'bot_id': 2, 'data_offload_percentage': 0}]
+                index, self.polls = self.polls, self.polls + 1
+                return queue[index] if index < len(queue) else None
+
+        hub = fake_hub.FakeHub(bots=2, dives_to_run=10)
+        second = DropsQueueBetweenBots(hub, 2)
+        _, summary, _ = self.run_joined_trial(hub, [second])
+        names = [f['name'] for f in summary['tiers'][checks.OFFLOAD]['failures']]
+        self.assertEqual(names, ['hub 2 kept its offload queue between bots'])
 
     def test_an_offload_queue_that_drops_out_between_bots_fails_the_offload_tier(self):
         class DropsQueueBetweenBots(fake_hub.FakeHub):

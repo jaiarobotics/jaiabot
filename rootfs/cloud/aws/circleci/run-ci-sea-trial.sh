@@ -9,6 +9,7 @@ Usage: $0 [options]
 
   --fleet <n>       Fleet ID (default: \$JAIA_CI_FLEET, else 9)
   --bots <n>        Number of bots (default: 2)
+  --hubs <n>        Number of VirtualHubs (default: 2)
   --goals <n>       Goals per mission (default: 2)
   --warp <n>        Simulator warp (default: 5)
   --output-dir <s>  Results directory on the CloudHub (default: /tmp/sea-trial)
@@ -20,6 +21,7 @@ set -u -e
 
 FLEET="${JAIA_CI_FLEET:-9}"
 BOTS=2
+HUBS=2
 GOALS=2
 WARP=5
 OUTPUT_DIR=/tmp/sea-trial
@@ -28,6 +30,7 @@ while (( $# > 0 )); do
     case "$1" in
         --fleet) FLEET="${2:-}"; shift 2 ;;
         --bots) BOTS="${2:-}"; shift 2 ;;
+        --hubs) HUBS="${2:-}"; shift 2 ;;
         --goals) GOALS="${2:-}"; shift 2 ;;
         --warp) WARP="${2:-}"; shift 2 ;;
         --output-dir) OUTPUT_DIR="${2:-}"; shift 2 ;;
@@ -51,12 +54,18 @@ HUB_ADDR=$(ssh -o StrictHostKeyChecking=no "jaia@${CLOUDHUB}" \
        --fleet_id ${FLEET} --node_id 1")
 echo "VirtualHub 1 is at ${HUB_ADDR}"
 
-# The CloudHub is the second hub: join-ci-virtualfleet.sh put it on hub-to-hub with the
-# VirtualHub, and its own REST API answers on the port JCC moved to behind Authelia
+# join-ci-virtualfleet.sh put every hub on hub-to-hub. The CloudHub hears the bots only
+# through the VirtualHubs, and its own REST API answers on the port JCC moved to behind
+# Authelia.
+CLOUDHUB_ID=$(jaia_bounds --cloudhub_id)
+PEERS="--peer-hub ${CLOUDHUB_ID}=http://localhost:8080 --relay-only-hub ${CLOUDHUB_ID}"
+for (( hub_id = 2; hub_id <= HUBS; hub_id++ )); do
+    PEERS+=" --peer-hub ${hub_id}=http://hub${hub_id}-virtualfleet${FLEET}"
+done
+
 ssh -o StrictHostKeyChecking=no "jaia@${CLOUDHUB}" \
     "python3 /tmp/e2e/jaia-sea-trial.py \
-       --hub-url http://hub1-virtualfleet${FLEET} \
-       --peer-hub-url http://localhost:8080 --peer-hub-id $(jaia_bounds --cloudhub_id) \
+       --hub-url http://hub1-virtualfleet${FLEET} ${PEERS} \
        --bots ${BOTS} --goals ${GOALS} --warp ${WARP} \
        --offload-host jaia@${HUB_ADDR} \
        --offload-dir /var/log/jaiabot/bot_offload \

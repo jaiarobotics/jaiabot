@@ -89,9 +89,9 @@ class FakeHub:
                      for i in range(1, bots + 1)}
         self.hub_location = None
         self.commands = []
-        # the hubs this one hears over hub-to-hub, and the one its commands are relayed to
+        # the hubs this one hears over hub-to-hub, and relays its commands to
         self.heard_hubs = []
-        self.peer = None
+        self.peers = []
         self.relays_control = True
         self.refuses_other_hubs = True
         self.advances_bots = True
@@ -143,8 +143,9 @@ class FakeHub:
             self.commands.append(payload)
             if client_id:
                 self.controlling_client_id = client_id
-            if self.peer and self.relays_control:
-                self.peer.controlling_client_id = f'hub{self.hub_id}'
+            if self.relays_control:
+                for peer in self.peers:
+                    peer.controlling_client_id = f'hub{self.hub_id}'
             target = path.rsplit('/', 1)[1]
             targets = (self.bots.values() if target == 'all'
                        else [self.bots[int(target.lstrip('b'))]])
@@ -187,17 +188,20 @@ class FakeHub:
 
 
 class FakePeerHub(FakeHub):
-    """A second hub that hears `hub` and its bots over hub-to-hub, as a CloudHub hears a
-    field hub: the two share bots, and each relays the other's commands."""
+    """Another hub that hears `hub`, its bots and its other peers over hub-to-hub, as a
+    fleet's hubs and its CloudHub hear each other: they share bots, and each relays the
+    others' commands."""
 
     def __init__(self, hub, hub_id=30):
         super().__init__(bots=0, hub_id=hub_id)
         self.bots = hub.bots
         # the bots move on each poll of the hub the trial drives, not of this one too
         self.advances_bots = False
-        hub.peer, self.peer = self, hub
-        hub.heard_hubs.append(hub_id)
-        self.heard_hubs.append(hub.hub_id)
+        for other in [hub, *hub.peers]:
+            other.peers.append(self)
+            self.peers.append(other)
+            other.heard_hubs.append(hub_id)
+            self.heard_hubs.append(other.hub_id)
 
     def bot_offload(self):
         return None

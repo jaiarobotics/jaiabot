@@ -10,6 +10,7 @@ Usage: $0 [options]
 
   --fleet <n>          Fleet ID (default: \$JAIA_CI_FLEET, else 9)
   --bots <n>           Number of bots (default: 2)
+  --hubs <n>           Number of VirtualHubs (default: 2)
   --warp <n>           Simulator warp (default: 5)
   --instance-type <s>  CloudHub instance type (default: t3a.small)
   --output-dir <s>     Where the fleet config and CloudHub json land (default: /tmp/sea-trial)
@@ -21,6 +22,7 @@ set -u -e
 
 FLEET="${JAIA_CI_FLEET:-9}"
 BOTS=2
+HUBS=2
 WARP=5
 INSTANCE_TYPE=t3a.small
 OUTPUT_DIR=/tmp/sea-trial
@@ -29,6 +31,7 @@ while (( $# > 0 )); do
     case "$1" in
         --fleet) FLEET="${2:-}"; shift 2 ;;
         --bots) BOTS="${2:-}"; shift 2 ;;
+        --hubs) HUBS="${2:-}"; shift 2 ;;
         --warp) WARP="${2:-}"; shift 2 ;;
         --instance-type) INSTANCE_TYPE="${2:-}"; shift 2 ;;
         --output-dir) OUTPUT_DIR="${2:-}"; shift 2 ;;
@@ -45,6 +48,7 @@ mkdir -p "${OUTPUT_DIR}"
 "${script_dir}/make-ci-fleet-config.sh" \
     --fleet "${FLEET}" \
     --bots "${BOTS}" \
+    --hubs "${HUBS}" \
     --warp "${WARP}" \
     --customer "${JAIA_CI_CUSTOMER}" \
     "${OUTPUT_DIR}/fleet.cfg"
