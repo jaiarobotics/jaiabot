@@ -9,11 +9,12 @@ class ApiError(Exception):
     pass
 
 
-def urllib_transport(url, payload, timeout):
+def urllib_transport(url, payload, timeout, headers=None):
     """Returns (http status, body); status 0 means the hub did not answer at all."""
     data = json.dumps(payload).encode() if payload is not None else None
     request = urllib.request.Request(
-        url, data=data, headers={'Content-Type': 'application/json'} if data else {})
+        url, data=data,
+        headers={**({'Content-Type': 'application/json'} if data else {}), **(headers or {})})
     try:
         with urllib.request.urlopen(request, timeout=timeout) as response:
             return response.status, response.read().decode('utf-8', 'replace')
@@ -29,16 +30,21 @@ def fetch_page(url, timeout=10):
 
 
 class HubApi:
-    def __init__(self, url, timeout=10, transport=urllib_transport):
+    def __init__(self, url, timeout=10, transport=urllib_transport, client_id=None):
         base = url.rstrip('/')
         self.base = base if base.endswith('/jaia/v1') else base + '/jaia/v1'
         self.timeout = timeout
         self.transport = transport
+        # sent as JCC sends it, since that is what the REST API tracks control by
+        self.client_id = client_id
         self.last_error = ''
+        self.last_error_code = None
 
     def _call(self, path, payload=None):
         body = dict(payload or {})
-        status, text = self.transport(self.base + path, body, self.timeout)
+        headers = {'clientId': self.client_id} if self.client_id else {}
+        status, text = self.transport(self.base + path, body, self.timeout, headers)
+        self.last_error_code = None
         if status != 200:
             self.last_error = f'HTTP {status}' if status else f'no answer ({text[:120]})'
             return None
@@ -49,6 +55,7 @@ class HubApi:
             return None
         if 'error' in response:
             self.last_error = str(response['error'])
+            self.last_error_code = response['error'].get('code')
             return None
         self.last_error = ''
         return response
@@ -81,6 +88,18 @@ class HubApi:
 
     def command_for_hub(self, hub_id, command):
         return self._demand(f'/command_for_hub/h{hub_id}', command)
+
+    def try_command_for_hub(self, hub_id, command):
+        """The response, or None with last_error and last_error_code saying why."""
+        return self._call(f'/command_for_hub/h{hub_id}', command)
+
+    def try_engineering_command(self, bot_id, command):
+        """The response, or None with last_error and last_error_code saying why."""
+        return self._call(f'/engineering_command/b{bot_id}', {'bot_id': bot_id, **command})
+
+    def take_control(self):
+        # an action that takes a value is only accepted as a full APIRequest
+        return self._demand('', {'target': {'all': True}, 'take_control': self.client_id})
 
     def task_packets(self, target='all', start_time=None, end_time=None):
         """The task packets a bot has sent, or None while the hub is not answering."""

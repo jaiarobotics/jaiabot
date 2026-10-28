@@ -54,13 +54,13 @@ def process_request(jaia_request: APIRequest) -> APIResponse:
     else:
         raise APIException(rest_api.API_ERROR__NOT_IMPLEMENTED, "Action '" + action + "' has not yet been implemented in the REST API")
 
-def send_client_to_portal_message(hub_id, msg):
+def send_client_to_portal_message(endpoint, msg):
     client_id = requesting_client_id()
     if client_id is not None:
         msg.client_id = client_id
 
     # queue.Queue is threadsafe
-    common.shared_data.get_queue(hub_id).put(msg)
+    common.shared_data.get_queue(endpoint).put(msg)
 
 
 def requesting_client_id():
@@ -148,7 +148,7 @@ def metadata(jaia_request: APIRequest) -> APIResponse:
                 jaia_response.target.hubs.append(hub_id)
         else:
             for hub_id in jaia_request.target.hubs:
-                if hub_id in common.shared_data.data.hubs.keys():
+                if hub_id in common.shared_data.data.hub_metadata:
                     jaia_response.metadata.hubs.extend([common.shared_data.data.hub_metadata[hub_id]])
                     jaia_response.target.hubs.append(hub_id)
                 else: # empty hub metadata to indicate we haven't heard from this hub
@@ -262,15 +262,18 @@ def command(jaia_request: APIRequest) -> APIResponse:
 
         for hub_id in hubs:
             jaia_response.target.hubs.append(hub_id)
+
+        endpoints = common.shared_data.data.endpoints_for_hubs(hubs)
+        for endpoint in endpoints:
             for bot_id in bots:
                 command.bot_id = bot_id
 
                 client_to_portal_msg = jaiabot.messages.portal_pb2.ClientToPortalMessage()
                 client_to_portal_msg.command.CopyFrom(command)
-                
-                send_client_to_portal_message(hub_id, client_to_portal_msg)
 
-        jaia_response.command_result.command_sent = (len(hubs) > 0 and len(bots) > 0)
+                send_client_to_portal_message(endpoint, client_to_portal_msg)
+
+        jaia_response.command_result.command_sent = (len(endpoints) > 0 and len(bots) > 0)
 
         if jaia_response.command_result.command_sent:
             take_control_for_requesting_client()
@@ -286,15 +289,21 @@ def command(jaia_request: APIRequest) -> APIResponse:
 def command_for_hub(jaia_request: APIRequest) -> APIResponse:
     jaia_response = APIResponse()
 
-    # Hubs to send CommandForHub to
-    hubs = list()    
     with common.shared_data.data_lock:
         if jaia_request.target.all:
             # all the hubs we know about
-            hubs = common.shared_data.data.hubs.keys()
+            hubs = list(common.shared_data.data.hubs.keys())
         else:
             # don't bother to send commands to hubs we haven't heard from
-            hubs = [value for value in jaia_request.target.hubs if value in common.shared_data.data.hubs.keys()]            
+            hubs = [value for value in jaia_request.target.hubs if value in common.shared_data.data.hubs.keys()]
+
+        # A portal runs a CommandForHub on its own hub whatever hub_id it names, so a hub
+        # only heard through another hub's portal can't be sent one
+        portal_endpoints = dict(common.shared_data.data.portal_endpoints)
+        unreachable = [hub_id for hub_id in hubs if hub_id not in portal_endpoints]
+        if unreachable and not jaia_request.target.all:
+            raise APIException(rest_api.API_ERROR__INVALID_TARGET, f"Hub {', '.join(str(hub_id) for hub_id in unreachable)} is not connected to this REST API, only heard through another hub. Send the command from that hub's JCC.")
+        hubs = [hub_id for hub_id in hubs if hub_id in portal_endpoints]
 
     for hub_id in hubs:
         command = jaia_request.command_for_hub
@@ -304,7 +313,7 @@ def command_for_hub(jaia_request: APIRequest) -> APIResponse:
         client_to_portal_msg = jaiabot.messages.portal_pb2.ClientToPortalMessage()
         client_to_portal_msg.command_for_hub.CopyFrom(command)
 
-        send_client_to_portal_message(hub_id, client_to_portal_msg)
+        send_client_to_portal_message(portal_endpoints[hub_id], client_to_portal_msg)
         jaia_response.target.hubs.append(hub_id)
 
     jaia_response.command_result.command_sent = len(hubs) > 0
@@ -340,22 +349,23 @@ def engineering_command(jaia_request: APIRequest) -> APIResponse:
 
         bots, _ = get_bots_and_hubs(jaia_request.target)
         hubs = list(common.shared_data.data.hubs.keys())
+        endpoints = common.shared_data.data.endpoints_for_hubs(hubs)
 
         engineering_command = jaia_request.engineering_command
         engineering_command.time = utc_now_microseconds()
 
-        for hub_id in hubs:
+        for endpoint in endpoints:
             for bot in bots:
                 engineering_command.bot_id = bot.bot_id
 
                 client_to_portal_msg = jaiabot.messages.portal_pb2.ClientToPortalMessage()
                 client_to_portal_msg.engineering_command.CopyFrom(engineering_command)
 
-                send_client_to_portal_message(hub_id, client_to_portal_msg)
+                send_client_to_portal_message(endpoint, client_to_portal_msg)
 
         jaia_response.target.bots.extend(bot.bot_id for bot in bots)
         jaia_response.target.hubs.extend(hubs)
-        jaia_response.command_result.command_sent = len(hubs) > 0 and len(bots) > 0
+        jaia_response.command_result.command_sent = len(endpoints) > 0 and len(bots) > 0
 
         if jaia_response.command_result.command_sent:
             take_control_for_requesting_client()

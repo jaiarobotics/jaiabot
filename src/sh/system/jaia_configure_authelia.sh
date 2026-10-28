@@ -16,11 +16,14 @@ source "/etc/jaiabot/jaia.env"
 source "/etc/jaiabot/cloud.env"
 set +a
 
+source /usr/share/jaiabot/jaia-authelia-common.sh
+
 ## Ports
 lldap_ldap_port=3890
 lldap_web_port=17170
 jcc_port=8080
 authelia_port=9991
+authelia_address="tcp://:$authelia_port"
 support_portal_port=9992
 # Fleet pairing's own SSH port: only the bootstrap key, only the enrollment command
 pairing_port=2222
@@ -125,37 +128,13 @@ install_packages()
     # now carries it, Caddy and LLDAP, and is already in a CloudHub's image
     rm -f /etc/apt/sources.list.d/authelia.list /etc/apt/preferences.d/authelia /usr/share/keyrings/authelia-security.gpg
 
-    apt-get update && apt-get install -y --no-upgrade jaiabot-web-thirdparty
-
-    # Not grep -q: under pipefail it exits on the first match and caddy dies of SIGPIPE
-    if ! caddy list-modules 2>/dev/null | grep -x http.handlers.replace_response > /dev/null; then
-        echo "ERROR: $(command -v caddy) lacks the replace_response module; is jaiabot-web-thirdparty installed?" >&2
-        exit 1
-    fi
-    echo "Using $(caddy version)"
-
-    # A running Caddy cannot reload into a binary apt has since replaced
-    caddy_binary_changed=false
-    local caddy_pid
-    caddy_pid=$(systemctl show -p MainPID --value caddy 2>/dev/null || echo 0)
-    if [ "${caddy_pid:-0}" != 0 ] && [ "$(readlink "/proc/$caddy_pid/exe" 2>/dev/null)" != /usr/bin/caddy ]; then
-        caddy_binary_changed=true
-    fi
+    install_web_thirdparty
 }
 
 
 ##############
 ## Authelia ##
 ##############
-
-# Everything Authelia reads at startup, so we can restart it below only when
-# this run changed something (a restart signs everyone out: sessions are in memory)
-authelia_inputs_fingerprint()
-{
-    cat /etc/authelia/configuration.yml \
-        /etc/systemd/system/authelia.service.d/override.conf \
-        /etc/authelia/smtp_password 2>/dev/null | sha256sum || true
-}
 
 # Secrets for Authelia and LLDAP, made once and kept with the persistent data
 load_secrets()
@@ -165,44 +144,14 @@ load_secrets()
     # allocates need not be the one that wrote the database before a major upgrade
     chown -R authelia:authelia $authelia_persistent_dir
 
-    if [ ! -f "$authelia_secrets_file" ]; then
-        cat <<EOF > "$authelia_secrets_file"
-jwt_secret=$(openssl rand -hex 64)
-session_secret=$(openssl rand -hex 64)
-storage_encryption_key=$(openssl rand -hex 64)
-lldap_jwt_secret=$(openssl rand -hex 64)
-lldap_key_seed=$(openssl rand -hex 64)
-EOF
-        chmod 0600 $authelia_secrets_file
-    fi
-    if ! grep -q '^authelia_ldap_password=' "$authelia_secrets_file"; then
-        echo "authelia_ldap_password=$(openssl rand -hex 64)" >> "$authelia_secrets_file"
-    fi
-    set -a; source "$authelia_secrets_file"; set +a;
+    load_secrets_file "$authelia_secrets_file"
 }
 
-load_smtp_credentials()
+load_cloudhub_smtp_credentials()
 {
-    # An SSM parameter ARN names its own region, which may not be ours
-    local region=$jaia_aws_region
-    if [[ "$smtp_credentials_parameter" == arn:* ]]; then
-        region=$(cut -d: -f4 <<< "$smtp_credentials_parameter")
-    fi
-
-    local credentials username password
-    smtp_username_line=""
-    smtp_password_env=""
-    if credentials=$(aws ssm get-parameter --region "$region" --name "$smtp_credentials_parameter" --with-decryption --query Parameter.Value --output text) \
-            && username=$(python3 -c 'import json,sys; print(json.load(sys.stdin)["username"])' <<< "$credentials") \
-            && password=$(python3 -c 'import json,sys; print(json.load(sys.stdin)["password"])' <<< "$credentials"); then
-        (umask 077; printf '%s' "$password" > "$smtp_password_file")
-        chown authelia:authelia "$smtp_password_file"
-        smtp_username_line="username: '$username'"
-        smtp_password_env="Environment=AUTHELIA_NOTIFIER_SMTP_PASSWORD_FILE=$smtp_password_file"
-    else
+    if ! load_smtp_credentials; then
         # Not fatal: an IP-allowlisted relay (e.g. Google Workspace) needs no credentials
-        echo "WARNING: Could not read SMTP credentials from SSM parameter $smtp_credentials_parameter ($region). Authelia will send without authenticating." >&2
-        rm -f "$smtp_password_file"
+        echo "WARNING: Could not read SMTP credentials from SSM parameter $smtp_credentials_parameter. Authelia will send without authenticating." >&2
     fi
 }
 
@@ -222,59 +171,9 @@ EOF
 
 write_authelia_config()
 {
-    cat <<EOF > /etc/authelia/configuration.yml
----
-server:
-  address: 'tcp://:$authelia_port'
-  asset_path: '$authelia_asset_dir'
-  # A customer's whole office usually reaches the CloudHub from one address
-  endpoints:
-    rate_limits:
-      reset_password_start:
-        buckets:
-          - period: '5 minutes'
-            requests: 20
-          - period: '1 hour'
-            requests: 100
-      session_elevation_start:
-        buckets:
-          - period: '5 minutes'
-            requests: 20
-          - period: '1 hour'
-            requests: 100
-# Blank: a user with no stored preference is offered the method they registered
-# (TOTP, then a security key); a named default would be offered first regardless
-default_2fa_method: ''
-webauthn:
-  disable: false
-  enable_passkey_login: false
-  display_name: '$base_uri'
-totp:
-  disable: false
-  issuer: '$base_uri'
-duo_api:
-  disable: true
-identity_validation:
-  reset_password:
-    jwt_secret: '$jwt_secret'
-authentication_backend:
-  ldap:
-    implementation: 'lldap'
-    address: 'ldap://localhost:$lldap_ldap_port'
-    base_dn: 'DC=jaia,DC=tech'
-    user: 'UID=authelia,OU=people,DC=jaia,DC=tech'
-    password: '$authelia_ldap_password'
-access_control:
-  default_policy: 'deny'
-  rules: # order matters!
-    # Cancel links in Authelia's emails work only for someone signed in, which a mail scanner never is
-    - domain: auth.$base_uri
-      resources:
-        - '^/revoke/(reset-password|one-time-code)([?].*)?$'
-        - '^/api/reset-password$'
-        - '^/api/user/session/elevation/[^/]+$'
-      policy: one_factor
-
+    {
+        authelia_config_head
+        cat <<EOF
     # The navigation menu asks Caddy who is signed in (/_jaia/whoami on every site)
     - domain:
         - '$base_uri'
@@ -365,49 +264,11 @@ session:
      - domain: '$base_uri'
        authelia_url: 'https://auth.$base_uri'
        default_redirection_url: 'https://$base_uri/'
-storage:
-  encryption_key: '$storage_encryption_key'
-  local:
-    path: '$authelia_persistent_dir/db.sqlite3'
-notifier:
-  $notifier_startup_check
-  smtp:
-    address: '$smtp_address'
-    $smtp_username_line
-    sender: 'Jaia <$smtp_sender>'
-    identifier: 'auth.$base_uri'
-    subject: '[Jaia Cloud] {title}'
-...
 EOF
+        authelia_config_tail
+    } > /etc/authelia/configuration.yml
 
     systemctl enable authelia
-}
-
-# Started after LLDAP, which it authenticates against
-start_authelia()
-{
-    mkdir -p /etc/systemd/system/authelia.service.d
-    cat <<EOF > /etc/systemd/system/authelia.service.d/override.conf
-[Unit]
-Requires=lldap.service
-After=lldap.service
-
-[Service]
-ExecStartPre=-/bin/bash -c 'for i in {1..110}; do (exec 3<>/dev/tcp/127.0.0.1/$lldap_ldap_port) 2>/dev/null && exit 0; sleep 1; done; exit 1'
-TimeoutStartSec=120
-Restart=on-failure
-RestartSec=10s
-$smtp_password_env
-EOF
-
-    systemctl daemon-reload
-    # Authelia only reads its configuration at startup, so 'start' alone would leave a
-    # running instance enforcing the old access_control rules
-    if [ "$(authelia_inputs_fingerprint)" != "$authelia_inputs_before" ]; then
-        systemctl restart authelia
-    else
-        systemctl start authelia
-    fi
 }
 
 
@@ -423,15 +284,7 @@ write_caddyfile()
         order replace after encode
 }
 
-(authelia_forward_auth) {
-        forward_auth localhost:$authelia_port {
-                uri /api/authz/forward-auth
-                copy_headers Remote-User Remote-Groups Remote-Email Remote-Name
-                # A denial carries a fresh anonymous session cookie, which would
-                # replace a sign-in that completed while the request was in flight
-                header_down -Set-Cookie
-        }
-}
+$(caddy_authelia_snippets)
 
 # Shared navigation menu and landing page (static files from jaiabot-web)
 (jaia_nav) {
@@ -513,55 +366,7 @@ $base_uri {
 auth.$base_uri {
         $caddy_tls
         import jaia_nav
-        # Mail scanners open the links in Authelia's emails, and press buttons, before the
-        # person does. A reset link spends its token in whichever browser opens it, so it
-        # only reaches Authelia from the browser that asked for the reset.
-        @reset_requested {
-                method POST
-                path /api/reset-password/identity/start
-        }
-        handle @reset_requested {
-                header +Set-Cookie "jaia_reset=1; Path=/; Max-Age=600; Secure; HttpOnly; SameSite=Lax"
-                import jaia_nav_proxy localhost:$authelia_port
-        }
-        @reset_link_elsewhere {
-                method GET
-                path /reset-password/step2
-                not header Cookie *jaia_reset=1*
-        }
-        handle @reset_link_elsewhere {
-                root * $jaia_cloud_web_dir
-                rewrite * /_jaia/reset-elsewhere.html
-                header Cache-Control no-store
-                file_server
-        }
-        @reset_finish_elsewhere {
-                path /api/reset-password/identity/finish
-                not header Cookie *jaia_reset=1*
-        }
-        handle @reset_finish_elsewhere {
-                respond 403
-        }
-        # A cancel link acts as it loads, so only for someone signed in
-        @cancel_link {
-                method GET
-                path /revoke/reset-password /revoke/one-time-code
-        }
-        handle @cancel_link {
-                import authelia_forward_auth
-                import jaia_nav_proxy localhost:$authelia_port
-        }
-        @cancel_call {
-                method DELETE
-                path /api/reset-password /api/user/session/elevation/*
-        }
-        handle @cancel_call {
-                import authelia_forward_auth
-                import jaia_nav_proxy localhost:$authelia_port
-        }
-        handle {
-                import jaia_nav_proxy localhost:$authelia_port
-        }
+        import authelia_portal jaia_nav_proxy localhost:$authelia_port
 }
 
 users.$base_uri {
@@ -762,61 +567,6 @@ EOF
     fi
 }
 
-lldap_inputs_fingerprint()
-{
-    cat /etc/lldap/lldap_config.toml /etc/systemd/system/lldap.service.d/jaia-swap.conf 2>/dev/null | sha256sum || true
-}
-
-start_lldap()
-{
-    # An LLDAP configured before jaiabot-web-thirdparty ran in Docker from a unit written
-    # here, which would shadow the package's
-    if [ -f /etc/systemd/system/lldap.service ]; then
-        systemctl disable --now lldap || true
-        rm -f /etc/systemd/system/lldap.service /etc/lldap/docker-compose.yaml
-        systemctl daemon-reload
-    fi
-
-    # recursive, as for Authelia: the lldap uid differs between images, and the container ran as another
-    mkdir -p "$lldap_persistent_dir"
-    chown -R lldap:lldap $lldap_persistent_dir
-
-    local before
-    before=$(lldap_inputs_fingerprint)
-
-    cat <<EOF > /etc/lldap/lldap_config.toml
-ldap_host = "127.0.0.1"
-ldap_port = $lldap_ldap_port
-http_host = "127.0.0.1"
-http_port = $lldap_web_port
-jwt_secret = "$lldap_jwt_secret"
-key_seed = "$lldap_key_seed"
-ldap_base_dn = "dc=jaia,dc=tech"
-ldap_user_dn = "authelia"
-ldap_user_email = "authelia@$base_uri"
-ldap_user_pass = "$authelia_ldap_password"
-database_url = "sqlite://$lldap_persistent_dir/users.db?mode=rwc"
-EOF
-    chown root:lldap /etc/lldap/lldap_config.toml
-    chmod 0640 /etc/lldap/lldap_config.toml
-
-    # We need the swap file for Authelia + JCC running on EC2 micro
-    # overlayroot won't allow swapfile in /etc/fstab, so we start it here
-    mkdir -p /etc/systemd/system/lldap.service.d
-    cat <<EOF > /etc/systemd/system/lldap.service.d/jaia-swap.conf
-[Service]
-ExecStartPre=-+/usr/sbin/swapon $swapfile
-EOF
-    systemctl daemon-reload
-    systemctl enable lldap
-    # LLDAP reads its configuration at startup only
-    if [ "$(lldap_inputs_fingerprint)" != "$before" ]; then
-        systemctl restart lldap
-    else
-        systemctl start lldap
-    fi
-}
-
 bootstrap_lldap()
 {
     if $jaia_auth_lldap_bootstrap_completed; then
@@ -824,30 +574,15 @@ bootstrap_lldap()
     fi
     # bounded because a first boot that never returns leaves the machine without the
     # reboot that mounts overlayroot
-    local attempt
-    for attempt in $(seq 1 120); do
-        if LLDAP_URL=http://127.0.0.1:$lldap_web_port \
-           LLDAP_ADMIN_USERNAME=authelia \
-           LLDAP_ADMIN_PASSWORD="$authelia_ldap_password" \
-           USER_CONFIGS_DIR=/etc/lldap/bootstrap/user-configs \
-           GROUP_CONFIGS_DIR=/etc/lldap/bootstrap/group-configs \
-           USER_SCHEMAS_DIR=/etc/lldap/bootstrap/user-schemas \
-           GROUP_SCHEMAS_DIR=/etc/lldap/bootstrap/group-schemas \
-           LLDAP_SET_PASSWORD_PATH=/usr/bin/lldap_set_password \
-           DO_CLEANUP=false \
-           /usr/libexec/lldap/bootstrap.sh; then
-            echo "jaia_auth_lldap_bootstrap_completed=true" >> /etc/jaiabot/cloud.env
-            mkdir -p "$auth_persistent_dir"
-            touch "$jaia_bootstrap_marker"
-            rm -f "$jaia_bootstrap_config"
-            break
-        fi
-        if (( attempt == 120 )); then
-            echo "ERROR: LLDAP bootstrap did not succeed after ${attempt} attempts" >&2
-            exit 1
-        fi
-        sleep 1
-    done
+    if lldap_bootstrap authelia "$authelia_ldap_password" /etc/lldap/bootstrap; then
+        echo "jaia_auth_lldap_bootstrap_completed=true" >> /etc/jaiabot/cloud.env
+        mkdir -p "$auth_persistent_dir"
+        touch "$jaia_bootstrap_marker"
+        rm -f "$jaia_bootstrap_config"
+    else
+        echo "ERROR: LLDAP bootstrap did not succeed after 120 attempts" >&2
+        exit 1
+    fi
 }
 
 
@@ -1020,7 +755,7 @@ main()
     load_secrets
     # Before anything Authelia reads at startup is rewritten, the SMTP password included
     authelia_inputs_before=$(authelia_inputs_fingerprint)
-    load_smtp_credentials
+    load_cloudhub_smtp_credentials
     write_authelia_assets
     write_authelia_config
 

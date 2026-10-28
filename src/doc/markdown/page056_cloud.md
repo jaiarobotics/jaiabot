@@ -341,7 +341,7 @@ In addition to the CloudHub and VirtualFleet mentioned above, Jaia runs a number
 - `packages.jaia.tech`: Hosts Ubuntu (*.deb) packages
 - `docs.jaia.tech`: Documentation
 - `vpn.jaia.tech`: Service VPN for remote support.
-- `*.cloud.jaia.tech`: Web access with 2-factor authentication for accessing CloudHubs.
+- `*.cloud.jaia.tech`: Web access with 2-factor authentication to Jaia's own web services (`cc`, `sandbox.cc`, `launchpad`, `data`). Its build, deployment and migration are documented in Confluence: [auth.cloud.jaia.tech](https://jaia-innovation.atlassian.net/wiki/spaces/PD/pages/3103588353/auth.cloud.jaia.tech).
 
 We want to be able to recreate these servers from scratch for consistency of implementation, security, and AWS instance type. We want to be able to upgrade to the latest Ubuntu/Jaiabot release by rebuilding servers, and have the tools in place to recreate them in the event of an instance disk corruption or AWS failure.
 
@@ -378,6 +378,12 @@ The `docs` and `iridium `server configurations are fairly simple, and one of the
 - `ARCH=arm64`: Architecture for the instance (must match INSTANCE_TYPE architecture). Default is `arm64` to match `t4g.nano`
 - `INSTANCE_TYPE=t4g.nano`: Instance type: default is `t4g.nano` (very small arm64 instance).
 - `REGION=us-west-2`: Region, default is `us-west-2`
+
+*This section written by Claude*
+
+- `SUBNET_ID=subnet-...`: Subnet to launch in. Required for any region but `us-west-2`. For IPv6, the subnet needs an IPv6 block.
+- `SERVER_NAME=foo.example.com`: Name tag for the instance and its resources, default `${SERVER_TYPE}.jaia.tech`. Set it to run a second server of the same type (a test copy) beside the first; `delete_specialty_server.sh` given the conf then deletes only that one.
+- `IAM_INSTANCE_PROFILE_NAME=...`: Instance profile to launch with. It must exist already.
 - `DISK_SIZE_GB=8`: Size of disk in GB (default 8).
 - Any other variables to be used in preprocessing `user-data.*.in` (see below).
 
@@ -419,6 +425,10 @@ When testing the creation of a new server type, you may be creating and deleting
 `ENABLE_TERMINATION_PROTECTION=false`
 
 so that you can easily delete the new server until it works correctly. Once you have a working server you can go in to the AWS console and enable termination protection for that instance (or delete and rebuild one last time with `ENABLE_TERMINATION_PROTECTION=true`).
+
+*This section written by Claude*
+
+`delete_specialty_server.sh` also takes the server's `.conf` in place of a server type: it then works in the conf's `REGION` and deletes only the server named by its `SERVER_NAME`. This is how to delete a test copy without touching the production server of the same type.
 
 ### Upgrade an existing specialty server type
 

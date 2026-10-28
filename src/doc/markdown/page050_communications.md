@@ -165,6 +165,10 @@ All Hub2HubData processing takes place in `jaiabot_hub_manager`. When it receive
 - **`command_comms_result`**: Publishes the result on the interprocess `hub_command_result` group. `jaiabot_web_portal` receives it via its normal `hub_command_result` subscription and forwards it to JCC.
 - **`hub_status`**: Publishes the status on the interprocess `hub_status` group. `jaiabot_web_portal` receives it via its normal `hub_status` subscription and forwards it to JCC.
 
+*This section written by Claude*
+
+The REST API treats a `remote_command` as another hub's operator taking control. It sets `controlling_client_id` to `hubN`, where N is the `from_hub_id`, so each JCC on this hub shows Take Control. It skips the commands a hub sends by itself (`DATA_OFFLOAD_COMPLETE` and `DATA_OFFLOAD_FAILED`), and commands from a hub whose own portal it is connected to, since those came from its own clients. Taking control without sending a command is not relayed between hubs.
+
 
 ## Iridium
 
