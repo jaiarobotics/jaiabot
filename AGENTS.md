@@ -45,6 +45,11 @@ your own section:
 - Leave the author's section empty for them to fill in. Never write in it or in
   another agent's section, and never remove text already there.
 - When updating a PR description, rewrite only your own `# <agent>` section.
+- Start every update from the description as it is on GitHub now
+  (`gh pr view <number> --json body`), never from a copy you kept: the author
+  may have written in their section since. Replace only the text from your
+  `# <agent>` heading to the next top-level heading (or the end), and send
+  everything else back unchanged.
 
 ## Third-party dependencies
 

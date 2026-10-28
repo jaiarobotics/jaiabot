@@ -14,12 +14,15 @@ CLOUDHUB_ID=30
 
 set -a; source "${CLOUD_ENV}"; set +a
 
+# iridium.jaia.tech is a peer, but not a node the JCU can act on
+IRIDIUM_ID=$(jaia_bounds --iridium_id)
+
 bots=()
 hubs=(${CLOUDHUB_ID})
 for peer in $(jaia-vpn-peers.sh list "${SERVER_IFACE}"); do
     if [[ "$peer" =~ ^bot([0-9]+)$ ]]; then
         bots+=("${BASH_REMATCH[1]}")
-    elif [[ "$peer" =~ ^hub([0-9]+)$ ]]; then
+    elif [[ "$peer" =~ ^hub([0-9]+)$ ]] && [ "${BASH_REMATCH[1]}" != "${IRIDIUM_ID}" ]; then
         hubs+=("${BASH_REMATCH[1]}")
     fi
 done

@@ -33,7 +33,7 @@ class EnrollTest(unittest.TestCase):
         # the CloudHub's hub id, which the shared stub (made for the fleet bounds) does not know
         bounds = os.path.join(self.env.dir, "bin", "jaia_bounds")
         with open(bounds, "w") as f:
-            f.write('#!/bin/sh\ncase "$1" in --cloudhub_id) echo 30 ;; *) echo 250 ;; esac\n')
+            f.write('#!/bin/sh\ncase "$1" in --cloudhub_id) echo 30 ;; --iridium_id) echo 25 ;; *) echo 250 ;; esac\n')
         os.chmod(bounds, 0o755)
         self.ssh_dir = os.path.join(self.env.dir, "ssh")
         os.makedirs(self.ssh_dir)
@@ -44,6 +44,16 @@ class EnrollTest(unittest.TestCase):
         with open(os.path.join(self.ssh_dir, "hub30_fleet7"), "w") as f:
             f.write(CLOUDHUB_SSH_SECRET)
 
+    def assert_client_config(self, text, address="fd0f:77ac:4fdf:7::203/128"):
+        """The client config jaia-vpn-gen.sh writes, and only that: the reply's whole
+        text, which the node installs as its tunnel."""
+        self.assertTrue(text.startswith("[Interface]\n"), text)
+        self.assertIn("PrivateKey = " + PLACEHOLDER + "\n", text)
+        self.assertIn("Address = " + address + "\n", text)
+        self.assertIn("[Peer]\n", text)
+        self.assertIn("Endpoint = 203.0.113.7:51821\n", text)
+        self.assertTrue(text.endswith("PersistentKeepalive = 52\n"), text)
+
     def enroll(self, request):
         env = dict(self.env.env, SSH_ORIGINAL_COMMAND=request, JAIA_SSH_DIR=self.ssh_dir)
         import subprocess
@@ -52,8 +62,7 @@ class EnrollTest(unittest.TestCase):
     def test_the_node_gets_its_config_and_nothing_else(self):
         result = self.enroll("bot 3 " + NODE_PUBKEY)
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(result.stdout, self.env.client_config("bot3", "wg_jaia_ch7"))
-        self.assertIn("PrivateKey = " + PLACEHOLDER, result.stdout)
+        self.assert_client_config(result.stdout)
         self.assertIn(NODE_PUBKEY, self.env.peer_fragment("wg_cloudhub", "bot3"))
 
     def test_the_request_may_only_be_three_words(self):
@@ -85,9 +94,9 @@ class EnrollTest(unittest.TestCase):
         self.give_the_cloudhub_a_key()
         result = self.enroll("bot 3 " + NODE_PUBKEY)
         self.assertEqual(result.returncode, 0, result.stderr)
-        config = self.env.client_config("bot3", "wg_jaia_ch7")
-        self.assertTrue(result.stdout.startswith(config))
-        extra = result.stdout[len(config):]
+        config, marker, rest = result.stdout.partition("# jaia-cloudhub-ssh-key")
+        self.assert_client_config(config)
+        extra = marker + rest
         self.assertEqual(extra, '# jaia-cloudhub-ssh-key: from="fd0f:77ac:4fdf:7::203" {}\n'.format(
             CLOUDHUB_SSH_PUBKEY))
         self.assertNotIn("never sent", result.stdout)
@@ -95,7 +104,7 @@ class EnrollTest(unittest.TestCase):
     def test_a_cloudhub_without_its_key_still_enrolls_the_node(self):
         result = self.enroll("bot 3 " + NODE_PUBKEY)
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(result.stdout, self.env.client_config("bot3", "wg_jaia_ch7"))
+        self.assert_client_config(result.stdout)
         self.assertIn("WARNING", result.stderr)
 
     def test_a_reimaged_node_may_enroll_again(self):
@@ -107,6 +116,38 @@ class EnrollTest(unittest.TestCase):
         fragment = self.env.peer_fragment("wg_cloudhub", "bot3")
         self.assertIn(OTHER_PUBKEY, fragment)
         self.assertNotIn(NODE_PUBKEY, fragment)
+
+    def test_iridium_enrolls_as_its_hub_id_without_the_cloudhubs_key(self):
+        """iridium.jaia.tech relays the fleet's Iridium messages; the CloudHub never
+        acts on it, so it gets its config and nothing else."""
+        self.give_the_cloudhub_a_key()
+        result = self.enroll("iridium " + NODE_PUBKEY)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assert_client_config(result.stdout)
+        self.assertIn(NODE_PUBKEY, self.env.peer_fragment("wg_cloudhub", "hub25"))
+        self.assertNotIn("jaia-cloudhub-ssh-key", result.stdout)
+
+    def test_iridium_takes_only_a_key(self):
+        for request in ("iridium", "iridium 3 " + NODE_PUBKEY, "iridium not-a-key"):
+            result = self.enroll(request)
+            self.assertNotEqual(result.returncode, 0, "'{}' was accepted".format(request))
+        self.assertIsNone(self.env.peer_fragment("wg_cloudhub", "hub25"))
+
+    def test_a_directory_left_by_another_user_does_not_stop_enrollment(self):
+        """A hand run of jaia-vpn-gen.sh as root once left /tmp/hub25 behind, and the
+        forced command, running as jaia, could not write its reply there."""
+        blocked = os.path.join(self.env.out_dir, "bot3")
+        os.makedirs(blocked)
+        os.chmod(blocked, 0o500)
+        self.addCleanup(os.chmod, blocked, 0o700)
+        result = self.enroll("bot 3 " + NODE_PUBKEY)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("[Interface]", result.stdout)
+
+    def test_nothing_is_left_behind(self):
+        before = set(os.listdir(self.env.out_dir))
+        self.assertEqual(self.enroll("bot 3 " + NODE_PUBKEY).returncode, 0)
+        self.assertEqual(set(os.listdir(self.env.out_dir)), before)
 
 
 if __name__ == "__main__":
