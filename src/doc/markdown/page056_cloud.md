@@ -192,6 +192,10 @@ CircleCI builds the AMI in `us-east-1` (and separately in `us-gov-east-1` for Go
 
 CUSTOMER_NAME is the fleet config's `customer` (default `jaia`), which `jaia admin fleet create` and `edit` ask for when the fleet has a CloudHub.
 
+*This section written by Claude*
+
+`create_vpc.sh` tags each resource in the call that creates it. The exception is the VPC's main route table, which comes with the VPC and gets its tags at the end. As a result, `delete_vpc.sh` can find whatever a create left behind, even if the create was killed before it could roll back.
+
 
 ### VM Instances
 
