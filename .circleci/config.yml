@@ -451,6 +451,16 @@ workflows:
           requires:
             - aws-sync
 
+  # TEMPORARY: trials the published test/3.y images straight away, without building
+  # them again, to iterate on the joined sea trial. Drop before this branch merges.
+  sea-trial-iterate:
+    jobs:
+      - sea-trial-virtualfleet:
+          filters:
+            branches:
+              only:
+                - "task/3.y/sea-trial-hub2hub-joined-mode/SW-2721"
+
 commands:
   aws-sync-command:
     parameters:
