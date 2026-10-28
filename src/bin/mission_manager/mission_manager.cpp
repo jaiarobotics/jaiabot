@@ -1027,8 +1027,12 @@ void jaiabot::apps::MissionManager::handle_command(const protobuf::Command& comm
             break;
 
         case protobuf::Command::DATA_OFFLOAD_FAILED:
-            machine_->process_event(statechart::EvDataOffloadFailed());
-            machine_->insert_warning(jaiabot::protobuf::WARNING__MISSION__DATA_OFFLOAD_FAILED);
+            // A failure reported after the offload already finished (e.g. by another hub) is stale
+            if (machine_->state_cast<const statechart::post_deployment::DataOffload*>())
+            {
+                machine_->process_event(statechart::EvDataOffloadFailed());
+                machine_->insert_warning(jaiabot::protobuf::WARNING__MISSION__DATA_OFFLOAD_FAILED);
+            }
             break;
 
             // handled by jaiabot_health
