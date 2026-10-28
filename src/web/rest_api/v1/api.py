@@ -302,6 +302,11 @@ def command_for_hub(jaia_request: APIRequest) -> APIResponse:
         portal_endpoints = dict(common.shared_data.data.portal_endpoints)
         unreachable = [hub_id for hub_id in hubs if hub_id not in portal_endpoints]
         if unreachable and not jaia_request.target.all:
+            identified_endpoints = set(portal_endpoints.values())
+            unidentified = [hub_id for hub_id in unreachable
+                            if common.shared_data.data.hub_endpoints.get(hub_id) not in identified_endpoints]
+            if unidentified:
+                raise APIException(rest_api.API_ERROR__INVALID_TARGET, f"Hub {', '.join(str(hub_id) for hub_id in unidentified)} is heard through a portal that has not yet sent its metadata, so it is not yet known whether that portal runs on it. Try again shortly.")
             raise APIException(rest_api.API_ERROR__INVALID_TARGET, f"Hub {', '.join(str(hub_id) for hub_id in unreachable)} is not connected to this REST API, only heard through another hub. Send the command from that hub's JCC.")
         hubs = [hub_id for hub_id in hubs if hub_id in portal_endpoints]
 
