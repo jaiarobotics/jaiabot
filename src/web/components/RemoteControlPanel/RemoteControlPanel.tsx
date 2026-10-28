@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { mdiChevronDown, mdiChevronUp } from "@mdi/js";
 import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 import Icon from "@mdi/react";
@@ -36,12 +36,14 @@ enum RCZones {
 }
 
 const throttlePercentages = new Map<number, number>([
-    [-1, -10],
     [0, 0],
     [1, 37.5],
     [2, 40],
     [3, 60],
 ]);
+
+// Must stay above MotorBounds.throttle_zero_net_buoyancy (-35 by default), or reversing sinks the bot
+const REVERSE_THROTTLE = -10;
 
 const rudderPercentages = new Map<number, number>([
     [0, 0],
@@ -50,7 +52,11 @@ const rudderPercentages = new Map<number, number>([
     [3, 100],
 ]);
 
-const RC_COMMAND_TIMEOUT = 500; // milliseconds
+const RC_COMMAND_INTERVAL = 500; // milliseconds
+
+// Seconds the bot acts on a command before stopping. The bot keeps one command per whole-second
+// timestamp, so its commands arrive about 1 s apart and a 1 s timeout would trip between them.
+const RC_COMMAND_TIMEOUT = 2;
 
 /**
  * Creates panel to manually control a Bot
@@ -71,17 +77,6 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
     const [isOverdriveDialogVisible, setIsOverdriveDialogVisible] = useState(false);
     const [isMinimizedView, setIsMinimizedView] = useState(false);
 
-    // Include useEffect dependencies to prevent interval data from going stale
-    useEffect(() => {
-        const rcCommandInterval = setInterval(() => {
-            handleRCInterval();
-        }, RC_COMMAND_TIMEOUT);
-
-        return () => {
-            clearInterval(rcCommandInterval);
-        };
-    }, [controlType, throttleDirection, throttleMagnitude, rudderDirection, rudderMagnitude]);
-
     /**
      * Sends RC commands periodically unless in dive mode.
      *
@@ -92,6 +87,20 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
             sendEngineeringCommand(packageCommand());
         }
     };
+
+    const handleRCIntervalRef = useRef(handleRCInterval);
+    handleRCIntervalRef.current = handleRCInterval;
+
+    // Restarting the interval on each input change would hold off sending while the input keeps changing
+    useEffect(() => {
+        const rcCommandInterval = setInterval(() => {
+            handleRCIntervalRef.current();
+        }, RC_COMMAND_INTERVAL);
+
+        return () => {
+            clearInterval(rcCommandInterval);
+        };
+    }, []);
 
     /**
      * Handles axis input from both analog sticks and gamepad
@@ -137,13 +146,31 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
         } else {
             // Reset when in dead zone
             if (axisType === AnalogStickTypes.LEFT) {
-                setThrottleDirection("");
-                setThrottleMagnitude(0);
+                resetThrottle();
             } else if (axisType === AnalogStickTypes.RIGHT) {
-                setRudderDirection("");
-                setRudderMagnitude(0);
+                resetRudder();
             }
         }
+    };
+
+    /**
+     * Zeroes the throttle
+     *
+     * @returns {void}
+     */
+    const resetThrottle = () => {
+        setThrottleDirection("");
+        setThrottleMagnitude(0);
+    };
+
+    /**
+     * Zeroes the rudder
+     *
+     * @returns {void}
+     */
+    const resetRudder = () => {
+        setRudderDirection("");
+        setRudderMagnitude(0);
     };
 
     // the minimized view hides the dashboard, so the gamepad must not drive the bot from it
@@ -192,15 +219,13 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
     };
 
     /**
-     * Resets the throttle and rudder when the analog stick is released
+     * Zeroes the throttle and rudder
      *
      * @returns {void}
      */
-    const onAnalogStickStop = () => {
-        setThrottleDirection("");
-        setThrottleMagnitude(0);
-        setRudderDirection("");
-        setRudderMagnitude(0);
+    const resetThrottleAndRudder = () => {
+        resetThrottle();
+        resetRudder();
     };
 
     /**
@@ -213,7 +238,7 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
         let rudder = rudderPercentages.get(rudderMagnitude);
 
         if (throttleDirection === "BACKWARD") {
-            throttle = throttle * -1;
+            throttle = REVERSE_THROTTLE;
         }
 
         if (rudderDirection === "LEFT") {
@@ -225,6 +250,7 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
             pid_control: {
                 throttle: throttle,
                 rudder: rudder,
+                timeout: RC_COMMAND_TIMEOUT,
             },
         };
 
@@ -350,7 +376,7 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
                                 handleAxisInput(event.y, AnalogStickTypes.LEFT);
                                 handleAxisInput(event.x, AnalogStickTypes.RIGHT);
                             }}
-                            onAnalogStickStop={onAnalogStickStop}
+                            onAnalogStickStop={resetThrottleAndRudder}
                         />
                         <div className="rc-dashboard">
                             <div className="selection-controls">
@@ -376,7 +402,7 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
                             handleAnalogStickMove={(event) =>
                                 handleAxisInput(event.y, AnalogStickTypes.LEFT)
                             }
-                            onAnalogStickStop={onAnalogStickStop}
+                            onAnalogStickStop={resetThrottle}
                         />
                         <div className="rc-dashboard">
                             <div className="selection-controls">
@@ -390,7 +416,7 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
                             handleAnalogStickMove={(event) =>
                                 handleAxisInput(event.x, AnalogStickTypes.RIGHT)
                             }
-                            onAnalogStickStop={onAnalogStickStop}
+                            onAnalogStickStop={resetRudder}
                         />
                     </div>
                 </>
