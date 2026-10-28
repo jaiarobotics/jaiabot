@@ -698,6 +698,9 @@ jobs:
               --warp << pipeline.parameters.sea-trial-warp >>
           no_output_timeout: 30m
       - run:
+          name: Join the VirtualHub to the CloudHub over hub-to-hub
+          command: rootfs/cloud/aws/circleci/join-ci-virtualfleet.sh
+      - run:
           name: Send the fleet on its dive mission
           command: |
             rootfs/cloud/aws/circleci/run-ci-sea-trial.sh \

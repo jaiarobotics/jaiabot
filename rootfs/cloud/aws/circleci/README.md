@@ -83,12 +83,29 @@ hand from a checkout in the same order the job runs them:
 ./create-ci-cloudhub.sh --bots 2 --warp 5    # needs JAIA_CI_CUSTOMER, AWS_DEFAULT_REGION
 ./check-cloudhub-auth.sh
 ./raise-ci-virtualfleet.sh --bots 2 --warp 5
+./join-ci-virtualfleet.sh
 ./run-ci-sea-trial.sh --bots 2 --goals 2 --warp 5
 ./collect-ci-results.sh --bots 2
 ./teardown-ci-fleet.sh
 ```
 
 All of them take `--fleet`, defaulting to `JAIA_CI_FLEET` and then to 9.
+
+`join-ci-virtualfleet.sh` enrolls the VirtualHub on the CloudHub's fleet VPN, as a
+field hub pairs. Only CI does this: a VirtualFleet otherwise reaches its CloudHub only
+over the VirtualFleet VPN, which carries no hub-to-hub. Joined, the two hubs relay each
+other's statuses and commands, so the trial's `hub2hub` tier can drive the fleet
+through both hubs (see `scripts/test/e2e/README.md`).
+
+- **Enrollment:** it calls the CloudHub's `jaia-vpn-enroll.sh` directly rather than
+  over the pairing port, which stays closed in CI.
+- **Endpoint:** it points the tunnel at the CloudHub's VPC IPv6 address, as the
+  VirtualFleet VPN does.
+- **Hub-to-hub:** it restarts the VirtualHub's intervehicle portal, which only addresses
+  hubs over the VPN if the tunnel is up when it starts.
+
+A tunnel that never handshakes is reported, not fatal, so the trial still runs and its
+`hub2hub` tier fails.
 
 ## The fleet config
 

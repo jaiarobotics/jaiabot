@@ -51,9 +51,12 @@ HUB_ADDR=$(ssh -o StrictHostKeyChecking=no "jaia@${CLOUDHUB}" \
        --fleet_id ${FLEET} --node_id 1")
 echo "VirtualHub 1 is at ${HUB_ADDR}"
 
+# The CloudHub is the second hub: join-ci-virtualfleet.sh put it on hub-to-hub with the
+# VirtualHub, and its own REST API answers on the port JCC moved to behind Authelia
 ssh -o StrictHostKeyChecking=no "jaia@${CLOUDHUB}" \
     "python3 /tmp/e2e/jaia-sea-trial.py \
        --hub-url http://hub1-virtualfleet${FLEET} \
+       --peer-hub-url http://localhost:8080 --peer-hub-id $(jaia_bounds --cloudhub_id) \
        --bots ${BOTS} --goals ${GOALS} --warp ${WARP} \
        --offload-host jaia@${HUB_ADDR} \
        --offload-dir /var/log/jaiabot/bot_offload \

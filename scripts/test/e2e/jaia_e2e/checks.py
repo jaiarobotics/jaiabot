@@ -6,10 +6,12 @@ import itertools
 from . import api, mission
 
 LIVENESS, EXECUTION, OFFLOAD, CONTENT = 'liveness', 'execution', 'offload', 'content'
+# before execution, since bots commanded through a hub that cannot reach them fail there too
+HUB2HUB = 'hub2hub'
 # last, so that first_failing_tier names the layer that broke rather than the fact
 # that the run stopped
 TRIAL = 'trial'
-TIERS = (LIVENESS, EXECUTION, OFFLOAD, CONTENT, TRIAL)
+TIERS = (LIVENESS, HUB2HUB, EXECUTION, OFFLOAD, CONTENT, TRIAL)
 
 DIVE = 'IN_MISSION__UNDERWAY__TASK__DIVE__'
 DIVE_STATES = (
@@ -28,6 +30,7 @@ DATA_OFFLOAD = 'POST_DEPLOYMENT__DATA_OFFLOAD'
 POST_IDLE = 'POST_DEPLOYMENT__IDLE'
 POST_FAILED = 'POST_DEPLOYMENT__FAILED'
 ABORT = 'IN_MISSION__UNDERWAY__ABORT'
+OFFLOAD_FAILED_WARNING = 'WARNING__MISSION__DATA_OFFLOAD_FAILED'
 
 
 class Check:
@@ -56,6 +59,14 @@ class Observations:
         self.faults_in_state = collections.defaultdict(
             lambda: collections.defaultdict(set))
         self.hub_offload_percentage = {}
+        self.last_warnings = {}
+        # bots each hub was seen offloading, from the hub's own status: a hub heard over
+        # hub-to-hub never carries bot_offload, as it is not in that link's encoding
+        self.hub_offloaded_bots = collections.defaultdict(set)
+        # polls on which a hub's queue went missing although its last one still had bots
+        # waiting, which JCC shows as the queue emptying and filling again
+        self.hub_offload_gaps = collections.defaultdict(int)
+        self._last_bot_offload = {}
 
     def ingest(self, status):
         for bot in api.bot_statuses(status):
@@ -78,10 +89,18 @@ class Observations:
             self.warnings[bot_id].update(warnings)
             if state:
                 self.faults_in_state[bot_id][state].update(errors or warnings)
+            self.last_warnings[bot_id] = warnings
         for hub in api.hub_statuses(status):
-            percentage = hub.get('bot_offload', {}).get('data_offload_percentage')
+            hub_id = hub.get('hub_id')
+            bot_offload = hub.get('bot_offload')
+            percentage = (bot_offload or {}).get('data_offload_percentage')
             if percentage is not None:
-                self.hub_offload_percentage[hub.get('hub_id')] = percentage
+                self.hub_offload_percentage[hub_id] = percentage
+            if bot_offload and 'bot_id' in bot_offload:
+                self.hub_offloaded_bots[hub_id].add(bot_offload['bot_id'])
+            if not bot_offload and (self._last_bot_offload.get(hub_id) or {}).get('bots_pending'):
+                self.hub_offload_gaps[hub_id] += 1
+            self._last_bot_offload[hub_id] = bot_offload
 
     def saw(self, bot_id, state):
         return self.states[bot_id][state] > 0
@@ -171,6 +190,14 @@ def offload_checks(observations, expected_bots, offloaded_logs=None):
     can see the hub's offload directory; the DATA_OFFLOAD state itself is too short
     to poll for reliably."""
     checks = []
+    # a gap only fails a run when a poll happens to land in it, so polling can miss one
+    # but never invent one
+    for hub_id in sorted(observations.hub_offloaded_bots, key=str):
+        gaps = observations.hub_offload_gaps[hub_id]
+        checks.append(Check(OFFLOAD, f'hub {hub_id} kept its offload queue between bots',
+                            not gaps,
+                            f'the queue went missing on {gaps} poll(s) with bots still waiting'
+                            if gaps else 'never missing while bots waited'))
     for bot_id in expected_bots:
         if offloaded_logs is not None:
             logs = offloaded_logs.get(bot_id, [])
@@ -182,7 +209,48 @@ def offload_checks(observations, expected_bots, offloaded_logs=None):
                             and not observations.saw(bot_id, POST_FAILED),
                             'POST_DEPLOYMENT__FAILED' if observations.saw(bot_id, POST_FAILED)
                             else ('idle' if observations.saw(bot_id, POST_IDLE) else 'never idle')))
+        warned = OFFLOAD_FAILED_WARNING in observations.last_warnings.get(bot_id, [])
+        checks.append(Check(OFFLOAD, f'bot {bot_id} reports no failed offload', not warned,
+                            OFFLOAD_FAILED_WARNING if warned else 'no offload warning'))
     return checks
+
+
+def hub_ids(status):
+    return sorted(hub['hub_id'] for hub in api.hub_statuses(status) if 'hub_id' in hub)
+
+
+def hub2hub_layout_checks(status, peer_status, hub_id, peer_id, expected_bots):
+    """Whether two hubs hear each other, and the bots, as a field hub and its CloudHub do."""
+    checks = []
+    for this, seen, other in ((hub_id, status, peer_id), (peer_id, peer_status, hub_id)):
+        heard = hub_ids(seen)
+        checks.append(Check(HUB2HUB, f'hub {this} hears hub {other}', other in heard,
+                            f'hears hubs {heard}'))
+    missing = sorted(set(expected_bots) - set(api.bot_ids(peer_status)))
+    checks.append(Check(HUB2HUB, f'hub {peer_id} hears the bots through hub {hub_id}',
+                        not missing, f'missing bots {missing}' if missing
+                        else f'bots {api.bot_ids(peer_status)}'))
+    return checks
+
+
+def relayed_command_for_hub_check(via_id, target_id, response, error_code, error):
+    """A portal runs a CommandForHub on its own hub whatever hub it names, so one for a hub
+    the REST API only hears relayed must be refused rather than sent."""
+    refused = response is None and error_code == 'API_ERROR__INVALID_TARGET'
+    if refused:
+        detail = 'refused with API_ERROR__INVALID_TARGET'
+    elif response is None:
+        detail = f'failed otherwise: {error}'
+    else:
+        detail = f'sent, so it would run on hub {via_id}'
+    return Check(HUB2HUB, f'hub {via_id} refuses a command for hub {target_id} as JSON',
+                 refused, detail)
+
+
+def peer_offload_checks(peer_observations, peer_id):
+    offloaded = sorted(peer_observations.hub_offloaded_bots.get(peer_id, ()))
+    return [Check(HUB2HUB, f'hub {peer_id} offloads no bot it only hears relayed',
+                  not offloaded, f'offloaded bots {offloaded}' if offloaded else 'none')]
 
 
 def content_checks(packets_by_bot, expected_bots, expected_dives, commanded_depth,

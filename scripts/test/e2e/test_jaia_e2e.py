@@ -18,7 +18,7 @@ class FakeTransport:
         self.responses = responses
         self.calls = []
 
-    def __call__(self, url, payload, timeout):
+    def __call__(self, url, payload, timeout, headers=None):
         self.calls.append((url, payload))
         path = url.split('/jaia/v1', 1)[1]
         response = self.responses[path]
@@ -191,7 +191,69 @@ class ObservationsTest(unittest.TestCase):
         self.assertEqual(observations.hub_offload_percentage[1], 100)
 
 
+class OffloadQueueTest(unittest.TestCase):
+    def queue(self, *offloads):
+        observations = checks.Observations()
+        for offload in offloads:
+            hub = {'hub_id': 1}
+            if offload:
+                hub['bot_offload'] = offload
+            observations.ingest({'hubs': [hub]})
+        return observations
+
+    def test_a_queue_missing_while_bots_wait_is_a_gap(self):
+        observations = self.queue({'bot_id': 1, 'bots_pending': [2]}, None, {'bot_id': 2})
+        self.assertEqual(observations.hub_offload_gaps[1], 1)
+        self.assertEqual(observations.hub_offloaded_bots[1], {1, 2})
+
+    def test_a_queue_that_empties_after_its_last_bot_is_not_a_gap(self):
+        observations = self.queue({'bot_id': 1, 'bots_pending': [2]}, {'bot_id': 2}, None)
+        self.assertEqual(observations.hub_offload_gaps[1], 0)
+
+    def test_a_hub_heard_relayed_offloads_nothing(self):
+        # bot_offload is not in the hub-to-hub encoding, so a relayed hub never has one
+        self.assertEqual(self.queue(None, None).hub_offloaded_bots.get(1), None)
+
+
+class Hub2HubCheckTest(unittest.TestCase):
+    def test_layout_names_the_hub_that_hears_nothing(self):
+        result = checks.hub2hub_layout_checks(
+            {'hubs': [{'hub_id': 1}, {'hub_id': 30}]},
+            {'hubs': [{'hub_id': 30}], 'bots': [bot(1, checks.READY)]}, 1, 30, [1, 2])
+        self.assertEqual([c.name for c in result if not c.passed],
+                         ['hub 30 hears hub 1', 'hub 30 hears the bots through hub 1'])
+
+    def test_a_relayed_command_for_hub_must_be_refused_as_json(self):
+        refused = checks.relayed_command_for_hub_check(
+            30, 1, None, 'API_ERROR__INVALID_TARGET', "{'code': 'API_ERROR__INVALID_TARGET'}")
+        self.assertTrue(refused.passed)
+        html = checks.relayed_command_for_hub_check(30, 1, None, None, 'HTTP 500')
+        self.assertFalse(html.passed)
+        self.assertIn('HTTP 500', html.detail)
+        sent = checks.relayed_command_for_hub_check(
+            30, 1, {'command_result': {'command_sent': True}}, None, '')
+        self.assertFalse(sent.passed)
+        self.assertIn('run on hub 30', sent.detail)
+
+    def test_a_peer_that_offloaded_a_bot_fails(self):
+        observations = checks.Observations()
+        observations.ingest({'hubs': [{'hub_id': 30, 'bot_offload': {'bot_id': 2}}]})
+        self.assertFalse(checks.peer_offload_checks(observations, 30)[0].passed)
+        self.assertTrue(checks.peer_offload_checks(checks.Observations(), 30)[0].passed)
+
+
 class CheckTest(unittest.TestCase):
+    def test_offload_flags_a_bot_still_warning_of_a_failed_offload(self):
+        observations = checks.Observations()
+        observations.ingest({'bots': [bot(1, checks.POST_IDLE,
+                                          warnings=[checks.OFFLOAD_FAILED_WARNING])]})
+        result = checks.offload_checks(observations, [1])
+        self.assertFalse([c for c in result if 'no failed offload' in c.name][0].passed)
+        # one the bot has since cleared does not count
+        observations.ingest({'bots': [bot(1, checks.POST_IDLE)]})
+        result = checks.offload_checks(observations, [1])
+        self.assertTrue([c for c in result if 'no failed offload' in c.name][0].passed)
+
     def test_liveness_flags_a_missing_bot(self):
         status = {'bots': [bot(1, checks.READY)], 'hubs': [{'hub_id': 1}]}
         result = checks.liveness_checks(status, {}, [1, 2])
@@ -345,7 +407,8 @@ class CheckTest(unittest.TestCase):
         observations = checks.Observations()
         observations.ingest({'bots': [bot(1, checks.POST_IDLE)]})
         result = checks.offload_checks(observations, [1])
-        self.assertEqual([c.name for c in result], ['bot 1 finished post-deployment idle'])
+        self.assertEqual([c.name for c in result], ['bot 1 finished post-deployment idle',
+                                                    'bot 1 reports no failed offload'])
 
     def test_offload_flags_post_deployment_failed(self):
         observations = checks.Observations()

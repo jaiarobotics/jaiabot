@@ -30,7 +30,8 @@ class SeaTrialAgainstFakeHub(unittest.TestCase):
             code = sea_trial.main([
                 '--hub-url', url, '--bots', str(len(hub.bots)), '--goals', '10',
                 '--poll-interval', '0', '--api-timeout', '30', '--mission-timeout', '120',
-                '--offload-timeout', '60', '--output-dir', directory, *extra])
+                '--offload-timeout', '60', '--offload-poll-interval', '0',
+                '--output-dir', directory, *extra])
         finally:
             shutdown()
         with open(os.path.join(directory, 'summary.json')) as f:
@@ -48,6 +49,94 @@ class SeaTrialAgainstFakeHub(unittest.TestCase):
         # four system tiers and nothing else
         self.assertEqual(set(summary['tiers']),
                          {checks.LIVENESS, checks.EXECUTION, checks.OFFLOAD, checks.CONTENT})
+
+    def run_joined_trial(self, hub, peer, extra=()):
+        peer_url, shutdown = fake_hub.serve(peer)
+        try:
+            return self.run_trial(hub, ['--peer-hub-url', peer_url, *extra])
+        finally:
+            shutdown()
+
+    def hub2hub_failures(self, summary):
+        return [f['name'] for f in summary['tiers'].get(checks.HUB2HUB, {}).get('failures', [])]
+
+    def test_a_joined_run_passes_every_tier_including_hub2hub(self):
+        hub = fake_hub.FakeHub(bots=2, dives_to_run=10)
+        peer = fake_hub.FakePeerHub(hub)
+        code, summary, _ = self.run_joined_trial(hub, peer)
+        self.assertEqual(code, 0, summary['tiers'])
+        self.assertIn(checks.HUB2HUB, summary['tiers'])
+        self.assertEqual(summary['tiers'][checks.HUB2HUB]['failed'], 0)
+        # bot 2 was activated and sent its plan through the second hub
+        self.assertIn('MISSION_PLAN', [c.get('type') for c in peer.commands])
+        self.assertEqual(peer.controlling_client_id, 'sea-trial-hub30')
+
+    def test_hubs_that_never_hear_each_other_fail_only_the_hub2hub_tier(self):
+        hub = fake_hub.FakeHub(bots=2, dives_to_run=10)
+        peer = fake_hub.FakePeerHub(hub)
+        hub.heard_hubs, peer.heard_hubs = [], []
+        code, summary, _ = self.run_joined_trial(hub, peer, ['--hub2hub-timeout', '1'])
+        self.assertEqual(code, 1)
+        self.assertEqual(summary['first_failing_tier'], checks.HUB2HUB)
+        self.assertEqual(self.hub2hub_failures(summary),
+                         ['hub 1 hears hub 30', 'hub 30 hears hub 1'])
+        # every bot fell back to the first hub, so the rest of the run is still judged
+        for tier in (checks.EXECUTION, checks.OFFLOAD, checks.CONTENT):
+            self.assertEqual(summary['tiers'][tier]['failed'], 0, tier)
+        self.assertNotIn('MISSION_PLAN', [c.get('type') for c in peer.commands])
+
+    def test_a_hub_that_offloads_bots_it_only_hears_relayed_fails_hub2hub(self):
+        class OffloadsRelayedBots(fake_hub.FakePeerHub):
+            def bot_offload(self):
+                return {'bot_id': 1, 'data_offload_percentage': 10}
+
+        hub = fake_hub.FakeHub(bots=2, dives_to_run=10)
+        code, summary, _ = self.run_joined_trial(hub, OffloadsRelayedBots(hub))
+        self.assertEqual(code, 1)
+        self.assertEqual(self.hub2hub_failures(summary),
+                         ['hub 30 offloads no bot it only hears relayed'])
+        self.assertEqual(summary['tiers'][checks.OFFLOAD]['failed'], 0)
+
+    def test_a_command_for_a_relayed_hub_that_is_sent_fails_hub2hub(self):
+        hub = fake_hub.FakeHub(bots=2, dives_to_run=10)
+        peer = fake_hub.FakePeerHub(hub)
+        peer.refuses_other_hubs = False
+        _, summary, _ = self.run_joined_trial(hub, peer)
+        self.assertEqual(self.hub2hub_failures(summary),
+                         ['hub 30 refuses a command for hub 1 as JSON'])
+
+    def test_a_hub_that_keeps_control_after_the_others_command_fails_hub2hub(self):
+        hub = fake_hub.FakeHub(bots=2, dives_to_run=10)
+        peer = fake_hub.FakePeerHub(hub)
+        hub.relays_control = False
+        _, summary, _ = self.run_joined_trial(hub, peer, ['--control-timeout', '1'])
+        self.assertEqual(self.hub2hub_failures(summary),
+                         ['a command through hub 1 takes control on hub 30'])
+
+    def test_an_offload_queue_that_drops_out_between_bots_fails_the_offload_tier(self):
+        class DropsQueueBetweenBots(fake_hub.FakeHub):
+            polls_since_recovered = None
+
+            def bot_offload(self):
+                if self.polls_since_recovered is None:
+                    return None
+                queue = [{'bot_id': 1, 'data_offload_percentage': 100, 'bots_pending': [2]},
+                         None,
+                         {'bot_id': 2, 'data_offload_percentage': 0}]
+                index, self.polls_since_recovered = (self.polls_since_recovered,
+                                                     self.polls_since_recovered + 1)
+                return queue[index] if index < len(queue) else None
+
+            def _apply(self, bot, payload):
+                if payload.get('type') == 'RECOVERED':
+                    self.polls_since_recovered = 0
+                super()._apply(bot, payload)
+
+        code, summary, _ = self.run_trial(DropsQueueBetweenBots(bots=2, dives_to_run=10))
+        self.assertEqual(code, 1)
+        self.assertEqual(summary['first_failing_tier'], checks.OFFLOAD)
+        names = [f['name'] for f in summary['tiers'][checks.OFFLOAD]['failures']]
+        self.assertEqual(names, ['hub 1 kept its offload queue between bots'])
 
     def test_a_good_run_exports_the_dives_for_charting(self):
         _, _, directory = self.run_trial(fake_hub.FakeHub(bots=1, dives_to_run=10))
@@ -170,7 +259,7 @@ class SeaTrialAgainstFakeHub(unittest.TestCase):
             fake_hub.FakeHub(bots=1, dives_to_run=10, offload_dir=offload_dir),
             extra=['--offload-dir', offload_dir])
         self.assertEqual(summary['tiers'][checks.OFFLOAD]['failed'], 0)
-        self.assertEqual(summary['tiers'][checks.OFFLOAD]['total'], 2)
+        self.assertEqual(summary['tiers'][checks.OFFLOAD]['total'], 3)
 
     def test_the_offload_tier_fails_when_no_logs_reached_the_hub(self):
         _, summary, _ = self.run_trial(fake_hub.FakeHub(bots=1, dives_to_run=10),
