@@ -302,6 +302,10 @@ parameters:
   sea-trial-bots:
     type: integer
     default: 2
+  # VirtualHubs, besides the CloudHub, which all hear each other over hub-to-hub
+  sea-trial-hubs:
+    type: integer
+    default: 2
   sea-trial-goals:
     type: integer
     default: 10
@@ -679,6 +683,7 @@ jobs:
           command: |
             rootfs/cloud/aws/circleci/create-ci-cloudhub.sh \
               --bots << pipeline.parameters.sea-trial-bots >> \
+              --hubs << pipeline.parameters.sea-trial-hubs >> \
               --warp << pipeline.parameters.sea-trial-warp >>
           no_output_timeout: 30m
       - run:
@@ -692,13 +697,20 @@ jobs:
           command: |
             rootfs/cloud/aws/circleci/raise-ci-virtualfleet.sh \
               --bots << pipeline.parameters.sea-trial-bots >> \
+              --hubs << pipeline.parameters.sea-trial-hubs >> \
               --warp << pipeline.parameters.sea-trial-warp >>
           no_output_timeout: 30m
+      - run:
+          name: Join the VirtualHubs to the CloudHub over hub-to-hub
+          command: |
+            rootfs/cloud/aws/circleci/join-ci-virtualfleet.sh \
+              --hubs << pipeline.parameters.sea-trial-hubs >>
       - run:
           name: Send the fleet on its dive mission
           command: |
             rootfs/cloud/aws/circleci/run-ci-sea-trial.sh \
               --bots << pipeline.parameters.sea-trial-bots >> \
+              --hubs << pipeline.parameters.sea-trial-hubs >> \
               --goals << pipeline.parameters.sea-trial-goals >> \
               --warp << pipeline.parameters.sea-trial-warp >>
           no_output_timeout: 60m
@@ -707,7 +719,8 @@ jobs:
           when: always
           command: |
             rootfs/cloud/aws/circleci/collect-ci-results.sh \
-              --bots << pipeline.parameters.sea-trial-bots >>
+              --bots << pipeline.parameters.sea-trial-bots >> \
+              --hubs << pipeline.parameters.sea-trial-hubs >>
       - run:
           name: Tear down
           when: always
