@@ -706,6 +706,15 @@ jobs:
               --fleet "${JAIA_CI_FLEET}" \
               --result-file /tmp/sea-trial/auth-check.txt
       - run:
+          # TEMPORARY: the published images still carry the one-hub VirtualFleet playbooks,
+          # so the CloudHub gets this branch's. Drop with the sea-trial-iterate workflow.
+          name: Use this branch's VirtualFleet playbooks
+          command: |
+            rsync -a -e "ssh -o StrictHostKeyChecking=no" config/ansible/cloud/ \
+              "jaia@cloudhub-fleet${JAIA_CI_FLEET}:/tmp/vfleet-playbooks/"
+            ssh -o StrictHostKeyChecking=no "jaia@cloudhub-fleet${JAIA_CI_FLEET}" \
+              "sudo rsync -a /tmp/vfleet-playbooks/ /usr/share/jaiabot/config/ansible/cloud/"
+      - run:
           name: Raise the VirtualFleet from the same AMI
           command: |
             rootfs/cloud/aws/circleci/raise-ci-virtualfleet.sh \
