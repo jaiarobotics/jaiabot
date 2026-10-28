@@ -47,12 +47,17 @@ rsync -a -e "ssh -o StrictHostKeyChecking=no" \
     "${repo_root}/scripts/test/e2e/" "jaia@${CLOUDHUB}:/tmp/e2e/"
 
 # the CloudHub's ssh config keys the VirtualFleet identity off the VPN address range, so
-# the offload check has to address the hub by address. The offloaded logs stay on the
-# VirtualHub that pulled them, so that check reads its directory over ssh.
-HUB_ADDR=$(ssh -o StrictHostKeyChecking=no "jaia@${CLOUDHUB}" \
-    "jaia_ip --query_type addr --node_type hub --ip_net vfleet_vpn \
-       --fleet_id ${FLEET} --node_id 1")
-echo "VirtualHub 1 is at ${HUB_ADDR}"
+# the offload check has to address each hub by address. The offloaded logs stay on the
+# VirtualHub that pulled them, and every VirtualHub hears the bots and offloads them, so
+# the check reads each one's directory over ssh.
+OFFLOAD_HOSTS=""
+for (( hub_id = 1; hub_id <= HUBS; hub_id++ )); do
+    hub_addr=$(ssh -o StrictHostKeyChecking=no "jaia@${CLOUDHUB}" \
+        "jaia_ip --query_type addr --node_type hub --ip_net vfleet_vpn \
+           --fleet_id ${FLEET} --node_id ${hub_id}")
+    echo "VirtualHub ${hub_id} is at ${hub_addr}"
+    OFFLOAD_HOSTS+=" --offload-host jaia@${hub_addr}"
+done
 
 # join-ci-virtualfleet.sh put every hub on hub-to-hub. The CloudHub hears the bots only
 # through the VirtualHubs, and its own REST API answers on the port JCC moved to behind
@@ -67,6 +72,6 @@ ssh -o StrictHostKeyChecking=no "jaia@${CLOUDHUB}" \
     "python3 /tmp/e2e/jaia-sea-trial.py \
        --hub-url http://hub1-virtualfleet${FLEET} ${PEERS} \
        --bots ${BOTS} --goals ${GOALS} --warp ${WARP} \
-       --offload-host jaia@${HUB_ADDR} \
+      ${OFFLOAD_HOSTS} \
        --offload-dir /var/log/jaiabot/bot_offload \
        --output-dir ${OUTPUT_DIR}"

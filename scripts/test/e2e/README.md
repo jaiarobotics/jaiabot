@@ -70,9 +70,12 @@ passed.
 
 The offload tier needs `--offload-dir` to see those logs, and `--offload-host` when the
 hub that ran the offload is not the machine driving the trial - on a VirtualFleet the
-logs stay on the VirtualHub while the trial runs from the CloudHub. Without
-`--offload-dir` the tier falls back to the terminal state alone; with it, a directory
-it cannot read fails the tier rather than quietly weakening it.
+logs stay on the VirtualHub while the trial runs from the CloudHub. Repeat
+`--offload-host` for each hub that hears the bots directly: each of them offloads a
+bot, and its logs land on whichever finishes first, so a bot's logs count on any of
+them. Without `--offload-dir` the tier falls back to the terminal state alone; with it,
+not being able to read any of the directories fails the tier rather than quietly
+weakening it.
 
 ## More hubs
 

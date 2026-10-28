@@ -341,6 +341,37 @@ class SeaTrialAgainstFakeHub(unittest.TestCase):
         self.assertEqual(found, {1: ['bot1_fleet9_20260915T210000.goby'],
                                  2: ['bot2_fleet9_20260915T210000.h5']})
 
+    def test_a_bots_logs_count_on_whichever_hub_offloaded_it(self):
+        # where two hubs hear a bot, both offload it and the first to finish gets the logs
+        trial = self.offline_trial('--offload-dir', '/var/log/jaiabot/bot_offload',
+                                   '--offload-host', 'hub1', '--offload-host', 'hub2')
+        listings = {
+            'hub1': '1500.0 bot1_fleet9_20260915T210000.goby\n',
+            'hub2': '1500.0 bot2_fleet9_20260915T210000.goby\n',
+        }
+
+        def run(command, **_):
+            return subprocess.CompletedProcess([], 0, stderr='', stdout=listings[command[3]])
+
+        with unittest.mock.patch.object(sea_trial.subprocess, 'run', side_effect=run):
+            found = trial.offloaded_logs([1, 2])
+        self.assertEqual(found, {1: ['bot1_fleet9_20260915T210000.goby'],
+                                 2: ['bot2_fleet9_20260915T210000.goby']})
+
+    def test_an_unreadable_hub_does_not_hide_the_logs_another_holds(self):
+        trial = self.offline_trial('--offload-dir', '/var/log/jaiabot/bot_offload',
+                                   '--offload-host', 'hub1', '--offload-host', 'hub2')
+
+        def run(command, **_):
+            if command[3] == 'hub1':
+                return subprocess.CompletedProcess([], 255, stdout='', stderr='refused')
+            return subprocess.CompletedProcess(
+                [], 0, stderr='', stdout='1500.0 bot1_fleet9_20260915T210000.goby\n')
+
+        with unittest.mock.patch.object(sea_trial.subprocess, 'run', side_effect=run):
+            found = trial.offloaded_logs([1])
+        self.assertEqual(found, {1: ['bot1_fleet9_20260915T210000.goby']})
+
     def test_an_unreadable_offload_directory_fails_the_tier(self):
         trial = self.offline_trial('--offload-dir', '/var/log/jaiabot/bot_offload',
                                    '--offload-host', 'hub1-virtualfleet9')
