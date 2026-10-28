@@ -138,6 +138,10 @@ beforeEach(() => {
     }) as unknown as typeof fetch;
 });
 
+afterEach(() => {
+    jest.useRealTimers();
+});
+
 describe("refreshTaskPacketsForWindow", () => {
     test("loads the response into the data model and repaints", async () => {
         const included = [makeTaskPacket(1000)];
@@ -361,5 +365,23 @@ describe("pollStatus", () => {
         await pollStatus();
 
         expect(bots.getBot(8)?.getStatusAge()).toBe(500);
+    });
+
+    test("polls again after a request the hub never answers", async () => {
+        jest.useFakeTimers();
+        // Like a request in flight when the hub lost power: it settles only if aborted.
+        global.fetch = jest.fn(
+            (_url: string, init: RequestInit) =>
+                new Promise((_resolve, reject) =>
+                    init.signal?.addEventListener("abort", () => reject(init.signal?.reason)),
+                ),
+        ) as unknown as typeof fetch;
+
+        pollStatus();
+        await jest.advanceTimersByTimeAsync(60_000);
+        (global.fetch as jest.Mock).mockClear();
+        pollStatus();
+
+        expect(global.fetch).toHaveBeenCalled();
     });
 });
