@@ -172,6 +172,9 @@ enum APIErrorCode
     API_ERROR__NOT_IN_CONTROL = 30 [(jaia.ev).rest_api.presence = GUARANTEED];
     API_ERROR__RECORD_NOT_FOUND = 31 [(jaia.ev).rest_api.presence = GUARANTEED];
     API_ERROR__INVALID_RECORD_NAME = 32 [(jaia.ev).rest_api.presence = GUARANTEED];
+
+    // A fault in the REST API itself
+    API_ERROR__INTERNAL_ERROR = 40 [(jaia.ev).rest_api.presence = GUARANTEED];
 }
 
 message APIError
@@ -354,7 +357,7 @@ message APIResponse
             doc: "Mission plan currently active on each bot."
         }];
         optional string controlling_client_id = 5 [(jaia.field).rest_api = {
-            doc: "Client ID of the operator currently in control."
+            doc: "Client ID of the operator currently in control, or 'hubN' if an operator on another hub N sent the latest command."
         }];
         optional uint64 time = 6 [(jaia.field).rest_api = {
             presence: GUARANTEED,
