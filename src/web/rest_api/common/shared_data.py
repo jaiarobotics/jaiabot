@@ -17,7 +17,7 @@ import os
 
 # Messages
 from jaiabot.messages.hub_pb2 import HubStatus
-from jaiabot.messages.jaia_dccl_pb2 import BotStatus, ContactUpdate
+from jaiabot.messages.jaia_dccl_pb2 import BotStatus, Command, ContactUpdate
 from jaiabot.messages.mission_pb2 import MissionPlan
 from jaiabot.messages.engineering_pb2 import Engineering
 from jaiabot.messages.metadata_pb2 import DeviceMetadata
@@ -27,6 +27,14 @@ from jaiabot.messages.portal_pb2 import PortalToClientMessage
 _LOG_DIR = Path(os.environ.get('jaia_log_dir', '/var/log/jaiabot'))
 
 log = logging.getLogger()
+
+# Sent by a hub itself rather than by an operator, so they don't take control
+HUB_GENERATED_COMMAND_TYPES = {Command.DATA_OFFLOAD_COMPLETE, Command.DATA_OFFLOAD_FAILED}
+
+
+def remote_hub_client_id(hub_id):
+    """Stands in for an operator on another hub, whose own client ID isn't relayed between hubs."""
+    return f'hub{hub_id}'
 
 class Data:
     # Dict from hub_id => hubStatus
@@ -101,6 +109,12 @@ class Data:
             log.info('Task packet received')
             packet = msg.task_packet
             self.task_packet_database.add_task_packet(MessageToDict(packet, preserving_proto_field_name=True))
+
+        if msg.HasField('remote_command'):
+            remote_command = msg.remote_command
+            # A command from one of our own portals' hubs came from one of our own clients
+            if remote_command.type not in HUB_GENERATED_COMMAND_TYPES and remote_command.from_hub_id not in self.portal_endpoints:
+                self.controlling_client_id = remote_hub_client_id(remote_command.from_hub_id)
 
         if msg.HasField('device_metadata'):
             # The endpoint's label is only a guess at its hub's ID when no config names it
