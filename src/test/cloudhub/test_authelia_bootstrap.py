@@ -20,6 +20,7 @@ import unittest
 SOURCE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(
     os.path.abspath(__file__)))))
 SCRIPT = os.path.join(SOURCE_DIR, "src", "sh", "system", "jaia_configure_authelia.sh")
+COMMON = os.path.join(SOURCE_DIR, "src", "sh", "system", "jaia-authelia-common.sh")
 
 
 class AutheliaBootstrapTest(unittest.TestCase):
@@ -27,6 +28,8 @@ class AutheliaBootstrapTest(unittest.TestCase):
     def setUpClass(cls):
         with open(SCRIPT) as f:
             cls.text = f.read()
+        with open(COMMON) as f:
+            cls.common = f.read()
 
     def user_config(self, name):
         # Anchored on the directory, or asking for "admin" would match fleet_admin.json
@@ -39,9 +42,9 @@ class AutheliaBootstrapTest(unittest.TestCase):
         """With a method named here, a user who registered only the other one is sent
         to its page on every login and has to pick Methods first. Blank, Authelia
         offers the method the user registered."""
-        self.assertIn("default_2fa_method: ''", self.text)
-        self.assertRegex(self.text, r"totp:\n  disable: false")
-        self.assertRegex(self.text, r"webauthn:\n  disable: false")
+        self.assertIn("default_2fa_method: ''", self.common)
+        self.assertRegex(self.common, r"totp:\n  disable: false")
+        self.assertRegex(self.common, r"webauthn:\n  disable: false")
 
     def test_the_admin_is_bootstrapped_without_a_password(self):
         self.assertNotIn("password", self.user_config("fleet_admin"))
@@ -118,7 +121,7 @@ class AutheliaBootstrapTest(unittest.TestCase):
             with open(os.path.join(persistent, "jaia_bootstrap_email"), "w") as f:
                 f.write(email + "\n")
         guard = self.function("write_jaia_bootstrap_config")
-        success = re.search(r"then\n(\s+echo \"jaia_auth_lldap_bootstrap_completed=true\".*?)\s+break",
+        success = re.search(r"then\n(\s+echo \"jaia_auth_lldap_bootstrap_completed=true\".*?)\s+else",
                             self.text, re.DOTALL).group(1)
         success = success.replace("/etc/jaiabot/cloud.env", os.path.join(work, "cloud.env"))
         script = ("set -e\nauth_persistent_dir={0}\njaia_auth_lldap_bootstrap_completed={1}\n"
