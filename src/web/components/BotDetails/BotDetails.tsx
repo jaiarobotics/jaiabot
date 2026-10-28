@@ -168,7 +168,11 @@ export default function BotDetails() {
                                                 {missionStatus?.missionState?.replaceAll(
                                                     "__",
                                                     "\n",
-                                                ) + getBotOffloadPercent(botID, hub)}
+                                                ) +
+                                                    getBotOffloadPercent(
+                                                        botID,
+                                                        jaiaContext.hubs.getHubs().values(),
+                                                    )}
                                             </td>
                                         </tr>
                                         <tr>
