@@ -51,7 +51,6 @@ const baseConfig = {
                     },
                 ],
             },
-            { test: /\.geojson$/, use: ["json-loader"] },
         ],
     },
 };

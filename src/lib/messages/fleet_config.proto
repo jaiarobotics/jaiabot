@@ -188,6 +188,7 @@ message NodeSettings
         BOT_TYPE_HYDRO = 0;
         BOT_TYPE_PAM = 1;
         BOT_TYPE_BIO = 2;
+        BOT_TYPE_STORM = 5;
         BOT_TYPE_NONE = 3;
         BOT_TYPE_ECHO = 4 [deprecated = true, (jaia.ev).debconf.replaced_by = "pam"];
     }
@@ -317,7 +318,9 @@ message NodeSettings
 
     enum AdditionalSensor
     {
-        ADDITIONAL_SENSOR_TURNER_C_FLOUR = 0;
+        ADDITIONAL_SENSOR_TURNER_C_FLOUR = 0 [deprecated = true, (jaia.ev).debconf.replaced_by = "turner_c_fluor"];
+        ADDITIONAL_SENSOR_TURNER_C_FLUOR = 4;
+        ADDITIONAL_SENSOR_TURNER_C_FLUOR_2 = 5;
         ADDITIONAL_SENSOR_AML = 1;
         ADDITIONAL_SENSOR_PPK = 2;
         ADDITIONAL_SENSOR_NONE = 3;
@@ -326,6 +329,7 @@ message NodeSettings
         group: BOT
         default: "none"
         description: "Which additional sensors?"
+        extended_description: "Select turner_c_fluor_2 only if a second fluorometer is physically installed:\nthe BIO payload board announces two fluorometer channels regardless of what is\nwired, so an unselected second channel is not read or reported."
     }];
 
     optional int32 hub_id = 22 [default = 0, (jaia.field).debconf = {
@@ -367,6 +371,7 @@ message FleetConfig
         message HubKey
         {
             required int32 id = 1;
+            // The Yubikey's key handle; empty for the CloudHub, whose key never leaves it
             required string private_key = 2;
             required string public_key = 3;
         }
@@ -413,6 +418,9 @@ message FleetConfig
     }
     repeated Debconf debconf = 5 [deprecated = true];
     required string wlan_password = 6;
+    // Whether each node's CloudHub VPN tunnel starts by itself at boot. Pairing does
+    // not depend on it; a node paired while this is false is left with its tunnel
+    // stopped. Not renamed to match, since every fleet config names it in text.
     required bool service_vpn_enabled = 7;
 
     message DebconfOverride
@@ -458,11 +466,49 @@ message FleetConfig
     }
     optional Communications comms = 9;
 
-    message CloudHubAuth
+    // 10 is version, at the top of the message
+
+    // What a CloudHub needs that cannot be asked of AWS afterwards. Region, VPC,
+    // subnets, security groups, account and the Elastic IP are all discoverable from
+    // the instance, so they are deliberately absent: a major upgrade rebuilds them
+    // rather than carrying cloud.env across the rootfs swap.
+    message CloudHub
     {
+        // Authentication front end: Authelia behind Caddy
         required string base_uri = 1;
         required string admin_email = 2;
         required string smtp_address = 3;
+
+        // S3 bucket holding the bot offload; unset means jaia--cloudhub-data--fleet<fleet>
+        optional string data_bucket = 4;
+
+        // Unset means noreply@auth.jaia.tech; it must be verified with the SMTP provider
+        optional string smtp_sender = 5;
+        // SSM SecureString (name or ARN) holding {"username": ..., "password": ...};
+        // unset means /jaia/cloudhub/smtp_credentials in the CloudHub's own account and region
+        optional string smtp_credentials_ssm_parameter = 6;
     }
-    optional CloudHubAuth cloudhub_auth = 11;
+    optional CloudHub cloudhub = 11;
+
+    // Value of the jaia_customer tag on every AWS resource the fleet owns
+    optional string customer = 14 [default = "jaia"];
+
+    // A simulation has no CloudHub to reach, so the rule requiring one applies
+    // only to real fleets. Inferring this from the absence of hub 30 would make
+    // a misconfigured real fleet indistinguishable from a VirtualFleet.
+    enum FleetType
+    {
+        FLEET_TYPE_REAL = 0;
+        FLEET_TYPE_SIMULATION = 1;
+    }
+    optional FleetType fleet_type = 15 [default = FLEET_TYPE_REAL];
+
+    // Stated rather than inferred, for the same reason: a real fleet built
+    // without one and a real fleet that has lost hub 30 by mistake look alike,
+    // and only one of them should pass validation. A simulation never has one,
+    // so this says nothing about it either way.
+    //
+    // Not has_cloudhub: protobuf already generates that accessor for the
+    // optional cloudhub field above, and the two would not compile together.
+    optional bool includes_cloudhub = 16 [default = true];
 }

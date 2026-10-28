@@ -1,17 +1,21 @@
 import { hubs } from "../../../data/hubs/hubs";
-import { PortalHubStatus } from "../../../shared/PortalStatus";
+import { PortalHubStatus } from "@proto/jaiabot/messages/rest_api";
 import { hubLayer } from "../vector/hub-layer";
 
 const hubStatusMock1: PortalHubStatus = {
-    hub_id: 1,
-    location: { lat: 77.0369, lon: 38.9072 },
-    portalStatusAge: 0,
+    hub_status: {
+        hub_id: 1,
+        location: { lat: 77.0369, lon: 38.9072 },
+    },
+    status_age: 0,
 };
 
 // location undefined
 const hubStatusMock2: PortalHubStatus = {
-    hub_id: 1,
-    portalStatusAge: 0,
+    hub_status: {
+        hub_id: 1,
+    },
+    status_age: 0,
 };
 
 describe("Add Hub to hub-layer", () => {

@@ -123,10 +123,14 @@ class TaskPacketDatabase:
         """Loads all modified taskpacket files from the offload directory.  THREAD UNSAFE.
         """
 
+        taskpacket_fullpaths = glob.glob(self.taskpacket_files_path + '*.taskpacket')
+        if not taskpacket_fullpaths:
+            return
+
         processed_path = self.database_path + '/processed/'
         os.makedirs(processed_path, exist_ok=True)
 
-        for taskpacket_fullpath in glob.glob(self.taskpacket_files_path + '*.taskpacket'):
+        for taskpacket_fullpath in taskpacket_fullpaths:
             l.info(f'Loading modified taskpacket file: {taskpacket_fullpath}')
             for line in open(taskpacket_fullpath):
                 try:
@@ -211,7 +215,8 @@ class TaskPacketDatabase:
                            start_utime: Union[int, None]=None, 
                            end_utime: Union[int, None]=None, 
                            included: Union[bool, None]=True, 
-                           mission_names: Union[Iterable[str], None]=None) -> List[Dict]:
+                           mission_names: Union[Iterable[str], None]=None,
+                           limit: int=1000) -> List[Dict]:
         """Queries the task packets.
 
         Args:
@@ -220,6 +225,7 @@ class TaskPacketDatabase:
             end_utime (Union[int, None]): End of time window (or None if no maximum time)
             included (Union[bool, None]): Included or excluded task packets (None for both types)
             mission_names (Union[Iterable[str], None]): Mission name(s) to filter by (None for all)
+            limit (int): Maximum number of task packets to return, keeping the most recent
         Returns:
             list[dict]: A list of task packet dictionaries that match the criteria.
         """
@@ -229,7 +235,9 @@ class TaskPacketDatabase:
 
             conditionals = []
             parameters = []
-            from_clause = ' from task_packets'
+            # Offloaded task packets have no mission_name and replace the live copy's json_string, so
+            #   the name is taken from the mission_name table.
+            from_clause = ' from task_packets left join mission_name using (id)'
 
             bot_ids = list(bot_ids) if bot_ids is not None else []
             if len(bot_ids) > 0:
@@ -247,7 +255,7 @@ class TaskPacketDatabase:
             if included is not None:
                 conditionals.append(f'included = ?')
                 parameters.append(1 if included else 0)
-                from_clause += ' natural join included'
+                from_clause += ' join included using (id)'
 
             if mission_names is not None:
                 mission_names = list(mission_names)
@@ -256,18 +264,22 @@ class TaskPacketDatabase:
 
                 conditionals.append(f'mission_name in {sql_set_placeholders(mission_names)}')
                 parameters.extend(mission_names)
-                from_clause += ' natural join mission_name'
 
-            query_string = f'select json_string {from_clause}'
+            query_string = f'select json_string, mission_name {from_clause}'
             if len(conditionals) > 0:
                 query_string = query_string + " where " + " and ".join(conditionals)
 
-            query_string = query_string + ' order by utime desc limit 1000'
+            query_string = query_string + ' order by utime desc limit ?'
+            parameters.append(limit)
 
             l.debug(f"Executing query: {query_string} with parameters {parameters}")
 
-            results_json = self.db.execute(query_string, parameters)
-            results: List[Dict] = [json.loads(row[0]) for row in results_json]
+            results: List[Dict] = []
+            for json_string, mission_name in self.db.execute(query_string, parameters):
+                task_packet = json.loads(json_string)
+                if mission_name is not None and 'mission_name' not in task_packet:
+                    task_packet['mission_name'] = mission_name
+                results.append(task_packet)
             return results
 
 
@@ -338,7 +350,8 @@ class TaskPacketDatabase:
                            start_utime: Union[int, None]=None, 
                            end_utime: Union[int, None]=None, 
                            included: Union[bool, None]=True,
-                           mission_names: Union[Iterable[str], None]=None) -> List[TaskPacket]:
+                           mission_names: Union[Iterable[str], None]=None,
+                           limit: int=1000) -> List[TaskPacket]:
         """Queries the task packets and returns them as protobuf objects.
 
         Args:
@@ -347,11 +360,12 @@ class TaskPacketDatabase:
             end_utime (Union[int, None]): End of time window (or None if no maximum time)
             included (Union[bool, None]): Included or excluded task packets (None for both types)
             mission_names (Union[Iterable[str], None]): List of mission names to filter by (None for all missions)
+            limit (int): Maximum number of task packets to return, keeping the most recent
 
         Returns:
             list[TaskPacket]: A list of task packets that match the criteria, as protobuf objects.
         """
-        taskpacket_dicts = self.query_task_packets_as_dicts(bot_ids=bot_ids, start_utime=start_utime, end_utime=end_utime, included=included, mission_names=mission_names)
+        taskpacket_dicts = self.query_task_packets_as_dicts(bot_ids=bot_ids, start_utime=start_utime, end_utime=end_utime, included=included, mission_names=mission_names, limit=limit)
 
         return [ParseDict(tp_dict, TaskPacket(), ignore_unknown_fields=True) for tp_dict in taskpacket_dicts]
 

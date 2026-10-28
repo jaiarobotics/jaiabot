@@ -17,7 +17,10 @@ does not quietly break the other.
 
 - VirtualBox, with `vboximg-mount` (part of the VirtualBox package).
 - `jaia_ip` and `jaia` on `PATH` — either the `jaiabot-embedded` package, or this
-  source tree's `build/amd64/bin`.
+  source tree's `build/amd64/bin` with every target built. `import_vms.sh` runs
+  `jaia admin fleet`, which execs `jaia-fleet-config.py` from the same directory and
+  reads `share/jaiabot/fleet_config`, so a tree with only the `jaia` target built is
+  refused by the `import` stage.
 - A public key in `~/.ssh/*.pub`; `import_vms.sh` installs all of them on every
   node. Pass the matching private key with `--ssh-key` (default `~/.ssh/id_rsa`).
   SSH runs unattended, so a passphrase-protected key has to be in `ssh-agent`
@@ -64,9 +67,9 @@ a single check repeated (`--stages api,web`) against a fleet that is already up.
 | Stage | What it does |
 |-------|--------------|
 | `download` | Fetches the OVA into `--cache-dir`, resuming a partial file and checking the length against the server's |
-| `import` | Deletes clashing VMs (after asking) and runs `rootfs/scripts/import_vms.sh` |
+| `import` | Deletes clashing VMs (after asking) and runs `rootfs/scripts/import_vms.sh`, passing `--warp` (default 10) as the simulation warp. Use `--warp 1` to test JDV: at 10 the bots' clock reaches the year 2537, whose microsecond timestamps JDV cannot display |
 | `hostonly` | Creates `vboxnet0` if needed, addresses it `192.168.56.1/24`, and moves each hub's NIC 1 to it |
-| `boot` | Starts every VM headless and waits for SSH, for the first-boot reboot onto the overlay root, and for cloud-init to finish, logging its status and any errors it reports |
+| `boot` | Waits for the importer to release every disk, starts every VM headless and waits for SSH, for the first-boot reboot onto the overlay root, and for cloud-init to finish, logging its status and any errors it reports. A VM that has not answered SSH after `--boot-reset-after` (default 600 s) is reset once, which clears a VM that hung in its EFI firmware |
 | `network` | Sets `jaia_network_eth_address` in each hub's `/etc/jaiabot/network.env`, runs `jaia-update-network.sh`, reloads networkd, and waits for the hub to answer on its host-only address |
 | `api` | Waits for the REST API on each hub, then activates every bot (or `--mission-bots`) and sends each a `MISSION_PLAN` of `--waypoints` (default 10) goals, each with a dive. The missions run at the same time, laid out from the first bot's position 1 km to its west, each `--mission-separation` (default 500 m) south of the one before. The stage waits for every bot to enter recovery at its last goal, and checks each bot's dive task packets show a dive to `--dive-depth` at every one of its waypoints. The simulator places a bot on its first goal, so a single goal would not show it transiting |
 | `web` | Fetches JCC (`/`), JCU (`/jcu/`) and JDV (`/jdv/`) from each hub and checks the bodies |

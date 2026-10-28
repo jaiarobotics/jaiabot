@@ -58,4 +58,18 @@ message BuildTool
             description: "Use GNU Make instead of the default Ninja generator"
         }
     ];
+
+    optional bool configure_verbose = 6 [
+        default = false,
+        (goby.field) = {
+            description: "Show CMake's status messages while configuring (build.sh --configure-verbose)"
+        }
+    ];
+
+    optional bool build_verbose = 7 [
+        default = false,
+        (goby.field) = {
+            description: "Show every build command and its output (build.sh --build-verbose)"
+        }
+    ];
 }

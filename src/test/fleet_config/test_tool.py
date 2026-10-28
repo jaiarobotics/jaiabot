@@ -2,17 +2,20 @@
 
 import importlib.util
 import os
+import re
 import shutil
 import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 SOURCE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 TOOL = os.path.join(SOURCE_DIR, "src", "sh", "fleet", "jaia-fleet-config.py")
 PROTO = os.path.join(SOURCE_DIR, "src", "lib", "messages", "fleet_config.proto")
 MESSAGES_DIR = os.path.join(SOURCE_DIR, "src", "lib", "messages")
 TEMPLATE = os.path.join(SOURCE_DIR, "rootfs", "customization", "includes.chroot", "etc", "jaiabot", "init", "first-boot.preseed.yml.j2")
+NEW_HUB_TEMPLATE = os.path.join(SOURCE_DIR, "config", "ansible", "files", "new_hub.sh.j2")
 FIXTURES = os.path.join(os.path.dirname(__file__), "fixtures")
 
 spec = importlib.util.spec_from_file_location("jaia_fleet_config", TOOL)
@@ -49,7 +52,7 @@ class Env:
         fake_bin = os.path.join(self.dir, "bin")
         os.makedirs(fake_bin)
         fakes = {
-            "jaia_ip": 'case "$*" in *gateway*) echo 10.23.7.1 ;; *) echo 10.23.7.100 ;; esac',
+            "jaia_ip": 'case "$*" in *gateway*) echo 10.23.7.1 ;; *cloudhub_vpn*) echo fd0f:77ac:4fdf:7::1:1e ;; *) echo 10.23.7.100 ;; esac',
             "jaia_bounds": 'case "$*" in *--min*) echo 0 ;; *fleet_id*) echo 4000 ;; *hub_id*) echo 30 ;; *bot_id*) echo 150 ;; esac',
             "ykman": "echo 12345678",
             # writes the key files ssh-keygen would, without a real key or Yubikey
@@ -70,7 +73,27 @@ class Env:
         init = os.path.join(bootdir, "jaiabot", "init")
         os.makedirs(init)
         shutil.copyfile(TEMPLATE, os.path.join(init, "first-boot.preseed.yml.j2"))
+        shutil.copyfile(NEW_HUB_TEMPLATE, os.path.join(bootdir, "new_hub.sh.j2"))
         return bootdir
+
+    def without_cloudhub_key(self):
+        """A copy of v2_no_permanent_keys.cfg (fleet 6, hubs 1 and 30) as create now writes it,
+        before create_cloudhub has recorded the CloudHub's key."""
+        path = os.path.join(self.dir, "fleet6.cfg")
+        with open(fixture("v2_no_permanent_keys.cfg")) as f:
+            lines = [line for line in f if "hub { id: 30" not in line]
+        text = "".join(lines).replace("hubs: 30", "hubs: [1, 30]").replace(
+            "ssh {\n", 'ssh {\n  hub { id: 1 private_key: "handle\\n" public_key: "no-touch-required '
+                       'sk-ssh-ed25519@openssh.com AAAAhub1 hub1_fleet6" }\n')
+        with open(path, "w") as f:
+            f.write(text)
+        return path
+
+    def pubkey_file(self, text):
+        path = os.path.join(self.dir, "hub30_fleet6.pub")
+        with open(path, "w") as f:
+            f.write(text)
+        return path
 
     def cleanup(self):
         shutil.rmtree(self.dir)
@@ -79,7 +102,8 @@ class Env:
 class SchemaTest(unittest.TestCase):
     def test_enum_value_strings_follow_the_prefix_convention(self):
         q = SCHEMA.questions_by_name["additional_sensors"]
-        self.assertEqual([v.value for v in q.enum_values], ["turner_c_flour", "aml", "ppk", "none"])
+        self.assertEqual([v.value for v in q.enum_values],
+                         ["turner_c_flour", "turner_c_fluor", "turner_c_fluor_2", "aml", "ppk", "none"])
         self.assertEqual(SCHEMA.questions_by_name["type"].choices, ["bot", "hub"])
 
     def test_identity_questions(self):
@@ -183,12 +207,91 @@ class MigrationTest(unittest.TestCase):
         self.assertEqual(fc.migrate(SCHEMA, again), ([], []))
 
 
+class NoCloudHubMigrationTest(unittest.TestCase):
+    """A 2.y fleet without hub 30 never had a CloudHub."""
+
+    def setUp(self):
+        self.cfg = fc.parse_fleet_config(SCHEMA, fixture("v1_no_cloudhub.cfg"))
+        self.notes, self.problems = fc.migrate(SCHEMA, self.cfg)
+
+    def test_migrates_without_a_cloudhub(self):
+        self.assertEqual(self.problems, [])
+        self.assertFalse(self.cfg.includes_cloudhub)
+        self.assertEqual(fc.validate(SCHEMA, self.cfg), [])
+
+    def test_a_fleet_with_hub_30_keeps_its_cloudhub(self):
+        cfg = fc.parse_fleet_config(SCHEMA, fixture("v1_fleet7.cfg"))
+        fc.migrate(SCHEMA, cfg)
+        self.assertTrue(cfg.includes_cloudhub)
+
+
+class PerNodeCommonAnswerMigrationTest(unittest.TestCase):
+    """2.y's create asks bot_vin and tail_serial_number once, for every bot."""
+
+    def migrated(self, vin, serial, bot1_vin=None):
+        with open(fixture("v1_no_cloudhub.cfg")) as f:
+            text = f.read()
+        for key, value in (("bot_vin", vin), ("tail_serial_number", serial)):
+            text += 'debconf {{\n  key: "jaiabot-embedded/{}"\n  type: STRING\n  value: "{}"\n}}\n'.format(key, value)
+        if bot1_vin is not None:
+            text += ('debconf_override {{\n  type: BOT\n  id: 1\n  debconf {{\n'
+                     '    key: "jaiabot-embedded/bot_vin"\n    type: STRING\n    value: "{}"\n  }}\n}}\n'.format(bot1_vin))
+        with tempfile.NamedTemporaryFile("w", suffix=".cfg") as f:
+            f.write(text)
+            f.flush()
+            cfg = fc.parse_fleet_config(SCHEMA, f.name)
+        notes, problems = fc.migrate(SCHEMA, cfg)
+        self.assertEqual(problems, [])
+        self.assertEqual(fc.validate(SCHEMA, cfg), [])
+        self.assertFalse(cfg.settings.HasField("bot_vin"))
+        self.assertFalse(cfg.settings.HasField("tail_serial_number"))
+        return cfg, notes
+
+    def test_blank_answers_are_dropped(self):
+        cfg, notes = self.migrated("", "")
+        self.assertEqual(fc.per_node_answers(SCHEMA, cfg), {})
+        self.assertTrue(any("bot_vin: blank" in n for n in notes))
+
+    def test_an_answer_goes_to_every_bot(self):
+        cfg, _ = self.migrated("1234", "TS-0042")
+        answers = fc.per_node_answers(SCHEMA, cfg)
+        for bot in (1, 2):
+            self.assertEqual(answers[("bot", bot)], {"bot_vin": "1234", "tail_serial_number": "TS-0042"})
+
+    def test_a_bot_keeps_its_own_answer(self):
+        cfg, _ = self.migrated("1234", "TS-0042", bot1_vin="OWN-1")
+        answers = fc.per_node_answers(SCHEMA, cfg)
+        self.assertEqual(answers[("bot", 1)]["bot_vin"], "OWN-1")
+        self.assertEqual(answers[("bot", 2)]["bot_vin"], "1234")
+
+
+class FluorometerMigrationTest(unittest.TestCase):
+    """2.y renamed turner_c_flour, so a v1 file may carry either spelling."""
+
+    def setUp(self):
+        self.cfg = fc.parse_fleet_config(SCHEMA, fixture("v1_fluorometers.cfg"))
+        self.notes, self.problems = fc.migrate(SCHEMA, self.cfg)
+
+    def test_both_spellings_migrate(self):
+        NS = SCHEMA.NodeSettings
+        self.assertEqual(self.problems, [])
+        self.assertEqual(list(self.cfg.settings.additional_sensors),
+                         [NS.ADDITIONAL_SENSOR_TURNER_C_FLUOR, NS.ADDITIONAL_SENSOR_AML])
+        self.assertEqual(list(self.cfg.override[0].settings.additional_sensors),
+                         [NS.ADDITIONAL_SENSOR_TURNER_C_FLUOR, NS.ADDITIONAL_SENSOR_TURNER_C_FLUOR_2])
+
+    def test_selections_use_the_new_spelling(self):
+        bot1 = fc.node_settings_for(SCHEMA, self.cfg, "bot", 1)
+        sel = {d["key"]: d for d in fc.debconf_selections(SCHEMA, bot1)}
+        self.assertEqual(sel["jaiabot-embedded/additional_sensors"]["value"], "turner_c_fluor, aml")
+
+
 class MigrationFailureTest(unittest.TestCase):
     def test_unknown_and_invalid_values_are_reported_by_name(self):
         cfg = fc.parse_fleet_config(SCHEMA, fixture("v1_bad_values.cfg"))
         notes, problems = fc.migrate(SCHEMA, cfg)
         self.assertEqual(sorted(problems), sorted([
-            "jaiabot-embedded/bot_type: 'sonar' is not one of hydro, pam, bio, none",
+            "jaiabot-embedded/bot_type: 'sonar' is not one of hydro, pam, bio, storm, none",
             "jaiabot-embedded/no_such_question: not a jaiabot-embedded question",
             "jaiabot-embedded/warp: '3' is not one of 1, 2, 5, 10, 20, 30, 40, 50",
         ]))
@@ -203,7 +306,126 @@ class MigrationFailureTest(unittest.TestCase):
         cfg = fc.parse_fleet_config(SCHEMA, fixture("v1_cloudhub_no_auth.cfg"))
         fc.migrate(SCHEMA, cfg)
         problems = fc.validate(SCHEMA, cfg)
-        self.assertIn("cloudhub_auth: required when hub 30 (CloudHub) is in the fleet", problems)
+        self.assertIn("cloudhub: required when hub 30 (CloudHub) is in the fleet", problems)
+
+    def cloudhub_cfg(self, extra=""):
+        cfg = fc.parse_fleet_config(SCHEMA, fixture("v1_cloudhub_no_auth.cfg"))
+        fc.migrate(SCHEMA, cfg)
+        fc.text_format.Merge(
+            'cloudhub { base_uri: "fleet9.example" admin_email: "a@example" '
+            'smtp_address: "smtp://localhost:587" }\n' + extra, cfg)
+        return cfg
+
+    def test_cloudhub_defaults(self):
+        cfg = self.cloudhub_cfg()
+        self.assertEqual(fc.validate(SCHEMA, cfg), [])
+
+    def test_cloudhub_smtp_overrides(self):
+        cfg = self.cloudhub_cfg('cloudhub { smtp_sender: "noreply@auth.example" '
+                                'smtp_credentials_ssm_parameter: "/example/smtp" }\n')
+        self.assertEqual(fc.validate(SCHEMA, cfg), [])
+        problems = fc.validate(SCHEMA, self.cloudhub_cfg(
+            'cloudhub { smtp_sender: "" smtp_credentials_ssm_parameter: "" }\n'))
+        self.assertIn("cloudhub.smtp_sender: must not be empty; omit it to use the default", problems)
+        self.assertIn("cloudhub.smtp_credentials_ssm_parameter: must not be empty; omit it to use the default",
+                      problems)
+        # what create_cloudhub falls back to when the fleet config says nothing
+        self.assertEqual(cfg.customer, "jaia")
+        self.assertFalse(cfg.cloudhub.HasField("data_bucket"))
+
+    def test_cloudhub_settings_are_carried(self):
+        cfg = self.cloudhub_cfg('customer: "acme"\ncloudhub { data_bucket: "acme-fleet9" }\n')
+        self.assertEqual(fc.validate(SCHEMA, cfg), [])
+        self.assertEqual(cfg.customer, "acme")
+        self.assertEqual(cfg.cloudhub.data_bucket, "acme-fleet9")
+        self.assertEqual(cfg.cloudhub.base_uri, "fleet9.example")
+
+    def real_fleet_without_cloudhub(self, extra=""):
+        """v1_retired_imu has hubs: [1], so with no marker it is a real fleet lacking a CloudHub."""
+        cfg = fc.parse_fleet_config(SCHEMA, fixture("v1_retired_imu.cfg"))
+        fc.text_format.Merge("version: {}\n".format(SCHEMA.version) + extra, cfg)
+        return cfg
+
+    def test_real_fleet_that_lost_its_cloudhub_is_refused(self):
+        """It says it has one and does not, which is the mistake the rule exists for."""
+        problems = fc.validate(SCHEMA, self.real_fleet_without_cloudhub())
+        self.assertTrue(
+            any(p.startswith("hubs: this fleet says it has a CloudHub") for p in problems),
+            problems)
+
+    def test_a_real_fleet_may_say_it_has_no_cloudhub(self):
+        """Not every fleet is sold with one, and saying so is how the two are told
+        apart from a config that lost hub 30 by accident."""
+        cfg = self.real_fleet_without_cloudhub("includes_cloudhub: false\n")
+        self.assertEqual([p for p in fc.validate(SCHEMA, cfg) if p.startswith("hubs:")], [])
+
+    def test_saying_it_has_none_while_holding_one_is_refused(self):
+        cfg = self.real_fleet_without_cloudhub("includes_cloudhub: false\n")
+        cfg.hubs.append(30)
+        self.assertTrue(
+            any(p.startswith("includes_cloudhub: false, but hub 30") for p in fc.validate(SCHEMA, cfg)),
+            fc.validate(SCHEMA, cfg))
+
+    def test_includes_cloudhub_defaults_to_true(self):
+        """An existing file says nothing, so it is still held to the rule."""
+        self.assertFalse(self.real_fleet_without_cloudhub().HasField("includes_cloudhub"))
+        self.assertTrue(self.real_fleet_without_cloudhub().includes_cloudhub)
+
+    def test_a_simulation_may_have_no_cloudhub(self):
+        """The rule that broke the VirtualFleet before: it must not fire on a simulation."""
+        cfg = self.real_fleet_without_cloudhub("fleet_type: FLEET_TYPE_SIMULATION\n")
+        self.assertEqual([p for p in fc.validate(SCHEMA, cfg) if p.startswith("hubs:")], [])
+
+    def test_fleet_type_defaults_to_real(self):
+        """An existing file says nothing, so it is held to the real-fleet rule."""
+        cfg = self.real_fleet_without_cloudhub()
+        self.assertFalse(cfg.HasField("fleet_type"))
+        self.assertFalse(fc.is_simulation(cfg))
+
+    def test_cloudhub_settings_refuse_blanks(self):
+        cfg = self.cloudhub_cfg('customer: ""\ncloudhub { data_bucket: "" }\n')
+        problems = fc.validate(SCHEMA, cfg)
+        self.assertIn("customer: must not be empty; omit it to use the default", problems)
+        self.assertIn("cloudhub.data_bucket: must not be empty; omit it to use the default", problems)
+
+    def test_cloudhub_without_a_cloudhub_hub_is_refused(self):
+        cfg = SCHEMA.FleetConfig()
+        fc.text_format.Merge(
+            'fleet: 7\n'
+            'hubs: [1]\n'
+            'ssh { hub { id: 1 private_key: "k\\n" public_key: "ssh-ed25519 AAAA hub1_fleet7" } }\n'
+            'wlan_password: "x"\n'
+            'service_vpn_enabled: false\n'
+            'cloudhub { base_uri: "a" admin_email: "b" smtp_address: "c" }\n', cfg)
+        self.assertIn("cloudhub: set, but hub 30 (CloudHub) is not in the fleet",
+                      fc.validate(SCHEMA, cfg))
+
+    def test_only_the_cloudhub_may_go_without_a_private_key(self):
+        cfg = SCHEMA.FleetConfig()
+        fc.text_format.Merge(
+            'version: 2\n'
+            'fleet: 7\n'
+            'hubs: [1, 2, 30]\n'
+            'ssh {\n'
+            '  hub { id: 1 private_key: "" public_key: "ssh-ed25519 AAAA hub1_fleet7" }\n'
+            '  hub { id: 30 private_key: "" public_key: "ssh-ed25519 AAAA hub30_fleet7" }\n'
+            '}\n'
+            'wlan_password: "x"\n'
+            'service_vpn_enabled: false\n'
+            'cloudhub { base_uri: "a" admin_email: "b" smtp_address: "c" }\n', cfg)
+        problems = fc.validate(SCHEMA, cfg)
+        self.assertIn("ssh: hub 1: private_key must be set (only the CloudHub keeps its key to itself)", problems)
+        self.assertIn("ssh: no hub key for hub 2", problems)
+        self.assertEqual([p for p in problems if "30" in p], [])
+
+        del cfg.ssh.hub[1]
+        self.assertEqual([p for p in fc.validate(SCHEMA, cfg) if "30" in p], [],
+                         "the CloudHub's key is recorded only once the CloudHub exists")
+
+    def test_cloudhub_vpn_address_without_jaia_ip(self):
+        with mock.patch.object(fc.shutil, "which", return_value=None):
+            self.assertEqual(fc.jaia_ip("addr", "hub", 3, 30, net="cloudhub_vpn"), "fd0f:77ac:4fdf:3::1:1e")
+            self.assertEqual(fc.jaia_ip("addr", "hub", 1000, 30, net="cloudhub_vpn"), "fd0f:77ac:4fdf:3e8::1:1e")
 
     def test_newer_than_tool_is_refused(self):
         with tempfile.NamedTemporaryFile("w", suffix=".cfg", delete=False) as f:
@@ -231,6 +453,52 @@ class CommandTest(unittest.TestCase):
         result = self.env.run("--binary=jaia admin fleet version")
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(result.stdout.strip(), str(SCHEMA.version))
+
+    def test_has_cloudhub_answers_for_a_fleet_that_has_one(self):
+        result = self.env.run("has_cloudhub", fixture("v2_no_permanent_keys.cfg"))
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual("yes", result.stdout.strip())
+
+    def without_a_cloudhub(self, name, extra):
+        """The fixture with hub 30 and its auth block taken out, as a fleet built
+        without one actually looks."""
+        path = os.path.join(self.env.dir, name)
+        with open(fixture("v2_no_permanent_keys.cfg")) as f:
+            text = re.sub(r"cloudhub \{.*?\n\}\n", "", f.read().replace("hubs: 30\n", ""),
+                          flags=re.DOTALL)
+        with open(path, "w") as f:
+            f.write(text + extra)
+        return path
+
+    def test_has_cloudhub_answers_for_a_fleet_built_without_one(self):
+        """What the major upgrade asks before it decides whether to expect one."""
+        path = self.without_a_cloudhub("nocloud.cfg", "includes_cloudhub: false\n")
+        result = self.env.run("has_cloudhub", path)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual("no", result.stdout.strip())
+
+    def test_has_cloudhub_answers_no_for_a_simulation(self):
+        """A VirtualFleet has none whatever the field says, and the upgrade has to
+        hear the same answer the validator acts on."""
+        path = self.without_a_cloudhub("sim.cfg", "fleet_type: FLEET_TYPE_SIMULATION\n")
+        result = self.env.run("has_cloudhub", path)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual("no", result.stdout.strip())
+
+    def test_nodes_lists_the_hubs_and_bots(self):
+        """What the major upgrade compares with the hub's inventory."""
+        result = self.env.run("nodes", fixture("v2_no_permanent_keys.cfg"))
+        self.assertEqual(result.returncode, 0, result.stderr)
+        cfg = fc.parse_fleet_config(SCHEMA, fixture("v2_no_permanent_keys.cfg"))
+        self.assertEqual(result.stdout.splitlines(),
+                         ["hubs " + " ".join(str(h) for h in sorted(cfg.hubs)),
+                          "bots " + " ".join(str(b) for b in sorted(cfg.bots))])
+
+    def test_nodes_reads_a_2y_config(self):
+        """A hub that has not been upgraded yet holds a version 1 file."""
+        result = self.env.run("nodes", fixture("v1_fleet7.cfg"))
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout.splitlines(), ["hubs 1 30", "bots 1 2"])
 
     def test_validate_reports_migration(self):
         result = self.env.run("validate", fixture("v1_fleet7.cfg"))
@@ -286,6 +554,69 @@ class CommandTest(unittest.TestCase):
         self.assertIn("jaiabot-embedded/bot_id string 2", preseed)
 
     @needs_render_deps
+    def test_generate_points_a_node_at_its_own_cloudhub(self):
+        bootdir = self.env.bootdir()
+        result = self.env.run("generate", fixture("v1_fleet7.cfg"), "--bootdir", bootdir, "bot", "2")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        with open(os.path.join(bootdir, "jaiabot", "init", "first-boot.preseed.yml")) as f:
+            preseed = f.read()
+        self.assertIn("pair-with-cloudhub.sh fleet7.jaia.tech", preseed)
+        self.assertIn("enable wg-quick@wg_jaia_ch7", preseed)
+
+    def test_generate_writes_the_cloudhub_seed(self):
+        """The optional SMTP settings appear only when the config sets them, so a config
+        without them still produces the seed earlier releases wrote."""
+        bootdir = self.env.bootdir()
+        result = self.env.run("generate", fixture("v1_fleet7.cfg"), "--bootdir", bootdir, "hub", "30",
+                              "--action", "write_cloudhub_env")
+        self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+        with open(os.path.join(bootdir, "jaiabot", "init", "cloudhub_env.sh")) as f:
+            seed = f.read().splitlines()
+        self.assertEqual([line.split("=")[0] for line in seed],
+                         ["AUTH_BASE_URI", "AUTH_ADMIN_EMAIL", "AUTH_SMTP_ADDRESS", "CLOUDHUB_DATA_BUCKET"])
+
+        cfg = fc.parse_fleet_config(SCHEMA, fixture("v1_fleet7.cfg"))
+        fc.migrate(SCHEMA, cfg)
+        cfg.cloudhub.smtp_sender = "noreply@auth.example"
+        cfg.cloudhub.smtp_credentials_ssm_parameter = "arn:aws:ssm:us-east-1:123456789012:parameter/example/smtp"
+        with_smtp = os.path.join(self.env.dir, "with_smtp.cfg")
+        with open(with_smtp, "w") as f:
+            f.write(fc.fleet_config_text(cfg))
+        shutil.rmtree(bootdir)
+        bootdir = self.env.bootdir()
+        result = self.env.run("generate", with_smtp, "--bootdir", bootdir, "hub", "30",
+                              "--action", "write_cloudhub_env")
+        self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+        with open(os.path.join(bootdir, "jaiabot", "init", "cloudhub_env.sh")) as f:
+            seed = f.read()
+        self.assertIn("AUTH_SMTP_SENDER=noreply@auth.example\n", seed)
+        self.assertIn("AUTH_SMTP_CREDENTIALS_SSM_PARAMETER=arn:aws:ssm:us-east-1:123456789012:parameter/example/smtp\n", seed)
+
+    @needs_render_deps
+    def test_generate_leaves_the_cloudhub_nothing_to_enroll_with(self):
+        """Hub 30 is the server: given its own base URI it would enroll with itself."""
+        bootdir = self.env.bootdir()
+        result = self.env.run("generate", fixture("v1_fleet7.cfg"), "--bootdir", bootdir, "hub", "30")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        with open(os.path.join(bootdir, "jaiabot", "init", "first-boot.preseed.yml")) as f:
+            preseed = f.read()
+        self.assertNotIn("fleet7.jaia.tech", preseed)
+        self.assertIn("disable wg-quick@wg_jaia_ch7", preseed)
+        yaml.safe_load(preseed)
+
+    @needs_render_deps
+    def test_generate_for_a_simulation_with_no_cloudhub(self):
+        """A simulation may ask for the service VPN with no CloudHub to reach, which
+        the template has to render rather than fail on."""
+        bootdir = self.env.bootdir()
+        result = self.env.run("generate", fixture("v2_simulation.cfg"), "--bootdir", bootdir, "hub", "1")
+        self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+        with open(os.path.join(bootdir, "jaiabot", "init", "first-boot.preseed.yml")) as f:
+            preseed = f.read()
+        self.assertIn("disable wg-quick@wg_jaia_ch6", preseed)
+        yaml.safe_load(preseed)
+
+    @needs_render_deps
     def test_generate_without_permanent_keys_or_overrides(self):
         bootdir = self.env.bootdir()
         result = self.env.run("generate", fixture("v2_no_permanent_keys.cfg"), "--bootdir", bootdir, "hub", "30")
@@ -315,6 +646,90 @@ class CommandTest(unittest.TestCase):
             self.assertEqual(f.read().splitlines(),
                              ["jaia-ip.py addr --net wlan --fleet_id 7 --ipv4 --node hub --node_id 1",
                               "jaia-ip.py addr --net wlan --fleet_id 7 --ipv4 --node gateway"])
+
+    @needs_render_deps
+    def test_generate_accepts_the_cloudhub_key_only_from_its_vpn_address(self):
+        bootdir = self.env.bootdir()
+        result = self.env.run("generate", fixture("v1_fleet7.cfg"), "--bootdir", bootdir, "hub", "1",
+                              "--action", "first_boot", "--action", "new_hub_script")
+        self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+        cloudhub = 'from="fd0f:77ac:4fdf:7::1:1e" ssh-ed25519 AAAAhub30 hub30_fleet7'
+        with open(os.path.join(bootdir, "jaiabot", "init", "first-boot.preseed.yml")) as f:
+            preseed = yaml.safe_load(f)
+        authorized = next(w["content"] for w in preseed["write_files"]
+                          if w["path"] == "/etc/jaiabot/ssh/hub_authorized_keys").splitlines()
+        self.assertEqual(authorized, ["no-touch-required sk-ssh-ed25519@openssh.com AAAAhub1 hub1_fleet7", cloudhub])
+        with open(os.path.join(bootdir, "new_hub.sh")) as f:
+            self.assertIn("\n" + cloudhub + "\n", f.read())
+
+    def test_set_cloudhub_key_records_only_the_public_key(self):
+        path = self.env.without_cloudhub_key()
+        self.assertEqual(self.env.run("validate", path).returncode, 0)
+        result = self.env.run("set_cloudhub_key", path, self.env.pubkey_file("ssh-ed25519 AAAAnew hub30_fleet6\n"))
+        self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+        self.assertNotIn("Replacing", result.stdout)
+        cfg = fc.parse_fleet_config(SCHEMA, path)
+        self.assertEqual(fc.validate(SCHEMA, cfg), [])
+        key = next(k for k in cfg.ssh.hub if k.id == 30)
+        self.assertEqual((key.private_key, key.public_key), ("", "ssh-ed25519 AAAAnew hub30_fleet6"))
+
+        result = self.env.run("set_cloudhub_key", path, self.env.pubkey_file("ssh-ed25519 AAAAnewer hub30_fleet6\n"))
+        self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+        self.assertIn("Replacing the CloudHub's previous key", result.stdout)
+        cfg = fc.parse_fleet_config(SCHEMA, path)
+        self.assertEqual([k.public_key for k in cfg.ssh.hub if k.id == 30], ["ssh-ed25519 AAAAnewer hub30_fleet6"])
+
+    def test_set_key_under_the_cloudhub_subtool_is_set_cloudhub_key(self):
+        """How "jaia admin fleet cloudhub set_key" runs this script"""
+        path = self.env.without_cloudhub_key()
+        result = self.env.run("--binary=jaia admin fleet cloudhub set_key", path,
+                              self.env.pubkey_file("ssh-ed25519 AAAAnew hub30_fleet6\n"))
+        self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+        cfg = fc.parse_fleet_config(SCHEMA, path)
+        self.assertEqual([k.public_key for k in cfg.ssh.hub if k.id == 30], ["ssh-ed25519 AAAAnew hub30_fleet6"])
+
+    def test_set_cloudhub_key_refuses_a_fleet_without_a_cloudhub(self):
+        pubkey = self.env.pubkey_file("ssh-ed25519 AAAAnew hub30_fleet6\n")
+        no_cloudhub = os.path.join(self.env.dir, "no_cloudhub.cfg")
+        with open(no_cloudhub, "w") as f:
+            f.write('version: 2\nfleet: 6\nfleet_type: FLEET_TYPE_SIMULATION\nhubs: [1]\n'
+                    'ssh { hub { id: 1 private_key: "handle\\n" public_key: "ssh-ed25519-sk AAAA hub1_fleet6" } }\n'
+                    'wlan_password: "x"\nservice_vpn_enabled: false\n')
+        self.assertEqual(self.env.run("validate", no_cloudhub).returncode, 0)
+        result = self.env.run("set_cloudhub_key", no_cloudhub, pubkey)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("hub 30 (CloudHub) is not in", result.stderr)
+        path = self.env.without_cloudhub_key()
+        result = self.env.run("set_cloudhub_key", path, self.env.pubkey_file("one\ntwo\n"))
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("expected one public key line", result.stderr)
+
+    @needs_render_deps
+    def test_generate_for_a_cloudhub_writes_no_private_key(self):
+        path = self.env.without_cloudhub_key()
+        bootdir = self.env.bootdir()
+        init = os.path.join(bootdir, "jaiabot", "init")
+        result = self.env.run("generate", path, "--bootdir", bootdir, "hub", "30", "--action", "hub_ssh_keys")
+        self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+        self.assertIn("it makes its own at first boot", result.stdout)
+        self.assertEqual([f for f in os.listdir(init) if f.startswith("hub")], [])
+
+        self.env.run("set_cloudhub_key", path, self.env.pubkey_file("ssh-ed25519 AAAAnew hub30_fleet6\n"))
+        result = self.env.run("generate", path, "--bootdir", bootdir, "hub", "30", "--hub-ssh-keys-only")
+        self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+        self.assertEqual([f for f in os.listdir(init) if f.startswith("hub")], ["hub30_fleet6.pub"])
+        with open(os.path.join(init, "hub30_fleet6.pub")) as f:
+            self.assertEqual(f.read(), "ssh-ed25519 AAAAnew hub30_fleet6\n")
+
+    @needs_render_deps
+    def test_generate_warns_when_the_cloudhub_has_no_key_yet(self):
+        path = self.env.without_cloudhub_key()
+        bootdir = self.env.bootdir()
+        result = self.env.run("generate", path, "--bootdir", bootdir, "bot", "1")
+        self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+        self.assertIn("WARNING: no key for the CloudHub (hub 30) yet", result.stdout)
+        with open(os.path.join(bootdir, "jaiabot", "init", "first-boot.preseed.yml")) as f:
+            self.assertNotIn("hub30", f.read())
 
     def test_generate_refuses_invalid_config_before_writing(self):
         bootdir = self.env.bootdir()
@@ -385,24 +800,62 @@ class CreateTest(unittest.TestCase):
             f.write("\n".join(answers) + "\n")
         return self.env.run("edit", path, "--answers", answers_file), path
 
-    def run_create(self, answers):
+    def run_create(self, answers, *extra):
         path = os.path.join(self.env.dir, "answers.txt")
         with open(path, "w") as f:
             f.write("\n".join(answers) + "\n")
         out = os.path.join(self.env.dir, "fleet7.cfg")
-        result = self.env.run("create", out, "--answers", path)
+        result = self.env.run("create", out, "--answers", path, *extra)
         return result, out
+
+    def test_test_keys_need_no_yubikey(self):
+        with open(os.path.join(self.env.dir, "bin", "ykman"), "w") as f:
+            f.write("#!/bin/sh\necho 'no Yubikey here' >&2\nexit 1\n")
+        answers = ["7", "no", "1, 2", "1", "", "wifipass", "no"]
+        answers += settings_answers(ALL_GROUPS, {}) + ["no"] + node_answers([1, 2], [1])
+        result, out = self.run_create(answers, "--test-keys")
+        self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+        self.assertIn("never use it for a real deployment", result.stderr)
+        keys = {k.id: k for k in fc.parse_fleet_config(SCHEMA, out).ssh.hub}
+        self.assertEqual(keys[1].public_key, "ssh-ed25519 AAAAhub1_fleet7_test_key hub1_fleet7_test_key")
+        self.assertEqual(keys[2].private_key, "PRIVATE hub2_fleet7_test_key\n")
+
+    def test_without_test_keys_a_hub_key_needs_a_yubikey(self):
+        with open(os.path.join(self.env.dir, "bin", "ykman"), "w") as f:
+            f.write("#!/bin/sh\nexit 1\n")
+        answers = ["7", "no", "1", "1", "", "wifipass", "no"]
+        result, _ = self.run_create(answers)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("ykman failed", result.stderr)
+
+    def test_edit_with_test_keys_keeps_existing_hub_keys(self):
+        answers = ["7", "no", "1", "1", "", "wifipass", "no"]
+        answers += settings_answers(ALL_GROUPS, {}) + ["no"] + node_answers([1], [1])
+        result, out = self.run_create(answers)
+        self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+        before = {k.id: k.public_key for k in fc.parse_fleet_config(SCHEMA, out).ssh.hub}
+        edit = ["<default>"] * 2 + ["1, 2"] + ["<default>"] * 3 + ["<default>"]
+        edit += accept(fc.parse_fleet_config(SCHEMA, out).settings) + ["no"] + node_answers([1, 2], [1])
+        answers_file = os.path.join(self.env.dir, "edit-answers.txt")
+        with open(answers_file, "w") as f:
+            f.write("\n".join(edit) + "\n")
+        result = self.env.run("edit", out, "--answers", answers_file, "--test-keys")
+        self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+        after = {k.id: k.public_key for k in fc.parse_fleet_config(SCHEMA, out).ssh.hub}
+        self.assertEqual(after[1], before[1])
+        self.assertEqual(after[2], "ssh-ed25519 AAAAhub2_fleet7_test_key hub2_fleet7_test_key")
 
     def test_creates_a_valid_current_version_file(self):
         answers = [
             "abc", "7",                      # fleet id: re-asked until it is in range
-            "yes",                           # CloudHub in the fleet
+            "yes",                           # it has a CloudHub
             "1, 2", "1, 2",                  # physical hubs, bots
             "ssh-ed25519 AAAAperm me", "",   # permanent keys
             "wifipass", "yes",               # wlan password, service vpn
             "<default>",                     # base_uri: fleet7.jaia.tech
             "nobody", "admin@example.com",   # admin_email: re-asked until it is one
-            "<default>",                     # smtp_address
+            "yes",                           # Jaia SMTP
+            "acme corp", "acme",             # customer: re-asked until it can name AWS resources
         ]
         answers += settings_answers(ALL_GROUPS, {"comms_links": "xbee, iridium", "bot_type": "pam",
                                                  "pam_connection_type": "uart", "user_role": "advanced"})
@@ -422,13 +875,16 @@ class CreateTest(unittest.TestCase):
                          (SCHEMA.version, 7, [1, 2, 30], [1, 2]))
         keys = {k.id: k for k in cfg.ssh.hub}
         self.assertEqual(keys[1].public_key, "no-touch-required ssh-ed25519-sk AAAAhub1_fleet7 hub1_fleet7")
-        self.assertEqual(keys[30].public_key, "ssh-ed25519 AAAAhub30_fleet7 hub30_fleet7")
+        self.assertNotIn(30, keys, "the CloudHub makes its own key")
         self.assertEqual(keys[1].private_key, "PRIVATE hub1_fleet7\n")
         self.assertEqual(cfg.ssh.vpn_tmp.public_key, "ssh-ed25519 AAAAid_vpn_tmp id_vpn_tmp")
         self.assertEqual(list(cfg.ssh.permanent_authorized_keys), ["ssh-ed25519 AAAAperm me"])
         self.assertEqual((cfg.wlan_password, cfg.service_vpn_enabled), ("wifipass", True))
-        self.assertEqual([cfg.cloudhub_auth.base_uri, cfg.cloudhub_auth.admin_email, cfg.cloudhub_auth.smtp_address],
-                         ["fleet7.jaia.tech", "admin@example.com", "smtp://smtp-relay.gmail.com:587"])
+        self.assertEqual([cfg.cloudhub.base_uri, cfg.cloudhub.admin_email, cfg.cloudhub.smtp_address],
+                         ["fleet7.jaia.tech", "admin@example.com", "submission://smtp.postmarkapp.com:587"])
+        self.assertFalse(cfg.cloudhub.HasField("smtp_sender"), "Jaia SMTP leaves the default")
+        self.assertFalse(cfg.cloudhub.HasField("smtp_credentials_ssm_parameter"))
+        self.assertEqual(cfg.customer, "acme")
 
         s = cfg.settings
         q = SCHEMA.questions_by_name
@@ -464,17 +920,55 @@ class CreateTest(unittest.TestCase):
         result = self.env.run("validate", out)
         self.assertEqual(result.returncode, 0, result.stderr)
 
+    def test_without_jaia_smtp_its_settings_are_asked(self):
+        answers = ["7", "yes", "1", "1", "", "wifipass", "no",
+                   "<default>", "admin@example.com",
+                   "no", "smtp://smtp.example.com:587", "noreply@example.com", "/example/smtp",
+                   "<default>"]
+        answers += settings_answers(ALL_GROUPS, {}) + ["no"] + node_answers([1, 30], [1])
+        result, out = self.run_create(answers)
+        self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+        auth = fc.parse_fleet_config(SCHEMA, out).cloudhub
+        self.assertEqual((auth.smtp_address, auth.smtp_sender, auth.smtp_credentials_ssm_parameter),
+                         ("smtp://smtp.example.com:587", "noreply@example.com", "/example/smtp"))
+
+    def test_edit_to_jaia_smtp_drops_the_custom_settings(self):
+        out = os.path.join(self.env.dir, "smtp.cfg")
+        loaded = fc.parse_fleet_config(SCHEMA, fixture("v2_no_permanent_keys.cfg"))
+        loaded.cloudhub.smtp_sender = "noreply@example.com"
+        with open(out, "w") as f:
+            f.write(fc.fleet_config_text(loaded))
+        answers = ["<default>"] * 4 + [""] + ["<default>"] * 2
+        answers += ["<default>", "<default>", "yes", "<default>"]
+        answers += accept(loaded.settings) + ["no"] + node_answers([30], [1])
+        result, _ = self.run_edit(out, answers)
+        self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+        auth = fc.parse_fleet_config(SCHEMA, out).cloudhub
+        self.assertEqual(auth.smtp_address, fc.JAIA_SMTP_ADDRESS)
+        self.assertFalse(auth.HasField("smtp_sender"))
+
+    def test_edit_keeps_a_simulation(self):
+        out = os.path.join(self.env.dir, "sim.cfg")
+        shutil.copyfile(fixture("v2_simulation.cfg"), out)
+        loaded = fc.parse_fleet_config(SCHEMA, out)
+        answers = ["<default>"] * 4 + [""] + ["<default>"] * 2
+        answers += accept(loaded.settings) + ["no"] + node_answers(list(loaded.hubs), list(loaded.bots))
+        result, _ = self.run_edit(out, answers)
+        self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+        self.assertTrue(fc.is_simulation(fc.parse_fleet_config(SCHEMA, out)))
+
     def test_no_cloudhub_means_no_auth_and_no_hub_30(self):
-        """A VirtualFleet has no CloudHub, so hub 30 stays optional."""
+        """A VirtualFleet has no CloudHub, and has to say so to be allowed none."""
         answers = ["7", "no", "1", "1", "", "wifipass", "no"]
         answers += settings_answers(ALL_GROUPS, {})
         answers += ["yes", "", "1"] + settings_answers({"ALL", "BOT"}, {}) + ["no"]
         answers += node_answers([1], [1])
-        result, out = self.run_create(answers)
+        result, out = self.run_create(answers, "--simulation")
         self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
         cfg = fc.parse_fleet_config(SCHEMA, out)
+        self.assertTrue(fc.is_simulation(cfg))
         self.assertEqual(list(cfg.hubs), [1])
-        self.assertFalse(cfg.HasField("cloudhub_auth"))
+        self.assertFalse(cfg.HasField("cloudhub"))
         self.assertFalse(cfg.HasField("comms"))
         # an override set whose answers all match the common ones writes nothing
         self.assertEqual(len(cfg.override), 0)
@@ -483,12 +977,12 @@ class CreateTest(unittest.TestCase):
         back = fc.SCRIPTED_BACK
         answers = [
             "8", back, "7",          # fleet id, then back from the CloudHub question
-            "no", back, "yes",       # CloudHub: answered no, back, then yes
+            "no", back, "yes",       # CloudHub: no, back, then yes
             "1", "2",                # physical hubs, bots
             back,                    # from the permanent keys, back past key generation to bots
             "1, 2",                  # bots again
             "", "wifipass", "yes",   # permanent keys, wlan password, service vpn
-            "<default>", "admin@example.com", "<default>",
+            "<default>", "admin@example.com", "<default>", "<default>",
         ]
         # back from the second settings question returns to the first, re-answered here
         first = [q for q in SCHEMA.questions if not q.identity][0]
@@ -514,7 +1008,7 @@ class CreateTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
         cfg = fc.parse_fleet_config(SCHEMA, out)
         self.assertEqual(list(cfg.hubs), [1])
-        self.assertFalse(cfg.HasField("cloudhub_auth"))
+        self.assertFalse(cfg.HasField("cloudhub"))
 
     def test_back_out_of_the_first_question_writes_nothing(self):
         result, out = self.run_create([fc.SCRIPTED_BACK])
@@ -522,15 +1016,17 @@ class CreateTest(unittest.TestCase):
         self.assertIn("Cancelled", result.stderr)
         self.assertFalse(os.path.exists(out))
 
-    def test_rf_encryption_password_is_proposed_at_random(self):
+    def test_encryption_passwords_are_proposed_at_random(self):
         class AcceptDefault:
             def inputbox(self, text, default=""):
                 return default
-        q = SCHEMA.questions_by_name["rf_encryption_password"]
-        first, second = fc.ask_question(AcceptDefault(), q, ""), fc.ask_question(AcceptDefault(), q, "")
-        self.assertRegex(first, "^[0-9a-f]{32}$")
-        self.assertNotEqual(first, second)
-        self.assertEqual(fc.ask_question(AcceptDefault(), q, "keep"), "keep")
+        for name, pattern in (("rf_encryption_password", "^[0-9a-f]{32}$"),
+                              ("dccl_encryption_password", "^[A-Za-z0-9_-]{32}$")):
+            q = SCHEMA.questions_by_name[name]
+            first, second = fc.ask_question(AcceptDefault(), q, ""), fc.ask_question(AcceptDefault(), q, "")
+            self.assertRegex(first, pattern)
+            self.assertNotEqual(first, second)
+            self.assertEqual(fc.ask_question(AcceptDefault(), q, "keep"), "keep")
 
     def test_edit_keeps_everything_when_every_answer_is_accepted(self):
         """Accepting every prefilled answer rewrites the same configuration."""
@@ -541,7 +1037,8 @@ class CreateTest(unittest.TestCase):
         answers = ["<default>"] * 4                 # fleet, cloudhub, hubs, bots
         answers += ["<default>", ""]                # keep the permanent key, then no more
         answers += ["<default>"] * 2                # wlan password, service vpn
-        answers += ["<default>"] * 3                # cloudhub auth
+        answers += ["<default>"] * 6                # cloudhub auth: not Jaia SMTP, so its three questions
+        answers += ["<default>"]                    # customer
         answers += accept(before.settings)
         answers += ["<default>", "<default>"] + accept(override, {"ALL", "BOT"})  # the existing override set
         answers += ["no"] + node_answers([1, 30], [1, 2])
@@ -564,6 +1061,7 @@ class CreateTest(unittest.TestCase):
         shutil.copyfile(fixture("v1_bad_values.cfg"), out)
         loaded = SCHEMA.NodeSettings()
         fc.fill_defaults(SCHEMA, loaded)
+        # a 2.y fleet without hub 30 stays without a CloudHub, so no CloudHub questions follow
         answers = ["<default>"] * 4 + ["", "<default>", "<default>"]
         answers += settings_answers(ALL_GROUPS, {"bot_type": "bio"})
         answers += ["no"] + node_answers([1], [1])
@@ -581,8 +1079,8 @@ class CreateTest(unittest.TestCase):
         shutil.copyfile(fixture("v1_fleet7.cfg"), out)
         before = fc.load_migrated(SCHEMA, fixture("v1_fleet7.cfg"), echo=lambda _: None)
         override = fc.node_settings_for(SCHEMA, before, "bot", 2)
-        answers = ["<default>", "<default>", "<default>", "1, 2, 3"]
-        answers += ["<default>", ""] + ["<default>"] * 2 + ["<default>"] * 3
+        answers = ["<default>"] * 3 + ["1, 2, 3"]
+        answers += ["<default>", ""] + ["<default>"] * 2 + ["<default>"] * 7
         answers += accept(before.settings)
         answers += ["<default>", "<default>"] + accept(override, {"ALL", "BOT"}) + ["no"]
         answers += node_answers([1, 30], [1, 2, 3])
@@ -599,7 +1097,7 @@ class CreateTest(unittest.TestCase):
         shutil.copyfile(fixture("v1_fleet7.cfg"), out)
         before = fc.load_migrated(SCHEMA, fixture("v1_fleet7.cfg"), echo=lambda _: None)
         override = fc.node_settings_for(SCHEMA, before, "bot", 2)
-        common = ["<default>"] * 4 + ["<default>", ""] + ["<default>"] * 2 + ["<default>"] * 3
+        common = ["<default>"] * 3 + ["<default>", ""] + ["<default>"] * 2 + ["<default>"] * 7
         tail = ["<default>", "<default>"] + accept(override, {"ALL", "BOT"}) + ["no"]
 
         # hub 1 and hub 30 are not asked: neither question applies to a hub
@@ -634,7 +1132,7 @@ class CreateTest(unittest.TestCase):
         shutil.copyfile(fixture("v2_no_permanent_keys.cfg"), src)
         loaded = fc.parse_fleet_config(SCHEMA, fixture("v2_no_permanent_keys.cfg"))
         answers = ["<default>"] * 4 + [""]
-        answers += ["<default>"] * 2 + ["<default>"] * 3
+        answers += ["<default>"] * 2 + ["<default>"] * 7
         answers += accept(loaded.settings) + ["no"] + node_answers([30], [1])
         path = os.path.join(self.env.dir, "answers.txt")
         with open(path, "w") as f:
@@ -643,6 +1141,16 @@ class CreateTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
         self.assertEqual(open(src).read(), open(fixture("v2_no_permanent_keys.cfg")).read())
         self.assertEqual(fc.validate(SCHEMA, fc.parse_fleet_config(SCHEMA, dst)), [])
+
+    def test_per_node_questions_name_the_node(self):
+        """Answering a VIN is meaningless without knowing which bot it is for."""
+        answers = ["7", "yes", "1", "1, 2", "", "wifipass", "no",
+                   "<default>", "admin@example.com", "<default>", "<default>"]
+        answers += settings_answers(ALL_GROUPS, {}) + ["no"]
+        answers += node_answers([1, 30], [])          # hubs, then bot 1 runs out of answers
+        result, _ = self.run_create(answers)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("no scripted answer for: bot 1: ", result.stderr)
 
     def test_nothing_written_when_answers_run_out(self):
         result, out = self.run_create(["7", "yes", "1"])

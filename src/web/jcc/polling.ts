@@ -2,7 +2,15 @@ import { bots } from "../data/bots/bots";
 import { hubs } from "../data/hubs/hubs";
 import { jaiaGlobal } from "../data/jaia_global/jaia-global";
 import { taskPackets } from "../data/task_packets/task-packets";
-import { PortalBotStatus, PortalHubStatus } from "../shared/PortalStatus";
+import { taskPacketFilter } from "../data/task_packets/task-packet-filter";
+import {
+    APIResponse_Statuses,
+    LinkStatusAge,
+    PortalBotStatus,
+    PortalHubStatus,
+} from "@proto/jaiabot/messages/rest_api";
+import { BotStatus, TaskPacket } from "@proto/jaiabot/messages/jaia_dccl";
+import { Engineering } from "@proto/jaiabot/messages/engineering";
 import { botLayer } from "../openlayers/layers/vector/bot-layer";
 import { hubLayer } from "../openlayers/layers/vector/hub-layer";
 import { ghostMissionLayer, missionLayer } from "../openlayers/layers/vector/mission-layer";
@@ -13,23 +21,26 @@ import { hubCommsLayer } from "../openlayers/layers/vector/hub-comms-layer";
 import { excludedTaskPacketsLayer } from "../openlayers/layers/vector/excluded-task-packets-layer";
 import { DeviceMetadata, DeviceMetadata_Version } from "@proto/jaiabot/messages/metadata";
 import SoundEffects from "../style/audio/sound-effects";
+import { jaia_rest_api } from "../utils/jaia-rest-api";
 
 const MAX_REQUEST_TIME = 10000; // ms;
 const VERSION_LENGTH = 3;
 
 const CONNECTION_WARNING = "connection-warning";
 const CONGESTION_WARNING = "congestion-warning";
-const HUB_CONNECTION_ERROR = "Connection Dropped To HUB";
 
-const STATUS_URL = "/jaia/v0/status";
-const TASK_PACKET_URL = "/jaia/v0/task-packets";
-const TASK_PACKET_VERSION_URL = "/jaia/v0/task-packets-version";
-const METADATA_URL = "/jaia/v0/metadata";
 const GITHUB_URL = "https://api.github.com/repos/jaiarobotics/jaiabot/releases/latest";
 
 let statusRequestInFlight = false;
 let taskPacketRequestInFlight = false;
 let metadataRequestInFlight = false;
+
+// Date window last fetched; lets the poll force a refetch when the filter window changes
+let lastFetchedWindowKey = "";
+
+// Increments per task packet fetch so a slower, superseded response
+// can't overwrite newer task packets in the data model.
+let latestTaskPacketRequest = 0;
 
 let statusRequestStartTime = new Date().getTime();
 
@@ -51,21 +62,35 @@ export async function pollStatus() {
     try {
         statusRequestInFlight = true;
         statusRequestStartTime = new Date().getTime();
-        const response = await fetch(STATUS_URL);
-        if (!response.ok) {
-            console.error(`Response status: ${response.status}`);
-        } else {
-            const json = await response.json();
-            updateBots(json.bots);
-            updateHubs(json.hubs);
-            updateJaiaGlobal(json.controllingClientId);
-            updateOpenLayers();
-            if (json.messages.error && json.messages.error === HUB_CONNECTION_ERROR) {
-                updateWarning(CONNECTION_WARNING, true);
-            } else {
-                updateWarning(CONNECTION_WARNING, false);
-            }
+
+        const [rest_response, engineering_response] = await Promise.all([
+            jaia_rest_api.request({
+                target: {
+                    all: true,
+                },
+                status: true,
+            }),
+            jaia_rest_api.request({
+                target: {
+                    all: true,
+                },
+                engineering_status: true,
+            }),
+        ]);
+
+        const status = rest_response.status;
+
+        if (status == null) {
+            throw new Error("Status response is null");
         }
+
+        updateBots(
+            toPortalBotStatuses(status, engineering_response.engineering_status?.bots ?? []),
+        );
+        updateHubs(toPortalHubStatuses(status));
+        updateJaiaGlobal(status.controlling_client_id ?? null);
+        updateOpenLayers();
+        updateWarning(CONNECTION_WARNING, false);
     } catch (error) {
         updateWarning(CONNECTION_WARNING, true);
         console.error(error);
@@ -92,24 +117,99 @@ export async function pollTaskPackets() {
     }
     try {
         taskPacketRequestInFlight = true;
-        const versionRes = await fetch(TASK_PACKET_VERSION_URL);
-        if (!versionRes.ok) {
-            console.error(`Task packet response status: ${versionRes.status}`);
-        } else {
-            const version = await versionRes.json();
-            if (version !== taskPackets.getVersion()) {
-                const taskPacketRes = await fetch(TASK_PACKET_URL);
-                const json = await taskPacketRes.json();
-                taskPackets.setIncludedTaskPackets(json.result.included);
-                taskPackets.setExcludedTaskPackets(json.result.excluded);
-                updateTaskLayers();
-                taskPackets.setVersion(version);
-            }
-        }
+
+        // A version only says nothing changed for the window it was fetched with
+        const knownVersion =
+            getTaskPacketWindowKey() === lastFetchedWindowKey
+                ? taskPackets.getVersion()
+                : undefined;
+        await refreshTaskPacketsForWindow(knownVersion);
     } catch (error) {
         console.error(error);
     }
     taskPacketRequestInFlight = false;
+}
+
+/**
+ * Returns a key identifying the requested task packet window.
+ *
+ * @returns {string} Window identity key
+ */
+function getTaskPacketWindowKey() {
+    return `${taskPacketFilter.getStartDate().getTime()}|${taskPacketFilter.getEndDate().getTime()}`;
+}
+
+type TaskPacketsFetch =
+    | { unchanged: true }
+    | { unchanged: false; included: TaskPacket[]; excluded: TaskPacket[]; version: number };
+
+/**
+ * Fetches task packets for the current window and loads them into the data model, unless a newer
+ * fetch or filter search has started since. Every refetch of the task packets goes through here.
+ * Records the window and version it applied so the poll only asks the hub whether they changed.
+ *
+ * @param {number} [knownVersion] Version already loaded for this window; omit to fetch in full
+ * @returns {Promise<boolean>} True if the response was applied or unchanged, false if superseded
+ */
+export async function refreshTaskPacketsForWindow(knownVersion?: number) {
+    const requestID = ++latestTaskPacketRequest;
+    // Taken before the fetch reads the filter, so the key matches the window fetched.
+    const windowKey = getTaskPacketWindowKey();
+    const result = await fetchTaskPacketsForWindow(knownVersion);
+    if (requestID !== latestTaskPacketRequest) {
+        return false;
+    }
+    lastFetchedWindowKey = windowKey;
+    if (result.unchanged === true) {
+        return true;
+    }
+    taskPackets.setIncludedTaskPackets(result.included);
+    taskPackets.setExcludedTaskPackets(result.excluded);
+    taskPackets.setVersion(result.version);
+    updateTaskLayers();
+    return true;
+}
+
+/**
+ * Fetches task packets for the filter's window, unless they haven't changed since knownVersion.
+ *
+ * @param {number} [knownVersion] Version of the task packets already loaded for this window
+ * @returns {Promise<TaskPacketsFetch>} Task packets in the window, or that they're unchanged
+ *
+ * @notes
+ * JCC always sends the window rather than relying on the server's default.
+ */
+async function fetchTaskPacketsForWindow(knownVersion?: number): Promise<TaskPacketsFetch> {
+    const query = (
+        inclusion: { included_only: boolean } | { excluded_only: boolean },
+        known_version?: number,
+    ) =>
+        jaia_rest_api
+            .request({
+                target: {
+                    all: true,
+                },
+                task_packets: {
+                    start_time: String(taskPacketFilter.getStartDate().getTime() * 1000),
+                    end_time: String(taskPacketFilter.getEndDate().getTime() * 1000),
+                    known_version,
+                    ...inclusion,
+                },
+            })
+            .then((response) => response.task_packets ?? {});
+
+    // Any change bumps the hub's single version, so the included query's version covers both
+    const included = await query({ included_only: true }, knownVersion);
+    if (included.unchanged) {
+        return { unchanged: true };
+    }
+    const excluded = await query({ excluded_only: true });
+    return {
+        unchanged: false,
+        included: included.packets ?? [],
+        excluded: excluded.packets ?? [],
+        version: included.version ?? 0,
+    };
 }
 
 /**
@@ -124,18 +224,23 @@ export async function pollMetadata() {
     }
     try {
         metadataRequestInFlight = true;
-        const res = await fetch(METADATA_URL);
-        if (!res.ok) {
-            console.error(`Metadata response status: ${res.status}`);
-        } else {
-            const metadata: DeviceMetadata = await res.json();
-            const isUpgradeAvailable = compareVersions(
-                metadata.jaiabot_version,
-                jaiaGlobal.getGitHubVersion(),
-            );
-            jaiaGlobal.setMetadata(metadata);
-            jaiaGlobal.setIsUpgradeAvailable(isUpgradeAvailable);
-        }
+
+        const metadata_response = await jaia_rest_api.request({
+            target: {
+                all: true,
+            },
+            metadata: true,
+        });
+
+        // Get metadata for the first hub
+        const metadata = metadata_response.metadata?.hubs?.[0];
+
+        const isUpgradeAvailable = compareVersions(
+            metadata?.jaiabot_version,
+            jaiaGlobal.getGitHubVersion(),
+        );
+        jaiaGlobal.setMetadata(metadata);
+        jaiaGlobal.setIsUpgradeAvailable(isUpgradeAvailable);
     } catch (error) {
         console.error(error);
     }
@@ -191,19 +296,82 @@ export async function pollInternet() {
 }
 
 /**
+ * Combines the per-bot data in a status response into PortalBotStatus objects.
+ * Ages are measured against the hub's clock so they are independent of the client's clock.
+ *
+ * @param {APIResponse_Statuses} status Status response from the hub
+ * @param {Engineering[]} engineeringStatuses Engineering status response from the hub
+ * @returns {PortalBotStatus[]} Status of each bot
+ */
+function toPortalBotStatuses(
+    status: APIResponse_Statuses,
+    engineeringStatuses: Engineering[],
+): PortalBotStatus[] {
+    const hubTime = Number(status.time ?? 0);
+
+    return (status.bots ?? []).map((botStatus) => ({
+        bot_status: botStatus,
+        active_mission_plan: status.active_mission_plans?.find(
+            (plan) => plan.bot_id === botStatus.bot_id,
+        )?.mission_plan,
+        engineering: engineeringStatuses.find(
+            (engineering) => engineering.bot_id === botStatus.bot_id,
+        ),
+        active_link_status_age: getActiveLinkStatusAges(botStatus, hubTime),
+        status_age: hubTime - Number(botStatus.received_time ?? 0),
+    }));
+}
+
+/**
+ * Wraps the hub statuses in a status response into PortalHubStatus objects.
+ *
+ * @param {APIResponse_Statuses} status Status response from the hub
+ * @returns {PortalHubStatus[]} Status of each hub
+ */
+function toPortalHubStatuses(status: APIResponse_Statuses): PortalHubStatus[] {
+    const hubTime = Number(status.time ?? 0);
+
+    return (status.hubs ?? []).map((hubStatus) => ({
+        hub_status: hubStatus,
+        status_age: hubTime - Number(hubStatus.received_time ?? 0),
+    }));
+}
+
+/**
+ * Computes how long ago each active link last delivered a status, in real-time microseconds
+ *
+ * @param {BotStatus} botStatus Status containing the per-link last received times
+ * @param {number} hubTime Hub's wall clock time in microseconds
+ * @returns {LinkStatusAge[]} Age of each active link
+ */
+function getActiveLinkStatusAges(botStatus: BotStatus, hubTime: number): LinkStatusAge[] {
+    // last_received_time is stamped with the hub's (possibly warped) simulation clock
+    const metadata = jaiaGlobal.getMetadata();
+    const warpFactor = metadata?.simulation_warp || 1;
+    const referenceTime = Number(metadata?.simulation_reference_time ?? 0);
+    const hubSimTime = referenceTime + (hubTime - referenceTime) * warpFactor;
+
+    return (botStatus.active_links ?? [])
+        .filter((activeLink) => activeLink.last_received_time !== undefined)
+        .map((activeLink) => ({
+            link: activeLink.link,
+            age: Math.trunc((hubSimTime - Number(activeLink.last_received_time)) / warpFactor),
+        }));
+}
+
+/**
  * Moves Bot data from the server to the client-side data model
  *
  * @param {PortalBotStatus} botStatuses Bot data from the server
  * @returns {void}
  */
-function updateBots(botStatuses: { [botID: string]: PortalBotStatus }) {
-    const botIDs = Object.keys(botStatuses);
-    for (let botID of botIDs) {
-        const numericBotID = Number(botID);
+function updateBots(botStatuses: PortalBotStatus[]) {
+    for (let botStatus of botStatuses) {
+        const numericBotID = botStatus.bot_status?.bot_id ?? -1;
         const wasCommsDropped = bots.getBot(numericBotID)?.isCommsDropped() ?? false;
-        bots.setBot(botStatuses[botID]);
-        botStatuses[botID].isDisconnected = bots.getBot(numericBotID)?.isCommsDropped() ?? false;
-        handleBotSoundEffects(wasCommsDropped, botStatuses[botID].isDisconnected);
+        bots.setBot(botStatus);
+        botStatus.is_disconnected = bots.getBot(numericBotID)?.isCommsDropped() ?? false;
+        handleBotSoundEffects(wasCommsDropped, botStatus.is_disconnected);
     }
     bots.setTick(bots.getTick() + 1);
 }
@@ -214,20 +382,19 @@ function updateBots(botStatuses: { [botID: string]: PortalBotStatus }) {
  * @param {PortalHubStatus} hubStatuses Hub data from the server
  * @returns {void}
  */
-function updateHubs(hubStatuses: { [hubId: string]: PortalHubStatus }) {
-    const hubIDs = Object.keys(hubStatuses);
-    for (let hubID of hubIDs) {
-        hubs.setHub(hubStatuses[hubID]);
+function updateHubs(hubStatuses: PortalHubStatus[]) {
+    for (let hubStatus of hubStatuses) {
+        hubs.setHub(hubStatus);
     }
 }
 
 /**
  * Move the controlling client ID from the server to the client-side data model
  *
- * @param {string} controllingClientID ID from the server
+ * @param {string | null} controllingClientID ID from the server, or null if no client has taken control
  * @returns {void}
  */
-function updateJaiaGlobal(controllingClientID: string) {
+function updateJaiaGlobal(controllingClientID: string | null) {
     jaiaGlobal.setControllingClientID(controllingClientID);
 }
 
@@ -326,7 +493,7 @@ function deconstructTagName(tagName: string) {
  * @returns {boolean} True if there is a new version, False otherwise
  */
 function compareVersions(
-    currentVersion: DeviceMetadata_Version,
+    currentVersion: DeviceMetadata_Version | undefined,
     gitHubVersion: DeviceMetadata_Version,
 ) {
     if (!currentVersion) {

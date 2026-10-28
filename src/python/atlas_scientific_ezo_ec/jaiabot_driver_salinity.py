@@ -13,19 +13,18 @@ log = logging.getLogger('jaiabot_driver_salinity')
 class SensorSimulator:
     """Follows the simulator's water column; holds the last value until it publishes."""
 
-    # the EZO EC reports a conductivity the derived values are computed from downstream; the
-    # simulator models salinity only, so this stands in for a full conductivity model
-    NOMINAL_CONDUCTIVITY = 45000.0
-
     def __init__(self):
         self._salinity = 0.0
+        self._conductivity = 0.0
 
     def update(self, env: SimEnvironment):
         if env.HasField('salinity'):
             self._salinity = env.salinity
+        if env.HasField('conductivity'):
+            self._conductivity = env.conductivity
 
     def read(self):
-        return SalinityData(conductivity_raw=self.NOMINAL_CONDUCTIVITY,
+        return SalinityData(conductivity_raw=self._conductivity,
                             total_dissolved_solids=0.0,
                             salinity_raw=self._salinity)
 

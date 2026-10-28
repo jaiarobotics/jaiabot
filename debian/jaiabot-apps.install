@@ -1,2 +1,4 @@
 usr/bin/*
 usr/share/jaiabot/fleet_config/*
+usr/share/jaiabot/common-versions.env
+usr/share/jaiabot/jaia-authelia-common.sh

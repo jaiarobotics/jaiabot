@@ -97,6 +97,12 @@ constexpr int cloudhub_id = 30;
 static_assert(cloudhub_id >= hub_id_min && cloudhub_id <= hub_id_max,
               "cloudhub_id must be a valid hub id");
 
+// iridium.jaia.tech, which relays every fleet's Iridium messages, is this hub id on each
+// fleet's CloudHub VPN; it is not one of the fleet's own hubs
+constexpr int iridium_id = 25;
+static_assert(iridium_id >= hub_id_min && iridium_id <= hub_id_max && iridium_id != cloudhub_id,
+              "iridium_id must be a valid hub id other than the CloudHub's");
+
 inline std::string node_type_to_string(NodeType node)
 {
     switch (node)

@@ -6,7 +6,7 @@ import { messages } from "../stop-messages";
 import { DisabledCodes } from "../../disabled-codes";
 
 import { bots } from "../../../../data/bots/bots";
-import { PortalBotStatus } from "../../../../shared/PortalStatus";
+import { PortalBotStatus } from "@proto/jaiabot/messages/rest_api";
 import { MissionState } from "@proto/jaiabot/messages/mission";
 
 // Place user in control by default
@@ -37,8 +37,10 @@ test.each(testCases)(
     "Exercise the Stop button in the $missionState state",
     async ({ missionState, buttonAvailable }) => {
         let botStatus: PortalBotStatus = {
-            bot_id: 1,
-            mission_state: missionState,
+            bot_status: {
+                bot_id: 1,
+                mission_state: missionState,
+            },
         };
         bots.setBot(botStatus);
         render(<StopButton bot={bots.getBot(1)} />);

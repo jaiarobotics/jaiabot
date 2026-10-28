@@ -17,6 +17,9 @@ global.ResizeObserver = class ResizeObserver {
     disconnect() {}
 };
 
+// jsdom has no fetch; answer API requests with an empty response unless a test mocks fetch itself
+global.fetch = jest.fn(() => Promise.resolve({ ok: true, json: () => Promise.resolve({}) }));
+
 // Silence non error output while running tests
 global.console.log = jest.fn();
 global.console.debug = jest.fn();

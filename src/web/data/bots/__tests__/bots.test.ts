@@ -1,16 +1,22 @@
-import { PortalBotStatus } from "../../../shared/PortalStatus";
+import { PortalBotStatus } from "@proto/jaiabot/messages/rest_api";
 import { bots } from "../../../data/bots/bots";
 
 const mockBotStatus1: PortalBotStatus = {
-    bot_id: 1,
+    bot_status: {
+        bot_id: 1,
+    },
 };
 
 const mockBotStatus2: PortalBotStatus = {
-    bot_id: 2,
+    bot_status: {
+        bot_id: 2,
+    },
 };
 
 const mockBotStatus5: PortalBotStatus = {
-    bot_id: 5,
+    bot_status: {
+        bot_id: 5,
+    },
 };
 
 test("Verify bots are sorted when adding", () => {

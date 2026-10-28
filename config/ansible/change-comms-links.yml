@@ -4,21 +4,16 @@
   become: yes
   gather_facts: no
   vars:
-    allowed_values:
-      - wifi
-      - xbee
-      - iridium
-      - xbee,wifi
-      - xbee,iridium
-      - wifi,iridium
-      - xbee,wifi,iridium
+    known_links: [xbee, wifi, iridium]
+    requested_links: "{{ (comms_link | default('')).split(',') | map('trim') | reject('equalto', '') | list }}"
   pre_tasks:
-    - name: Check if comms_link is a valid enumeration
+    - name: Check comms_link is one or more known links, in any order
       ansible.builtin.assert:
         that:
-          - comms_link is defined
-          - comms_link in allowed_values
-        fail_msg: "Invalid comms_link. Allowed values are: {{ allowed_values | join('; ') }}"
+          - requested_links | length > 0
+          - requested_links | difference(known_links) | length == 0
+          - requested_links | unique | length == requested_links | length
+        fail_msg: "Invalid comms_link '{{ comms_link | default('') }}': give one or more of {{ known_links | join(', ') }}, comma separated"
   tasks:
     - name: Set new comms_link debconf
       debconf:
@@ -28,7 +23,7 @@
         vtype: "multiselect"
 
     - name: Reconfigure package
-      command: dpkg-reconfigure -f noninteractive jaiabot-embedded
+      command: /usr/bin/jaia-debconf.sh reconfigure
 
     - name: Restart JaiaBot services
       command: systemctl restart jaiabot

@@ -1,0 +1,19 @@
+[Unit]
+Description=LLDAP user directory
+Documentation=https://github.com/lldap/lldap
+After=network.target
+
+[Service]
+User=lldap
+Group=lldap
+WorkingDirectory=/usr/share/lldap
+ExecStart=/usr/bin/lldap run --config-file /etc/lldap/lldap_config.toml
+Restart=always
+RestartSec=5s
+NoNewPrivileges=yes
+ProtectSystem=full
+ProtectHome=yes
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target

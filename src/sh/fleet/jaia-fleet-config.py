@@ -12,6 +12,7 @@
 
 import argparse
 import io
+import ipaddress
 import json
 import os
 import re
@@ -29,6 +30,8 @@ FLEET_CONFIG_TYPE = "jaiabot.protobuf.FleetConfig"
 NODE_SETTINGS_TYPE = "jaiabot.protobuf.NodeSettings"
 DESCRIPTOR_SET_NAME = "fleet_config.desc"
 CLOUDHUB_ID = 30
+# "jaia admin fleet cloudhub <action>" names for this script's own sub-commands
+CLOUDHUB_ACTIONS = {"set_key": "set_cloudhub_key"}
 
 # Fields whose values never appear in output or error messages
 SECRET_FIELDS = {"private_key", "password", "wlan_password", "rf_encryption_password",
@@ -333,6 +336,18 @@ def node_type_name(schema, cfg_node_type):
     return enum.values_by_number[cfg_node_type].name.lower()
 
 
+def wants_cloudhub(cfg):
+    """A simulation never has one, whatever includes_cloudhub says: the field is about
+    whether a real fleet was built with one."""
+    return cfg.includes_cloudhub and not is_simulation(cfg)
+
+
+def is_simulation(cfg):
+    """A VirtualFleet or VirtualBox fleet, which has no CloudHub to require."""
+    enum = cfg.DESCRIPTOR.fields_by_name["fleet_type"].enum_type
+    return cfg.fleet_type == enum.values_by_name["FLEET_TYPE_SIMULATION"].number
+
+
 def apply_settings(merged, settings):
     """Fields set in settings replace those in merged (repeated ones wholesale)."""
     for field, value in settings.ListFields():
@@ -409,11 +424,50 @@ def migrate_1_to_2(schema, cfg, notes, problems):
         for d in old.debconf:
             apply_selection(schema, new.settings, d.key, d.value, problems, notes)
         notes.append("debconf_override {} {}: converted".format(node_type_name(schema, old.type), old.id))
+    move_per_node_answers(schema, cfg, notes)
     cfg.ClearField("debconf")
     cfg.ClearField("debconf_override")
+    if CLOUDHUB_ID not in cfg.hubs:
+        cfg.includes_cloudhub = False
+        notes.append("includes_cloudhub: false, as hub {} (CloudHub) is not in the fleet".format(CLOUDHUB_ID))
     if not cfg.HasField("settings"):
         cfg.settings.SetInParent()
     fill_defaults(schema, cfg.settings)
+
+
+def move_per_node_answers(schema, cfg, notes):
+    """Version 1 asked per-node questions once for every node, so their answers sit in the
+    common settings: a blank one is dropped, and any other becomes each node's own answer
+    unless that node already has one."""
+    for q in schema.questions:
+        if not q.per_node or q.identity:
+            continue
+        if q.repeated:
+            value = list(getattr(cfg.settings, q.name))
+        elif cfg.settings.HasField(q.name):
+            value = getattr(cfg.settings, q.name)
+        else:
+            continue
+        cfg.settings.ClearField(q.name)
+        if value in ("", []):
+            notes.append("{}: blank common answer dropped; answer it per node with 'jaia admin fleet edit'".format(q.name))
+            continue
+        for node_type, ids in (("hub", cfg.hubs), ("bot", cfg.bots)):
+            if q not in per_node_questions(schema, node_type):
+                continue
+            for node_id in ids:
+                override = next((o for o in cfg.override
+                                 if node_type_name(schema, o.type) == node_type and o.id == node_id), None)
+                if override is None:
+                    override = cfg.override.add()
+                    override.type = node_type_number(schema, node_type)
+                    override.id = node_id
+                if q.repeated:
+                    if not getattr(override.settings, q.name):
+                        set_answer(override.settings, q, value)
+                elif not override.settings.HasField(q.name):
+                    set_answer(override.settings, q, value)
+        notes.append("{}: common answer given to each node that had none of its own".format(q.name))
 
 
 def fill_defaults(schema, settings):
@@ -504,15 +558,39 @@ def validate(schema, cfg):
 
     hub_keys = {k.id for k in cfg.ssh.hub}
     for hub in cfg.hubs:
-        if hub not in hub_keys:
+        # The CloudHub makes its own key at first boot and create_cloudhub records it here
+        if hub not in hub_keys and hub != CLOUDHUB_ID:
             problems.append("ssh: no hub key for hub {}".format(hub))
+    for key in cfg.ssh.hub:
+        if not key.private_key and key.id != CLOUDHUB_ID:
+            problems.append("ssh: hub {}: private_key must be set (only the CloudHub keeps its key to itself)".format(key.id))
     if CLOUDHUB_ID in cfg.hubs:
-        if not cfg.HasField("cloudhub_auth"):
-            problems.append("cloudhub_auth: required when hub {} (CloudHub) is in the fleet".format(CLOUDHUB_ID))
+        if not cfg.HasField("cloudhub"):
+            problems.append("cloudhub: required when hub {} (CloudHub) is in the fleet".format(CLOUDHUB_ID))
         else:
             for name in ("base_uri", "admin_email", "smtp_address"):
-                if not getattr(cfg.cloudhub_auth, name):
-                    problems.append("cloudhub_auth.{}: must be set".format(name))
+                if not getattr(cfg.cloudhub, name):
+                    problems.append("cloudhub.{}: must be set".format(name))
+            # An empty bucket name would mount nothing, where an absent one defaults
+            if cfg.cloudhub.HasField("data_bucket") and not cfg.cloudhub.data_bucket:
+                problems.append("cloudhub.data_bucket: must not be empty; omit it to use the default")
+            for name in ("smtp_sender", "smtp_credentials_ssm_parameter"):
+                if cfg.cloudhub.HasField(name) and not getattr(cfg.cloudhub, name):
+                    problems.append("cloudhub.{}: must not be empty; omit it to use the default".format(name))
+    elif cfg.HasField("cloudhub"):
+        problems.append(
+            "cloudhub: set, but hub {} (CloudHub) is not in the fleet".format(CLOUDHUB_ID))
+    if wants_cloudhub(cfg) and CLOUDHUB_ID not in cfg.hubs:
+        problems.append(
+            "hubs: this fleet says it has a CloudHub, so it must include hub {}; add it with "
+            "'jaia admin fleet edit', or answer no to the CloudHub question there (which sets "
+            "includes_cloudhub: false), or set fleet_type: FLEET_TYPE_SIMULATION if this describes a "
+            "VirtualFleet or VirtualBox fleet".format(CLOUDHUB_ID))
+    if not cfg.includes_cloudhub and CLOUDHUB_ID in cfg.hubs:
+        problems.append(
+            "includes_cloudhub: false, but hub {} (CloudHub) is in the fleet".format(CLOUDHUB_ID))
+    if cfg.HasField("customer") and not cfg.customer:
+        problems.append("customer: must not be empty; omit it to use the default")
     return problems
 
 
@@ -563,6 +641,24 @@ def cmd_version(schema, args):
     return 0
 
 
+def cmd_has_cloudhub(schema, args):
+    """Asked of the tool rather than worked out by whoever needs to know, so the
+    rule lives in one place: the upgrade compares this against what the operator
+    said the fleet has."""
+    cfg = load_migrated(schema, args.fleetcfg, echo=lambda _: None)
+    print("yes" if wants_cloudhub(cfg) else "no")
+    return 0
+
+
+def cmd_nodes(schema, args):
+    """The hubs and bots a fleet config lists, one line each, for the upgrade to
+    compare against a hub's inventory."""
+    cfg = load_migrated(schema, args.fleetcfg, echo=lambda _: None)
+    print("hubs " + " ".join(str(h) for h in sorted(cfg.hubs)))
+    print("bots " + " ".join(str(b) for b in sorted(cfg.bots)))
+    return 0
+
+
 def cmd_validate(schema, args):
     cfg = parse_fleet_config(schema, args.fleetcfg)
     print("{}: fleet config version {} (current is {})".format(args.fleetcfg, cfg.version, schema.version))
@@ -600,6 +696,29 @@ def cmd_migrate(schema, args):
     with open(out, "w") as f:
         f.write(fleet_config_text(cfg))
     print("wrote {} (version {})".format(out, schema.version))
+    return 0
+
+
+def cmd_set_cloudhub_key(schema, args):
+    cfg = load_migrated(schema, args.fleetcfg)
+    if CLOUDHUB_ID not in cfg.hubs:
+        raise FleetConfigError("hub {} (CloudHub) is not in {}".format(CLOUDHUB_ID, args.fleetcfg))
+    with open(args.public_key_file) as f:
+        public_key = f.read().strip()
+    if not public_key or "\n" in public_key:
+        raise FleetConfigError("expected one public key line, as in hub{}_fleet{}.pub".format(CLOUDHUB_ID, cfg.fleet))
+    key = next((k for k in cfg.ssh.hub if k.id == CLOUDHUB_ID), None)
+    if key is None:
+        key = cfg.ssh.hub.add()
+        key.id = CLOUDHUB_ID
+    elif key.public_key != public_key:
+        print("Replacing the CloudHub's previous key: nodes configured with it accept the new one only "
+              "after being paired again with this fleet config")
+    key.private_key = ""
+    key.public_key = public_key
+    with open(args.fleetcfg, "w") as f:
+        f.write(fleet_config_text(cfg))
+    print("wrote the CloudHub's public key to {}".format(args.fleetcfg))
     return 0
 
 
@@ -642,12 +761,15 @@ def find_bootdir(label):
     return mount_point
 
 
-def jaia_ip(query_type, node_type, fleet, node_id=None):
+def jaia_ip(query_type, node_type, fleet, node_id=None, net="wlan"):
     if shutil.which("jaia_ip"):
-        cmd = ["jaia_ip", "--query_type", query_type, "--node_type", node_type, "--ip_net", "wlan",
+        cmd = ["jaia_ip", "--query_type", query_type, "--node_type", node_type, "--ip_net", net,
                "--fleet_id", str(fleet)]
         if node_id is not None:
             cmd += ["--node_id", str(node_id)]
+    elif net == "cloudhub_vpn" and query_type == "addr" and node_type == "hub":
+        # The address in the release being generated for (src/lib/utils/ip.h), not whatever 2.y used
+        return str(ipaddress.IPv6Address("fd0f:77ac:4fdf:{:x}::".format(fleet)) + (1 << 16) + node_id)
     else:
         # 2.y has no jaia_ip (the major upgrade runs this tool there), and its fleets are IPv4
         cmd = ["jaia-ip.py", query_type, "--net", "wlan", "--fleet_id", str(fleet), "--ipv4"]
@@ -656,6 +778,15 @@ def jaia_ip(query_type, node_type, fleet, node_id=None):
         if node_id is not None:
             cmd += ["--node_id", str(node_id)]
     return subprocess.run(cmd, capture_output=True, text=True, check=True).stdout.strip()
+
+
+def hub_authorized_key(cfg, hub_key):
+    """The hub_authorized_keys line for a hub. The CloudHub's key is a file rather than
+    a Yubikey, so it is accepted only from the CloudHub's own address on its VPN."""
+    if hub_key.id != CLOUDHUB_ID:
+        return hub_key.public_key
+    return 'from="{}" {}'.format(jaia_ip("addr", "hub", cfg.fleet, CLOUDHUB_ID, net="cloudhub_vpn"),
+                                 hub_key.public_key)
 
 
 def cmd_generate(schema, args):
@@ -693,6 +824,12 @@ def cmd_generate(schema, args):
         "ip": jaia_ip("addr", args.type, cfg.fleet, args.id),
         "gateway_ip": jaia_ip("addr", "gateway", cfg.fleet),
     }
+    context["hub_authorized_keys"] = [hub_authorized_key(cfg, k) for k in cfg.ssh.hub]
+    if CLOUDHUB_ID in cfg.hubs and not any(k.id == CLOUDHUB_ID for k in cfg.ssh.hub) \
+            and not (node_type == "hub" and args.id == CLOUDHUB_ID):
+        print("WARNING: no key for the CloudHub (hub {}) yet, so this {} will not accept it until it is "
+              "paired with a fleet config that has one ('jaia admin fleet cloudhub create' adds it)".format(
+                  CLOUDHUB_ID, node_type))
     context[TEMPLATE_SENTINEL] = {"v{}".format(v): "" for v in range(1, schema.version + 1)}
 
     init_dir = os.path.join(bootdir, "jaiabot", "init")
@@ -735,13 +872,18 @@ def cmd_generate(schema, args):
             for hub_key in cfg.ssh.hub:
                 if hub_key.id == args.id:
                     hub_key_priv = os.path.join(init_dir, "hub{}_fleet{}".format(args.id, cfg.fleet))
-                    with open(hub_key_priv, "w") as f:
-                        f.write(hub_key.private_key)
                     with open(hub_key_priv + ".pub", "w") as f:
                         f.write(hub_key.public_key + "\n")
-                    print("Wrote SSH key pair: {} and {}.pub".format(hub_key_priv, hub_key_priv))
+                    if hub_key.private_key:
+                        with open(hub_key_priv, "w") as f:
+                            f.write(hub_key.private_key)
+                        print("Wrote SSH key pair: {} and {}.pub".format(hub_key_priv, hub_key_priv))
+                    else:
+                        print("Wrote SSH public key: {}.pub (the private key stays on the hub)".format(hub_key_priv))
                     key_found = True
-            if not key_found:
+            if not key_found and args.id == CLOUDHUB_ID:
+                print("No key for the CloudHub in the fleet config: it makes its own at first boot")
+            elif not key_found:
                 print("WARNING: No hub key provided for hub {}".format(args.id))
 
         if "store_fleet_cfg" in actions:
@@ -751,15 +893,26 @@ def cmd_generate(schema, args):
                 f.write(fleet_config_text(cfg))
             print("Wrote fleet config: {}".format(stored))
 
-        if "write_cloudhub_auth" in actions:
-            if not cfg.HasField("cloudhub_auth"):
-                raise FleetConfigError("cloudhub_auth is not set in {}".format(args.fleetcfg))
-            cloudhub_auth_sh = os.path.join(init_dir, "cloudhub_auth.sh")
-            with open(cloudhub_auth_sh, "w") as sh:
-                sh.write("AUTH_BASE_URI={}\n".format(cfg.cloudhub_auth.base_uri))
-                sh.write("AUTH_ADMIN_EMAIL={}\n".format(cfg.cloudhub_auth.admin_email))
-                sh.write("AUTH_SMTP_ADDRESS={}\n".format(cfg.cloudhub_auth.smtp_address))
-            print("Wrote cloudhub auth variables to: {}".format(cloudhub_auth_sh))
+        if "write_cloudhub_env" in actions:
+            if not cfg.HasField("cloudhub"):
+                raise FleetConfigError("cloudhub is not set in {}".format(args.fleetcfg))
+            # Everything jaia_configure_cloudhub.sh cannot ask AWS for. It reads this at
+            # first boot and again after a major upgrade, so the two produce the same
+            # cloud.env from the same source.
+            cloudhub_env_sh = os.path.join(init_dir, "cloudhub_env.sh")
+            with open(cloudhub_env_sh, "w") as sh:
+                sh.write("AUTH_BASE_URI={}\n".format(cfg.cloudhub.base_uri))
+                sh.write("AUTH_ADMIN_EMAIL={}\n".format(cfg.cloudhub.admin_email))
+                sh.write("AUTH_SMTP_ADDRESS={}\n".format(cfg.cloudhub.smtp_address))
+                sh.write("CLOUDHUB_DATA_BUCKET={}\n".format(
+                    cfg.cloudhub.data_bucket or "jaia--cloudhub-data--fleet{}".format(cfg.fleet)))
+                # Only when overridden, so configs without them produce the same seed as before
+                if cfg.cloudhub.smtp_sender:
+                    sh.write("AUTH_SMTP_SENDER={}\n".format(cfg.cloudhub.smtp_sender))
+                if cfg.cloudhub.smtp_credentials_ssm_parameter:
+                    sh.write("AUTH_SMTP_CREDENTIALS_SSM_PARAMETER={}\n".format(
+                        cfg.cloudhub.smtp_credentials_ssm_parameter))
+            print("Wrote cloudhub variables to: {}".format(cloudhub_env_sh))
 
     if args.debug:
         print("Rendered context: {}".format(json.dumps(redacted(context), indent=2)))
@@ -810,6 +963,8 @@ def redacted(obj):
 
 DIALOG_TITLE = "Fleet Configuration"
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+# It ends up in AWS resource names as well as tags, and on shell command lines
+CUSTOMER_RE = re.compile(r"^[A-Za-z0-9_.-]+$")
 SCRIPTED_BACK = "<back>"
 SCRIPTED_DEFAULT = "<default>"
 
@@ -1002,9 +1157,6 @@ def yubikey_present():
 
 def hub_key(ui, fleet, hub):
     comment = "hub{}_fleet{}".format(hub, fleet)
-    if hub == CLOUDHUB_ID:
-        # no USB port in the cloud, so a file key
-        return ssh_keygen(comment)
     ui.msgbox("Hub {} SSH Private Key: insert the Yubikey for hub {} into a USB port to generate its SSH key, "
               "then press OK".format(hub, hub))
     while not yubikey_present():
@@ -1014,8 +1166,21 @@ def hub_key(ui, fleet, hub):
     return private_key, "no-touch-required " + public_key
 
 
+TEST_KEYS_WARNING = ("WARNING: --test-keys gives each new hub an ordinary SSH key instead of one on a Yubikey. "
+                     "Anyone with a copy of this fleet config can then log in as that hub. "
+                     "For test fleets only; never use it for a real deployment.")
+
+
+def test_hub_key(fleet, hub):
+    # the comment marks the key wherever it is authorized
+    return ssh_keygen("hub{}_fleet{}_test_key".format(hub, fleet))
+
+
 # Answers proposed for questions whose default is empty
-GENERATED_DEFAULTS = {"rf_encryption_password": lambda: secrets.token_hex(16)}
+GENERATED_DEFAULTS = {"rf_encryption_password": lambda: secrets.token_hex(16),
+                      "dccl_encryption_password": lambda: secrets.token_urlsafe(24)}
+
+JAIA_SMTP_ADDRESS = "submission://smtp.postmarkapp.com:587"
 
 
 def current_answer(q, settings):
@@ -1030,8 +1195,9 @@ def current_answer(q, settings):
     return q.default
 
 
-def ask_question(ui, q, current):
-    text = q.description
+def ask_question(ui, q, current, subject=None):
+    # A per-node question is asked once per bot or hub, so it has to say which one
+    text = "{}: {}".format(subject, q.description) if subject else q.description
     if q.extended_description:
         text += "\n\n" + q.extended_description
     if q.type == "select":
@@ -1152,14 +1318,18 @@ def per_node_answers(schema, cfg):
     return answers
 
 
-def create(schema, ui, banner=None, existing=None):
+def create(schema, ui, banner=None, existing=None, test_keys=False, simulation=False):
     """Ask every question, starting from an existing configuration when given."""
     cfg = schema.FleetConfig()
     if existing is not None:
         cfg.CopyFrom(existing)
     cfg.version = schema.version
+    if existing is None:
+        enum = cfg.DESCRIPTOR.fields_by_name["fleet_type"].enum_type
+        cfg.fleet_type = enum.values_by_name["FLEET_TYPE_SIMULATION" if simulation else "FLEET_TYPE_REAL"].number
     state = {
-        "cloudhub": CLOUDHUB_ID in cfg.hubs,
+        "simulation": is_simulation(cfg),
+        "cloudhub": wants_cloudhub(cfg),
         "hubs": [h for h in cfg.hubs if h != CLOUDHUB_ID],
         # by hub: a key that already exists is never generated again, so editing
         # a fleet does not ask for every Yubikey
@@ -1178,6 +1348,12 @@ def create(schema, ui, banner=None, existing=None):
         state["cloudhub"] = ui.yesno(
             "Does this fleet include a CloudHub (hub {}, running in the cloud)?".format(CLOUDHUB_ID),
             default="yes" if state["cloudhub"] else "no")
+        # Written only when it differs from the default, so configs that have one
+        # read as they always did
+        if state["cloudhub"] or state["simulation"]:
+            cfg.ClearField("includes_cloudhub")
+        else:
+            cfg.includes_cloudhub = False
 
     def choose_hubs():
         lo, hi = node_id_range("hub_id")
@@ -1196,7 +1372,10 @@ def create(schema, ui, banner=None, existing=None):
         cfg.ssh.ClearField("hub")
         for hub in cfg.hubs:
             if hub not in state["keys"]:
-                state["keys"][hub] = hub_key(ui, cfg.fleet, hub)
+                if hub == CLOUDHUB_ID:
+                    # no USB port for a Yubikey, so it makes its own key and create_cloudhub records it
+                    continue
+                state["keys"][hub] = test_hub_key(cfg.fleet, hub) if test_keys else hub_key(ui, cfg.fleet, hub)
             key = cfg.ssh.hub.add()
             key.id = hub
             key.private_key, key.public_key = state["keys"][hub]
@@ -1229,11 +1408,17 @@ def create(schema, ui, banner=None, existing=None):
         cfg.wlan_password = ui.inputbox("Enter the WIFI password", cfg.wlan_password)
 
     def service_vpn():
-        cfg.service_vpn_enabled = ui.yesno("Should the service Wireguard VPN be enabled at boot?",
+        cfg.service_vpn_enabled = ui.yesno("Should each node's CloudHub VPN start by itself at boot?",
                                            default="yes" if cfg.service_vpn_enabled else "no")
 
+    def optional_field(msg, name, value):
+        if value:
+            setattr(msg, name, value)
+        else:
+            msg.ClearField(name)
+
     def cloudhub_auth():
-        auth = cfg.cloudhub_auth
+        auth = cfg.cloudhub
 
         def base_uri():
             proposed = "fleet{}.jaia.tech".format(cfg.fleet)
@@ -1242,13 +1427,45 @@ def create(schema, ui, banner=None, existing=None):
             state["base_uri"] = proposed
             auth.base_uri = ui.inputbox("CloudHub base URI", current)
 
+        def jaia_smtp():
+            current = (auth.smtp_address in ("", JAIA_SMTP_ADDRESS) and not auth.HasField("smtp_sender")
+                       and not auth.HasField("smtp_credentials_ssm_parameter"))
+            state["jaia_smtp"] = ui.yesno(
+                "Are you using Jaia SMTP (Postmark, sending as noreply@auth.jaia.tech, "
+                "with the credentials in /jaia/cloudhub/smtp_credentials)?",
+                default="yes" if current else "no")
+            if state["jaia_smtp"]:
+                auth.smtp_address = JAIA_SMTP_ADDRESS
+                auth.ClearField("smtp_sender")
+                auth.ClearField("smtp_credentials_ssm_parameter")
+
         run_steps([
             Step(None, base_uri),
             Step(None, lambda: setattr(auth, "admin_email", ask_matching(
                 ui, "Enter the initial 'admin' user email", EMAIL_RE, "an email address", auth.admin_email))),
+            Step(None, jaia_smtp),
             Step(None, lambda: setattr(auth, "smtp_address", ui.inputbox(
-                "Enter the SMTP server address", auth.smtp_address or "smtp://smtp-relay.gmail.com:587"))),
+                "Enter the SMTP server address", auth.smtp_address or JAIA_SMTP_ADDRESS)),
+                 enabled=lambda: not state["jaia_smtp"]),
+            Step(None, lambda: optional_field(auth, "smtp_sender", ui.inputbox(
+                "Enter the email sender address, verified with the SMTP provider "
+                "(leave blank for the default, noreply@auth.jaia.tech)", auth.smtp_sender)),
+                 enabled=lambda: not state["jaia_smtp"]),
+            Step(None, lambda: optional_field(auth, "smtp_credentials_ssm_parameter", ui.inputbox(
+                "Enter the AWS SSM parameter (name or ARN) holding the SMTP credentials "
+                "(leave blank for the default, /jaia/cloudhub/smtp_credentials)",
+                auth.smtp_credentials_ssm_parameter)),
+                 enabled=lambda: not state["jaia_smtp"]),
         ])
+
+    def customer():
+        answer = ask_matching(ui, "Enter the customer name (the jaia_customer tag on the CloudHub's AWS resources)",
+                              CUSTOMER_RE, "letters, digits, '.', '_' or '-'", cfg.customer)
+        # Written only when it differs from the default, so configs that have none read as they did
+        if answer == cfg.DESCRIPTOR.fields_by_name["customer"].default_value:
+            cfg.ClearField("customer")
+        else:
+            cfg.customer = answer
 
     def common_settings():
         base = schema.NodeSettings()
@@ -1312,7 +1529,8 @@ def create(schema, ui, banner=None, existing=None):
         def ask(node_type, node_id, q):
             def run():
                 current = answers.get((node_type, node_id), {}).get(q.name, q.default or "")
-                answers.setdefault((node_type, node_id), {})[q.name] = ask_question(ui, q, current)
+                answers.setdefault((node_type, node_id), {})[q.name] = ask_question(
+                    ui, q, current, subject="{} {}".format(node_type, node_id))
             return run
 
         steps = []
@@ -1383,7 +1601,8 @@ def create(schema, ui, banner=None, existing=None):
         Step("Wifi password", wlan_password),
         Step("Service Wireguard VPN", service_vpn),
         Step("CloudHub authentication", cloudhub_auth, enabled=lambda: state["cloudhub"],
-             clear=lambda: cfg.ClearField("cloudhub_auth")),
+             clear=lambda: cfg.ClearField("cloudhub")),
+        Step("CloudHub AWS customer", customer, enabled=lambda: state["cloudhub"]),
         Step("Common jaiabot-embedded settings", common_settings),
         Step("Overrides (settings that differ from the common ones)", overrides),
         Step("Settings that are different on every node", node_settings,
@@ -1404,14 +1623,20 @@ def ask_and_write(schema, args, existing, out):
     def banner(text):
         print("## " + text)
 
+    if args.test_keys:
+        print(TEST_KEYS_WARNING, file=sys.stderr)
+        ui.msgbox(TEST_KEYS_WARNING)
     try:
-        cfg = create(schema, ui, banner, existing)
+        cfg = create(schema, ui, banner, existing, args.test_keys, getattr(args, "simulation", False))
     except GoBack:
         print("Cancelled; nothing written", file=sys.stderr)
         return 1
     with open(out, "w") as f:
         f.write(fleet_config_text(cfg))
     print("Output written to " + out)
+    # repeated so it is the last thing on screen, after the dialogs
+    if args.test_keys:
+        print(TEST_KEYS_WARNING, file=sys.stderr)
     return 0
 
 
@@ -1446,12 +1671,18 @@ def build_parser():
     p = sub.add_parser("create", help="Interactively create a new fleet configuration")
     p.add_argument("fleetcfg", help="Path to write the fleet configuration file to")
     p.add_argument("--answers", help=argparse.SUPPRESS)
+    p.add_argument("--test-keys", action="store_true",
+                   help="Testing only: give new hubs ordinary SSH keys instead of Yubikeys. Never for a real deployment.")
+    p.add_argument("--simulation", action="store_true",
+                   help="A simulated fleet (VirtualFleet or VirtualBox) rather than real hardware")
     p.set_defaults(func=cmd_create)
 
     p = sub.add_parser("edit", help="Interactively re-answer the questions of an existing fleet configuration")
     p.add_argument("fleetcfg", help="Path to the fleet configuration file to edit")
     p.add_argument("-o", "--output", help="Write here instead of in place")
     p.add_argument("--answers", help=argparse.SUPPRESS)
+    p.add_argument("--test-keys", action="store_true",
+                   help="Testing only: give new hubs ordinary SSH keys instead of Yubikeys. Never for a real deployment.")
     p.set_defaults(func=cmd_edit)
 
     p = sub.add_parser("generate", help="Generate first boot configuration and write to disk")
@@ -1461,19 +1692,36 @@ def build_parser():
     p.add_argument("--hub-ssh-keys-only", help="Only output the hub SSH keys (skip all other actions). Same as --action=hub_ssh_keys.", action="store_true")
     p.add_argument("--mode", default="runtime", choices=["runtime", "simulation"], help="Whether this is a real (runtime) or virtual (simulation) system")
     p.add_argument("--action", action="append",
-                   choices=["hub_ssh_keys", "vpn_key", "first_boot", "store_fleet_cfg", "new_hub_script", "write_cloudhub_auth"],
+                   choices=["hub_ssh_keys", "vpn_key", "first_boot", "store_fleet_cfg", "new_hub_script", "write_cloudhub_env"],
                    help="Actions to take (default is ['hub_ssh_keys', 'vpn_key', 'first_boot', 'store_fleet_cfg'])")
     p.add_argument("type", choices=["bot", "hub", "rpicam"], help="Type of system to generate for")
     p.add_argument("id", type=int, help="ID of bot or hub")
     p.set_defaults(func=cmd_generate)
+
+    p = sub.add_parser("has_cloudhub", help="Print yes or no: whether this fleet includes a CloudHub")
+    p.add_argument("fleetcfg", help="Path to fleet configuration file (protobuf TextFormat version of FleetConfig)")
+    p.set_defaults(func=cmd_has_cloudhub)
+
+    p = sub.add_parser("nodes", help="Print the hubs and bots a fleet config lists")
+    p.add_argument("fleetcfg", help="Path to fleet configuration file (protobuf TextFormat version of FleetConfig)")
+    p.set_defaults(func=cmd_nodes)
+
+    p = sub.add_parser("set_cloudhub_key", help="Record the public SSH key a CloudHub made for itself")
+    p.add_argument("fleetcfg", help="Path to the fleet configuration file to update")
+    p.add_argument("public_key_file", help="A copy of /home/jaia/.ssh/hub30_fleetN.pub from the CloudHub")
+    p.set_defaults(func=cmd_set_cloudhub_key)
     return parser
 
 
 def main(argv=None):
     argv = list(sys.argv[1:] if argv is None else argv)
-    # "jaia admin fleet <action>" runs this script as "<script> --binary=jaia admin fleet <action> args..."
+    # "jaia admin fleet <action>" runs this script as "<script> --binary=jaia admin fleet <action> args...",
+    # and "jaia admin fleet cloudhub <action>" with that as the binary
     if argv and argv[0].startswith("--binary="):
-        action = argv[0].split()[-1]
+        words = argv[0].split()
+        action = words[-1]
+        if len(words) > 1 and words[-2] == "cloudhub":
+            action = CLOUDHUB_ACTIONS.get(action, action)
         argv = [action] + argv[1:]
     parser = build_parser()
     args = parser.parse_args(argv)

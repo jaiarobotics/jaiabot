@@ -28,7 +28,7 @@ find_package( Nanopb REQUIRED )
 find_package(DCCL REQUIRED)
 get_target_property(DCCL_INCLUDE_DIR dccl INTERFACE_INCLUDE_DIRECTORIES)
 
-message("Using DCCL in ${DCCL_INCLUDE_DIR}")
+message(STATUS "Using DCCL in ${DCCL_INCLUDE_DIR}")
 include_directories("${DCCL_INCLUDE_DIR}")
 
 # find MOOS
@@ -56,7 +56,7 @@ file(MAKE_DIRECTORY ${project_INTERMEDIATE_DIR})
 
 # Write the version to a simple text file for scripts to use
 if(PROJECT_VERSION_GITHASH)
-  file(WRITE ${project_SHARE_DIR}/version.txt "${PROJECT_GIT_VERSION}${PROJECT_DIRTY_REV_STRING}")
+  file(CONFIGURE OUTPUT ${project_SHARE_DIR}/version.txt CONTENT "${PROJECT_GIT_VERSION}${PROJECT_DIRTY_REV_STRING}")
 endif()
 
 ## set the cmake defaults for libraries and binaries
@@ -66,6 +66,9 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${project_BIN_DIR} CACHE PATH
   "Output directory for the binaries" )
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${project_LIB_DIR} CACHE PATH 
   "Output directory for the static libraries (archives)" )
+
+# prefix for custom commands whose output is only worth seeing on failure, a warning, or a verbose build
+set(JAIA_RUN_QUIET ${CMAKE_SOURCE_DIR}/scripts/build/run-quiet.sh)
 
 # include our local include directory
 include_directories(${project_INC_DIR})
@@ -100,6 +103,14 @@ else()
   option(build_arduino "Build Arduino code (requires arduino-cli)" OFF)
 endif()
 
+find_program(STM32_MAKE arm-none-eabi-gcc)
+if(STM32_MAKE)
+  option(build_stm32 "Build STM32 firmware (requires arm-none-eabi-gcc)" ON)
+else()
+  message(STATUS "Did not find arm-none-eabi-gcc, so not building STM32 firmware")
+  option(build_stm32 "Build STM32 firmware (requires arm-none-eabi-gcc)" OFF)
+endif()
+
 option(build_web "Build web ui code (requires npm)" ON)
 option(build_jdv "Build jdv ui code (requires npm)" ON)
 option(build_python_venv "Build the Python venv used by the dev/sim scripts (requires python3-venv)" ON)
@@ -121,12 +132,23 @@ file(GLOB_RECURSE NANOPB_OPTIONS_FILES RELATIVE ${project_SRC_DIR}/lib/messages
 foreach(I ${INCLUDE_FILES})
   configure_file(${project_SRC_DIR}/lib/${I} ${project_INC_DIR}/jaiabot/${I} @ONLY)
 endforeach()
+
+# Create output directories before copying files
+foreach(I ${PROTO_FILES})
+  get_filename_component(OUT_DIR_CPP ${project_INC_DIR}/jaiabot/messages/${I} DIRECTORY)
+  file(MAKE_DIRECTORY ${OUT_DIR_CPP})
+  get_filename_component(OUT_DIR_NANOPB ${project_INC_DIR}/nanopb/jaiabot/messages/${I} DIRECTORY)
+  file(MAKE_DIRECTORY ${OUT_DIR_NANOPB})
+endforeach()
+
 foreach(I ${PROTO_FILES})
   configure_file(${project_SRC_DIR}/lib/messages/${I} ${project_INC_DIR}/jaiabot/messages/${I} @ONLY)
   configure_file(${project_SRC_DIR}/lib/messages/${I} ${project_INC_DIR}/nanopb/jaiabot/messages/${I} @ONLY)
 endforeach()
 
 foreach(I ${NANOPB_OPTIONS_FILES})
+  get_filename_component(OUT_DIR ${project_INC_DIR}/nanopb/jaiabot/messages/${I} DIRECTORY)
+  file(MAKE_DIRECTORY ${OUT_DIR})
   configure_file(${project_SRC_DIR}/lib/messages/${I} ${project_INC_DIR}/nanopb/jaiabot/messages/${I} @ONLY)
 endforeach()
 
@@ -178,6 +200,7 @@ file(COPY ${project_ROOTFS_DIR}/customization/includes.chroot/etc/jaiabot/init/f
 install(DIRECTORY ${project_SHARE_DIR}/ DESTINATION ${CMAKE_INSTALL_PREFIX}/share
   PATTERN "arduino" EXCLUDE # this is specially installed by ArduinoCompile.cmake
   PATTERN "interfaces/figures" EXCLUDE # any figures are built to doc directory
+  PATTERN "stm32" EXCLUDE
   PATTERN "venv" EXCLUDE # jaiabot-python.postinst builds this on the target, see src/python/CMakeLists.txt
   )
 

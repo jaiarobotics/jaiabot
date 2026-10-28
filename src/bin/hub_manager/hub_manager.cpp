@@ -37,6 +37,11 @@
 
 #include <goby/zeromq/application/multi_thread.h>
 
+#include <algorithm>
+#include <filesystem>
+#include <fstream>
+#include <iomanip>
+
 #include "config.pb.h"
 #include "jaiabot/comms/comms.h"
 #include "jaiabot/groups.h"
@@ -92,6 +97,7 @@ class HubManager : public ApplicationBase
                         bool from_other_hub = false);
     void handle_task_packet(const jaiabot::protobuf::TaskPacket& task_packet,
                             bool from_other_hub = false);
+    void handle_ctd_profile_part(int bot_id, const jaiabot::protobuf::StormCTDProfile& part);
     void handle_command_for_hub(const jaiabot::protobuf::CommandForHub& input_command_for_hub);
     void
     handle_hardware_status(const jaiabot::protobuf::LinuxHardwareStatus& linux_hardware_status);
@@ -147,10 +153,14 @@ class HubManager : public ApplicationBase
     goby::time::SteadyClock::time_point last_health_report_time_{std::chrono::seconds(0)};
 
     std::set<int> managed_bot_ids_;
+    std::set<int> other_hub_ids_;
     std::set<jaiabot::protobuf::Link> links_to_subscribe_on_;
 
     // Map bot id to previouse task packet timestamp to ignore duplicates
     std::map<uint16_t, std::set<uint64_t>> task_packet_id_to_prev_timestamps_;
+    // CTD profile parts received so far: (bot id, profile_time) -> part_index -> part
+    std::map<std::pair<int, uint64_t>, std::map<int, jaiabot::protobuf::StormCTDProfile>>
+        ctd_profile_parts_;
     // Map bot id to previouse bot status timestamp to ignore duplicates
     std::map<uint16_t, std::set<uint64_t>> bot_status_id_to_prev_timestamps_;
     // Map bot id to previouse eng status timestamp to ignore duplicates
@@ -172,7 +182,7 @@ class HubManager : public ApplicationBase
                                                   boost::units::si::seconds};
 
     // data offload
-    // track bot going into DataOffload state
+    // track bot going into DataOffload state, from the statuses this hub hears itself
     std::map<int, protobuf::MissionState> latest_bot_mission_state_;
     std::deque<int> bots_pending_data_offload_;
     std::unique_ptr<std::thread> offload_thread_;
@@ -386,17 +396,18 @@ jaiabot::apps::HubManager::HubManager()
         [this](const jaiabot::protobuf::LinuxHardwareStatus& hardware_status)
         { handle_hardware_status(hardware_status); });
 
+    for (int other_hub_id : cfg().expected_hubs().id())
+    {
+        if (other_hub_id != cfg().hub_id())
+            other_hub_ids_.insert(other_hub_id);
+    }
+
     interprocess().subscribe<jaiabot::groups::intervehicle_subscribe_request>(
         [this](const jaiabot::protobuf::IntervehicleSubscribeRequest& req)
         {
             if (req.link() == jaiabot::protobuf::LINK_HUB2HUB)
             {
-                // subscribe to other hubs
-                for (int other_hub_id : cfg().expected_hubs().id())
-                {
-                    if (other_hub_id != cfg().hub_id())
-                        hub2hub_subscribe(other_hub_id);
-                }
+                for (int other_hub_id : other_hub_ids_) hub2hub_subscribe(other_hub_id);
             }
         });
 
@@ -487,6 +498,15 @@ void jaiabot::apps::HubManager::handle_subscription_report(
                         ? protobuf::ERROR__VERSION__MISMATCH_INTERVEHICLE__UPGRADE_OTHER_HUB
                         : protobuf::ERROR__VERSION__MISMATCH_INTERVEHICLE__UPGRADE_HUB;
                 hub_errors_.insert(error);
+            }
+            // a hub missing from our inventory (e.g. one paired after the CloudHub was built)
+            else if (sub_report.changed().action() ==
+                         goby::middleware::intervehicle::protobuf::Subscription::SUBSCRIBE &&
+                     other_hub_id != cfg().hub_id() && other_hub_ids_.insert(other_hub_id).second)
+            {
+                glog.is_verbose() && glog << group("main") << "Subscribe to hub: " << other_hub_id
+                                          << std::endl;
+                hub2hub_subscribe(other_hub_id);
             }
         }
     }
@@ -771,6 +791,13 @@ void jaiabot::apps::HubManager::loop()
 {
     latest_hub_status_.set_time_with_units(goby::time::SystemClock::now<goby::time::MicroTime>());
 
+    // Start the next offload before reporting, so the queue isn't missing from a status between bots
+    if (!offload_thread_ && !bots_pending_data_offload_.empty())
+    {
+        start_dataoffload(bots_pending_data_offload_.front());
+        bots_pending_data_offload_.pop_front();
+    }
+
     if (offload_thread_)
     {
         latest_hub_status_.mutable_bot_offload()->set_bot_id(current_offload_bot_id_);
@@ -802,11 +829,6 @@ void jaiabot::apps::HubManager::loop()
             handle_command(command);
             offload_thread_.reset();
         }
-    }
-    else if (!offload_thread_ && !bots_pending_data_offload_.empty())
-    {
-        start_dataoffload(bots_pending_data_offload_.front());
-        bots_pending_data_offload_.pop_front();
     }
 
     if (last_health_report_time_ + std::chrono::seconds(cfg().health_report_timeout_seconds()) <
@@ -978,20 +1000,24 @@ void jaiabot::apps::HubManager::handle_bot_nav(jaiabot::protobuf::BotStatus dccl
         node_status.mutable_global_fix()->set_depth_with_units(dccl_nav.sensor_depth_with_units());
 
     // check for data offload
-
-    auto previous_mission_state = latest_bot_mission_state_.count(dccl_nav.bot_id())
-                                      ? latest_bot_mission_state_.at(dccl_nav.bot_id())
-                                      : protobuf::PRE_DEPLOYMENT__STARTING_UP;
-
-    if (dccl_nav.mission_state() == protobuf::POST_DEPLOYMENT__DATA_OFFLOAD &&
-        previous_mission_state != protobuf::POST_DEPLOYMENT__DATA_OFFLOAD)
+    // Only the hub that hears the bot itself can reach it to offload; another hub's attempt would
+    // fail and tell the bot so, even when this one succeeds
+    if (!from_other_hub)
     {
-        glog.is_debug1() && glog << group("main") << "Queuing offload for bot " << dccl_nav.bot_id()
-                                 << std::endl;
-        bots_pending_data_offload_.push_back(dccl_nav.bot_id());
-    }
+        auto previous_mission_state = latest_bot_mission_state_.count(dccl_nav.bot_id())
+                                          ? latest_bot_mission_state_.at(dccl_nav.bot_id())
+                                          : protobuf::PRE_DEPLOYMENT__STARTING_UP;
 
-    latest_bot_mission_state_[dccl_nav.bot_id()] = dccl_nav.mission_state();
+        if (dccl_nav.mission_state() == protobuf::POST_DEPLOYMENT__DATA_OFFLOAD &&
+            previous_mission_state != protobuf::POST_DEPLOYMENT__DATA_OFFLOAD)
+        {
+            glog.is_debug1() && glog << group("main") << "Queuing offload for bot "
+                                     << dccl_nav.bot_id() << std::endl;
+            bots_pending_data_offload_.push_back(dccl_nav.bot_id());
+        }
+
+        latest_bot_mission_state_[dccl_nav.bot_id()] = dccl_nav.mission_state();
+    }
 
     if (rewarped_dccl_nav_time > known_bots_[dccl_nav.bot_id()])
         known_bots_[dccl_nav.bot_id()] = rewarped_dccl_nav_time;
@@ -1077,6 +1103,21 @@ void jaiabot::apps::HubManager::handle_task_packet(const jaiabot::protobuf::Task
 
     prev_times.insert(task_packet.start_time());
 
+    if (task_packet.type() == protobuf::MissionTask::STORM_CTD_PROFILE &&
+        task_packet.has_storm_ctd_profile())
+    {
+        const auto& profile = task_packet.storm_ctd_profile();
+        if (profile.sample_size() > 0)
+        {
+            handle_ctd_profile_part(task_packet.bot_id(), profile);
+        }
+        else
+        {
+            glog.is_warn() && glog << group("task_packet") << "Ignoring empty CTD profile"
+                                   << std::endl;
+        }
+    }
+
     // Set the mission_name of the task packet based on the current mission id to name mapping for logging purposes
     jaiabot::protobuf::TaskPacket task_packet_copy = task_packet;
 
@@ -1089,6 +1130,71 @@ void jaiabot::apps::HubManager::handle_task_packet(const jaiabot::protobuf::Task
 
     // Publish interprocess for other goby apps
     interprocess().publish<jaiabot::groups::task_packet>(task_packet_copy);
+}
+
+void jaiabot::apps::HubManager::handle_ctd_profile_part(
+    int bot_id, const jaiabot::protobuf::StormCTDProfile& part)
+{
+    const auto key = std::make_pair(bot_id, part.profile_time());
+    auto& parts = ctd_profile_parts_[key];
+    parts[part.part_index()] = part;
+    const std::size_t parts_received = parts.size();
+
+    // rewrite the whole .unb each time a part arrives, so a part that never arrives still
+    // leaves a partial profile on disk
+    const auto timestamp = goby::time::file_str(part.profile_time_with_units());
+    const std::filesystem::path offload_dir(cfg().log_offload_dir());
+    std::filesystem::create_directories(offload_dir);
+    const auto file = offload_dir / ("bot" + std::to_string(bot_id) + "_" + timestamp + ".unb");
+    std::ofstream out(file);
+    if (!out)
+    {
+        glog.is_warn() && glog << group("task_packet") << "Unable to create CTD profile: " << file
+                               << std::endl;
+    }
+    else
+    {
+        out << "2\n"
+            << timestamp << "\n"
+            << "0000 000 00:00:00\n"
+            << std::fixed << std::setprecision(6) << part.location().lat() << " "
+            << part.location().lon() << "\n"
+            << "0.000000 0.000000\n";
+        int sample_index = 0;
+        for (const auto& [part_index, received_part] : parts)
+        {
+            for (const auto& sample : received_part.sample())
+            {
+                out << sample_index++ << " " << sample.depth() << " 0.000 " << sample.temperature()
+                    << " " << sample.salinity() << "\n";
+            }
+        }
+        if (!out)
+            glog.is_warn() && glog << group("task_packet") << "Error writing CTD profile: " << file
+                                   << std::endl;
+    }
+
+    glog.is_verbose() && glog << group("task_packet") << "CTD profile " << file << ": "
+                              << parts_received << "/" << part.num_parts() << " parts received"
+                              << std::endl;
+
+    if (parts_received >= part.num_parts())
+    {
+        ctd_profile_parts_.erase(key);
+    }
+    else
+    {
+        // bound memory if some parts never arrive: forget the oldest incomplete profiles
+        // (a late part for a forgotten profile would rewrite its .unb with only that part)
+        constexpr std::size_t max_incomplete_profiles = 100;
+        while (ctd_profile_parts_.size() > max_incomplete_profiles)
+        {
+            auto oldest = std::min_element(ctd_profile_parts_.begin(), ctd_profile_parts_.end(),
+                                           [](const auto& a, const auto& b)
+                                           { return a.first.second < b.first.second; });
+            ctd_profile_parts_.erase(oldest);
+        }
+    }
 }
 
 void jaiabot::apps::HubManager::handle_command_for_hub(
@@ -1423,12 +1529,13 @@ void jaiabot::apps::HubManager::start_dataoffload(int bot_id)
     std::string offload_command = cfg().data_offload_script() + " " + cfg().log_staging_dir() +
                                   " " + cfg().log_offload_dir() + " " + bot_ip + " 2>&1";
 
+    // Reset before the thread starts, as loop() checks offload_complete_ as soon as it exists
+    offload_complete_ = false;
+    offload_success_ = false;
+    data_offload_percentage_ = 0;
+
     auto offload_func = [this, offload_command]()
     {
-        // reset data offload global variables
-        offload_complete_ = false;
-        offload_success_ = false;
-
         glog.is_debug1() && glog << group("main") << "Offloading data with command: ["
                                  << offload_command << "]" << std::endl;
 

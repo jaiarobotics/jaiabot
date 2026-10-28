@@ -133,9 +133,9 @@ services:
 
 ### Use the Jaia REST API
 
-The Jaia REST API can be exercised in the Docker simulation by submitting the appropriate URLs in a web browser using the api_key "simulation".
+The Jaia REST API can be exercised in the Docker simulation by submitting the appropriate URLs in a web browser.
 
-For more information on using the REST API see [REST API](http://52.36.157.57/md_page12_rest_api.html) .
+For more information on using the REST API see [REST API](page012_rest_api.md) .
 
 #### Example
 
@@ -144,14 +144,13 @@ For more information on using the REST API see [REST API](http://52.36.157.57/md
 1. Open a browser.
 2. Submit URL in browser.
 
-* `http://localhost:9092/jaia/v1/status/b2?api_key=simulation`
+* `http://localhost:9092/jaia/v1/status/b2`
 
 returns
 
 ```
 {
   "request": {
-    "api_key": "simulation",
     "status": true,
     "target": {
       "bots": [2]
@@ -246,7 +245,7 @@ Explanation of command.
   "-d -i -t" Tells docker to run in a detached mode and to include an interactive terminal. This allows the user to log into the running container if needed (advanced)
   "-p 40001:40001" Exposes the port used by JCC to the host machine
   "-p 9092:9092" Exposes the port used for the REST API to the host machine
-      - Example: Rest API -> http://localhost:9092/jaia/v1/status/all?api_key=simulation
+      - Example: Rest API -> http://localhost:9092/jaia/v1/status/all
   "-p 40011:40011" Exposes the port used by JDV to the host machine
   "--env JAIA_SIM_BOTS=5" Number of bots used in sim
   "--env JAIA_SIM_WARP=3" Warp factor used in sim
@@ -255,6 +254,13 @@ Explanation of command.
   "gobysoft/jaiabot-sim:3.y-continuous" Identifies the image to run the user should change this to the image they want
   "/bin/bash" Tells docker to launch a bash shell
 ```
+
+*This section written by Claude*
+
+Two more environment variables set the simulated comms:
+
+- `--env JAIA_SIM_COMMS=wi`: the links to simulate, any of (x)bee, (w)ifi and (i)ridium (default `w`). See [Iridium simulation](page050_communications.md#simulation).
+- `--env JAIA_SIM_IRIDIUM_ARGS="--sbdix_failure_rate 0.2"`: extra arguments for each bot's Iridium modem simulator.
 
 ### Stop the simulator
 

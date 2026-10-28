@@ -21,7 +21,7 @@ import { missionLayer } from "../../../openlayers/layers/vector/mission-layer";
 import { NodeTypes } from "../../../types/jaia-system-types";
 import { MapFeatureTypes } from "../../../types/openlayers-types";
 import { UNASSIGNED_ID } from "../../../utils/constants";
-import { PortalBotStatus, PortalHubStatus } from "../../../shared/PortalStatus";
+import { PortalBotStatus, PortalHubStatus } from "@proto/jaiabot/messages/rest_api";
 
 import { mapBrowserEventMock } from "../../../tests/__mocks__/openlayers/events/map-browser-click.mock";
 
@@ -36,12 +36,16 @@ hubFeatureMock.set("type", MapFeatureTypes.HUB);
 hubFeatureMock.set("id", 1);
 
 const botStatusMock1: PortalBotStatus = {
-    bot_id: 1,
+    bot_status: {
+        bot_id: 1,
+    },
 };
 
 const hubStatusMock1: PortalHubStatus = {
-    hub_id: 1,
-    portalStatusAge: 1,
+    hub_status: {
+        hub_id: 1,
+    },
+    status_age: 1,
 };
 
 beforeEach(() => {

@@ -1,4 +1,4 @@
-import { cloneDeep } from "lodash";
+import cloneDeep from "lodash/cloneDeep";
 import { JaiaActions } from "../jaia-actions";
 import { syncOpenLayers } from "./handler-utils";
 import { JaiaContextType, JaiaSnapshot, JaiaContextDataSnapshot } from "../../types/context-types";

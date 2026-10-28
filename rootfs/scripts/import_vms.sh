@@ -14,8 +14,11 @@ source includes/import_utils.sh
 
 if [ ! $# -eq 4 ]; then
    echo "Usage ./import_vms.sh vm.ova n_bots|bots_comma_separated_list n_hubs|hubs_comma_separated_list fleet_id"
+   echo "Set JAIA_SIM_WARP to change the simulation warp (default 10)"
    exit 1;
 fi
+
+SIM_WARP="${JAIA_SIM_WARP:-10}"
 
 # prompt for sudo up front
 sudo bash -c "exit"
@@ -95,13 +98,24 @@ NATNET_NAME=$(printf 'jaiafleet%02d' ${FLEET})
 FLEET_WLAN_NET=$(jaia_ip --query_type net --ip_net wlan --fleet_id ${FLEET})
 NATNET_IPV4=$(jaia_ip --query_type net --ip_net vfleet_wlan --fleet_id ${FLEET} --ip_version ipv4)
 
-vboxmanage list natnets | grep -q ${NATNET_NAME} && vboxmanage natnetwork remove --netname ${NATNET_NAME}
+if vboxmanage list natnets | grep -q "^Name: *${NATNET_NAME}$"; then
+    vboxmanage natnetwork stop --netname ${NATNET_NAME} || true
+    vboxmanage natnetwork remove --netname ${NATNET_NAME}
+fi
+# removing the network leaves its DHCP server behind, still running with the old nodes' addresses
+if vboxmanage list dhcpservers | grep -q "^NetworkName: *${NATNET_NAME}$"; then
+    vboxmanage dhcpserver stop --network=${NATNET_NAME} || true
+    vboxmanage dhcpserver remove --network=${NATNET_NAME}
+fi
 
 if [[ "${FLEET_WLAN_NET}" == *:* ]]; then
     # --ipv6-prefix is missing from 'VBoxManage natnetwork --help' but is accepted and applied
     # (checked against 7.0.16, which rejects an option it does not know)
     vboxmanage natnetwork add --netname ${NATNET_NAME} --network ${NATNET_IPV4} --enable --dhcp on \
                               --ipv6 on --ipv6-prefix ${FLEET_WLAN_NET}
+    # 7.2 creates the DHCP server only when the network first starts, and the fixed addresses
+    # below need it to exist; it is restarted once they are added
+    vboxmanage natnetwork start --netname ${NATNET_NAME}
 else
     vboxmanage natnetwork add --netname ${NATNET_NAME} --network ${NATNET_IPV4} --enable --dhcp off
 fi
@@ -117,7 +131,8 @@ function import_bot_or_hub()
     find_uuid $VMNAME $GROUP
     echo "Imported UUID: $UUID"
     find_diskuuid $UUID
-    VBoxManage modifyvm $UUID --nic2 natnetwork --nat-network2 "${NATNET_NAME}"
+    # the image reads the hardware clock as UTC; VirtualBox's default is host local time
+    VBoxManage modifyvm $UUID --nic2 natnetwork --nat-network2 "${NATNET_NAME}" --rtcuseutc on
 
     echo "Disk UUID: $DISKUUID"
     write_preseed $DISKUUID $n ${bot_or_hub}
@@ -189,9 +204,10 @@ done)
 }
 wlan_password: "dummy"
 service_vpn_enabled: false
+fleet_type: FLEET_TYPE_SIMULATION
 
 settings {
-  warp: 10
+  warp: ${SIM_WARP}
   user_role: USER_ROLE_DEVELOPER
   comms_links: COMMS_LINK_WIFI
 }
@@ -217,6 +233,11 @@ for n in "${ALL_HUBS[@]}"; do
     if [ -z "$n" ]; then continue; fi
     network_bot_or_hub hub $n
 done
+
+if [[ "${FLEET_WLAN_NET}" == *:* ]]; then
+    # the running DHCP server only reads its configuration at startup
+    vboxmanage dhcpserver restart --network=${NATNET_NAME}
+fi
 
 rm -rf ${HUB_KEY_DIR}
 

@@ -60,9 +60,9 @@ export class JaiaGlobal {
     private zoneInEditMode: number;
     private mapMode: MapModes;
     private defaultTaskParameters: TaskParameters;
-    private controllingClientID: string;
+    private controllingClientID: string | null;
     private coordinateSystem: CoordinateSystem;
-    private metadata: DeviceMetadata;
+    private metadata: DeviceMetadata | undefined;
     private gitHubVersion: DeviceMetadata_Version;
     private isUpgradeAvailable: boolean;
     private isConnectedToInternet: boolean;
@@ -145,7 +145,8 @@ export class JaiaGlobal {
         return this.controllingClientID;
     }
 
-    setControllingClientID(controllingClientID: string) {
+    setControllingClientID(controllingClientID: string | null) {
+        console.log(`Setting controlling client ID to: ${controllingClientID}`);
         this.controllingClientID = controllingClientID;
     }
 
@@ -161,7 +162,7 @@ export class JaiaGlobal {
         return this.metadata;
     }
 
-    setMetadata(metadata: DeviceMetadata) {
+    setMetadata(metadata: DeviceMetadata | undefined) {
         this.metadata = metadata;
     }
 

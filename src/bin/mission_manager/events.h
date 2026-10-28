@@ -104,9 +104,11 @@ STATECHART_EVENT(EvSurfacingTimeout)
 STATECHART_EVENT(EvSurfaced)
 STATECHART_EVENT(EvGPSFix)
 STATECHART_EVENT(EvGPSNoFix)
+STATECHART_EVENT(EvGPSTimeout)
 STATECHART_EVENT(EvIMURestart)
 STATECHART_EVENT(EvIMURestartCompleted)
 STATECHART_EVENT(EvBottomDepthAbort)
+STATECHART_EVENT(EvSleep)
 
 STATECHART_EVENT(EvLoop)
 struct EvVehicleDepth : boost::statechart::event<EvVehicleDepth>

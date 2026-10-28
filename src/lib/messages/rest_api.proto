@@ -5,6 +5,8 @@ import "jaiabot/messages/hub.proto";
 import "jaiabot/messages/metadata.proto";
 import "jaiabot/messages/option_extensions.proto";
 import "jaiabot/messages/mission.proto";
+import "jaiabot/messages/engineering.proto";
+import "jaiabot/messages/link.proto";
 
 package jaiabot.protobuf;
 
@@ -27,6 +29,20 @@ message TaskPacketQuery
             presence: GUARANTEED,
             doc: "Whether to only return included (non-excluded) task packets."
         }];
+    optional bool excluded_only = 5
+        [default = false, (jaia.field).rest_api = {
+            presence: GUARANTEED,
+            doc: "Whether to only return excluded task packets. Takes precedence over included_only."
+        }];
+    optional uint32 known_version = 6
+        [(jaia.field).rest_api = {
+            doc: "The version from an earlier response to this same query. If the task packets haven't changed since, the response has no packets and 'unchanged' is set. Only used with the JSON format."
+        }];
+    optional uint32 limit = 7
+        [default = 1000, (jaia.field).rest_api = {
+            presence: GUARANTEED,
+            doc: "Maximum number of task packets to return. When more match, the most recent are returned."
+        }];
     
     enum Format {
         JSON = 0 [(jaia.ev).rest_api = { presence: GUARANTEED }];
@@ -39,6 +55,21 @@ message TaskPacketQuery
 }
 
 message TaskPacketQueryResults
+{
+    repeated TaskPacket packets = 1
+        [(jaia.field).rest_api.presence = GUARANTEED];
+    optional uint32 version = 2
+        [(jaia.field).rest_api = {
+            presence: GUARANTEED,
+            doc: "Version of the hub's task packets when this response was built. It changes whenever task packets are added, included or excluded."
+        }];
+    optional bool unchanged = 3
+        [(jaia.field).rest_api = {
+            doc: "Set when the request's known_version is still current, in which case packets is empty."
+        }];
+}
+
+message DepthContoursQuery
 {
     repeated TaskPacket packets = 1
         [(jaia.field).rest_api.presence = GUARANTEED];
@@ -69,6 +100,47 @@ message CommandResult
         [(jaia.field).rest_api.presence = GUARANTEED];
 }
 
+message TaskPacketInclude {
+    required string task_packet_id = 1
+        [(jaia.field).rest_api.presence = GUARANTEED];
+    required bool include = 2
+        [(jaia.field).rest_api.presence = GUARANTEED];
+}
+
+message TaskPacketIncludeResponse {
+    required bool success = 1
+        [(jaia.field).rest_api.presence = GUARANTEED];
+}
+
+message RecordQuery {
+    // Implement a CRUD+L interface for exclusion zones and mission sets (Create, Read, Update, Delete, List)
+
+    enum RecordType {
+        EXCLUSION_ZONE = 1
+        [(jaia.ev).rest_api.presence = GUARANTEED];
+        MISSION_SET = 2
+        [(jaia.ev).rest_api.presence = GUARANTEED];
+    }
+
+    required RecordType type = 6
+        [(jaia.field).rest_api.presence = GUARANTEED];
+
+    optional bool list = 1 [(jaia.field).rest_api.presence = GUARANTEED];
+    
+    optional string get_name = 2 [(jaia.field).rest_api.presence = GUARANTEED];
+    
+    optional string delete_name = 3 [(jaia.field).rest_api.presence = GUARANTEED];
+
+    optional string save_name = 4 [(jaia.field).rest_api.presence = GUARANTEED];
+    optional string save_content = 5 [(jaia.field).rest_api.presence = GUARANTEED];
+}
+
+message RecordQueryResponse {
+    repeated string names = 1 [(jaia.field).rest_api.presence = GUARANTEED];
+    optional string content = 2 [(jaia.field).rest_api.presence = GUARANTEED];
+}
+
+
 enum APIErrorCode
 {
     // REST API URL errors
@@ -95,6 +167,14 @@ enum APIErrorCode
 
     // Unimplemented
     API_ERROR__NOT_IMPLEMENTED = 20;
+
+    // Refused requests
+    API_ERROR__NOT_IN_CONTROL = 30 [(jaia.ev).rest_api.presence = GUARANTEED];
+    API_ERROR__RECORD_NOT_FOUND = 31 [(jaia.ev).rest_api.presence = GUARANTEED];
+    API_ERROR__INVALID_RECORD_NAME = 32 [(jaia.ev).rest_api.presence = GUARANTEED];
+
+    // A fault in the REST API itself
+    API_ERROR__INTERNAL_ERROR = 40 [(jaia.ev).rest_api.presence = GUARANTEED];
 }
 
 message APIError
@@ -114,7 +194,10 @@ message APIRequest
             [default = false, (jaia.field).rest_api.presence = GUARANTEED];
     }
     required Nodes target = 1 [(jaia.field).rest_api.presence = GUARANTEED];
-    optional string api_key = 2 [(jaia.field).rest_api.presence = GUARANTEED];
+    // Authentication is Authelia's, in front of this API. Reserved rather than
+    // reused: a request from an older caller still carries the name.
+    reserved 2;
+    reserved "api_key";
 
     oneof action
     {
@@ -122,7 +205,7 @@ message APIRequest
             presence: GUARANTEED,
             doc: "Query the status of bots/hubs. Expect a response of type 'status'."
             example {
-                request: '{"api_key": "4vS6s2jnulxVjrKSB-__tQ", "status": true, "target": {"all": true}}'
+                request: '{"status": true, "target": {"all": true}}'
                 response: '{"request":{"status":true,"target":{"all":true}},"status":{"bots":[{"attitude":{"course_over_ground":180.0,"heading":166.0,"pitch":85.0,"roll":-57.0},"battery_percent":95.0,"bot_id":1,"bot_type":"HYDRO","calibration_status":3,"depth":0.0,"hdop":0.25,"health_state":"HEALTH__OK","location":{"lat":41.657645,"lon":-71.27212},"mission_state":"PRE_DEPLOYMENT__IDLE","pdop":2.07,"received_time":"1722893284636801","salinity":20.0,"speed":{"over_ground":0.0},"temperature":15.06,"time":"1722878885000000","vcc_voltage":24.0,"wifi_link_quality_percentage":100},{"attitude":{"course_over_ground":180.0,"heading":166.0,"pitch":85.0,"roll":-57.0},"battery_percent":95.0,"bot_id":2,"bot_type":"HYDRO","calibration_status":3,"depth":0.0,"hdop":1.03,"health_state":"HEALTH__OK","location":{"lat":41.65765,"lon":-71.27212},"mission_state":"PRE_DEPLOYMENT__IDLE","pdop":1.47,"received_time":"1722893284635458","salinity":20.0,"speed":{"over_ground":0.0},"temperature":15.04,"time":"1722878885000000","vcc_voltage":24.0,"wifi_link_quality_percentage":100}],"hubs":[{"bot_ids_in_radio_file":[1,2],"fleet_id":0,"health_state":"HEALTH__OK","hub_id":1,"known_bot": [{"id": 1, "last_status_time": "1722893284000000"}, {"id": 2, "last_status_time": "1722893285000000"}],"linux_hardware_status":{"wifi":{"is_connected":true,"link_quality":70,"link_quality_percentage":100,"noise_level":0,"signal_level":33}},"location":{"lat":41.66268,"lon":-71.273018},"received_time":"1722893284552504","time":"8614394422756020"}]},"target":{"bots":[1,2],"hubs":[1]}}'
             }
         }];
@@ -130,44 +213,124 @@ message APIRequest
             presence: GUARANTEED,
             doc: "Query the metadata of the hub. Expect a response of type 'metadata'."
             example {
-                request: '{ "target": {"all": true },"metadata": true, "api_key": "4vS6s2jnulxVjrKSB-__tQ"}'
-                response: '{"metadata": {"hubs": [{"goby_version": "3.1.5", "intervehicle_api_version": 7, "is_simulation": true, "ivp_version": "19.8.1+svn9395-10~ubuntu20.04.1", "jaiabot_image_build_date": "Thu Aug 15 16:20:53 UTC 2024", "jaiabot_image_first_boot_date": "Thu Aug 15 13:50:13 UTC 2024", "jaiabot_image_version": "1.12.0~beta2", "jaiabot_version": {"deb_release_branch": "1.y", "deb_repository": "beta", "major": "1", "minor": "12", "patch": "0~beta2"}, "moos_version": "10.4.0", "name": "hub2-fleet6", "raspi_firmware_version": "1.20220331", "xbee_node_id": "Not Available", "xbee_serial_number": "Not Available"}, {"goby_version": "3.1.5", "intervehicle_api_version": 7, "is_simulation": true, "ivp_version": "19.8.1+svn9395-10~ubuntu20.04.1", "jaiabot_image_build_date": "Thu Aug 15 16:20:53 UTC 2024", "jaiabot_image_first_boot_date": "Thu Aug 15 13:50:11 UTC 2024", "jaiabot_image_version": "1.12.0~beta2", "jaiabot_version": {"deb_release_branch": "1.y", "deb_repository": "beta", "major": "1", "minor": "12", "patch": "0~beta2"}, "moos_version": "10.4.0", "name": "hub1-fleet6", "raspi_firmware_version": "1.20220331", "xbee_node_id": "Not Available", "xbee_serial_number": "Not Available"}]}, "request": {"api_key": "", "metadata": true, "target": {"all": true}}, "target": {"hubs": [2, 1]}}'
+                request: '{ "target": {"all": true },"metadata": true}'
+                response: '{"metadata": {"hubs": [{"goby_version": "3.1.5", "intervehicle_api_version": 7, "is_simulation": true, "ivp_version": "19.8.1+svn9395-10~ubuntu20.04.1", "jaiabot_image_build_date": "Thu Aug 15 16:20:53 UTC 2024", "jaiabot_image_first_boot_date": "Thu Aug 15 13:50:13 UTC 2024", "jaiabot_image_version": "1.12.0~beta2", "jaiabot_version": {"deb_release_branch": "1.y", "deb_repository": "beta", "major": "1", "minor": "12", "patch": "0~beta2"}, "moos_version": "10.4.0", "name": "hub2-fleet6", "raspi_firmware_version": "1.20220331", "xbee_node_id": "Not Available", "xbee_serial_number": "Not Available"}, {"goby_version": "3.1.5", "intervehicle_api_version": 7, "is_simulation": true, "ivp_version": "19.8.1+svn9395-10~ubuntu20.04.1", "jaiabot_image_build_date": "Thu Aug 15 16:20:53 UTC 2024", "jaiabot_image_first_boot_date": "Thu Aug 15 13:50:11 UTC 2024", "jaiabot_image_version": "1.12.0~beta2", "jaiabot_version": {"deb_release_branch": "1.y", "deb_repository": "beta", "major": "1", "minor": "12", "patch": "0~beta2"}, "moos_version": "10.4.0", "name": "hub1-fleet6", "raspi_firmware_version": "1.20220331", "xbee_node_id": "Not Available", "xbee_serial_number": "Not Available"}]}, "request": {"metadata": true, "target": {"all": true}}, "target": {"hubs": [2, 1]}}'
             }
         }];
         TaskPacketQuery task_packets = 13 [(jaia.field).rest_api = {
             presence: GUARANTEED,
             doc: "Query task packets from a given range of time. Expect a response of type 'task_packets'."
             example {
-                request: '{"target": {"bots": [1]}, "task_packets": {"start_time": 1722797666581176.0, "end_time": 1722970466581176.0}, "api_key": "4vS6s2jnulxVjrKSB-__tQ"}'
-                response: '{"request": {"api_key": "4vS6s2jnulxVjrKSB-__tQ", "target": {"bots": [1]}, "task_packets": {"end_time": "1722970466581176", "start_time": "1722797666581176"}}, "task_packets": {"packets": [{"bot_id": 1, "drift": {"drift_duration": 10, "end_location": {"lat": 41.658228, "lon": -71.275736}, "estimated_drift": {"heading": 237.0, "speed": 0.9}, "significant_wave_height": 0.0, "start_location": {"lat": 41.658275, "lon": -71.275645}}, "end_time": "1722895675000000", "start_time": "1722895664000000", "type": "SURFACE_DRIFT"}, {"bot_id": 1, "drift": {"drift_duration": 10, "end_location": {"lat": 41.65826, "lon": -71.2757}, "estimated_drift": {"heading": 316.0, "speed": 0.6}, "significant_wave_height": 0.0, "start_location": {"lat": 41.658225, "lon": -71.275651}}, "end_time": "1722896712000000", "start_time": "1722896702000000", "type": "SURFACE_DRIFT"}, {"bot_id": 1, "drift": {"drift_duration": 10, "end_location": {"lat": 41.659469, "lon": -71.272064}, "estimated_drift": {"heading": 72.0, "speed": 0.7}, "significant_wave_height": 0.0, "start_location": {"lat": 41.659448, "lon": -71.272146}}, "end_time": "1722896904000000", "start_time": "1722896893000000", "type": "SURFACE_DRIFT"}]}}'
+                request: '{"target": {"bots": [1]}, "task_packets": {"start_time": 1722797666581176.0, "end_time": 1722970466581176.0}}'
+                response: '{"request": {"target": {"bots": [1]}, "task_packets": {"end_time": "1722970466581176", "start_time": "1722797666581176"}}, "task_packets": {"packets": [{"bot_id": 1, "drift": {"drift_duration": 10, "end_location": {"lat": 41.658228, "lon": -71.275736}, "estimated_drift": {"heading": 237.0, "speed": 0.9}, "significant_wave_height": 0.0, "start_location": {"lat": 41.658275, "lon": -71.275645}}, "end_time": "1722895675000000", "start_time": "1722895664000000", "type": "SURFACE_DRIFT"}, {"bot_id": 1, "drift": {"drift_duration": 10, "end_location": {"lat": 41.65826, "lon": -71.2757}, "estimated_drift": {"heading": 316.0, "speed": 0.6}, "significant_wave_height": 0.0, "start_location": {"lat": 41.658225, "lon": -71.275651}}, "end_time": "1722896712000000", "start_time": "1722896702000000", "type": "SURFACE_DRIFT"}, {"bot_id": 1, "drift": {"drift_duration": 10, "end_location": {"lat": 41.659469, "lon": -71.272064}, "estimated_drift": {"heading": 72.0, "speed": 0.7}, "significant_wave_height": 0.0, "start_location": {"lat": 41.659448, "lon": -71.272146}}, "end_time": "1722896904000000", "start_time": "1722896893000000", "type": "SURFACE_DRIFT"}], "version": 1593724481}}'
             }
         }];
         MissionQuery missions = 16 [(jaia.field).rest_api = {
             presence: GUARANTEED,
             doc: "Query missions from a given range of time. Expect a response of type 'missions'."
             example {
-                request: '{"target": {"all": true}, "missions": {"start_time": 1722797666581176.0, "end_time": 1722970466581176.0}, "api_key": "4vS6s2jnulxVjrKSB-__tQ"}'
-                response: '{"missions": {"mission_summaries": [{"end_time": "1722896904000000", "mission_name": "mission1", "start_time": "1722895664000000", "task_packet_count": 3}]}, "request": {"api_key": "4vS6s2jnulxVjrKSB-__tQ", "missions": {"end_time": "1722970466581176", "start_time": "1722797666581176"}, "target": {"all": true}}, "target": {"hubs": [1], "bots": [1]}}'
+                request: '{"target": {"all": true}, "missions": {"start_time": 1722797666581176.0, "end_time": 1722970466581176.0}}'
+                response: '{"missions": {"mission_summaries": [{"end_time": "1722896904000000", "mission_name": "mission1", "start_time": "1722895664000000", "task_packet_count": 3}]}, "request": {"missions": {"end_time": "1722970466581176", "start_time": "1722797666581176"}, "target": {"all": true}}, "target": {"hubs": [1], "bots": [1]}}'
             }
         }];
         Command command = 14 [(jaia.field).rest_api = {
             presence: GUARANTEED,
             doc: "Send a command to one or more bots. Expect a response of type 'command_result'."
             example {
-                request: '{"target": {"all": true}, "command": {"type": "STOP"}, "api_key": "4vS6s2jnulxVjrKSB-__tQ"}'
-                response: '{"command_result": {"command_sent": true}, "request": {"api_key": "4vS6s2jnulxVjrKSB-__tQ", "command": {"bot_id": 1, "time": "1722895468966813", "type": "STOP"}, "target": {"all": true}}, "target": {"hubs": [1], "bots": [2, 1]}}'
+                request: '{"target": {"all": true}, "command": {"type": "STOP"}}'
+                response: '{"command_result": {"command_sent": true}, "request": {"command": {"bot_id": 1, "time": "1722895468966813", "type": "STOP"}, "target": {"all": true}}, "target": {"hubs": [1], "bots": [2, 1]}}'
             }
         }];
         CommandForHub command_for_hub = 15 [(jaia.field).rest_api = {
             presence: GUARANTEED,
             doc: "Send a command to the hub. Expect a response of type 'command_result'."
             example {
-                request: '{"target": {"all": true}, "command_for_hub": {"type": "SET_HUB_LOCATION", "hub_location": {"lat": 41.7, "lon": -70.3}}, "api_key": "4vS6s2jnulxVjrKSB-__tQ"}'
-                response: '{"command_result": {"command_sent": true}, "request": {"api_key": "4vS6s2jnulxVjrKSB-__tQ", "command_for_hub": {"hub_id": 1, "hub_location": {"lat": 41.7, "lon": -70.3}, "time": "1722895686821358", "type": "SET_HUB_LOCATION"}, "target": {"all": true}}, "target": {"hubs": [1]}}'
+                request: '{"target": {"all": true}, "command_for_hub": {"type": "SET_HUB_LOCATION", "hub_location": {"lat": 41.7, "lon": -70.3}}}'
+                response: '{"command_result": {"command_sent": true}, "request": {"command_for_hub": {"hub_id": 1, "hub_location": {"lat": 41.7, "lon": -70.3}, "time": "1722895686821358", "type": "SET_HUB_LOCATION"}, "target": {"all": true}}, "target": {"hubs": [1]}}'
+            }
+        }];
+        // Endpoints for JCC & JED
+        string take_control = 19 [(jaia.field).rest_api = {
+            presence: GUARANTEED,
+            doc: "The client ID of the operator who wants to take control. Expect a response of type 'controlling_client_id'."
+            example {
+                request: '{"target": {"all": true}, "take_control": "6CaPKsnbVhkLzq3jNXpgSU"}'
+                response: '{"controlling_client_id": "6CaPKsnbVhkLzq3jNXpgSU", "request": {"target": {"all": true}, "take_control": "6CaPKsnbVhkLzq3jNXpgSU"}}'
+            }
+        }];
+        Engineering engineering_command = 20 [(jaia.field).rest_api = {
+            presence: GUARANTEED,
+            doc: "Send an engineering command to bot(s). Expect a response of type 'command_result'."
+            example {
+                request: '{"target": {"bots": [1]}, "engineering_command": {"bot_id": 1, "query_engineering_status": true}}'
+                response: '{"target": {"hubs": [1, 2], "bots": [1]}, "command_result": {"command_sent": true}, "request": {"target": {"bots": [1]}, "engineering_command": {"bot_id": 1, "time": "1722895468966813", "query_engineering_status": true}}}'
+            }
+        }];
+        TaskPacketInclude task_packet_include = 21 [(jaia.field).rest_api = {
+            presence: GUARANTEED,
+            doc: "Include or exclude a task packet. Expect a response of type 'task_packet_include_response'."
+            example {
+                request: '{"target": {"all": true}, "task_packet_include": {"task_packet_id": "1_1722895664", "include": false}}'
+                response: '{"request": {"target": {"all": true}, "task_packet_include": {"task_packet_id": "1_1722895664", "include": false}}, "task_packet_include_response": {"success": true}}'
+            }
+        }];
+        bool download_ctd_profiles = 22 [(jaia.field).rest_api = {
+            presence: GUARANTEED,
+            doc: "Download the CTD profiles not yet downloaded from the hub as a zip file rather than an APIResponse. Responds with 204 No Content when there are none."
+            example {
+                request: '{"target": {"all": true}, "download_ctd_profiles": true}'
+                response: 'jaia-ctd.zip (application/zip) containing the not yet downloaded *.unb files from /var/log/jaiabot/bot_offload'
+            }
+        }];
+        RecordQuery record_query = 23 [(jaia.field).rest_api = {
+            presence: GUARANTEED,
+            doc: "List, get, save or delete the exclusion zones and mission sets stored on the hub. Expect a response of type 'record_query_response'."
+            example {
+                request: '{"target": {"all": true}, "record_query": {"type": "EXCLUSION_ZONE", "list": true}}'
+                response: '{"request": {"target": {"all": true}, "record_query": {"list": true, "type": "EXCLUSION_ZONE"}}, "record_query_response": {"names": ["harbor-entrance", "north-pier"]}}'
+            }
+        }];
+        DepthContoursQuery depth_contours = 24 [(jaia.field).rest_api = {
+            presence: GUARANTEED,
+            doc: "Generate depth contours from the given task packets. Responds with GeoJSON rather than an APIResponse."
+            example {
+                request: '{"target": {"all": true}, "depth_contours": {"packets": [{"bot_id": 1, "start_time": "1722895664000000", "end_time": "1722895700000000", "type": "DIVE", "dive": {"bottom_dive": true, "depth_achieved": 4.2, "start_location": {"lat": 41.658, "lon": -71.276}, "dive_rate": 0.5, "duration_to_acquire_gps": 8.0}}, {"bot_id": 1, "start_time": "1722895724000000", "end_time": "1722895760000000", "type": "DIVE", "dive": {"bottom_dive": true, "depth_achieved": 6.8, "start_location": {"lat": 41.6585, "lon": -71.275}, "dive_rate": 0.5, "duration_to_acquire_gps": 8.0}}, {"bot_id": 1, "start_time": "1722895784000000", "end_time": "1722895820000000", "type": "DIVE", "dive": {"bottom_dive": true, "depth_achieved": 9.5, "start_location": {"lat": 41.659, "lon": -71.2762}, "dive_rate": 0.5, "duration_to_acquire_gps": 8.0}}]}}'
+                response: '{"type": "FeatureCollection", "crs": {"type": "name", "properties": {"name": "EPSG:4326"}}, "features": [{"type": "Feature", "properties": {"type": "depth-contour", "value": 4.73, "fill": "#c9ebb1", "stroke-width": 0}, "geometry": {"type": "Polygon", "coordinates": [[[-71.276, 41.658], [-71.27602, 41.6581], [-71.275796, 41.658102], [-71.276, 41.658], [-71.276, 41.658]]]}}, {"type": "Feature", "properties": {"type": "depth-contour", "value": 4.73, "fill": "#c9ebb1", "stroke-width": 0}, "geometry": {"type": "Polygon", "coordinates": [[[-71.27602, 41.6581], [-71.27602, 41.6581], [-71.275796, 41.658102], [-71.275796, 41.658102], [-71.27602, 41.6581]]]}}]}'
+            }
+        }];
+        bool engineering_status = 25 [(jaia.field).rest_api = {
+            presence: GUARANTEED,
+            doc: "Query the most recent engineering status of bots. Expect a response of type 'engineering_status'."
+            example {
+                request: '{"target": {"bots": [1]}, "engineering_status": true}'
+                response: '{"target": {"bots": [1]}, "request": {"target": {"bots": [1]}, "engineering_status": true}, "engineering_status": {"bots": [{"bot_id": 1, "time": "1722895470000000", "pid_control": {"speed": {"Kp": 1.0, "Ki": 0.0, "Kd": 0.0}, "heading": {"Kp": 0.7, "Ki": 0.0, "Kd": 0.3}}, "bot_status_rate": "BotStatusRate_1_Hz", "gps_requirements": {"transit_hdop_req": 1.3, "transit_pdop_req": 2.2, "after_dive_hdop_req": 1.3, "after_dive_pdop_req": 2.2, "transit_gps_fix_checks": 5}, "rf_disable_options": {"rf_disable": false, "rf_disable_timeout_mins": 10}}]}}'
             }
         }];
     }
 }
+
+
+// JCC's view of each node, built from a 'status' response rather than sent by the API
+
+message LinkStatusAge {
+    required Link link = 1;
+    required int32 age = 2;
+}
+
+message PortalBotStatus {
+    optional BotStatus bot_status = 1;
+    optional MissionPlan active_mission_plan = 2;
+    repeated LinkStatusAge active_link_status_age = 3;
+    optional int32 status_age = 4;
+    optional bool is_disconnected = 5;
+    optional Engineering engineering = 6;
+}
+
+message PortalHubStatus {
+    optional HubStatus hub_status = 1;
+    optional int32 status_age = 2;
+}
+
 
 message APIResponse
 {
@@ -182,6 +345,29 @@ message APIResponse
         repeated BotStatus bots = 1
             [(jaia.field).rest_api.presence = GUARANTEED];
         repeated HubStatus hubs = 2
+            [(jaia.field).rest_api.presence = GUARANTEED];
+
+        message BotMissionPlan
+        {
+            required int32 bot_id = 1;
+            required MissionPlan mission_plan = 2;
+        }
+
+        repeated BotMissionPlan active_mission_plans = 4 [(jaia.field).rest_api = {
+            doc: "Mission plan currently active on each bot."
+        }];
+        optional string controlling_client_id = 5 [(jaia.field).rest_api = {
+            doc: "Client ID of the operator currently in control, or 'hubN' if an operator on another hub N sent the latest command."
+        }];
+        optional uint64 time = 6 [(jaia.field).rest_api = {
+            presence: GUARANTEED,
+            doc: "Hub's current time as a Unix timestamp in microseconds. Subtract received_time from this to get a status age that is independent of the client's clock."
+        }];
+    }
+
+    message EngineeringStatuses
+    {
+        repeated Engineering bots = 1
             [(jaia.field).rest_api.presence = GUARANTEED];
     }
 
@@ -215,7 +401,23 @@ message APIResponse
         }];
         CommandResult command_result = 14 [(jaia.field).rest_api = {
             presence: GUARANTEED,
-            doc: "Command result. This is sent in response to a successful Request 'command' or 'command_for_hub' action."
+            doc: "Command result. This is sent in response to a successful Request 'command', 'command_for_hub' or 'engineering_command' action."
+        }];
+        string controlling_client_id = 18 [(jaia.field).rest_api = {
+            presence: GUARANTEED,
+            doc: "The client ID of the operator who has taken control."
+        }];
+        TaskPacketIncludeResponse task_packet_include_response = 21 [(jaia.field).rest_api = {
+            presence: GUARANTEED,
+            doc: "Response to a task packet include/exclude request."
+        }];
+        RecordQueryResponse record_query_response = 22 [(jaia.field).rest_api = {
+            presence: GUARANTEED,
+            doc: "Response related to exclusion zones and mission sets."
+        }];
+        EngineeringStatuses engineering_status = 23 [(jaia.field).rest_api = {
+            presence: GUARANTEED,
+            doc: "Most recent engineering status of each bot. This is sent in response to a successful Request 'engineering_status' action."
         }];
     }
 
@@ -236,48 +438,4 @@ message APIConfig
     repeated StreamingEndpoint streaming_endpoint = 1;
 
     optional int32 flask_bind_port = 2 [default = 9092];
-
-    // set true if no API key is required
-    optional bool no_key_required = 3 [default = false];
-
-    message APIKey
-    {
-        required string private_key = 1;
-
-        enum Permission
-        {
-            ALL = 0 [(jaia.ev).rest_api = {
-                permitted_action: [
-                    'status',
-                    'metadata',
-                    'task_packets',
-                    'missions',
-                    'command',
-                    'command_for_hub'
-                ]
-            }];
-            READ = 1 [(jaia.ev).rest_api = {
-                permitted_action: [ 'status', 'metadata', 'task_packets', 'missions' ]
-            }];
-            WRITE = 2 [(jaia.ev).rest_api = {
-                permitted_action: [ 'command', 'command_for_hub' ]
-            }];
-            STATUS = 3
-                [(jaia.ev).rest_api = { permitted_action: [ 'status' ] }];
-            METADATA = 4
-                [(jaia.ev).rest_api = { permitted_action: [ 'metadata' ] }];
-            TASK_PACKETS = 5
-                [(jaia.ev).rest_api = { permitted_action: [ 'task_packets' ] }];
-            MISSIONS = 8
-                [(jaia.ev).rest_api = { permitted_action: [ 'missions' ] }];
-            COMMAND = 6
-                [(jaia.ev).rest_api = { permitted_action: [ 'command' ] }];
-            COMMAND_FOR_HUB = 7 [
-                (jaia.ev).rest_api = { permitted_action: [ 'command_for_hub' ] }
-            ];
-        }
-
-        repeated Permission permission = 2;
-    }
-    repeated APIKey key = 4;
 }

@@ -39,6 +39,12 @@ function(add_jaiabot_python_app)
     set(args_INTERFACE_YML ${CMAKE_CURRENT_SOURCE_DIR}/interface.yml)
   endif()
 
+  # pybind11 adds a bare -flto unless this is set, and without a jobserver that links serially
+  # (and says so); CMake's own IPO passes -flto=auto
+  if(NOT CMAKE_CROSSCOMPILING)
+    set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
+  endif()
+
   goby_add_python_app(
     TARGET ${args_TARGET}
     INTERFACE_YML ${args_INTERFACE_YML}

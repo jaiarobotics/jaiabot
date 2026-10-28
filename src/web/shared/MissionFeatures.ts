@@ -7,7 +7,6 @@ import { createMarker, createFlagMarker, createGPSMarker } from "./Marker";
 import { GeographicCoordinate } from "@proto/jaiabot/messages/geographic_coordinate";
 import { MissionPlan, MissionTask_TaskType } from "@proto/jaiabot/messages/mission";
 import { transformTranslate, point } from "@turf/turf";
-import { PortalBotStatus } from "./PortalStatus";
 import { getMapCoordinate } from "./Utilities";
 
 const CONSTANT_HEADING_DEFAULT_SPEED = 2; // meters per second
@@ -15,7 +14,7 @@ const CONSTANT_HEADING_DEFAULT_TIME = 0; // seconds
 
 export function createMissionFeatures(
     map: Map,
-    bot: PortalBotStatus,
+    botId: number | undefined,
     plan: MissionPlan,
     activeGoalIndex: number,
     isSelected: boolean,
@@ -52,7 +51,7 @@ export function createMissionFeatures(
 
         markerFeature.setProperties({
             goal: goal,
-            botId: bot?.bot_id,
+            botId: botId,
             runNumber: runNumber,
             goalIndex: goalIndexStartAtOne,
             location: location,

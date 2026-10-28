@@ -2,7 +2,8 @@
 """Runs a fleet through a dive mission over the REST API and checks what came back.
 
 Points --hub-url at any hub: the docker sim on localhost:9092, a VirtualHub, or a real
-one. Run with --help for the options.
+one. --peer-hub adds more hubs that hear it over hub-to-hub, such as another VirtualHub
+and the fleet's CloudHub. Run with --help for the options.
 """
 
 import argparse
@@ -31,26 +32,170 @@ def log(message):
     print(f'[{time.strftime("%H:%M:%S")}] {message}', flush=True)
 
 
-def wait_for(predicate, timeout, what, interval, progress=None):
+def wait_for(predicate, timeout, what, interval, progress=None, report_every=0):
     wait.wait_for(predicate, timeout, what, interval, progress, log=log,
-                  failure=TrialFailure)
+                  report_every=report_every, failure=TrialFailure)
 
 
 class SeaTrial:
-    def __init__(self, hub, args):
+    def __init__(self, hub, args, peers=None):
         self.hub = hub
         self.args = args
+        # every hub this trial talks to, by id, the --hub-url one first
+        self.hubs = {args.hub_id: hub, **(peers or {})}
         self.observations = checks.Observations()
+        self.hub_observations = {hub_id: checks.Observations() for hub_id in self.hubs}
+        self.hub_observations[args.hub_id] = self.observations
+        self.last_statuses = {}
         self.goals_by_bot = {}
         self.started_at = None
         self.last_status = None
+        # where each bot's commands, and the fleet-wide ones, go once the hubs hear each other
+        self.bot_hubs = {}
+        self.fleet_hub = args.hub_id
+        self.routing_errors = {}
+        self.hub2hub_results = []
+
+    @property
+    def joined(self):
+        return bool(self.bot_hubs) or self.fleet_hub != self.args.hub_id
 
     def poll(self):
         # every sample is recorded, so progress reporting reads this rather than
         # asking the hub again and discarding what it sees
         self.last_status = self.hub.status()
         self.observations.ingest(self.last_status)
+        self.last_statuses[self.args.hub_id] = self.last_status
         return self.last_status
+
+    def poll_hub(self, hub_id):
+        if hub_id == self.args.hub_id:
+            return self.poll()
+        status = self.hubs[hub_id].status()
+        self.hub_observations[hub_id].ingest(status)
+        self.last_statuses[hub_id] = status
+        return status
+
+    def poll_others(self):
+        for hub_id in self.hubs:
+            if hub_id != self.args.hub_id:
+                self.poll_hub(hub_id)
+
+    def _routed(self, hub_id, what, send):
+        try:
+            return send(self.hubs[hub_id])
+        except api.ApiError as e:
+            if hub_id != self.args.hub_id:
+                self.routing_errors.setdefault(what, f'hub {hub_id}: {e}')
+            raise
+
+    def command(self, bot_id, command):
+        hub_id = self.bot_hubs.get(bot_id, self.args.hub_id)
+        return self._routed(hub_id, f'bot {bot_id}',
+                            lambda hub: hub.command(bot_id, command))
+
+    def command_all(self, command):
+        return self._routed(self.fleet_hub, 'the fleet',
+                            lambda hub: hub.command_all(command))
+
+    def join_hubs(self, bots):
+        """Waits for every hub to hear every other one and the bots, then shares the
+        commands out among them. If they never do, every command stays on --hub-url so
+        the other tiers still run."""
+        if len(self.hubs) < 2:
+            return
+        hub_ids = sorted(self.hubs)
+
+        def heard():
+            for hub_id in hub_ids:
+                self.poll_hub(hub_id)
+            return all(set(hub_ids) <= set(checks.hub_ids(self.last_statuses[hub_id]))
+                       and set(bots) <= set(api.bot_ids(self.last_statuses[hub_id]))
+                       for hub_id in hub_ids)
+
+        try:
+            wait_for(heard, self.args.hub2hub_timeout,
+                     f'hubs {hub_ids} to hear each other and the bots', self.args.poll_interval,
+                     progress=lambda: '; '.join(
+                         f'hub {h} hears hubs {checks.hub_ids(self.last_statuses.get(h))} and '
+                         f'bots {api.bot_ids(self.last_statuses.get(h))}' for h in hub_ids))
+            # a relay-only hub, such as the CloudHub, hears the bots only through the
+            # others, so it sends the commands meant for all of them
+            direct = [h for h in self.hubs if h not in self.args.relay_only_hub]
+            self.bot_hubs = {bot_id: direct[index % len(direct)]
+                             for index, bot_id in enumerate(bots)}
+            self.fleet_hub = next((h for h in self.hubs if h in self.args.relay_only_hub),
+                                  self.args.hub_id)
+            log(f'commands for {self.bot_hubs} (bot: hub) and for the fleet through '
+                f'hub {self.fleet_hub}')
+        except TrialFailure as e:
+            log(f'{e}; commanding everything through hub {self.args.hub_id}')
+        self.hub2hub_results += checks.hub2hub_layout_checks(self.last_statuses, bots)
+        if self.joined:
+            self.probe_relayed_command_for_hub()
+
+    def probe_relayed_command_for_hub(self):
+        # a scan for bot 0 does nothing, so a hub that wrongly runs it comes to no harm
+        probe = {'type': 'SCAN_FOR_BOTS', 'scan_for_bot_id': 0}
+        for via_id, via in self.hubs.items():
+            for target_id in self.hubs:
+                if target_id == via_id:
+                    continue
+                response = via.try_command_for_hub(target_id, probe)
+                self.hub2hub_results.append(checks.relayed_command_for_hub_check(
+                    via_id, target_id, response, via.last_error_code, via.last_error))
+
+    def check_control(self):
+        """An operator's command on one hub shows every client of the others that it is no
+        longer in control, until one of them takes control back."""
+        if not self.joined:
+            return
+        expected = f'hub{self.fleet_hub}'
+        others = [h for h in self.hubs if h != self.fleet_hub]
+        controller = lambda h: (self.last_statuses.get(h) or {}).get('controlling_client_id')
+
+        def moved():
+            for hub_id in others:
+                self.poll_hub(hub_id)
+            return all(controller(h) == expected for h in others)
+
+        # the last operator command was the fleet-wide one, at the offload
+        try:
+            wait_for(moved, self.args.control_timeout,
+                     f'hubs {others} to hand control to {expected}', self.args.poll_interval,
+                     progress=lambda: ', '.join(f'hub {h}: {controller(h)!r}' for h in others))
+        except TrialFailure:
+            pass
+
+        for hub_id in others:
+            hub = self.hubs[hub_id]
+            took = controller(hub_id) == expected
+            self.hub2hub_results.append(checks.Check(
+                checks.HUB2HUB, f'a command through hub {self.fleet_hub} takes control on '
+                                f'hub {hub_id}',
+                took, f'controlled by {controller(hub_id)!r}, expected {expected!r}'))
+            if not took:
+                continue
+
+            bot_id = sorted(self.bot_hubs)[0]
+            response = hub.try_engineering_command(bot_id, {})
+            refused = response is None and hub.last_error_code == 'API_ERROR__NOT_IN_CONTROL'
+            self.hub2hub_results.append(checks.Check(
+                checks.HUB2HUB, f'hub {hub_id} refuses engineering commands while {expected} '
+                                'is in control', refused,
+                'refused with API_ERROR__NOT_IN_CONTROL' if refused
+                else f'answered {response if response is not None else hub.last_error}'))
+
+            try:
+                hub.take_control()
+                regained = ((self.poll_hub(hub_id) or {}).get('controlling_client_id')
+                            == hub.client_id)
+                detail = f'controlled by {controller(hub_id)!r}'
+            except api.ApiError as e:
+                regained, detail = False, str(e)
+            self.hub2hub_results.append(checks.Check(
+                checks.HUB2HUB, f'hub {hub_id} gives control back to a client that takes it',
+                regained, detail))
 
     def wait_for_fleet(self):
         log(f'waiting for the REST API at {self.hub.base}')
@@ -66,11 +211,17 @@ class SeaTrial:
         return bots
 
     def set_hub_location(self):
-        # the simulator will not place the fleet until the hub has a position
-        log(f'setting hub {self.args.hub_id} location')
-        self.hub.command_for_hub(self.args.hub_id, {
-            'type': 'SET_HUB_LOCATION',
-            'hub_location': {'lat': self.args.lat, 'lon': self.args.lon}})
+        # the simulator will not place the fleet until the hub has a position; each hub is
+        # told through its own REST API, as a hub command only reaches the hub it is sent to
+        located = [self.args.hub_id]
+        if self.joined:
+            located += [h for h in self.hubs
+                        if h != self.args.hub_id and h not in self.args.relay_only_hub]
+        for hub_id in located:
+            log(f'setting hub {hub_id} location')
+            self.hubs[hub_id].command_for_hub(hub_id, {
+                'type': 'SET_HUB_LOCATION',
+                'hub_location': {'lat': self.args.lat, 'lon': self.args.lon}})
 
     def activate(self, bot_id):
         def describe(bot_id):
@@ -107,7 +258,7 @@ class SeaTrial:
             if state == WAIT_FOR_PLAN:
                 return True
             if state in ACTIVATABLE and time.time() >= passed_self_test.next_attempt:
-                self.hub.command(bot_id, {'type': 'ACTIVATE'})
+                self.command(bot_id, {'type': 'ACTIVATE'})
                 passed_self_test.next_attempt = (time.time()
                                                  + self.args.activate_retry_interval)
             return False
@@ -132,7 +283,7 @@ class SeaTrial:
             self.goals_by_bot[bot_id] = goals
             log(f'bot {bot_id}: {len(goals)} dive goals from '
                 f'{goals[0][0]:.6f},{goals[0][1]:.6f}')
-            self.hub.command(bot_id, mission.dive_mission_plan(
+            self.command(bot_id, mission.dive_mission_plan(
                 goals, task, self.args.mission_name,
                 transit_speed=self.args.transit_speed,
                 stationkeep_speed=self.args.stationkeep_speed))
@@ -162,17 +313,21 @@ class SeaTrial:
 
     def offload(self, bots):
         # RECOVERED is what moves a bot into DATA_OFFLOAD, which is what the hub acts on
-        self.hub.command_all({'type': 'STOP'})
-        self.hub.command_all({'type': 'RECOVERED'})
+        self.command_all({'type': 'STOP'})
+        self.command_all({'type': 'RECOVERED'})
 
         def settled():
             status = self.poll()
+            if self.joined:
+                self.poll_others()
             return all((api.bot_status(status, b) or {}).get('mission_state')
                        in (checks.POST_IDLE, checks.POST_FAILED) for b in bots)
 
+        # faster than the mission's polling, as an offload moves from bot to bot in seconds
         try:
             wait_for(settled, self.args.offload_timeout, 'every bot to finish data offload',
-                     self.args.poll_interval,
+                     self.args.offload_poll_interval,
+                     report_every=self.args.poll_interval,
                      progress=lambda: '; '.join(
                          f'bot {b} {(api.bot_status(self.last_status, b) or {}).get("mission_state", "?")}'
                          for b in bots))
@@ -207,20 +362,19 @@ class SeaTrial:
             log(f'bot {bot_id}: {len(packets[bot_id])} task packets')
         return packets
 
-    def offload_listing(self):
-        """(mtime, name) per file in the hub's offload directory, which is on the hub
-        that ran the offload rather than wherever this trial is being driven from."""
+    def offload_listing(self, host):
+        """(mtime, name) per file in a hub's offload directory, which is on the hub that
+        ran the offload rather than wherever this trial is being driven from."""
         pattern = 'bot*_fleet*_*'
-        if not self.args.offload_host:
+        if not host:
             return [(os.path.getmtime(path), os.path.basename(path))
                     for path in glob.glob(os.path.join(self.args.offload_dir, pattern))]
         find = (f'find {shlex.quote(self.args.offload_dir)} -maxdepth 1 '
                 f'-name {shlex.quote(pattern)} -printf "%T@ %f\\n"')
-        done = subprocess.run(['ssh', '-o', 'StrictHostKeyChecking=no',
-                               self.args.offload_host, find],
+        done = subprocess.run(['ssh', '-o', 'StrictHostKeyChecking=no', host, find],
                               capture_output=True, text=True)
         if done.returncode != 0:
-            raise OSError(f'listing {self.args.offload_host}:{self.args.offload_dir} '
+            raise OSError(f'listing {host}:{self.args.offload_dir} '
                           f'failed: {done.stderr.strip()[:200]}')
         listing = []
         for line in done.stdout.splitlines():
@@ -229,30 +383,36 @@ class SeaTrial:
         return listing
 
     def offloaded_logs(self, bots):
-        """The log files the hub ended up holding, which is what an offload leaves
-        behind; the DATA_OFFLOAD state can pass between two polls."""
+        """The log files the hubs ended up holding, which is what an offload leaves
+        behind; the DATA_OFFLOAD state can pass between two polls. Where several hubs
+        hear a bot, each offloads it, and the logs land on whichever one finishes first."""
         if not self.args.offload_dir:
             log('no --offload-dir given, so the offload tier judges by state alone')
             return None
-        where = (f'{self.args.offload_host}:' if self.args.offload_host else '') \
-            + self.args.offload_dir
-        try:
-            listing = self.offload_listing()
-        except OSError as e:
+        listings = {}
+        for host in self.args.offload_host or ['']:
+            where = (f'{host}:' if host else '') + self.args.offload_dir
+            try:
+                listings[where] = self.offload_listing(host)
+            except OSError as e:
+                log(f'could not read {where}: {e}')
+        if not listings:
             # not being able to look is not the same as looking and finding nothing,
             # but neither one establishes that the data arrived
-            log(f'could not read {where}: {e}')
             return {}
         found = {}
         for bot_id in bots:
-            mine = [(stamp, name) for stamp, name in listing
-                    if name.startswith(f'bot{bot_id}_fleet')
-                    and name.endswith(('.goby', '.h5'))]
-            found[bot_id] = sorted(name for stamp, name in mine
-                                   if stamp >= (self.started_at or 0))
-            stale = len(mine) - len(found[bot_id])
-            log(f'bot {bot_id}: {len(found[bot_id])} offloaded log files in {where}'
-                + (f' ({stale} from before this run)' if stale else ''))
+            found[bot_id] = []
+            for where, listing in listings.items():
+                mine = [(stamp, name) for stamp, name in listing
+                        if name.startswith(f'bot{bot_id}_fleet')
+                        and name.endswith(('.goby', '.h5'))]
+                fresh = sorted(name for stamp, name in mine
+                               if stamp >= (self.started_at or 0))
+                found[bot_id] += fresh
+                stale = len(mine) - len(fresh)
+                log(f'bot {bot_id}: {len(fresh)} offloaded log files in {where}'
+                    + (f' ({stale} from before this run)' if stale else ''))
         return found
 
     def evaluate(self, bots, packets):
@@ -264,14 +424,40 @@ class SeaTrial:
             metadata = {}
         results = []
         results += checks.liveness_checks(status, metadata, bots, self.args.expect_version)
+        results += self.hub2hub_results
+        if self.joined:
+            routes = {f'bot {b}': h for b, h in sorted(self.bot_hubs.items())}
+            routes['the fleet'] = self.fleet_hub
+            for what, hub_id in routes.items():
+                if hub_id == self.args.hub_id:
+                    continue
+                error = self.routing_errors.get(what)
+                results.append(checks.Check(
+                    checks.HUB2HUB, f'commands for {what} went through hub {hub_id}',
+                    not error, error or 'every command sent'))
+            for hub_id in self.args.relay_only_hub:
+                if hub_id in self.hub_observations:
+                    results += checks.relay_only_offload_checks(self.hub_observations[hub_id],
+                                                                hub_id)
         results += checks.execution_checks(self.observations, bots, self.args.goals,
                                            self.goals_by_bot, self.args.position_tolerance)
         results += checks.offload_checks(self.observations, bots,
                                          self.offloaded_logs(bots))
+        # a hub's own status is the only one carrying its offload queue
+        for hub_id, observations in self.hub_observations.items():
+            if hub_id != self.args.hub_id:
+                results += checks.offload_queue_checks(observations)
         results += checks.content_checks(packets, bots, self.args.goals, self.args.dive_depth,
                                          self.args.depth_tolerance, self.args.drift_time,
                                          self.args.drift_tolerance)
         return results
+
+
+def parse_peer_hub(value):
+    hub_id, _, url = value.partition('=')
+    if not hub_id.isdigit() or not url:
+        raise argparse.ArgumentTypeError(f'expected ID=URL, got {value!r}')
+    return int(hub_id), url
 
 
 def parse_args(argv):
@@ -279,9 +465,22 @@ def parse_args(argv):
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('--hub-url', default='http://localhost:9092',
                         help='base URL of the hub REST API (default: %(default)s)')
-    parser.add_argument('--api-key', default=os.environ.get('JAIA_REST_API_PRIVATE_KEY', ''),
-                        help='defaults to $JAIA_REST_API_PRIVATE_KEY')
     parser.add_argument('--hub-id', type=int, default=1)
+    parser.add_argument('--peer-hub', action='append', default=[], metavar='ID=URL',
+                        type=parse_peer_hub,
+                        help='REST API of another hub that hears --hub-url over hub-to-hub, '
+                             'such as a second VirtualHub or the CloudHub; repeat for more. '
+                             'Adds the hub2hub tier, and shares the bots\' commands out '
+                             'among the hubs')
+    parser.add_argument('--relay-only-hub', action='append', type=int, default=[],
+                        metavar='ID',
+                        help='a --peer-hub that hears the bots only through the others, such '
+                             'as the CloudHub: it sends the fleet-wide commands and must '
+                             'offload nothing')
+    parser.add_argument('--hub2hub-timeout', type=float, default=300.0, metavar='S',
+                        help='how long the two hubs have to start hearing each other')
+    parser.add_argument('--control-timeout', type=float, default=60.0, metavar='S',
+                        help='how long a command on one hub has to move control on the other')
     parser.add_argument('--bots', type=int, default=2, help='number of bots to command')
     parser.add_argument('--goals', type=int, default=mission.MAX_GOALS,
                         help=f'dive goals per bot, at most {mission.MAX_GOALS} (default: %(default)s)')
@@ -308,15 +507,20 @@ def parse_args(argv):
     parser.add_argument('--drift-tolerance', type=float, default=10.0, metavar='S')
     parser.add_argument('--poll-interval', type=float, default=5.0, metavar='S',
                         help='seconds between status polls (default: %(default)s)')
+    parser.add_argument('--offload-poll-interval', type=float, default=1.0, metavar='S',
+                        help='seconds between status polls while bots offload '
+                             '(default: %(default)s)')
     parser.add_argument('--activate-retry-interval', type=float, default=30.0, metavar='S',
                         help='how often to re-send ACTIVATE to a bot that failed its '
                              'self test (default: %(default)s)')
     parser.add_argument('--api-timeout', type=float, default=300.0, metavar='S')
     parser.add_argument('--mission-timeout', type=float, default=3600.0, metavar='S')
     parser.add_argument('--offload-timeout', type=float, default=1200.0, metavar='S')
-    parser.add_argument('--offload-host', default='',
+    parser.add_argument('--offload-host', action='append', default=[],
                         help='ssh to this host to read --offload-dir, for when the hub '
-                             'that ran the offload is not this machine')
+                             'that ran the offload is not this machine; repeat for each '
+                             'hub that hears the bots directly, as any of them may hold '
+                             'a bot\'s logs')
     parser.add_argument('--offload-dir', default='',
                         help="the hub's bot_offload directory, when the trial runs "
                              "somewhere that can see it (usually the hub itself); "
@@ -334,8 +538,10 @@ def parse_args(argv):
 
 def main(argv):
     args = parse_args(argv)
-    hub = api.HubApi(args.hub_url, args.api_key)
-    trial = SeaTrial(hub, args)
+    hub = api.HubApi(args.hub_url, client_id=f'sea-trial-hub{args.hub_id}')
+    peers = {hub_id: api.HubApi(url, client_id=f'sea-trial-hub{hub_id}')
+             for hub_id, url in args.peer_hub}
+    trial = SeaTrial(hub, args, peers)
     started = time.time()
     failure = None
     results = []
@@ -343,10 +549,12 @@ def main(argv):
 
     try:
         bots = trial.wait_for_fleet()
+        trial.join_hubs(bots)
         trial.set_hub_location()
         trial.send_missions(bots)
         trial.run_mission(bots)
         trial.offload(bots)
+        trial.check_control()
         results = trial.evaluate(bots, trial.collect(bots))
         trial.export()
     except (TrialFailure, api.ApiError) as e:

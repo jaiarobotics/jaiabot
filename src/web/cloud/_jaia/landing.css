@@ -1,0 +1,171 @@
+/* CloudHub landing page */
+
+:root {
+    color-scheme: light;
+}
+
+/* Author display rules would otherwise override the hidden attribute nav.js sets */
+[hidden] {
+    display: none !important;
+}
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    background: #f3f5f8;
+    color: #1d2330;
+    font:
+        16px/1.5 -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        Roboto,
+        Helvetica,
+        Arial,
+        sans-serif;
+}
+
+.landing {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 32px 20px 96px;
+}
+
+.landing-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.landing-logo {
+    width: 120px;
+    height: auto;
+}
+
+.landing-title {
+    flex: 1 1 auto;
+    margin: 0;
+    font-size: 28px;
+}
+
+.landing-user {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+    font-size: 14px;
+    color: #5c6675;
+}
+
+.landing-user strong {
+    color: #1d2330;
+    word-break: break-all;
+}
+
+.landing-logout {
+    padding: 6px 12px;
+    border-radius: 6px;
+    background: #1d2330;
+    color: #fff;
+    text-decoration: none;
+}
+
+.landing-logout:hover {
+    background: #343d4d;
+}
+
+.landing-sites {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: 12px;
+}
+
+.site {
+    display: grid;
+    gap: 6px;
+    padding: 16px 20px;
+    border: 1px solid #d9dee6;
+    border-radius: 10px;
+    background: #fff;
+}
+
+.site-title {
+    margin: 0;
+    font-size: 18px;
+}
+
+.site-title a {
+    color: #0b5fcc;
+    text-decoration: none;
+}
+
+.site-title a:hover {
+    text-decoration: underline;
+}
+
+.site-description {
+    margin: 0;
+    color: #5c6675;
+}
+
+.site-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.site-links a {
+    padding: 6px 12px;
+    border: 1px solid #c7d4e8;
+    border-radius: 6px;
+    background: #eef4fc;
+    color: #0b5fcc;
+    text-decoration: none;
+}
+
+.site-links a:hover {
+    background: #dde9fa;
+}
+
+.site-status {
+    margin-left: 8px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: #e6e9ee;
+    color: #5c6675;
+    font-size: 12px;
+    font-weight: 600;
+    vertical-align: 2px;
+}
+
+.site-status::before {
+    content: "\25CF\00A0";
+    color: #9aa3af;
+}
+
+.site-status-up {
+    background: #e3f4e8;
+    color: #1e7a3c;
+}
+
+.site-status-up::before {
+    color: #2ea44f;
+}
+
+.site-notice {
+    margin: 0;
+    color: #1d2330;
+}
+
+.site-notice a {
+    color: #0b5fcc;
+}
+
+.site-off .site-title a,
+.site-off .site-links a {
+    opacity: 0.45;
+    pointer-events: none;
+}

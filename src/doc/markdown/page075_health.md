@@ -29,6 +29,8 @@ Since `goby::health::report` is a large and variable message with strings, we wa
 
 Different apps set the enumerations that are appropriate for that app's function. These are grouped in rough "families":
 
+*This section written by Copilot*
+
 - `ERROR__FAILED__*`: The systemd service for this app failed. These are reported by `jaiabot_failure_reporter`, which is invoked from the `ExecStartPre`/`ExecStopPost` lines of the generated systemd unit files (see the `error_on_fail` entries in `config/gen/systemd.py` and the templates in `config/templates/systemd`).
 - `ERROR__NOT_RESPONDING__*`: The Goby app did not respond to the last goby_coroner request. (This often overlaps with `ERROR__FAILED__*` but not necessarily; e.g. if an app is still running but hangs.) These are reported by `jaiabot_health` (`src/bin/health/app.cpp`).
 - `ERROR|WARNING__MISSING_DATA__*`: A particular required or expected data stream is missing. These are reported by the app that expects the data (e.g. the sensor drivers in `src/bin/sensors/drivers`, `jaiabot_mission_manager`, and the `jaiabot_health` threads).

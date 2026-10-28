@@ -11,7 +11,7 @@ import { missionSet } from "../../../../data/mission_set/mission-set";
 import { missionsManager } from "../../../../data/missions_manager/missions-manager";
 
 import { MissionState } from "@proto/jaiabot/messages/mission";
-import { PortalBotStatus } from "../../../../shared/PortalStatus";
+import { PortalBotStatus } from "@proto/jaiabot/messages/rest_api";
 
 // Place user in control by default
 jest.mock("../../../../utils/commands", () => {
@@ -23,34 +23,44 @@ jest.mock("../../../../utils/commands", () => {
 });
 
 const mockBotStatus1: PortalBotStatus = {
-    bot_id: 1,
-    portalStatusAge: 40_000_000, // microseconds
+    bot_status: {
+        bot_id: 1,
+    },
+    status_age: 40_000_000, // microseconds
 };
 
 const mockBotStatus2: PortalBotStatus = {
-    bot_id: 2,
-    portalStatusAge: 1_000_000,
-    mission_state: MissionState.PRE_DEPLOYMENT__IDLE,
+    bot_status: {
+        bot_id: 2,
+        mission_state: MissionState.PRE_DEPLOYMENT__IDLE,
+    },
+    status_age: 1_000_000,
 };
 
 const mockBotStatus3: PortalBotStatus = {
-    bot_id: 3,
-    portalStatusAge: 1_000_000,
-    mission_state: MissionState.PRE_DEPLOYMENT__WAIT_FOR_MISSION_PLAN,
+    bot_status: {
+        bot_id: 3,
+        mission_state: MissionState.PRE_DEPLOYMENT__WAIT_FOR_MISSION_PLAN,
+    },
+    status_age: 1_000_000,
 };
 
 const mockBotStatus4: PortalBotStatus = {
-    bot_id: 4,
-    portalStatusAge: 1_000_000,
-    mission_state: MissionState.PRE_DEPLOYMENT__WAIT_FOR_MISSION_PLAN,
-    battery_percent: 15,
+    bot_status: {
+        bot_id: 4,
+        mission_state: MissionState.PRE_DEPLOYMENT__WAIT_FOR_MISSION_PLAN,
+        battery_percent: 15,
+    },
+    status_age: 1_000_000,
 };
 
 const mockBotStatus5: PortalBotStatus = {
-    bot_id: 5,
-    portalStatusAge: 1_000_000,
-    mission_state: MissionState.PRE_DEPLOYMENT__WAIT_FOR_MISSION_PLAN,
-    battery_percent: 50,
+    bot_status: {
+        bot_id: 5,
+        mission_state: MissionState.PRE_DEPLOYMENT__WAIT_FOR_MISSION_PLAN,
+        battery_percent: 50,
+    },
+    status_age: 1_000_000,
 };
 
 bots.setBot(mockBotStatus1);

@@ -59,7 +59,6 @@ function MenuBar(props: Props) {
         if (nextPosition === props.windowPosition) {
             return;
         }
-        // @ts-ignore - plotly.js-dist has no type declarations
         const Plotly = (await import("plotly.js-dist")).default;
         Plotly.purge(DEPTH_MAP_3D_NAME);
         props.setWindowPosition(nextPosition);

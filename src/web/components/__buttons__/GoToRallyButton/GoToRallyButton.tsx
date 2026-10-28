@@ -112,7 +112,7 @@ export default function GoToRallyButton(props: Props) {
         if (dialogAction === DialogActions.CONFIRMED) {
             for (const botID of botReadyStates.get(DisabledCodes.NONE)) {
                 const res = await sendBotCommand(getRallyCommand(botID));
-                if (res.status === "ok") {
+                if (!res.error) {
                     jaiaDispatch({ type: JaiaActions.SEND_RALLY_MISSION });
                 }
             }

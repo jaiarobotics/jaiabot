@@ -12,6 +12,12 @@ endif()
 
 install(PROGRAMS ${project_SH_DIR}/system/75-jaiabot-status DESTINATION ${CMAKE_INSTALL_BINDIR} RENAME jaiabot-status)
 
+# Sourced at runtime for the versions of third-party packages
+install(FILES ${CMAKE_SOURCE_DIR}/scripts/common-versions.env DESTINATION share/jaiabot)
+
+# Sourced by jaia_configure_authelia.sh, and copied to the auth.cloud.jaia.tech server
+install(FILES ${project_SH_DIR}/system/jaia-authelia-common.sh DESTINATION share/jaiabot)
+
 set(scripts_to_install
   # data offload
   data-offload/jaiahub-dataoffload.sh
@@ -27,6 +33,12 @@ set(scripts_to_install
   utils/jaia-geotiff-scan.sh
   utils/jaia-doc.py
   utils/jaia-vpn-gen.sh
+  utils/jaia-vpn-peers.sh
+  utils/jaia-vpn-enroll.sh
+  utils/jaia-pair-with-cloudhub.sh
+  utils/jaia-vpn-inventory.sh
+  utils/jaia-vpn-authorize.sh
+  utils/jaia-support-request.sh
   # System scripts
   system/jaiabot-checkloadavg.py
   system/jaia-debconf.sh
@@ -34,11 +46,19 @@ set(scripts_to_install
   system/jaia-update-network.sh
   system/jaia-update-dns.sh
   system/jaia-iridium-tunnel.sh
+  system/jaia-iridium-enroll.sh
+  system/jaia_configure_authelia.sh
+  system/jaia-caddy-dns-ready.sh
+  system/jaia-dns-lookup.py
+  system/jaia-support-portal.py
+  system/jaia-support-access.py
+  system/jaia_configure_cloudhub.sh
   # Fleet config
   fleet/jaia-fleet-config.py
   fleet/jaia-fleet-config-update-iso.sh
   fleet/jaia-create-cloudhub.py
   fleet/jaia-delete-cloudhub.py
+  fleet/jaia-cloudhub-prep-major-upgrade.py
   # First boot (also used by VirtualFleet creation)
   init/jaia-create-ansible-inventory.sh
   )
