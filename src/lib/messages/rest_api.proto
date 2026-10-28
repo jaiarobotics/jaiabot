@@ -172,6 +172,9 @@ enum APIErrorCode
     API_ERROR__NOT_IN_CONTROL = 30 [(jaia.ev).rest_api.presence = GUARANTEED];
     API_ERROR__RECORD_NOT_FOUND = 31 [(jaia.ev).rest_api.presence = GUARANTEED];
     API_ERROR__INVALID_RECORD_NAME = 32 [(jaia.ev).rest_api.presence = GUARANTEED];
+
+    // A fault in the REST API itself
+    API_ERROR__INTERNAL_ERROR = 40 [(jaia.ev).rest_api.presence = GUARANTEED];
 }
 
 message APIError
