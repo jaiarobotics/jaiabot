@@ -48,6 +48,9 @@ let latestTaskPacketRequest = 0;
 
 let statusRequestStartTime = new Date().getTime();
 
+// Hub time of the last status response, in microseconds
+let lastStatusHubTime: number | undefined;
+
 /**
  * Hits the status endpoint and updates the data model and openlayers
  * with information from the response
@@ -94,12 +97,15 @@ export async function pollStatus() {
             throw new Error("Status response is null");
         }
 
+        const botStatuses = toPortalBotStatuses(
+            status,
+            engineering_response.engineering_status?.bots ?? [],
+        );
         const hubStatuses = toPortalHubStatuses(status);
 
-        updateBots(
-            toPortalBotStatuses(status, engineering_response.engineering_status?.bots ?? []),
-        );
+        updateBots(botStatuses);
         updateHubs(hubStatuses);
+        ageUnreportedNodes(botStatuses, hubStatuses, Number(status.time ?? 0));
         updateJaiaGlobal(status.controlling_client_id ?? null);
         updateOpenLayers();
         updateWarning(CONNECTION_WARNING, !isHubConnected(hubStatuses));
@@ -366,6 +372,43 @@ function isHubConnected(hubStatuses: PortalHubStatus[]) {
     return hubStatuses.some(
         (hubStatus) => microsecondsToSeconds(hubStatus.status_age) <= HUB_CONNECTION_STATUS_AGE,
     );
+}
+
+/**
+ * A restarted REST API reports only the bots and hubs it has heard from since, so the others are
+ * aged by the hub time since the last response instead of keeping the age they had
+ *
+ * @param {PortalBotStatus[]} botStatuses Bots in the latest status response
+ * @param {PortalHubStatus[]} hubStatuses Hubs in the latest status response
+ * @param {number} hubTime Hub's time in the latest status response, in microseconds
+ * @returns {void}
+ */
+function ageUnreportedNodes(
+    botStatuses: PortalBotStatus[],
+    hubStatuses: PortalHubStatus[],
+    hubTime: number,
+) {
+    const elapsed = hubTime - (lastStatusHubTime ?? hubTime);
+    lastStatusHubTime = hubTime;
+    if (elapsed <= 0) {
+        return;
+    }
+
+    const reportedBotIDs = new Set(botStatuses.map((botStatus) => botStatus.bot_status?.bot_id));
+    for (const [botID, bot] of bots.getBots()) {
+        if (!reportedBotIDs.has(botID)) {
+            const wasCommsDropped = bot.isCommsDropped();
+            bot.setStatusAge((bot.getStatusAge() ?? 0) + elapsed);
+            handleBotSoundEffects(wasCommsDropped, bot.isCommsDropped());
+        }
+    }
+
+    const reportedHubIDs = new Set(hubStatuses.map((hubStatus) => hubStatus.hub_status?.hub_id));
+    for (const [hubID, hub] of hubs.getHubs()) {
+        if (!reportedHubIDs.has(hubID)) {
+            hub.setStatusAge((hub.getStatusAge() ?? 0) + elapsed);
+        }
+    }
 }
 
 /**

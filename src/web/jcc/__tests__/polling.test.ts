@@ -1,5 +1,7 @@
 import { pollStatus, pollTaskPackets, refreshTaskPacketsForWindow } from "../polling";
 import { bots } from "../../data/bots/bots";
+import { hubs } from "../../data/hubs/hubs";
+import SoundEffects from "../../style/audio/sound-effects";
 import { taskPackets } from "../../data/task_packets/task-packets";
 import { taskPacketFilter } from "../../data/task_packets/task-packet-filter";
 import { contourLayer } from "../../openlayers/layers/vector/contour-layer";
@@ -33,7 +35,10 @@ jest.mock("../../openlayers/layers/vector/contour-layer", () => ({
 jest.mock("../../openlayers/layers/vector/excluded-task-packets-layer", () => ({
     excludedTaskPacketsLayer: { updateFeatures: jest.fn() },
 }));
-jest.mock("../../style/audio/sound-effects", () => ({}));
+jest.mock("../../style/audio/sound-effects", () => ({
+    __esModule: true,
+    default: { botDisconnect: { play: jest.fn() }, botReconnect: { play: jest.fn() } },
+}));
 
 type TaskPacketsBody = { included: TaskPacket[]; excluded: TaskPacket[] };
 
@@ -387,6 +392,45 @@ describe("pollStatus", () => {
 
         expect(bots.getBot(7)?.getEngineering()).toEqual(engineering);
         expect(bots.getBot(7)?.getStatusAge()).toBe(2000);
+    });
+
+    test("ages the bots and hubs a restarted REST API no longer reports", async () => {
+        let statusBody: APIResponse;
+        global.fetch = jest.fn((_url: string, init: RequestInit) => {
+            const request: APIRequest = JSON.parse(init.body as string);
+            const body: APIResponse = request.engineering_status ? {} : statusBody;
+            return Promise.resolve({ ok: true, json: () => Promise.resolve(body) });
+        }) as unknown as typeof fetch;
+        const hubTime = 10_000_000_000;
+
+        statusBody = {
+            status: {
+                bots: [{ bot_id: 9, received_time: String(hubTime - 1_000_000) }],
+                hubs: [
+                    { hub_id: 2, received_time: String(hubTime) },
+                    { hub_id: 3, received_time: String(hubTime - 1_000_000) },
+                ],
+                time: String(hubTime),
+            },
+        };
+        await pollStatus();
+        expect(bots.getBot(9)?.isCommsDropped()).toBe(false);
+        (SoundEffects.botDisconnect.play as jest.Mock).mockClear();
+
+        // Restarted, the REST API has only heard from its own hub
+        statusBody = {
+            status: {
+                hubs: [{ hub_id: 2, received_time: String(hubTime + 60_000_000) }],
+                time: String(hubTime + 60_000_000),
+            },
+        };
+        await pollStatus();
+
+        expect(bots.getBot(9)?.getStatusAge()).toBe(61_000_000);
+        expect(bots.getBot(9)?.isCommsDropped()).toBe(true);
+        expect(SoundEffects.botDisconnect.play).toHaveBeenCalled();
+        expect(hubs.getHub(3)?.getStatusAge()).toBe(61_000_000);
+        expect(hubs.getHub(3)?.isCommsDropped()).toBe(true);
     });
 
     test("keeps polling after a response without a status", async () => {
