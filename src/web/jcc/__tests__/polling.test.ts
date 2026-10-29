@@ -433,6 +433,40 @@ describe("pollStatus", () => {
         expect(hubs.getHub(3)?.isCommsDropped()).toBe(true);
     });
 
+    test("a relayed hub that stops reporting ages out without the connection warning", async () => {
+        document.body.innerHTML = '<div id="connection-warning"></div>';
+        const warning = document.getElementById("connection-warning");
+        const hubTime = 20_000_000_000;
+        const respondWithHubAges = (localAgeMicros: number, relayedAgeMicros: number) => {
+            const body: APIResponse = {
+                status: {
+                    hubs: [
+                        { hub_id: 11, received_time: String(hubTime - localAgeMicros) },
+                        { hub_id: 12, received_time: String(hubTime - relayedAgeMicros) },
+                    ],
+                    time: String(hubTime),
+                },
+            };
+            global.fetch = jest.fn((_url: string, init: RequestInit) => {
+                const request: APIRequest = JSON.parse(init.body as string);
+                const response = request.engineering_status ? {} : body;
+                return Promise.resolve({ ok: true, json: () => Promise.resolve(response) });
+            }) as unknown as typeof fetch;
+        };
+
+        // The local hub reports; the hub relayed through it has gone quiet
+        respondWithHubAges(1_000_000, 60_000_000);
+        await pollStatus();
+        expect(warning.style.visibility).toBe("hidden");
+        expect(hubs.getHub(11)?.isCommsDropped()).toBe(false);
+        expect(hubs.getHub(12)?.isCommsDropped()).toBe(true);
+
+        // The local hub's portal stops too
+        respondWithHubAges(60_000_000, 120_000_000);
+        await pollStatus();
+        expect(warning.style.visibility).toBe("visible");
+    });
+
     test("keeps polling after a response without a status", async () => {
         let statusBody: APIResponse = {};
         global.fetch = jest.fn((_url: string, init: RequestInit) => {
