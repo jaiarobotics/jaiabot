@@ -46,6 +46,20 @@ inline const std::map<std::string, protobuf::Warning>& optional_apps()
     return apps;
 }
 
+// The failure reporter's error for each optional app's service, with the warning shown instead
+inline const std::map<protobuf::Error, protobuf::Warning>& optional_app_failures()
+{
+    static const std::map<protobuf::Error, protobuf::Warning> failures{
+        {protobuf::ERROR__FAILED__PYTHON_JAIABOT_AS_EZO_EC,
+         protobuf::WARNING__NOT_RESPONDING__JAIABOT_ATLAS_SCIENTIFIC_EZO_EC_DRIVER},
+        {protobuf::ERROR__FAILED__PYTHON_JAIABOT_TSYS01_TEMPERATURE_SENSOR_DRIVER,
+         protobuf::WARNING__NOT_RESPONDING__JAIABOT_TSYS01_TEMPERATURE_SENSOR_DRIVER},
+        {protobuf::ERROR__FAILED__PYTHON_JAIABOT_PAM,
+         protobuf::WARNING__NOT_RESPONDING__JAIABOT_PAM_DRIVER},
+        {protobuf::ERROR__FAILED__JAIABOT_PPK, protobuf::WARNING__NOT_RESPONDING__UNKNOWN_APP}};
+    return failures;
+}
+
 // goby_coroner's state, except that an optional app can only degrade the vehicle
 inline goby::middleware::protobuf::HealthState
 vehicle_health_state(const goby::middleware::protobuf::VehicleHealth& vehicle_health)

@@ -71,8 +71,9 @@ class Health : public ApplicationBase
 
     void restart_services()
     {
-        // Restart jaiabot applications and apache which is hosting JCC
-        system("systemctl restart apache2 jaiabot");
+        // Restart jaiabot applications and apache which is hosting JCC. A driver that hit its
+        // start limit refuses to start until reset.
+        system("systemctl reset-failed 'jaiabot*'; systemctl restart apache2 jaiabot");
     }
     void restart_imu_py() { system("systemctl restart jaiabot_driver_imu_py"); }
     void restart_pam_py() { system("systemctl restart jaiabot_driver_pam_py"); }
@@ -400,7 +401,14 @@ void jaiabot::apps::Health::process_coroner_report(
     last_health_.Clear();
 
     for (auto error : failed_services_)
-        last_health_.MutableExtension(jaiabot::protobuf::jaiabot_thread)->add_error(error);
+    {
+        auto optional = jaiabot::health::optional_app_failures().find(error);
+        if (optional != jaiabot::health::optional_app_failures().end())
+            last_health_.MutableExtension(jaiabot::protobuf::jaiabot_thread)
+                ->add_warning(optional->second);
+        else
+            last_health_.MutableExtension(jaiabot::protobuf::jaiabot_thread)->add_error(error);
+    }
 
     for (const auto& proc : vehicle_health.process())
     {

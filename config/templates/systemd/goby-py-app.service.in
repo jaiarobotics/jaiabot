@@ -3,15 +3,16 @@ Description=$description
 
 BindsTo=jaiabot_health.service
 After=jaiabot_health.service
-# keep restarting a driver that keeps crashing instead of giving up after five starts
-StartLimitIntervalSec=0
+# a driver that keeps crashing gets about a minute of restarts before systemd gives up on it
+StartLimitIntervalSec=120
+StartLimitBurst=10
 $extra_unit
 
 [Service]
 User=$user
 Group=$group
 Restart=$restart
-RestartSec=2
+RestartSec=5
 
 $environment
 # the generated Goby extension module, then the protobuf modules its interface.yml names
