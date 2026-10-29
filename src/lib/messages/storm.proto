@@ -41,7 +41,8 @@ message StormMission
 
     required MissionTask.DiveParameters dive = 10;
 
-    required uint32 sleep_for_minutes = 20 [(dccl.field) = {
+    // time from one wake to the next; the bot sleeps for whatever is left after the mission
+    required uint32 mission_period_minutes = 20 [(dccl.field) = {
         min: 0
         max: 10080  // week
         units { unit: "metric::minute" }

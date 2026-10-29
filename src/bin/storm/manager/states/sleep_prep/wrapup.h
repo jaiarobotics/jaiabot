@@ -50,18 +50,28 @@ struct Wrapup : boost::statechart::state<Wrapup, SleepPrep>,
         // elsewhere in this app, so publish directly to the power board driver instead.
         protobuf::PowerBoardRequest request;
         request.set_time_with_units(goby::time::SystemClock::now<goby::time::MicroTime>());
-        request.mutable_low_power_request()->set_duration_seconds(
-            this->machine().sleep_duration_seconds());
+        request.mutable_low_power_request()->set_duration_seconds(sleep_for().count());
 
         // The power board cuts power to the Pi as soon as it accepts this request, and the
         // log filesystem only commits dirty data every ~30 s, so without a sync the last
         // ~30-60 s of every app's logs (including this state's entry) is lost on each sleep.
         goby::glog.is_verbose() &&
             goby::glog << group("statechart") << "Syncing filesystems before requesting "
-                       << request.low_power_request().duration_seconds() << " s sleep" << std::endl;
+                       << request.low_power_request().duration_seconds() << " s sleep of the "
+                       << this->machine().mission_period_seconds() << " s mission period"
+                       << std::endl;
         ::sync();
 
         this->interprocess().template publish<::jaiabot::groups::power_board_command>(request);
+    }
+
+    std::chrono::seconds sleep_for()
+    {
+        auto period = std::chrono::seconds(this->machine().mission_period_seconds());
+        auto awake = goby::time::SteadyClock::now() - this->machine().wake_time();
+        // never request zero: the mission ran past its period, so wake as soon as possible
+        return std::max(std::chrono::duration_cast<std::chrono::seconds>(period - awake),
+                        std::chrono::seconds(60));
     }
 
     void power_board_response(const EvPowerBoardResponse& ev)

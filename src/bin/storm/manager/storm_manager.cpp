@@ -55,7 +55,7 @@ constexpr goby::middleware::Group mcu_serial_out{"jaiabot::storm::mcu_serial_out
 void jaiabot::apps::StormManager::initialize()
 {
     machine_.reset(new statechart::StormManagerStateMachine(*this, cfg().initial_mission()));
-    machine_->set_sleep_duration_override_seconds(load_sleep_duration_seconds());
+    machine_->set_mission_period_override_seconds(load_mission_period_seconds());
     load_pending_task_packets();
 
     machine_->initiate();
@@ -206,35 +206,35 @@ jaiabot::apps::StormManager::task_packet_path(const protobuf::TaskPacket& task_p
     return outbox_dir() / (std::to_string(task_packet.storm_id()) + ".taskpacket");
 }
 
-std::filesystem::path jaiabot::apps::StormManager::sleep_duration_path() const
+std::filesystem::path jaiabot::apps::StormManager::mission_period_path() const
 {
-    return outbox_dir().parent_path() / "storm_sleep_duration_seconds";
+    return outbox_dir().parent_path() / "storm_mission_period_seconds";
 }
 
-uint32_t jaiabot::apps::StormManager::load_sleep_duration_seconds()
+uint32_t jaiabot::apps::StormManager::load_mission_period_seconds()
 {
-    std::ifstream file(sleep_duration_path());
-    uint32_t sleep_duration_seconds = 0;
-    if (file >> sleep_duration_seconds)
-        glog.is_verbose() && glog << "Loaded persisted sleep duration: " << sleep_duration_seconds
+    std::ifstream file(mission_period_path());
+    uint32_t mission_period_seconds = 0;
+    if (file >> mission_period_seconds)
+        glog.is_verbose() && glog << "Loaded persisted mission period: " << mission_period_seconds
                                   << " seconds" << std::endl;
 
-    return sleep_duration_seconds;
+    return mission_period_seconds;
 }
 
-void jaiabot::apps::StormManager::save_sleep_duration_seconds(uint32_t sleep_duration_seconds)
+void jaiabot::apps::StormManager::save_mission_period_seconds(uint32_t mission_period_seconds)
 {
-    const auto path = sleep_duration_path();
+    const auto path = mission_period_path();
     try
     {
         std::filesystem::create_directories(path.parent_path());
         std::ofstream file(path, std::ios::trunc);
-        if (!file || !(file << sleep_duration_seconds))
-            throw std::runtime_error("failed to write sleep duration");
+        if (!file || !(file << mission_period_seconds))
+            throw std::runtime_error("failed to write mission period");
     }
     catch (const std::exception& exception)
     {
-        glog.is_warn() && glog << "Failed to persist sleep duration to " << path << ": "
+        glog.is_warn() && glog << "Failed to persist mission period to " << path << ": "
                                << exception.what() << std::endl;
     }
 }
@@ -411,21 +411,21 @@ void jaiabot::apps::StormManager::handle_command(const protobuf::Command& comman
     switch (command.type())
     {
         default: break; // handled elsewhere, usually jaiabot_mission_manager
-        case protobuf::Command::SET_SLEEP_DURATION:
+        case protobuf::Command::SET_MISSION_PERIOD:
         {
-            if (!command.has_sleep_duration_seconds())
+            if (!command.has_mission_period_seconds())
             {
-                glog.is_warn() && glog << "Invalid SET_SLEEP_DURATION: missing command_data "
-                                          "field 'sleep_duration_seconds'"
+                glog.is_warn() && glog << "Invalid SET_MISSION_PERIOD: missing command_data "
+                                          "field 'mission_period_seconds'"
                                        << std::endl;
                 return;
             }
 
-            glog.is_verbose() && glog << "Set sleep duration to "
-                                      << command.sleep_duration_seconds() << " seconds"
+            glog.is_verbose() && glog << "Set mission period to "
+                                      << command.mission_period_seconds() << " seconds"
                                       << std::endl;
-            machine_->set_sleep_duration_override_seconds(command.sleep_duration_seconds());
-            save_sleep_duration_seconds(command.sleep_duration_seconds());
+            machine_->set_mission_period_override_seconds(command.mission_period_seconds());
+            save_mission_period_seconds(command.mission_period_seconds());
             break;
         }
         case protobuf::Command::STORM_DYNAMIC_MISSION_UPDATE:

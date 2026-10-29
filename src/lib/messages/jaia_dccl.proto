@@ -70,7 +70,7 @@ message Command
         RESUME = 14 [(jaia.ev).rest_api.presence = GUARANTEED];
 
         // bot-level config, independent of any mission
-        SET_SLEEP_DURATION = 15 [(jaia.ev).rest_api.presence = GUARANTEED];
+        SET_MISSION_PERIOD = 15 [(jaia.ev).rest_api.presence = GUARANTEED];
 
         // during remote control mission
         REMOTE_CONTROL_SETPOINT = 20;
@@ -116,8 +116,8 @@ message Command
         // required for type == STORM_DYNAMIC_MISSION_UPDATE
         StormMissionUpdate storm = 40;
 
-        // required for type == SET_SLEEP_DURATION
-        uint32 sleep_duration_seconds = 41 [(dccl.field) = { min: 60 max: 172800 }];
+        // required for type == SET_MISSION_PERIOD
+        uint32 mission_period_seconds = 41 [(dccl.field) = { min: 60 max: 172800 }];
     }
 }
 

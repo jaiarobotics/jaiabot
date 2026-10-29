@@ -961,7 +961,7 @@ export enum CommandType {
     STOP = "STOP",
     PAUSE = "PAUSE",
     RESUME = "RESUME",
-    SET_SLEEP_DURATION = "SET_SLEEP_DURATION",
+    SET_MISSION_PERIOD = "SET_MISSION_PERIOD",
     REMOTE_CONTROL_SETPOINT = "REMOTE_CONTROL_SETPOINT",
     REMOTE_CONTROL_TASK = "REMOTE_CONTROL_TASK",
     REMOTE_CONTROL_RESUME_MOVEMENT = "REMOTE_CONTROL_RESUME_MOVEMENT",
@@ -980,7 +980,7 @@ export interface Command {
     plan?: MissionPlan;
     rc?: RemoteControl;
     rc_task?: MissionTask;
-    sleep_duration_seconds?: number;
+    mission_period_seconds?: number;
 }
 
 export enum HubCommandType {

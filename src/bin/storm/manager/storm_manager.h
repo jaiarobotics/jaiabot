@@ -69,10 +69,10 @@ class StormManager : public goby::zeromq::MultiThreadApplication<config::StormMa
     std::filesystem::path outbox_dir() const;
     std::filesystem::path task_packet_path(const protobuf::TaskPacket& task_packet) const;
 
-    // the sleep duration must survive the power cycle the power board performs while sleeping
-    std::filesystem::path sleep_duration_path() const;
-    uint32_t load_sleep_duration_seconds();
-    void save_sleep_duration_seconds(uint32_t sleep_duration_seconds);
+    // the mission period must survive the power cycle the power board performs while sleeping
+    std::filesystem::path mission_period_path() const;
+    uint32_t load_mission_period_seconds();
+    void save_mission_period_seconds(uint32_t mission_period_seconds);
 
     template <typename Derived> friend class statechart::AppMethodsAccess;
 
