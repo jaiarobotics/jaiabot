@@ -363,6 +363,9 @@ jaiabot::apps::Health::Health()
     if (cfg().has_sensor_watchdog())
         launch_thread<SensorWatchdogThread>(cfg().sensor_watchdog());
 
+    if (cfg().has_iridium())
+        launch_thread<IridiumStatusThread>(cfg().iridium());
+
     // Only run these on the bot
     if (cfg().check_helm_ivp_status())
     {
