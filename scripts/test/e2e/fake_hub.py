@@ -78,42 +78,74 @@ class FakeBot:
 
 
 class FakeHub:
-    def __init__(self, bots=2, dives_to_run=10, lat=41.6618, lon=-71.2731, api_key='',
+    def __init__(self, bots=2, dives_to_run=10, lat=41.6618, lon=-71.2731,
                  depth_error=0.0, idle_until_activated=False, offload_dir=None,
-                 pages=None):
+                 pages=None, hub_id=1):
+        self.hub_id = hub_id
         self.offload_dir = offload_dir
         self.pages = dict(WEB_APPS if pages is None else pages)
-        self.api_key = api_key
         self.bots = {i: FakeBot(i, lat, lon - 0.01 * i, [], dives_to_run, depth_error,
                                 idle_until_activated)
                      for i in range(1, bots + 1)}
         self.hub_location = None
         self.commands = []
+        # the hubs this one hears over hub-to-hub, and relays its commands to
+        self.heard_hubs = []
+        self.peers = []
+        self.relays_control = True
+        self.refuses_other_hubs = True
+        self.advances_bots = True
+        self.controlling_client_id = None
 
-    def handle(self, path, payload):
-        if self.api_key and payload.get('api_key') != self.api_key:
-            return {'error': {'code': 'BAD_KEY'}}
+    def bot_offload(self):
+        return {'data_offload_percentage': 100}
 
+    def hub_statuses(self):
+        own = {'hub_id': self.hub_id}
+        offload = self.bot_offload()
+        if offload:
+            own['bot_offload'] = offload
+        return [own] + [{'hub_id': hub_id} for hub_id in self.heard_hubs]
+
+    def handle(self, path, payload, client_id=None):
         if path.startswith('/status/'):
             statuses = [bot.status() for bot in self.bots.values()]
-            for bot in self.bots.values():
-                bot.advance()
-            return {'status': {'bots': statuses,
-                               'hubs': [{'hub_id': 1, 'bot_offload':
-                                         {'data_offload_percentage': 100}}]}}
+            if self.advances_bots:
+                for bot in self.bots.values():
+                    bot.advance()
+            status = {'bots': statuses, 'hubs': self.hub_statuses()}
+            if self.controlling_client_id:
+                status['controlling_client_id'] = self.controlling_client_id
+            return {'status': status}
 
         if path.startswith('/metadata/'):
-            return {'metadata': {'hubs': [{'hub_id': 1, 'jaiabot_version':
+            return {'metadata': {'hubs': [{'hub_id': self.hub_id, 'jaiabot_version':
                                            {'full_version': '3.0.0'}}]}}
 
         if path.startswith('/command_for_hub/'):
+            if self.refuses_other_hubs and path.rsplit('/h', 1)[1] != str(self.hub_id):
+                return {'error': {'code': 'API_ERROR__INVALID_TARGET', 'details': path}}
             self.commands.append(payload)
             if payload.get('type') == 'SET_HUB_LOCATION':
                 self.hub_location = payload['hub_location']
             return {'command_result': {'command_sent': True}}
 
+        if path.startswith('/engineering_command/'):
+            if self.controlling_client_id not in (None, client_id):
+                return {'error': {'code': 'API_ERROR__NOT_IN_CONTROL', 'details': client_id}}
+            return {'command_result': {'command_sent': True}}
+
+        if path == '' and 'take_control' in payload:
+            self.controlling_client_id = payload['take_control']
+            return {'controlling_client_id': self.controlling_client_id}
+
         if path.startswith('/command/'):
             self.commands.append(payload)
+            if client_id:
+                self.controlling_client_id = client_id
+            if self.relays_control:
+                for peer in self.peers:
+                    peer.controlling_client_id = f'hub{self.hub_id}'
             target = path.rsplit('/', 1)[1]
             targets = (self.bots.values() if target == 'all'
                        else [self.bots[int(target.lstrip('b'))]])
@@ -155,13 +187,34 @@ class FakeHub:
                     f.write(b'log')
 
 
+class FakePeerHub(FakeHub):
+    """Another hub that hears `hub`, its bots and its other peers over hub-to-hub, as a
+    fleet's hubs and its CloudHub hear each other: they share bots, and each relays the
+    others' commands."""
+
+    def __init__(self, hub, hub_id=30):
+        super().__init__(bots=0, hub_id=hub_id)
+        self.bots = hub.bots
+        # the bots move on each poll of the hub the trial drives, not of this one too
+        self.advances_bots = False
+        for other in [hub, *hub.peers]:
+            other.peers.append(self)
+            self.peers.append(other)
+            other.heard_hubs.append(hub_id)
+            self.heard_hubs.append(other.hub_id)
+
+    def bot_offload(self):
+        return None
+
+
 class _Handler(http.server.BaseHTTPRequestHandler):
     def do_POST(self):
         if '/jaia/v1' not in self.path:
             return self._serve_page()
         length = int(self.headers.get('Content-Length', 0))
         payload = json.loads(self.rfile.read(length) or b'{}')
-        result = self.server.hub.handle(self.path.split('/jaia/v1', 1)[1], payload)
+        result = self.server.hub.handle(self.path.split('/jaia/v1', 1)[1], payload,
+                                        self.headers.get('clientId'))
         binary = isinstance(result, bytes)
         body = result if binary else json.dumps(result).encode()
         self.send_response(200)

@@ -361,23 +361,41 @@ jaia_debconf_set() {
         fi
     fi
 
+    # The replies are on stdout. Without a terminal debconf warns on stderr that it is
+    # falling back to another frontend, which says nothing about whether the SET took.
+    local errors
+    errors=$(mktemp)
     reply=$(printf 'SET %s/%s %s\nFSET %s/%s seen true\n' \
                    "${JAIA_DEBCONF_PACKAGE}" "${question}" "${value}" \
                    "${JAIA_DEBCONF_PACKAGE}" "${question}" \
-                | debconf-communicate "${JAIA_DEBCONF_PACKAGE}" 2>&1)
+                | DEBIAN_FRONTEND=noninteractive debconf-communicate "${JAIA_DEBCONF_PACKAGE}" 2>"${errors}")
 
     # one reply line per command; anything not starting with 0 is an error
-    if echo "${reply}" | grep -qv '^0'; then
-        echo "ERROR: could not set ${JAIA_DEBCONF_PACKAGE}/${question}: ${reply}" >&2
+    if [ -z "${reply}" ] || echo "${reply}" | grep -qv '^0'; then
+        echo "ERROR: could not set ${JAIA_DEBCONF_PACKAGE}/${question}: ${reply}$(cat "${errors}")" >&2
+        rm -f "${errors}"
         return 1
     fi
+    rm -f "${errors}"
 }
 
 # jaia_debconf_reconfigure
 # Re-runs the package's .config and postinst, which is what regenerates the
-# systemd units from the new answers.
+# systemd units from the new answers. The package's prerm stops every jaia
+# service on the way, and the postinst starts only some of them again, so the
+# ones running beforehand are started again here.
 jaia_debconf_reconfigure() {
-    dpkg-reconfigure -f noninteractive "${JAIA_DEBCONF_PACKAGE}"
+    local running status=0
+
+    running=$(systemctl list-units --type=service --state=active --plain --no-legend \
+                  'jaia*' 'gpsd*' 2>/dev/null | awk '{print $1}')
+
+    dpkg-reconfigure -f noninteractive "${JAIA_DEBCONF_PACKAGE}" || status=$?
+
+    if [ -n "${running}" ]; then
+        systemctl start ${running} || echo "WARNING: could not start again: ${running}" >&2
+    fi
+    return ${status}
 }
 
 # jaia_debconf_node_id
@@ -423,6 +441,7 @@ jaia_debconf_usage() {
     cat >&2 <<EOF
 Usage: $(basename "$0") get [<question> [default]] [--all] [--json]
        $(basename "$0") set <question> <value> [--no-reconfigure]
+       $(basename "$0") reconfigure
        $(basename "$0") list [--all]
        $(basename "$0") selections
 
@@ -436,6 +455,8 @@ with unanswered questions as null.
 'set' runs 'dpkg-reconfigure ${JAIA_DEBCONF_PACKAGE}' afterwards so that the
 systemd units are regenerated from the new value; pass --no-reconfigure to
 change the database without applying it (e.g. when setting several values).
+'reconfigure' applies what is in the database; either way the jaia services
+that were running beforehand are running afterwards.
 EOF
 }
 
@@ -487,6 +508,9 @@ if [ "${BASH_SOURCE[0]}" = "$0" ]; then
             else
                 echo "Not reconfigured: run 'sudo dpkg-reconfigure ${JAIA_DEBCONF_PACKAGE}' to apply."
             fi
+            ;;
+        reconfigure)
+            jaia_debconf_reconfigure
             ;;
         list)
             jaia_debconf_list "$@"

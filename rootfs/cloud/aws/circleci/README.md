@@ -34,7 +34,7 @@ A CI fleet is one reserved id, so trials queue rather than collide. A trial hold
 fleet for about a quarter of an hour and a day's merges can reach `aws-sync` together,
 so the wait tolerates a few queued ahead before giving up.
 
-The parameters - `sea-trial-bots`, `sea-trial-goals`, `sea-trial-warp`,
+The parameters - `sea-trial-bots`, `sea-trial-hubs`, `sea-trial-goals`, `sea-trial-warp`,
 `sea-trial-repo` and `sea-trial-keep-fleet` - are for triggering a pipeline by hand to
 reproduce a failure. `sea-trial-keep-fleet` leaves the fleet up for inspection; the
 reaper still clears it on the next run.
@@ -65,13 +65,51 @@ That trials the newest `continuous` image with this branch's scripts, which is w
 you want when changing the trial itself rather than the image.
 
 The job installs `jaiabot-apps` and `jaiabot-python` from packages.jaia.tech for the
-repo and version this commit built, because `jaia admin fleet create_cloudhub`
+repo and version this commit built, because `jaia admin fleet cloudhub create`
 dispatches to the copy in `/usr/bin`: tooling from another commit writes answers the
 image's packages no longer accept.
 
 The VirtualFleet playbooks are not copied up: `jaiabot-config` puts them in
 `/usr/share/jaiabot/config/ansible` on the CloudHub, so the ones that run are the
 image's own.
+
+### The steps
+
+Each step of the job is one script in this directory, so a trial can be reproduced by
+hand from a checkout in the same order the job runs them:
+
+```
+./install-jaiabot-tooling.sh                 # needs JAIA_CI_REPO, JAIABOT_APT_VERSION
+./create-ci-cloudhub.sh --bots 2 --hubs 2 --warp 5   # needs JAIA_CI_CUSTOMER, AWS_DEFAULT_REGION
+./check-cloudhub-auth.sh
+./raise-ci-virtualfleet.sh --bots 2 --hubs 2 --warp 5
+./join-ci-virtualfleet.sh --hubs 2
+./run-ci-sea-trial.sh --bots 2 --hubs 2 --goals 2 --warp 5
+./collect-ci-results.sh --bots 2 --hubs 2
+./teardown-ci-fleet.sh
+```
+
+All of them take `--fleet`, defaulting to `JAIA_CI_FLEET` and then to 9.
+
+The CI fleet has two VirtualHubs (`sea-trial-hubs`) besides the CloudHub. The
+VirtualFleet playbooks take the count as `n_hubs` and default to one, so customers'
+VirtualFleets are unchanged.
+
+`join-ci-virtualfleet.sh` enrolls each VirtualHub on the CloudHub's fleet VPN, as a
+field hub pairs. Only CI does this: a VirtualFleet otherwise reaches its CloudHub only
+over the VirtualFleet VPN, which carries no hub-to-hub. Joined, the hubs relay each
+other's statuses and commands, so the trial's `hub2hub` tier can drive the fleet through
+all of them (see `scripts/test/e2e/README.md`).
+
+- **Enrollment:** it calls the CloudHub's `jaia-vpn-enroll.sh` directly rather than
+  over the pairing port, which stays closed in CI.
+- **Endpoint:** it points each tunnel at the CloudHub's VPC IPv6 address, as the
+  VirtualFleet VPN does.
+- **Hub-to-hub:** it restarts each VirtualHub's intervehicle portal, which only
+  addresses hubs over the VPN if the tunnel is up when it starts.
+
+A tunnel that never handshakes is reported, not fatal, so the trial still runs and its
+`hub2hub` tier fails.
 
 ## The fleet config
 
@@ -82,8 +120,9 @@ mean private keys checked into the repository, so CI writes one per run:
 ./make-ci-fleet-config.sh --fleet 9 --bots 2 --warp 5 /tmp/ci-fleet9.cfg
 ```
 
-It generates the hub keys and, unless given `--authorized-key`, the runner's own key, so
-the fleet is reachable only by the run that created it and the keys go away with it.
+It generates the virtual hub's key and, unless given `--authorized-key`, the runner's own key, so
+the fleet is reachable only by the run that created it and the keys go away with it. The
+CloudHub makes its own key, and `create_cloudhub` writes its public half into this file.
 
 ## Sharing one fleet
 
@@ -163,7 +202,7 @@ a CloudHub role cannot be given IAM permissions whatever its inline policy says.
 
 `create_vpc.sh` attaches it when `CLOUDHUB_PERMISSIONS_BOUNDARY` names a policy, so
 the CI fleet config sets `CLOUDHUB_PERMISSIONS_BOUNDARY=JaiaCloudHubBoundary`, or
-`jaia admin fleet create_cloudhub --permissions-boundary JaiaCloudHubBoundary`.
+`jaia admin fleet cloudhub create --permissions-boundary JaiaCloudHubBoundary`.
 Create the boundary before attaching the sea-trial policy: with the policy attached
 and no boundary named, every `CreateRole` call is denied.
 

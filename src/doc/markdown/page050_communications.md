@@ -165,6 +165,10 @@ All Hub2HubData processing takes place in `jaiabot_hub_manager`. When it receive
 - **`command_comms_result`**: Publishes the result on the interprocess `hub_command_result` group. `jaiabot_web_portal` receives it via its normal `hub_command_result` subscription and forwards it to JCC.
 - **`hub_status`**: Publishes the status on the interprocess `hub_status` group. `jaiabot_web_portal` receives it via its normal `hub_status` subscription and forwards it to JCC.
 
+*This section written by Claude*
+
+The REST API treats a `remote_command` as another hub's operator taking control. It sets `controlling_client_id` to `hubN`, where N is the `from_hub_id`, so each JCC on this hub shows Take Control. It skips the commands a hub sends by itself (`DATA_OFFLOAD_COMPLETE` and `DATA_OFFLOAD_FAILED`), and commands from a hub whose own portal it is connected to, since those came from its own clients. Taking control without sending a command is not relayed between hubs.
+
 
 ## Iridium
 
@@ -182,7 +186,7 @@ Some more terminology:
 
 ### Message routing and multiplexing
 
-For security (by not directly exposing ports on Cloudhub) and as Iridium charges for each IP address provisioned to send MT messages, we have chosen to multiplex our SBD messages through a separate AWS server (iridium.jaia.tech / 44.233.97.88).
+For security (by not directly exposing ports on Cloudhub) and as Iridium charges for each IP address provisioned to send MT messages, we have chosen to multiplex our SBD messages through a separate AWS server (iridium.jaia.tech / 182.30.43.121, in AWS GovCloud).
 
 The figure below diagrams the flow for messages between the bots and hubs using this intermediate server, as well as Iridium's servers.
 
@@ -191,7 +195,20 @@ The figure below diagrams the flow for messages between the bots and hubs using 
 Communication between the Cloudhub and iridium.jaia.tech happens within the Cloudhub (Wireguard) VPN, where iridium.jaia.tech is assigned the address of hub25 (and Cloudhub is hub30 as usual). 
 
 
+### Simulation
+
+*This section written by Claude*
+
+When `jaia_comms_mode` includes `iridium`, the simulator launches stand-ins for the modem and for Iridium's servers from `config/launch/simulation/iridium/`, using [virtual_iridium](https://github.com/tsaubergine/virtual_iridium):
+
+- Each bot runs `Iridium9602.py`, which answers DRIVER_IRIDIUM's AT commands on `/tmp/iridium<bot id>`. It sends MO messages over DirectIP to the hub's DRIVER_IRIDIUM_SHORE on port 11800 and receives MT messages on port 10800 + bot id. A simulated bot's IMEI is its bot id, zero-padded to 15 digits.
+- The hub runs `iridium_mt_forward_server.py` in place of iridium.jaia.tech. It listens on port 10800 and forwards each MT message to the bot with that IMEI (bots 1 to 5).
+
+To simulate Iridium, add `i` to the comms argument of `generate_all_launch.sh`, for example `./generate_all_launch.sh 1 10 i` for Iridium only or `wi` for WiFi and Iridium. The Docker simulator takes the same letters in `JAIA_SIM_COMMS`. Any `jaia_iridium_sim_args` (`JAIA_SIM_IRIDIUM_ARGS` in Docker) are passed to each `Iridium9602.py`; for example, `--sbdix_failure_rate 0.2` fails a fifth of SBD sessions, and `--csq 1` reports a signal below the driver's default `sbd_min_signal_strength` of 2.
+
 ## Fleet DNS
+
+*This section written by Claude*
 
 Every hub runs a DNS server (`dnsmasq`, as the `jaiabot_dns` service) that resolves the names of all the bots and hubs in its fleet, so that neither operators nor tooling need to look up an address from the `jaia ip` scheme:
 
@@ -232,4 +249,4 @@ The bots and any laptop on the fleet WiFi keep resolving through their own names
 jaia@bot3-fleet2:~$ sudo sed -i "1i nameserver $(jaia ip h1)" /etc/resolv.conf
 ```
 
-The fleet WiFi firewall rules allow this; the service WiFi rules do not (see `jaia-update-ufw-rules.sh`), so the DNS server is not reachable when a hub is connected to a network other than its fleet's.
+The fleet WiFi firewall rules allow this; the rules for any other network do not (see `jaia-update-ufw-rules.sh`), so the DNS server is not reachable when a hub is connected to a network other than its fleet's.

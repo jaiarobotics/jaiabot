@@ -1,29 +1,45 @@
 #!/bin/bash
 set -e
 
+# Overridable so this can be run against directories other than the live ones.
+SYSTEMD_DIR="${JAIA_SYSTEMD_DIR:-/usr/lib/systemd/system}"
+SYSTEMCTL="${JAIA_SYSTEMCTL:-/bin/systemctl}"
+
 echo ">>>>> Stopping jaiabot app software ... "
-/bin/systemctl stop jaiabot || true
+${SYSTEMCTL} stop jaiabot || true
 echo "<<<<< Stopping jaiabot app software complete! ... "
 
 shopt -s nullglob
 
 services_to_disable=()
 service_files=()
-for service_file in /usr/lib/systemd/system/jaia*.service; do
+for service_file in ${SYSTEMD_DIR}/jaia*.service; do
     services_to_disable+=("$(basename $service_file)")
     service_files+=("$service_file")
 done
 
 echo ">>>>> Stopping, disabling, and removing jaia systemd services ... "
 
+# On an upgrade (which is also what dpkg-reconfigure runs this as) the JCU keeps
+# running: a JCU playbook may be what is upgrading or reconfiguring this node, and
+# would be killed with it. Its regenerated unit takes effect at the next reboot.
+keep_running=""
+if [ "${1:-}" = "upgrade" ]; then
+    keep_running="jaiabot_goby_liaison_standalone.service"
+fi
+
 for service_name in "${services_to_disable[@]}"; do
+    if [ "$service_name" = "$keep_running" ]; then
+        echo "Leaving $service_name running until the next reboot"
+        continue
+    fi
     echo "Stopping $service_name"
-    /bin/systemctl stop $service_name || true
+    ${SYSTEMCTL} stop $service_name || true
 done
 
 if [ ${#services_to_disable[@]} -gt 0 ]; then
     echo "Disabling ${services_to_disable[@]}"
-    /bin/systemctl disable "${services_to_disable[@]}"
+    ${SYSTEMCTL} disable "${services_to_disable[@]}"
 fi
 
 for service_file in "${service_files[@]}"; do

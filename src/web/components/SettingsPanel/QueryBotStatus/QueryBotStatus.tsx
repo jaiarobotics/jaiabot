@@ -39,7 +39,7 @@ export default function QueryBotStatus() {
         };
 
         const res = await sendEngineeringCommand(command);
-        if (res && res.status === "ok") {
+        if (!res.error) {
             success(`Querying status for Bot ${selectedBotID}`);
         }
     };

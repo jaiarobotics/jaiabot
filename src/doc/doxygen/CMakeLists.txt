@@ -1,4 +1,4 @@
-file(GLOB FIGURES RELATIVE ${project_SRC_DIR}/doc/figures ${project_SRC_DIR}/doc/figures/*)
+file(GLOB_RECURSE FIGURES RELATIVE ${project_SRC_DIR}/doc/figures ${project_SRC_DIR}/doc/figures/*)
 foreach(F ${FIGURES})
   configure_file(${project_SRC_DIR}/doc/figures/${F} ${CMAKE_BINARY_DIR}/src/doc/figures/${F} COPYONLY)
 endforeach()

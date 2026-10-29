@@ -16,11 +16,13 @@ set(SENSOR_PROTOS
   sensor/atlas_scientific__oem_ph.proto
   sensor/turner__c_fluor.proto
   sensor/aml.proto
+  sensor/tsys01.proto
 )
 
 # All messages used by microcontrollers (C code)
 set(MCU_PROTOS
   ${SENSOR_PROTOS}
+  storm_mcu.proto
   arduino.proto
   feather.proto
 )
@@ -59,6 +61,8 @@ set(JAIABOT_PROTOS
   comms.proto
   ctd.proto
   ppk.proto
+  storm.proto
+  node.proto
 )
 
 list(TRANSFORM JAIABOT_PROTOS PREPEND "jaiabot/messages/")
@@ -116,7 +120,7 @@ set(FLEET_CONFIG_DEBCONF_TEMPLATES ${CMAKE_SOURCE_DIR}/debian/jaiabot-embedded.t
 set(FLEET_CONFIG_DEBCONF_CONFIG ${CMAKE_SOURCE_DIR}/debian/jaiabot-embedded.config)
 add_custom_command(
   OUTPUT ${FLEET_CONFIG_DEBCONF_TEMPLATES} ${FLEET_CONFIG_DEBCONF_CONFIG}
-  COMMAND ${PYTHON3_EXECUTABLE} ${FLEET_CONFIG_DEBCONF_SCRIPT}
+  COMMAND ${JAIA_RUN_QUIET} ${PYTHON3_EXECUTABLE} ${FLEET_CONFIG_DEBCONF_SCRIPT}
           --descriptor-set ${FLEET_CONFIG_DESCRIPTOR_SET}
           --templates ${FLEET_CONFIG_DEBCONF_TEMPLATES} --config ${FLEET_CONFIG_DEBCONF_CONFIG} --write
   DEPENDS ${FLEET_CONFIG_DESCRIPTOR_SET} ${FLEET_CONFIG_TOOL} ${FLEET_CONFIG_DEBCONF_SCRIPT}
@@ -162,9 +166,9 @@ if(NOT CMAKE_CROSSCOMPILING)
   # and update the hash here (dccl -f src/lib/messages/jaia_dccl.proto -I build/amd64/include -I /usr/include -a -m jaiabot.protobuf.BotStatus -H)
 
   # When adding a new DCCL message (for intervehicle comms), make sure to add it to this list
-  check_dccl_md5_hash("jaiabot.protobuf.BotStatus" "0x96fb7678564694d9")
-  check_dccl_md5_hash("jaiabot.protobuf.TaskPacket" "0x870bcec1ecbe676f")
-  check_dccl_md5_hash("jaiabot.protobuf.Command" "0x678f05b5f029f611")
+  check_dccl_md5_hash("jaiabot.protobuf.BotStatus" "0xff3557952b99d728")
+  check_dccl_md5_hash("jaiabot.protobuf.TaskPacket" "0xb1db5abea9f1027f")
+  check_dccl_md5_hash("jaiabot.protobuf.Command" "0x918f89f64897a538")
   check_dccl_md5_hash("jaiabot.protobuf.Engineering" "0xf45c34ab1ae8b077")
-  check_dccl_md5_hash("jaiabot.protobuf.Hub2HubData" "0xb76d65d20d661533")
+  check_dccl_md5_hash("jaiabot.protobuf.Hub2HubData" "0x5af47fced15daff7")
 endif()

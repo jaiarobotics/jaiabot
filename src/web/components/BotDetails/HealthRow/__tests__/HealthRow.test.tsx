@@ -9,24 +9,30 @@ import { jaiaGlobal } from "../../../../data/jaia_global/jaia-global";
 import { HealthState } from "@proto/goby/middleware/protobuf/coroner";
 import { Error, Warning } from "@proto/jaiabot/messages/health";
 import { NodeTypes } from "../../../../types/jaia-system-types";
-import { PortalBotStatus } from "../../../../shared/PortalStatus";
+import { PortalBotStatus } from "@proto/jaiabot/messages/rest_api";
 
 const botStatusMock1: PortalBotStatus = {
-    bot_id: 1,
-    health_state: HealthState.HEALTH__OK,
+    bot_status: {
+        bot_id: 1,
+        health_state: HealthState.HEALTH__OK,
+    },
 };
 
 const botStatusMock2: PortalBotStatus = {
-    bot_id: 2,
-    health_state: HealthState.HEALTH__DEGRADED,
-    warning: [Warning.WARNING__MISSION__DATA__GPS_FIX_DEGRADED],
+    bot_status: {
+        bot_id: 2,
+        health_state: HealthState.HEALTH__DEGRADED,
+        warning: [Warning.WARNING__MISSION__DATA__GPS_FIX_DEGRADED],
+    },
 };
 
 const botStatusMock3: PortalBotStatus = {
-    bot_id: 3,
-    health_state: HealthState.HEALTH__FAILED,
-    error: [Error.ERROR__VEHICLE__CRITICALLY_LOW_BATTERY, Error.ERROR__FAILED__JAIABOT_HEALTH],
-    warning: [Warning.WARNING__MISSION__DATA_OFFLOAD_FAILED],
+    bot_status: {
+        bot_id: 3,
+        health_state: HealthState.HEALTH__FAILED,
+        error: [Error.ERROR__VEHICLE__CRITICALLY_LOW_BATTERY, Error.ERROR__FAILED__JAIABOT_HEALTH],
+        warning: [Warning.WARNING__MISSION__DATA_OFFLOAD_FAILED],
+    },
 };
 
 bots.setBot(botStatusMock1);

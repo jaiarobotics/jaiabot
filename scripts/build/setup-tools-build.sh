@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 #
 # Installs the tools required to build this source tree: apt build dependencies (including the
-# ninja and clang cross-compilers), arduino-cli (for compiling .ino sketches), and
-# nvm/node/npm/webpack (for the web frontend). Requires root or sudo.
+# ninja and clang cross-compilers), arduino-cli (for compiling .ino sketches), the ARM GCC
+# toolchain and HAL drivers (for the STM32 firmware), and nvm/node/npm/webpack (for the web
+# frontend). Requires root or sudo.
 #
 # Prints only a high-level status line per step; each step's full output is captured and only
 # shown (then this script exits) if that step fails.
@@ -23,6 +24,7 @@ set -a; source ${script_dir}/../common-versions.env; set +a
 
 export GOBYSOFT_SIGNING_KEY=19478082E2F8D3FE
 export JAIABOT_SIGNING_KEY=954A004CD5D8CF32
+export GOLANG_BACKPORTS_SIGNING_KEY=876B22BA887CA91614B5323FC631127F87FA12D1
 
 log=$(mktemp)
 trap 'rm -f "${log}"' EXIT
@@ -72,6 +74,21 @@ add_apt_sources() {
     apt_get update
 }
 
+# An older Ubuntu than the release targets (e.g. 24.04, with Go 1.22) can't meet debian/control's
+# golang-go, which Caddy's go.mod sets
+add_go_backports_if_needed() {
+    local required candidate
+    required=$(sed -n 's/.*golang-go[^(,]*(>= *\([^)]*\)).*/\1/p' ${script_dir}/../../debian/control)
+    candidate=$(apt-cache policy golang-go | sed -n 's/^ *Candidate: //p')
+    if dpkg --compare-versions "${candidate}" ge "${required}" 2>/dev/null; then
+        return
+    fi
+
+    curl -fsSL "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x${GOLANG_BACKPORTS_SIGNING_KEY}" | gpg --dearmor | $SUDO tee /etc/apt/keyrings/golang-backports.gpg > /dev/null
+    echo "deb [signed-by=/etc/apt/keyrings/golang-backports.gpg] https://ppa.launchpadcontent.net/longsleep/golang-backports/ubuntu $(. /etc/os-release; echo "$VERSION_CODENAME") main" | $SUDO tee /etc/apt/sources.list.d/golang-backports.list
+    apt_get update
+}
+
 install_build_deps() {
     apt_get build-dep jaiabot --install-recommends
     # (BUG) Need non-soversioned lib?
@@ -85,6 +102,14 @@ install_arduino_cli() {
     arduino-cli config init --overwrite
     arduino-cli core update-index
     arduino-cli core install arduino:avr
+}
+
+install_stm32_toolchain() {
+    apt_get install gcc-arm-none-eabi binutils-arm-none-eabi libnewlib-arm-none-eabi openocd stlink-tools
+}
+
+install_stm32_drivers() {
+    bash ${script_dir}/../hardware/stm32/fetch-drivers.sh
 }
 
 install_node_toolchain() {
@@ -130,8 +155,11 @@ install_precommit_hook() {
 step "Updating apt and installing prerequisites" install_prereqs
 step "Installing the packages.jaia.tech / packages.gobysoft.org apt signing keys" install_apt_keys
 step "Adding the packages.jaia.tech / packages.gobysoft.org apt mirror" add_apt_sources
+step "Adding a newer Go if this Ubuntu's is too old" add_go_backports_if_needed
 step "Installing apt build dependencies (this can take a while)" install_build_deps
 step "Installing arduino-cli" install_arduino_cli
+step "Installing the STM32 ARM GCC toolchain and flashing tools" install_stm32_toolchain
+step "Fetching the STM32 HAL/CMSIS drivers" install_stm32_drivers
 step "Installing nvm, node, npm and webpack" install_node_toolchain
 step "Installing the clang-format pre-commit hook" install_precommit_hook
 

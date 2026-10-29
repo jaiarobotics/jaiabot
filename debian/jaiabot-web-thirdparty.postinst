@@ -1,0 +1,27 @@
+#!/bin/sh
+set -e
+
+if [ "$1" = "configure" ]; then
+    if ! getent passwd caddy > /dev/null; then
+        adduser --system --group --quiet --home /var/lib/caddy --no-create-home \
+            --shell /usr/sbin/nologin --gecos "Caddy web server" caddy
+    fi
+    if ! getent passwd authelia > /dev/null; then
+        adduser --system --group --quiet --home /nonexistent --no-create-home \
+            --shell /usr/sbin/nologin --gecos "Authelia daemon user" authelia
+    fi
+    if ! getent passwd lldap > /dev/null; then
+        adduser --system --group --quiet --home /nonexistent --no-create-home \
+            --shell /usr/sbin/nologin --gecos "LLDAP daemon user" lldap
+    fi
+
+    mkdir -p /etc/caddy /etc/lldap /var/lib/caddy
+    chown caddy:caddy /var/lib/caddy
+    chmod 0750 /var/lib/caddy
+    mkdir -p /etc/authelia
+    chown authelia:authelia /etc/authelia
+fi
+
+#DEBHELPER#
+
+exit 0

@@ -12,6 +12,9 @@ if [ "$EUID" -ne 0 ]
   exit
 fi
 
+source /usr/bin/jaia-debconf.sh
+CLOUDHUB_VPN_IFACE=wg_jaia_ch$(jaia_debconf_get fleet_id)
+
 # Find the id_str in wpa_supplicant.conf
 WIFI_ID_STR=$(wpa_cli -i wlan0 status | grep "^id_str=" | cut -d= -f2)
 
@@ -25,14 +28,14 @@ function apply_ufw_rules_for_fleet_wifi {
     ufw --force enable
 } 
 
-function apply_ufw_rules_for_service_wifi {
+function apply_restrictive_ufw_rules {
     ufw --force reset 
     ufw default deny incoming
     ufw default allow outgoing
-    # vpn.jaia.tech
-    ufw allow in from 52.36.157.57 proto udp
-    ufw allow in on wg_jaia
-    ufw allow out on wg_jaia
+    # No inbound rule for the VPN server: this node is the client, and ufw accepts the
+    # established conntrack entry the handshake opens. PersistentKeepalive holds it open.
+    ufw allow in on ${CLOUDHUB_VPN_IFACE}
+    ufw allow out on ${CLOUDHUB_VPN_IFACE}
     ufw --force enable 
 }
 
@@ -41,12 +44,9 @@ case "$WIFI_ID_STR" in
     "fleet_wifi")
         apply_ufw_rules_for_fleet_wifi
         ;;
-    "service_wifi")
-        apply_ufw_rules_for_service_wifi
-        ;;
     *)
         # use restrictive rules for any other network 
-        apply_ufw_rules_for_service_wifi
+        apply_restrictive_ufw_rules
         ;;
 esac
 

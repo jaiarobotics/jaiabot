@@ -6,9 +6,10 @@ import { JaiaContextProvider } from "../../../../context/JaiaContext";
 
 import Mission from "../../../../data/mission_set/mission";
 import { bots } from "../../../../data/bots/bots";
+import { jaia_rest_api } from "../../../../utils/jaia-rest-api";
 import { missionSet } from "../../../../data/mission_set/mission-set";
 
-import { PortalBotStatus } from "../../../../shared/PortalStatus";
+import { PortalBotStatus } from "@proto/jaiabot/messages/rest_api";
 import { MissionState } from "@proto/jaiabot/messages/mission";
 import { missionsManager } from "../../../../data/missions_manager/missions-manager";
 
@@ -23,47 +24,59 @@ jest.mock("../../../../utils/commands", () => {
 
 // Ready
 const botStatusMock1: PortalBotStatus = {
-    bot_id: 1,
-    mission_state: MissionState.PRE_DEPLOYMENT__WAIT_FOR_MISSION_PLAN,
-    portalStatusAge: 1_000_000, // microseconds
-    battery_percent: 75,
+    bot_status: {
+        bot_id: 1,
+        mission_state: MissionState.PRE_DEPLOYMENT__WAIT_FOR_MISSION_PLAN,
+        battery_percent: 75,
+    },
+    status_age: 1_000_000, // microseconds
 };
 
 // Status age error
 const botStatusMock2: PortalBotStatus = {
-    bot_id: 2,
-    mission_state: MissionState.PRE_DEPLOYMENT__WAIT_FOR_MISSION_PLAN,
-    portalStatusAge: 40_000_000, // microseconds
+    bot_status: {
+        bot_id: 2,
+        mission_state: MissionState.PRE_DEPLOYMENT__WAIT_FOR_MISSION_PLAN,
+    },
+    status_age: 40_000_000, // microseconds
 };
 
 // Mission state error
 const botStatusMock3: PortalBotStatus = {
-    bot_id: 3,
-    mission_state: MissionState.PRE_DEPLOYMENT__IDLE,
-    portalStatusAge: 1_000_000, // microseconds
+    bot_status: {
+        bot_id: 3,
+        mission_state: MissionState.PRE_DEPLOYMENT__IDLE,
+    },
+    status_age: 1_000_000, // microseconds
 };
 
 // No mission assigned error
 const botStatusMock4: PortalBotStatus = {
-    bot_id: 4,
-    mission_state: MissionState.PRE_DEPLOYMENT__WAIT_FOR_MISSION_PLAN,
-    portalStatusAge: 1_000_000, // microseconds
+    bot_status: {
+        bot_id: 4,
+        mission_state: MissionState.PRE_DEPLOYMENT__WAIT_FOR_MISSION_PLAN,
+    },
+    status_age: 1_000_000, // microseconds
 };
 
 // Battery error
 const botStatusMock5: PortalBotStatus = {
-    bot_id: 5,
-    mission_state: MissionState.IN_MISSION__UNDERWAY__MOVEMENT__TRANSIT,
-    portalStatusAge: 1_000_000, // microseconds
-    battery_percent: 15,
+    bot_status: {
+        bot_id: 5,
+        mission_state: MissionState.IN_MISSION__UNDERWAY__MOVEMENT__TRANSIT,
+        battery_percent: 15,
+    },
+    status_age: 1_000_000, // microseconds
 };
 
 // Ready
 const botStatusMock6: PortalBotStatus = {
-    bot_id: 6,
-    mission_state: MissionState.IN_MISSION__UNDERWAY__MOVEMENT__TRANSIT,
-    portalStatusAge: 1_000_000, // microseconds
-    battery_percent: 50,
+    bot_status: {
+        bot_id: 6,
+        mission_state: MissionState.IN_MISSION__UNDERWAY__MOVEMENT__TRANSIT,
+        battery_percent: 50,
+    },
+    status_age: 1_000_000, // microseconds
 };
 
 // Set up data model
@@ -79,11 +92,9 @@ const missionID3 = missionSet.addMission(new Mission());
 missionsManager.assign(1, missionID1);
 missionsManager.assign(5, missionID2);
 
-// Mock Jaia API
-const originalModule = jest.requireActual("../../../../utils/jaia-api");
-originalModule.jaiaAPI.hit = jest
-    .fn()
-    .mockResolvedValue({ code: 200, msg: "Mocked Success", bots: [], hubs: [] });
+jest.spyOn(jaia_rest_api, "request").mockResolvedValue({
+    command_result: { command_sent: true },
+});
 
 test("0 Bots ready to start a mission", async () => {
     render(

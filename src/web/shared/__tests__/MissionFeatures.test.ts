@@ -3,7 +3,6 @@ import { Map } from "ol";
 import { toLonLat } from "ol/proj";
 import { createMissionFeatures } from "../MissionFeatures";
 import { MissionPlan, MissionTask_TaskType } from "@proto/jaiabot/messages/mission";
-import { PortalBotStatus } from "../PortalStatus";
 
 const map = {
     getView: () => ({
@@ -11,9 +10,7 @@ const map = {
     }),
 } as unknown as Map;
 
-const bot: PortalBotStatus = {
-    bot_id: 1,
-};
+const botId = 1;
 
 function getConstantHeadingFeature(features: any[]) {
     return features.find((feature) => feature.get("isConstantHeading"));
@@ -35,9 +32,9 @@ describe("createMissionFeatures constant heading defaults", () => {
             ],
         };
 
-        expect(() => createMissionFeatures(map, bot, plan, 0, false, false)).not.toThrow();
+        expect(() => createMissionFeatures(map, botId, plan, 0, false, false)).not.toThrow();
 
-        const features = createMissionFeatures(map, bot, plan, 0, false, false);
+        const features = createMissionFeatures(map, botId, plan, 0, false, false);
         const constantHeadingFeature = getConstantHeadingFeature(features);
         expect(constantHeadingFeature).toBeDefined();
 
@@ -67,7 +64,7 @@ describe("createMissionFeatures constant heading defaults", () => {
             ],
         };
 
-        const features = createMissionFeatures(map, bot, plan, 0, false, false);
+        const features = createMissionFeatures(map, botId, plan, 0, false, false);
         const constantHeadingFeature = getConstantHeadingFeature(features);
         expect(constantHeadingFeature).toBeDefined();
 
@@ -108,7 +105,7 @@ describe("createMissionFeatures constant heading defaults", () => {
             ],
         };
 
-        const features = createMissionFeatures(map, bot, plan, 0, false, false);
+        const features = createMissionFeatures(map, botId, plan, 0, false, false);
         expect(getConstantHeadingFeature(features)).toBeUndefined();
 
         const missionLineFeature = features.find((feature) => feature.get("type") === "line");
@@ -119,5 +116,24 @@ describe("createMissionFeatures constant heading defaults", () => {
         const [missionStartLon, missionStartLat] = toLonLat(missionStart, "EPSG:3857");
         expect(missionStartLon).toBeCloseTo(-71.0, 6);
         expect(missionStartLat).toBeCloseTo(42.0, 6);
+    });
+});
+
+describe("createMissionFeatures bot id", () => {
+    const plan: MissionPlan = {
+        goal: [{ location: { lon: -71.0, lat: 42.0 } }, { location: { lon: -70.999, lat: 42.0 } }],
+    };
+
+    test("labels the goal markers with the bot id", () => {
+        const features = createMissionFeatures(map, 3, plan, 0, false, false);
+        const goals = features.filter((feature) => feature.get("type") === "wpt");
+        expect(goals).toHaveLength(2);
+        for (const goal of goals) {
+            expect(goal.get("botId")).toBe(3);
+        }
+    });
+
+    test("does not throw without a bot id", () => {
+        expect(() => createMissionFeatures(map, undefined, plan, 0, false, false)).not.toThrow();
     });
 });

@@ -1,6 +1,6 @@
 [Unit]
-Description=Script to read GPS data from I2C to a pty
-Before=ntp.service
+Description=Script to read GPS data from I2C and send it to gpsd
+Before=chrony.service
 Before=gpsd.service
 After=network.target
 

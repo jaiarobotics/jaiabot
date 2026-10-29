@@ -18,9 +18,9 @@ import { Attribution, ScaleLine } from "ol/control";
 import * as Styles from "../shared/Styles";
 import * as Popup from "../shared/Popup";
 import { geoJSONToDepthContourFeatures, geoJSONToFeatures } from "../shared/Contours";
+import { BotStatus } from "@proto/jaiabot/messages/jaia_dccl";
 import { GeographicCoordinate } from "@proto/jaiabot/messages/geographic_coordinate";
 import { createMissionFeatures } from "../shared/MissionFeatures";
-import { PortalBotStatus } from "../shared/PortalStatus";
 import OlLayerSwitcher from "ol-layerswitcher";
 import {
     createBotCourseOverGroundFeature,
@@ -567,7 +567,7 @@ export default class JaiaMap {
             })?.value;
             if (point == null) continue;
 
-            const bot: PortalBotStatus = {
+            const bot: BotStatus = {
                 bot_id: bot_id,
                 location: {
                     lon: point[2],
@@ -650,7 +650,7 @@ export default class JaiaMap {
 
             const missionFeatures = createMissionFeatures(
                 this.map,
-                null,
+                bot_id,
                 command.plan,
                 activeGoalIndex,
                 isSelected,

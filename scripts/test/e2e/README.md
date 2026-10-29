@@ -6,7 +6,7 @@ simulator, a VirtualFleet on AWS, or a real fleet.
 
 ```bash
 # against the Docker simulator (scripts/sim-docker)
-./jaia-sea-trial.py --hub-url http://localhost:9092 --api-key simulation \
+./jaia-sea-trial.py --hub-url http://localhost:9092 \
     --bots 2 --goals 10 --warp 2 --output-dir /tmp/trial
 
 # against a VirtualFleet, from the CloudHub
@@ -52,8 +52,9 @@ Checks are grouped so that a failure names the layer at fault rather than just t
 | Tier | Asks |
 |------|------|
 | `liveness` | Did every bot and the hub report, healthy, at the expected version? |
+| `hub2hub` | With more hubs (below): did every hub hear every other one and the bots, take the commands routed through it, refuse a command for another hub, leave the offloads to the hubs the bots are on, and hand over control when another hub commanded? |
 | `execution` | Did each bot run to recovery without aborting or failing, and stop near its last goal? |
-| `offload` | Did each bot's logs land in the hub's offload directory, and did it reach `POST_DEPLOYMENT__IDLE`? |
+| `offload` | Did each bot's logs land in the hub's offload directory, did it reach `POST_DEPLOYMENT__IDLE` with no failed-offload warning, and did the hub's offload queue stay up between bots? |
 | `content` | Do the task packets hold the dives — commanded depth, populated measurements, a paired drift of the commanded duration? |
 
 `summary.json` reports `first_failing_tier`, which is the fastest way to tell "AWS was
@@ -69,9 +70,59 @@ passed.
 
 The offload tier needs `--offload-dir` to see those logs, and `--offload-host` when the
 hub that ran the offload is not the machine driving the trial - on a VirtualFleet the
-logs stay on the VirtualHub while the trial runs from the CloudHub. Without
-`--offload-dir` the tier falls back to the terminal state alone; with it, a directory
-it cannot read fails the tier rather than quietly weakening it.
+logs stay on the VirtualHub while the trial runs from the CloudHub. Repeat
+`--offload-host` for each hub that hears the bots directly: each of them offloads a
+bot, and its logs land on whichever finishes first, so a bot's logs count on any of
+them. Without `--offload-dir` the tier falls back to the terminal state alone; with it,
+not being able to read any of the directories fails the tier rather than quietly
+weakening it.
+
+## More hubs
+
+`--peer-hub ID=URL` adds another hub's REST API that hears `--hub-url` over hub-to-hub,
+as a fleet's hubs and its CloudHub hear each other. Repeat it for more.
+`--relay-only-hub ID` marks one that hears the bots only through the others, such as the
+CloudHub. CI runs two VirtualHubs and the CloudHub:
+
+```
+--hub-url http://hub1-virtualfleet9 --peer-hub 2=http://hub2-virtualfleet9 \
+--peer-hub 30=http://localhost:8080 --relay-only-hub 30
+```
+
+The driver waits up to `--hub2hub-timeout` for every hub to hear every other one and
+every bot. Then the commands are shared out, so commands relayed between hubs are what
+move the fleet:
+
+- **Each bot** is commanded through one of the hubs that hear it directly, in turn: bot
+  1 through hub 1, bot 2 through hub 2. Each of those hubs is told its location through
+  its own REST API, as a hub command only reaches the hub it is sent to.
+- **The fleet-wide commands** (`STOP`, `RECOVERED`) go through the relay-only hub, or
+  through `--hub-url` when there is none.
+
+If the hubs never hear each other, the `hub2hub` tier says so and every command stays on
+`--hub-url`, so the rest of the run is still judged.
+
+The tier also checks:
+
+- **Hub commands for another hub are refused.** Each hub is asked to scan for bot 0 on
+  every other. A portal runs a hub command on its own hub whatever hub it names, so the
+  REST API must refuse it with `API_ERROR__INVALID_TARGET`. A scan for bot 0 does
+  nothing, so a hub that wrongly runs it comes to no harm.
+- **A relay-only hub runs no offloads.** It hears the bots only through the others, so
+  it must not try to offload them. Its own status is polled during the offload to see
+  that. Hubs that hear the bots directly each offload them, so each gets the `offload`
+  tier's queue check instead.
+- **Control moves between hubs.** The last operator command is the fleet-wide one.
+  Within `--control-timeout`, every other hub must report `controlling_client_id` as
+  `hub<N>` for the hub that sent it. Each must then refuse its own client's engineering
+  command with `API_ERROR__NOT_IN_CONTROL`, until that client takes control back.
+
+Each hub is sent a `clientId` header, `sea-trial-hub<N>`, as JCC sends its own.
+
+While bots offload, every hub is polled every `--offload-poll-interval` seconds (default
+1) instead of `--poll-interval`, as a hub moves from one bot to the next within seconds.
+A queue missing between two polls fails the `offload` tier only when a poll lands in the
+gap, so polling can miss one but never invents one.
 
 Alongside `junit.xml` the driver writes `task_packets.kmz` and `task_packets.csv`, so a
 bad run can be opened on a chart rather than read as a stack trace.

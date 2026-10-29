@@ -17,3 +17,21 @@
     state: latest
 
 - include_tasks: get-version.yml
+
+- name: Check if this machine is a CloudHub
+  ansible.builtin.stat:
+    path: /etc/jaiabot/cloud.env
+  register: cloud_env_file
+
+# Only CloudHubs run Caddy, Authelia and LLDAP, so this is not in jaiabot_packages
+- name: Upgrade the third-party web services (CloudHub only)
+  apt:
+    name: jaiabot-web-thirdparty
+    state: latest
+  when: cloud_env_file.stat.exists
+
+# Not from the postinst: the script runs apt-get, which cannot take the dpkg lock there
+- name: Configure Authelia (CloudHub only)
+  ansible.builtin.command: /usr/bin/jaia_configure_authelia.sh
+  when: cloud_env_file.stat.exists
+  changed_when: true

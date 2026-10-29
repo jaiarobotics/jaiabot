@@ -23,11 +23,20 @@ start_time=$(date +%s)
 timeout_duration=120
 
 while true; do
-  # Check NTP status (stratum between 1 and 15)
-  ntp_peer_synced=$(ntpq -pn 2>/dev/null | awk '/^\*/ { s=$3+0; if (s>0 && s<16) { found=1; exit 0 } } END { exit !found }' && echo "yes" || echo "no")
+  # Check chrony status (synchronized, with a stratum between 1 and 15)
+  chrony_tracking=$(chronyc -c tracking 2>/dev/null)
+  chrony_stratum=$(echo "$chrony_tracking" | cut -d, -f3)
+  chrony_leap=$(echo "$chrony_tracking" | cut -d, -f14)
+
+  if [[ "$chrony_stratum" =~ ^[0-9]+$ ]] && [[ $chrony_stratum -ge 1 ]] &&
+     [[ $chrony_stratum -le 15 ]] && [[ "$chrony_leap" != "Not synchronised" ]]; then
+    ntp_peer_synced="yes"
+  else
+    ntp_peer_synced="no"
+  fi
 
   if [[ $ntp_peer_synced == "yes" ]]; then
-    echo "NTP Peer Synchronized (stratum 1-15)"
+    echo "Chrony Synchronized (stratum 1-15)"
 
     if [[ $ntp_time_set -eq 0 ]]; then
       ntp_time_set=1

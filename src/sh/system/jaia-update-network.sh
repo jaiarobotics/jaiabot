@@ -11,14 +11,6 @@ network={
   ssid="${jaia_network_fleet_ssid}"
   psk="${jaia_network_fleet_password}"
   id_str="fleet_wifi"
-  priority=2 
-}
-
-network={
-  ssid="${jaia_network_service_ssid}"
-  psk="${jaia_network_service_password}"
-  id_str="service_wifi"
-  priority=1 
 }
 
 EOF
@@ -58,15 +50,6 @@ DNS=8.8.8.8
 
 EOF
 
-
-cat <<EOF > /etc/systemd/network/20-${jaia_network_wifi_iface}-service.network
-[Match]
-Name=${jaia_network_wifi_iface}
-SSID=${jaia_network_service_ssid}
-
-[Network]
-DHCP=yes
-EOF
 
 if [[ "${jaia_network_eth_address}" != "" ]]; then
     cat <<EOF > /etc/systemd/network/30-${jaia_network_eth_iface}.network

@@ -11,16 +11,21 @@ include(ConfigurePackageJSON)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/package.json ${intermediate_web_dir}/package.json COPYONLY)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/package-lock.json ${intermediate_web_dir}/package-lock.json COPYONLY)
 
-add_custom_command(OUTPUT ${intermediate_web_dir}/node_modules
-  COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/install_dependencies.sh
+# Output a stamp written only after a successful install, not node_modules itself,
+# so an interrupted npm install is retried instead of treated as up to date.
+set(npm_dependencies_stamp ${intermediate_web_dir}/npm_dependencies.stamp)
+
+add_custom_command(OUTPUT ${npm_dependencies_stamp}
+  COMMAND ${JAIA_RUN_QUIET} ${CMAKE_CURRENT_SOURCE_DIR}/install_dependencies.sh
   ARGS ${intermediate_web_dir}
-  DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/package.json.in
+  COMMAND ${CMAKE_COMMAND} -E touch ${npm_dependencies_stamp}
+  DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/package.json.in ${CMAKE_CURRENT_SOURCE_DIR}/package-lock.json
   COMMENT "Installing npm dependencies for web apps"
   )
 
 add_custom_target(npm_dependencies
   ALL
-  DEPENDS ${intermediate_web_dir}/package-lock.json ${intermediate_web_dir}/node_modules
+  DEPENDS ${intermediate_web_dir}/package-lock.json ${npm_dependencies_stamp}
   )
 
 ###############################################################################
@@ -35,12 +40,12 @@ set(web_protobuf_types_stamp ${CMAKE_CURRENT_BINARY_DIR}/protobuf_types.stamp)
 file(GLOB_RECURSE web_proto_files ${project_SRC_DIR}/lib/messages/*.proto)
 
 add_custom_command(OUTPUT ${web_protobuf_types_stamp}
-  COMMAND ${CMAKE_COMMAND} -E env
+  COMMAND ${JAIA_RUN_QUIET} ${CMAKE_COMMAND} -E env
     "PATH=${intermediate_web_dir}/node_modules/.bin:$ENV{PATH}"
     "JAIA_PROTO_INCLUDE_DIRS=${web_proto_include_path}"
     ${CMAKE_CURRENT_SOURCE_DIR}/gen_protobuf_types.sh ${intermediate_web_dir}/types/proto
   COMMAND ${CMAKE_COMMAND} -E touch ${web_protobuf_types_stamp}
-  DEPENDS npm_dependencies ${web_proto_files}
+  DEPENDS npm_dependencies ${web_proto_files} ${CMAKE_CURRENT_SOURCE_DIR}/gen_protobuf_types.sh
   COMMENT "Generating TypeScript protobuf types for web apps"
   )
 
@@ -67,12 +72,9 @@ list(REMOVE_ITEM src_files
   ${CMAKE_CURRENT_SOURCE_DIR}/package.json
 )
 
-file(COPY ${src_files} DESTINATION ${intermediate_web_dir})
-
-# A developer's working tree may hold types generated from older protos; drop that copy and
-# clear the stamp so the intermediate tree only ever holds freshly generated ones
-file(REMOVE_RECURSE ${intermediate_web_dir}/types/proto)
-file(REMOVE ${web_protobuf_types_stamp})
+# Types run.sh generated into the source tree may be from older protos; the build generates its own
+file(COPY ${src_files} DESTINATION ${intermediate_web_dir}
+  REGEX "/types/proto$" EXCLUDE)
 
 set(web_out_dir ${project_SHARE_DIR}/jaiabot/web)
 
@@ -95,6 +97,10 @@ file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/server DESTINATION ${project_SHARE_DIR}/ja
 
 # Copy the REST API server
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/rest_api DESTINATION ${project_SHARE_DIR}/jaiabot/web)
+
+# Copy the CloudHub landing page and shared navigation (static, served by Caddy)
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/cloud DESTINATION ${project_SHARE_DIR}/jaiabot/web)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/jcc/public/favicon.png ${project_SHARE_DIR}/jaiabot/web/cloud/authelia/logo.png COPYONLY)
 
 ###############################################################################
 

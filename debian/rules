@@ -37,6 +37,7 @@ DEB_BUILD_ARCH ?= $(shell dpkg-architecture -qDEB_BUILD_ARCH)
 DEB_TARGET_ARCH ?= $(shell dpkg-architecture -qDEB_TARGET_ARCH)
 DEB_TARGET_GNU_CPU ?= $(shell dpkg-architecture -qDEB_TARGET_GNU_CPU)
 DEB_HOST_MULTIARCH ?= $(shell dpkg-architecture -qDEB_HOST_MULTIARCH)
+DEB_HOST_ARCH ?= $(shell dpkg-architecture -qDEB_HOST_ARCH)
 ifneq ($(DEB_BUILD_ARCH),$(DEB_TARGET_ARCH))
         # cross compiling
         CMAKE_EXTRA_FLAGS += -DCMAKE_SYSTEM_NAME=Linux -DCMAKE_SYSTEM_PROCESSOR=$(DEB_TARGET_GNU_CPU)
@@ -75,6 +76,20 @@ override_dh_auto_test:
 override_dh_dwz:
 	@echo "Skipping dh_dwz on due to dwz .debug_addr handling issue with Clang and DWARF5"
 
+# Caddy with the replace-response plugin, from src/web/thirdparty/caddy; the module
+# and build caches stay under debian/ so dh_auto_clean removes them, and Go must not
+# fetch a toolchain of its own
+THIRDPARTY_DIR = $(CURDIR)/src/web/thirdparty
+THIRDPARTY_BUILD = $(CURDIR)/debian/thirdparty-build
+THIRDPARTY_STAGE = $(THIRDPARTY_BUILD)/stage
+export GOTOOLCHAIN = local
+export GOFLAGS = -trimpath -mod=readonly
+export CGO_ENABLED = 0
+export GOOS = linux
+export GOARCH = $(DEB_HOST_ARCH)
+export GOCACHE = $(THIRDPARTY_BUILD)/go-build-cache
+export GOMODCACHE = $(THIRDPARTY_BUILD)/go-mod-cache
+
 export ARDUINO_DIRECTORIES_DATA=$(CURDIR)/.arduino15
 export ARDUINO_DIRECTORIES_USER=$(CURDIR)/arduino-sketchbook
 
@@ -83,3 +98,24 @@ override_dh_auto_build:
 	arduino-cli core update-index
 	arduino-cli core install arduino:avr
 	dh_auto_build
+	mkdir -p $(THIRDPARTY_STAGE)/usr/bin
+	cd $(THIRDPARTY_DIR)/caddy && go build -ldflags "-s -w" -o $(THIRDPARTY_STAGE)/usr/bin/caddy .
+ifeq ($(DEB_BUILD_ARCH),$(DEB_HOST_ARCH))
+	$(THIRDPARTY_STAGE)/usr/bin/caddy list-modules | grep -x http.handlers.replace_response
+endif
+	$(THIRDPARTY_DIR)/fetch.sh $(DEB_HOST_ARCH) $(THIRDPARTY_STAGE)
+
+# jaiabot-web-thirdparty's units are enabled by jaia_configure_authelia.sh once they
+# have something to serve
+override_dh_installsystemd:
+	dh_installsystemd -pjaiabot-web-thirdparty --no-enable --no-start
+	dh_installsystemd --remaining-packages
+
+override_dh_strip:
+	dh_strip -pjaiabot-web-thirdparty --no-automatic-dbgsym
+	dh_strip --remaining-packages
+
+override_dh_auto_clean:
+	dh_auto_clean
+	chmod -R u+w $(THIRDPARTY_BUILD) 2>/dev/null || true
+	rm -rf $(THIRDPARTY_BUILD)

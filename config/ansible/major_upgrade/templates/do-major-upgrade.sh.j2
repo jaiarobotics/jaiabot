@@ -144,10 +144,16 @@ if [ -e /boot/grub/grub.cfg ]; then
 
     for i in dev proc sys run boot/firmware var/log; do mount --move /oldroot/$i /$i; done
 
-    # move any mounts under /oldmount as well
+    # move any mounts under /oldmount as well. Container mounts (a CloudHub runs LLDAP
+    # under Docker) have no directory to land on in the new rootfs and nothing to carry
+    # over, so they are left behind rather than failing the upgrade.
     mount | awk '{print $3}' | grep "^/oldroot/" | sort -r | while read -r mountpoint; do
         new_mount="${mountpoint//oldroot\//}"
-        mount --move "$mountpoint" "$new_mount"
+        if [ -d "$new_mount" ]; then
+            mount --move "$mountpoint" "$new_mount" || umount -l "$mountpoint" || true
+        else
+            umount -l "$mountpoint" || true
+        fi
     done
 
     # install grub
@@ -165,18 +171,26 @@ if [ -e /boot/grub/grub.cfg ]; then
     fi
 
     # update grub
-    if ! which cloud-init || [ "$(cloud-init query cloud_id)" = "nocloud" ] || [ "$(cloud-init query cloud_id)" = "" ]; then
-        # VirtualBox cloud init source
-        sed -i 's|\(GRUB_CMDLINE_LINUX_DEFAULT=".*\)"|\1 ds=nocloud\\;s=file:///etc/jaiabot/init/ network-config=disabled"|' /etc/default/grub
-    elif [ "$(cloud-init query cloud_id)" = "aws" ]; then       
+    if [ "$(cloud-init query cloud_id)" = "aws" ]; then
         # Enable serial console for AWS debugging
         sed -i 's/GRUB_CMDLINE_LINUX="\(.*\)"/GRUB_CMDLINE_LINUX="\1 console=ttyS0"/' /etc/default/grub
+    fi
+
+    # Without this the EC2 datasource wins after the swap and replays the user data this
+    # machine was created with, regenerating the VPN server key every peer was issued
+    # against. A VirtualBox VM has always pinned it; a CloudHub needs it for the same reason.
+    if [ "{{ 'true' if is_cloudhub | default(false) | bool else 'false' }}" = "true" ] \
+       || ! which cloud-init || [ "$(cloud-init query cloud_id)" = "nocloud" ] \
+       || [ "$(cloud-init query cloud_id)" = "" ]; then
+        sed -i 's|\(GRUB_CMDLINE_LINUX_DEFAULT=".*\)"|\1 ds=nocloud\\;s=file:///etc/jaiabot/init/ network-config=disabled"|' /etc/default/grub
     fi
        
     update-grub
 fi
 
+sync
+
 if [ "{{ upgrade_type }}" = "embedded" ]; then
-    systemctl reboot --force
+    systemctl reboot --force || systemctl reboot --force --force
 fi
 

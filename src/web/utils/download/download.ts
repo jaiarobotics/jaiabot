@@ -1,5 +1,6 @@
-import { jaiaAPI } from "../jaia-api";
-import { warning } from "../notifications";
+import { jaia_rest_api } from "../jaia-rest-api";
+import { APIResponse } from "@proto/jaiabot/messages/rest_api";
+import { error, warning } from "../notifications";
 
 const HTTP_NO_CONTENT = 204;
 
@@ -37,10 +38,25 @@ export function downloadFile(
  * @returns {void}
  */
 export async function getCTDFiles() {
-    const res = await jaiaAPI.getCTDProfiles();
+    const res = await jaia_rest_api.fetch_request({
+        target: {
+            all: true,
+        },
+        download_ctd_profiles: true,
+    });
 
     if (res.status === HTTP_NO_CONTENT) {
         warning("No new CTD profiles on the Hub");
+        return;
+    }
+
+    // The REST API reports errors as a JSON APIResponse rather than the zip archive
+    if (!res.ok || res.headers.get("Content-Type")?.includes("application/json")) {
+        const details = await res
+            .json()
+            .then((response: APIResponse) => response.error?.details)
+            .catch(() => res.statusText);
+        error(`Could not download CTD profiles from the Hub: ${details}`);
         return;
     }
 

@@ -19,8 +19,10 @@ ELASTIC_IP_ALLOCATION_ID=
 CREATE_NUM_DAILY_BACKUPS=1
 IPV6_ADDRESS=
 IAM_INSTANCE_PROFILE_NAME=
+SERVER_NAME=
 
 set -a; source $1; set +a;
+SERVER_NAME=${SERVER_NAME:-${SERVER_TYPE}.jaia.tech}
 
 if [[ ! -d ${SCRIPT_PATH}/${SERVER_TYPE} ]]; then
    echo "${SERVER_TYPE} is not a valid SERVER_TYPE"
@@ -64,17 +66,20 @@ fi
 
 USER_DATA_SCRIPT="${SCRIPT_PATH}/${SERVER_TYPE}/user-data.sh"
 USER_DATA_SCRIPT_TMPL="${SCRIPT_PATH}/${SERVER_TYPE}/user-data.sh.in"
+
+# only substitute variables that are actually defined
+subst_vars=$(env | sed 's/=.*//' | sed 's/.*/${&}/' | tr '\n' ' ')
 if [[ -e ${USER_DATA_SCRIPT} ]]; then
     :
 elif [[ -e ${USER_DATA_SCRIPT_TMPL} ]]; then
     USER_DATA_SCRIPT="${TMPDIR}/user-data.sh"
-    eval "echo \"$(< ${USER_DATA_SCRIPT_TMPL})\"" > ${USER_DATA_SCRIPT}
+    envsubst "$subst_vars" < ${USER_DATA_SCRIPT_TMPL} > ${USER_DATA_SCRIPT}
 fi
 
 USER_DATA_CORE_IN="${SCRIPT_PATH}/${SERVER_TYPE}/user-data.yaml.in"
 USER_DATA_CORE="${TMPDIR}/user-data.yaml"
 
-envsubst < ${USER_DATA_CORE_IN} > ${USER_DATA_CORE}
+envsubst "$subst_vars" < ${USER_DATA_CORE_IN} > ${USER_DATA_CORE}
 
 USER_DATA_FILE=${TMPDIR}/user-data
 cloud-init devel make-mime -a ${USER_DATA_SCRIPT}:x-shellscript -a ${USER_DATA_CORE}:cloud-config > ${USER_DATA_FILE}
@@ -143,8 +148,6 @@ run "" aws ec2 create-tags --resources "$INSTANCE_ID" \
     "$SECURITY_GROUP_ID" \
     --tags \
     "Key=jaia_server_type,Value=${SERVER_TYPE}"
-
-SERVER_NAME="${SERVER_TYPE}.jaia.tech"
 
 run "" aws ec2 create-tags --resources "$INSTANCE_ID" --tags "Key=Name,Value=${SERVER_NAME}"
 run "" aws ec2 create-tags --resources "$SECURITY_GROUP_ID" --tags "Key=Name,Value=${SERVER_NAME} Security Group"
@@ -215,9 +218,13 @@ if [[ $CREATE_NUM_DAILY_BACKUPS -gt 0 ]]; then
 fi
 
 PUB_IPV4_ADDRESS=$(run ".Reservations[0].Instances[0].PublicIpAddress" aws ec2 describe-instances --instance-ids $INSTANCE_ID)
+PUB_IPV6_ADDRESS=$(run ".Reservations[0].Instances[0].NetworkInterfaces[0].Ipv6Addresses[0].Ipv6Address // empty" aws ec2 describe-instances --instance-ids $INSTANCE_ID)
 
 echo ">>>>>> SUCCESS"
 
 echo "You can login in with:"
 echo "ssh jaia@${PUB_IPV4_ADDRESS}"
+if [[ -n "${PUB_IPV6_ADDRESS}" ]]; then
+    echo "IPv6 address: ${PUB_IPV6_ADDRESS}"
+fi
 

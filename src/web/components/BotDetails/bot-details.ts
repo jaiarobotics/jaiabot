@@ -56,21 +56,21 @@ export function getDistanceToHub(botGPS: GPS, hubGPS: GPS) {
 /**
  * Provides data offload percentage
  *
- * @param {number} botID Used to grab the correct offload data from the Hub
- * @param {Hub} hub Contains the bot offload progress
+ * @param {number} botID Used to grab the correct offload data from the Hubs
+ * @param {Iterable<Hub>} hubs Hubs, any of which may be offloading the Bot
  * @returns {string} Data offload percentage
  */
-export function getBotOffloadPercent(botID: number, hub: Hub) {
-    let botOffloadPercentage = "";
-
-    if (botID === hub.getBotOffload()?.bot_id) {
-        const data_offload_percentage = hub.getBotOffload().data_offload_percentage;
-        if (data_offload_percentage && data_offload_percentage !== 100) {
-            botOffloadPercentage = " " + data_offload_percentage + "%";
+export function getBotOffloadPercent(botID: number, hubs: Iterable<Hub>) {
+    for (const hub of hubs) {
+        if (botID === hub.getBotOffload()?.bot_id) {
+            const data_offload_percentage = hub.getBotOffload().data_offload_percentage;
+            if (data_offload_percentage && data_offload_percentage !== 100) {
+                return " " + data_offload_percentage + "%";
+            }
         }
     }
 
-    return botOffloadPercentage;
+    return "";
 }
 
 /**
