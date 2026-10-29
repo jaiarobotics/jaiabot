@@ -71,8 +71,8 @@ class Health : public ApplicationBase
 
     void restart_services()
     {
-        // Restart jaiabot applications and apache which is hosting JCC. A driver that hit its
-        // start limit refuses to start until reset.
+        // Restart jaiabot applications and apache which is hosting JCC. reset-failed restarts
+        // nothing itself: it lets a driver that used up its start limit start with the rest.
         system("systemctl reset-failed 'jaiabot*'; systemctl restart apache2 jaiabot");
     }
     void restart_imu_py() { system("systemctl restart jaiabot_driver_imu_py"); }
