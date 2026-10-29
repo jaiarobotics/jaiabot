@@ -85,8 +85,12 @@ class JaiabotDriverIMU(SingleThreadApplication):
 
     def health(self, health):
         from goby.middleware.protobuf import coroner_pb2
+        from jaiabot.messages import health_pb2
+
         if not self._responding:
             health.state = coroner_pb2.HEALTH__FAILED
+            health.Extensions[health_pb2.jaiabot_thread].error.append(
+                health_pb2.ERROR__NOT_RESPONDING__JAIABOT_IMU)
 
 
 if __name__ == '__main__':

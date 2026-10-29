@@ -48,8 +48,13 @@ class JaiabotPPKLogger(SingleThreadApplication):
 
     def health(self, health):
         from goby.middleware.protobuf import coroner_pb2
+        from jaiabot.messages import health_pb2
+
         if not self._connected:
-            health.state = coroner_pb2.HEALTH__FAILED
+            health.state = coroner_pb2.HEALTH__DEGRADED
+            # there is no PPK-specific warning
+            health.Extensions[health_pb2.jaiabot_thread].warning.append(
+                health_pb2.WARNING__NOT_RESPONDING__UNKNOWN_APP)
 
 
 if __name__ == '__main__':

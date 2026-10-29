@@ -21,6 +21,12 @@ If the `health` method isn't overloaded, each thread responds with `HEALTH_OK`, 
 
 `goby_coroner` batches all the `health::response` messages from all apps that it is configured to watch `(--expected_name)` and puts them into a report (`goby::health::report`, type [VehicleHealth](https://goby.software/3.0/classgoby_1_1middleware_1_1protobuf_1_1VehicleHealth.html)). The report includes a top level `state` that is the worst of any of the reported app states (that is, if one app is DEGRADED, the system is considered DEGRADED; if one app is FAILED, the system is considered FAILED). Only if all apps are OK, is the system considered OK.
 
+### Optional sensor drivers
+
+*This section written by Claude*
+
+A bot can operate without some of its sensors, so their drivers (`optional_apps()` in `src/lib/health/health.h`: salinity, TSYS01, PAM and the PPK logger) can only degrade it. `goby_coroner` still reports one that has died, stopped responding or reported itself failed as `HEALTH__FAILED`, but `jaiabot_fusion` (the BotStatus shown in Central Command) and `jaiabot_mission_manager` (the self test) read the report through `vehicle_health_state()`, which counts that driver as `HEALTH__DEGRADED` and adds its `WARNING__NOT_RESPONDING__*`. When one of their systemd units fails, `jaiabot_health` reports the same warning in place of the failure reporter's `ERROR__FAILED__*` (`optional_app_failures()`). The pressure and IMU drivers are not optional: a sensor that stops answering fails the bot with `ERROR__NOT_RESPONDING__JAIABOT_BLUEROBOTICS_PRESSURE_SENSOR_DRIVER` or `ERROR__NOT_RESPONDING__JAIABOT_IMU`.
+
 ## jaiabot_health
 
 `jaiabot_health` subscribes to the `goby::health::report` produced by `goby_coroner` and uses it as the basis for jaiabot-specific reporting.
