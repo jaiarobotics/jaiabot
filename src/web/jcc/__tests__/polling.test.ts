@@ -1,5 +1,7 @@
 import { pollStatus, pollTaskPackets, refreshTaskPacketsForWindow } from "../polling";
 import { bots } from "../../data/bots/bots";
+import { hubs } from "../../data/hubs/hubs";
+import SoundEffects from "../../style/audio/sound-effects";
 import { taskPackets } from "../../data/task_packets/task-packets";
 import { taskPacketFilter } from "../../data/task_packets/task-packet-filter";
 import { contourLayer } from "../../openlayers/layers/vector/contour-layer";
@@ -33,7 +35,10 @@ jest.mock("../../openlayers/layers/vector/contour-layer", () => ({
 jest.mock("../../openlayers/layers/vector/excluded-task-packets-layer", () => ({
     excludedTaskPacketsLayer: { updateFeatures: jest.fn() },
 }));
-jest.mock("../../style/audio/sound-effects", () => ({}));
+jest.mock("../../style/audio/sound-effects", () => ({
+    __esModule: true,
+    default: { botDisconnect: { play: jest.fn() }, botReconnect: { play: jest.fn() } },
+}));
 
 type TaskPacketsBody = { included: TaskPacket[]; excluded: TaskPacket[] };
 
@@ -335,6 +340,44 @@ describe("pollTaskPackets", () => {
 });
 
 describe("pollStatus", () => {
+    /**
+     * Answers status requests with one hub whose status arrived ageMicros before the hub's time.
+     *
+     * @param {number} ageMicros Age of the hub's status in microseconds
+     * @returns {void}
+     */
+    function respondWithHubStatusAge(ageMicros: number) {
+        global.fetch = jest.fn((_url: string, init: RequestInit) => {
+            const request: APIRequest = JSON.parse(init.body as string);
+            const body: APIResponse = request.engineering_status
+                ? {}
+                : {
+                      status: {
+                          hubs: [{ hub_id: 1, received_time: "1000000" }],
+                          time: String(1_000_000 + ageMicros),
+                      },
+                  };
+            return Promise.resolve({ ok: true, json: () => Promise.resolve(body) });
+        }) as unknown as typeof fetch;
+    }
+
+    test("warns when the hub's status stops updating although the REST API answers", async () => {
+        document.body.innerHTML = '<div id="connection-warning"></div>';
+        const warning = document.getElementById("connection-warning");
+
+        respondWithHubStatusAge(1_000_000);
+        await pollStatus();
+        expect(warning.style.visibility).toBe("hidden");
+
+        respondWithHubStatusAge(60_000_000);
+        await pollStatus();
+        expect(warning.style.visibility).toBe("visible");
+
+        respondWithHubStatusAge(1_000_000);
+        await pollStatus();
+        expect(warning.style.visibility).toBe("hidden");
+    });
+
     test("combines each bot's status with its engineering status", async () => {
         const engineering: Engineering = { bot_id: 7, query_engineering_status: true };
         global.fetch = jest.fn((_url: string, init: RequestInit) => {
@@ -349,6 +392,79 @@ describe("pollStatus", () => {
 
         expect(bots.getBot(7)?.getEngineering()).toEqual(engineering);
         expect(bots.getBot(7)?.getStatusAge()).toBe(2000);
+    });
+
+    test("ages the bots and hubs a restarted REST API no longer reports", async () => {
+        let statusBody: APIResponse;
+        global.fetch = jest.fn((_url: string, init: RequestInit) => {
+            const request: APIRequest = JSON.parse(init.body as string);
+            const body: APIResponse = request.engineering_status ? {} : statusBody;
+            return Promise.resolve({ ok: true, json: () => Promise.resolve(body) });
+        }) as unknown as typeof fetch;
+        const hubTime = 10_000_000_000;
+
+        statusBody = {
+            status: {
+                bots: [{ bot_id: 9, received_time: String(hubTime - 1_000_000) }],
+                hubs: [
+                    { hub_id: 2, received_time: String(hubTime) },
+                    { hub_id: 3, received_time: String(hubTime - 1_000_000) },
+                ],
+                time: String(hubTime),
+            },
+        };
+        await pollStatus();
+        expect(bots.getBot(9)?.isCommsDropped()).toBe(false);
+        (SoundEffects.botDisconnect.play as jest.Mock).mockClear();
+
+        // Restarted, the REST API has only heard from its own hub
+        statusBody = {
+            status: {
+                hubs: [{ hub_id: 2, received_time: String(hubTime + 60_000_000) }],
+                time: String(hubTime + 60_000_000),
+            },
+        };
+        await pollStatus();
+
+        expect(bots.getBot(9)?.getStatusAge()).toBe(61_000_000);
+        expect(bots.getBot(9)?.isCommsDropped()).toBe(true);
+        expect(SoundEffects.botDisconnect.play).toHaveBeenCalled();
+        expect(hubs.getHub(3)?.getStatusAge()).toBe(61_000_000);
+        expect(hubs.getHub(3)?.isCommsDropped()).toBe(true);
+    });
+
+    test("a relayed hub that stops reporting ages out without the connection warning", async () => {
+        document.body.innerHTML = '<div id="connection-warning"></div>';
+        const warning = document.getElementById("connection-warning");
+        const hubTime = 20_000_000_000;
+        const respondWithHubAges = (localAgeMicros: number, relayedAgeMicros: number) => {
+            const body: APIResponse = {
+                status: {
+                    hubs: [
+                        { hub_id: 11, received_time: String(hubTime - localAgeMicros) },
+                        { hub_id: 12, received_time: String(hubTime - relayedAgeMicros) },
+                    ],
+                    time: String(hubTime),
+                },
+            };
+            global.fetch = jest.fn((_url: string, init: RequestInit) => {
+                const request: APIRequest = JSON.parse(init.body as string);
+                const response = request.engineering_status ? {} : body;
+                return Promise.resolve({ ok: true, json: () => Promise.resolve(response) });
+            }) as unknown as typeof fetch;
+        };
+
+        // The local hub reports; the hub relayed through it has gone quiet
+        respondWithHubAges(1_000_000, 60_000_000);
+        await pollStatus();
+        expect(warning.style.visibility).toBe("hidden");
+        expect(hubs.getHub(11)?.isCommsDropped()).toBe(false);
+        expect(hubs.getHub(12)?.isCommsDropped()).toBe(true);
+
+        // The local hub's portal stops too
+        respondWithHubAges(60_000_000, 120_000_000);
+        await pollStatus();
+        expect(warning.style.visibility).toBe("visible");
     });
 
     test("keeps polling after a response without a status", async () => {
