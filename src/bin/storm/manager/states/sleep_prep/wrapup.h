@@ -46,15 +46,30 @@ struct Wrapup : boost::statechart::state<Wrapup, SleepPrep>,
     {
         protobuf::StormMCURequest request;
         request.set_type(protobuf::StormMCURequest::SLEEP_REQUEST);
-        request.set_sleep_for_minutes_with_units(
-            this->machine().mission().sleep_for_minutes_with_units());
+        requested_sleep_ = sleep_for();
+        request.set_sleep_for_minutes(requested_sleep_.count());
         this->app().send_to_mcu(request);
+    }
+
+    std::chrono::minutes sleep_for()
+    {
+        auto period = std::chrono::minutes(this->machine().mission().mission_period_minutes());
+        auto awake = goby::time::SteadyClock::now() - this->machine().wake_time();
+        // never request zero: the mission ran past its period, so wake as soon as possible
+        return std::max(std::chrono::duration_cast<std::chrono::minutes>(period - awake),
+                        std::chrono::minutes(1));
     }
 
     void mcu_response(const EvMCUResponse& ev)
     {
         if (ev.resp.sleep_initiated())
+        {
+            goby::glog.is_verbose() &&
+                goby::glog << group("statechart") << "Sleeping for " << requested_sleep_.count()
+                           << " min of the " << this->machine().mission().mission_period_minutes()
+                           << " min mission period" << std::endl;
             post_event(EvSleepReady());
+        }
     }
 
     using reactions = boost::mpl::list<
@@ -64,5 +79,6 @@ struct Wrapup : boost::statechart::state<Wrapup, SleepPrep>,
 
   private:
     goby::time::SteadyClock::time_point next_mcu_send_time_{goby::time::SteadyClock::now()};
+    std::chrono::minutes requested_sleep_{0};
 };
 #endif

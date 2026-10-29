@@ -12,7 +12,7 @@ initial_mission {
     bottom_dive: false
   }
   
-  sleep_for_minutes: 180
+  mission_period_minutes: 180
   min_battery_percentage: 40 
   max_stored_datasets: 10
   surface_drift_time: 300

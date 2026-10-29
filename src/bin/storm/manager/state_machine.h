@@ -112,6 +112,8 @@ struct StormManagerStateMachine
     }
     std::deque<protobuf::TaskPacket>& task_packet_queue() { return task_packet_queue_; }
 
+    goby::time::SteadyClock::time_point wake_time() const { return wake_time_; }
+
     // local intervehicle link (modem id) -> whether a TaskPacket subscriber is known on it,
     // from goby's subscription reports; a link is absent until its first report
     void set_task_packet_subscribed(int link_modem_id, bool subscribed)
@@ -135,6 +137,8 @@ struct StormManagerStateMachine
     std::set<jaiabot::protobuf::Warning> warnings_;
 
     jaiabot::protobuf::StormMission mission_;
+    // the bot powers off to sleep, so manager startup marks the start of this wake
+    goby::time::SteadyClock::time_point wake_time_{goby::time::SteadyClock::now()};
     protobuf::GeographicCoordinate latest_location_;
     bool has_latest_location_{false};
     bool gps_connected_{false};
