@@ -27,6 +27,7 @@
 
 #include "config.pb.h"
 #include "jaiabot/groups.h"
+#include "jaiabot/health/health.h"
 #include "jaiabot/messages/arduino.pb.h"
 #include "jaiabot/messages/engineering.pb.h"
 #include "jaiabot/messages/jaia_dccl.pb.h"
@@ -388,7 +389,8 @@ void jaiabot::apps::Health::collect_reported_errors(
 void jaiabot::apps::Health::process_coroner_report(
     const goby::middleware::protobuf::VehicleHealth& vehicle_health)
 {
-    if (vehicle_health.state() != goby::middleware::protobuf::HEALTH__FAILED)
+    if (jaiabot::health::vehicle_health_state(vehicle_health) !=
+        goby::middleware::protobuf::HEALTH__FAILED)
     {
         // increase next check time every time we get an report where it's not FAILED
         next_check_time_ += goby::time::convert_duration<goby::time::SteadyClock::duration>(
@@ -405,6 +407,10 @@ void jaiabot::apps::Health::process_coroner_report(
         if (proc.main().has_error() &&
             proc.main().error() == goby::middleware::protobuf::ERROR__PROCESS_DIED)
         {
+            // populate_status_from_health warns about these instead
+            if (jaiabot::health::optional_apps().count(proc.name()))
+                continue;
+
             auto it =
                 process_to_not_responding_error_.find(boost::to_lower_copy(proc.main().name()));
             if (it != process_to_not_responding_error_.end())

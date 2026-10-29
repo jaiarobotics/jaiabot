@@ -51,8 +51,12 @@ class JaiabotDriverPam(SingleThreadApplication):
 
     def health(self, health):
         from goby.middleware.protobuf import coroner_pb2
+        from jaiabot.messages import health_pb2
+
         if not self._responding:
-            health.state = coroner_pb2.HEALTH__FAILED
+            health.state = coroner_pb2.HEALTH__DEGRADED
+            health.Extensions[health_pb2.jaiabot_thread].warning.append(
+                health_pb2.WARNING__NOT_RESPONDING__JAIABOT_PAM_DRIVER)
 
 
 if __name__ == '__main__':

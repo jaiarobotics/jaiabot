@@ -23,22 +23,54 @@
 #ifndef JAIABOT_SRC_LIB_HEALTH_HEALTH_H
 #define JAIABOT_SRC_LIB_HEALTH_HEALTH_H
 
+#include <algorithm>
+#include <map>
+#include <string>
+
 #include "jaiabot/messages/health.pb.h"
 
 namespace jaiabot
 {
 namespace health
 {
+// Apps for sensors a bot can operate without, with the warning shown when one is not responding
+inline const std::map<std::string, protobuf::Warning>& optional_apps()
+{
+    static const std::map<std::string, protobuf::Warning> apps{
+        {"jaiabot_driver_salinity",
+         protobuf::WARNING__NOT_RESPONDING__JAIABOT_ATLAS_SCIENTIFIC_EZO_EC_DRIVER},
+        {"jaiabot_driver_tsys01",
+         protobuf::WARNING__NOT_RESPONDING__JAIABOT_TSYS01_TEMPERATURE_SENSOR_DRIVER},
+        {"jaiabot_driver_pam", protobuf::WARNING__NOT_RESPONDING__JAIABOT_PAM_DRIVER},
+        {"jaiabot_ppk_logger", protobuf::WARNING__NOT_RESPONDING__UNKNOWN_APP}};
+    return apps;
+}
+
+// goby_coroner's state, except that an optional app can only degrade the vehicle
+inline goby::middleware::protobuf::HealthState
+vehicle_health_state(const goby::middleware::protobuf::VehicleHealth& vehicle_health)
+{
+    auto state = goby::middleware::protobuf::HEALTH__OK;
+    for (const auto& proc : vehicle_health.process())
+    {
+        auto proc_state = proc.main().state();
+        if (optional_apps().count(proc.name()))
+            proc_state = std::min(proc_state, goby::middleware::protobuf::HEALTH__DEGRADED);
+        state = std::max(state, proc_state);
+    }
+    return state;
+}
+
 template <typename HuborBotStatus>
 void populate_status_from_health(HuborBotStatus& status,
                                  const goby::middleware::protobuf::VehicleHealth& vehicle_health,
                                  bool truncate_to_fit_dccl = true)
 {
-    status.set_health_state(vehicle_health.state());
+    status.set_health_state(vehicle_health_state(vehicle_health));
     status.clear_error();
     status.clear_warning();
 
-    if (vehicle_health.state() != goby::middleware::protobuf::HEALTH__OK)
+    if (status.health_state() != goby::middleware::protobuf::HEALTH__OK)
     {
         auto add_errors_and_warnings =
             [&status](const goby::middleware::protobuf::ThreadHealth& health) {
@@ -53,6 +85,11 @@ void populate_status_from_health(HuborBotStatus& status,
         {
             add_errors_and_warnings(proc.main());
             for (const auto& thread : proc.main().child()) add_errors_and_warnings(thread);
+
+            auto optional = optional_apps().find(proc.name());
+            if (optional != optional_apps().end() && proc.main().has_error() &&
+                proc.main().error() == goby::middleware::protobuf::ERROR__PROCESS_DIED)
+                status.add_warning(optional->second);
         }
 
         const int max_errors = HuborBotStatus::descriptor()
