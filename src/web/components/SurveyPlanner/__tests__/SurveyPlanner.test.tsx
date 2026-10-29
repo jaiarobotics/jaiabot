@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 
 import SurveyPlanner from "../SurveyPlanner";
@@ -59,6 +59,16 @@ describe("SurveyPlanner lane and Bot counts", () => {
 
         expect(lanesInput.value).toBe(String(MAX_LANES_PER_BOT));
         expect(gridPlan.getNumOfLanes()).toBe(MAX_LANES_PER_BOT);
+    });
+
+    test("fractional lane and Bot counts are rounded", () => {
+        const { lanesInput, botsInput } = renderGridConfigs(5, 5);
+
+        fireEvent.change(botsInput, { target: { value: "2.6" } });
+        fireEvent.change(lanesInput, { target: { value: "4.4" } });
+
+        expect(gridPlan.getNumOfBots()).toBe(3);
+        expect(gridPlan.getNumOfLanes()).toBe(4);
     });
 
     test("lane count is capped against the Bot count as it is typed", async () => {
