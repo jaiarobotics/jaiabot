@@ -328,4 +328,82 @@ describe("Exercise functions to save and load missions from the hub", () => {
         expect(result.snapshot).not.toBeNull();
         expect(result.snapshot!.missions.length).toBe(1);
     });
+
+    const loadFromFile = (fileContent: string) => {
+        const file = new File([fileContent], "set.json", { type: "application/json" });
+        (file as any).text = () => Promise.resolve(fileContent);
+        const mockInput = document.createElement("input");
+        jest.spyOn(document, "createElement").mockReturnValueOnce(mockInput);
+        const resultPromise = loadSnapshotFromFile();
+        Object.defineProperty(mockInput, "files", { value: [file] });
+        mockInput.dispatchEvent(new Event("change"));
+        return resultPromise;
+    };
+
+    test("loadSnapshotFromFile keeps a legacy dive goal's settings", async () => {
+        const legacyFile = {
+            id: "1",
+            name: "Legacy",
+            runIdIncrement: 2,
+            botsAssignedToRuns: {},
+            runIdInEditMode: "",
+            runs: {
+                run1: {
+                    id: "1",
+                    name: "Run 1",
+                    assigned: -1,
+                    showTableOfWaypoints: false,
+                    command: {
+                        plan: {
+                            goal: [
+                                {
+                                    location: locationA,
+                                    task: {
+                                        type: MissionTask_TaskType.DIVE,
+                                        dive: {
+                                            max_depth: 7,
+                                            depth_interval: 2,
+                                            hold_time: 5,
+                                            bottom_dive: false,
+                                        },
+                                    },
+                                },
+                                { location: locationB, task: { type: MissionTask_TaskType.DIVE } },
+                            ],
+                        },
+                    },
+                },
+            },
+        };
+
+        const result = await loadFromFile(JSON.stringify(legacyFile));
+        expect(result.resultType).toBe(LoadResultType.OLD_FORMAT);
+        const [, mission] = result.snapshot!.missions[0];
+        const [diveWithSettings, diveWithoutSettings] = mission.getWaypoints();
+        expect(diveWithSettings.getTask().getDiveParameters()).toMatchObject({
+            max_depth: 7,
+            depth_interval: 2,
+            hold_time: 5,
+        });
+        expect(diveWithoutSettings.getTask().getType()).toBe(MissionTask_TaskType.DIVE);
+    });
+
+    test("Migrate 2.0 hub: missionSpeeds become the set's speeds, as whole numbers", async () => {
+        fakeHubStorage["Old-Set"] = {
+            name: "Old-Set",
+            nextMissionID: 2,
+            missionIDInEditMode: UNASSIGNED_ID,
+            missionSpeeds: { transit: 3, stationkeep_outer: 1.5 },
+            missions: [[1, { waypoints: [{ location: locationA }] }]],
+        };
+
+        const loadResult = await loadSnapshotFromHub("Old-Set");
+        expect(loadResult.snapshot!.speeds).toEqual({ transit: 3, stationkeep_outer: 2 });
+    });
+
+    test("loadSnapshotFromFile reports a file holding null as invalid", async () => {
+        const result = await loadFromFile("null");
+        expect(result.resultType).toBe(LoadResultType.INVALID_FORMAT);
+        expect(result.snapshot).toBeNull();
+    });
 });

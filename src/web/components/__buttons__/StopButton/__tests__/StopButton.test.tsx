@@ -6,6 +6,9 @@ import { messages } from "../stop-messages";
 import { DisabledCodes } from "../../disabled-codes";
 
 import { bots } from "../../../../data/bots/bots";
+import { JaiaDispatchContext } from "../../../../context/JaiaContext";
+import { jaia_rest_api } from "../../../../utils/jaia-rest-api";
+import { getNotifications } from "../../../../utils/notifications";
 import { PortalBotStatus } from "@proto/jaiabot/messages/rest_api";
 import { MissionState } from "@proto/jaiabot/messages/mission";
 
@@ -55,5 +58,43 @@ test.each(testCases)(
             expect(screen.getByText(messages.get(DisabledCodes.MISSION_STATE))).toBeInTheDocument();
             expect(screen.getByText("Close")).toBeInTheDocument();
         }
+    },
+);
+
+test.each([
+    { commandSent: true, dispatches: 1 },
+    { commandSent: false, dispatches: 0 },
+])(
+    "A STOP the API reports as sent=$commandSent dispatches $dispatches SENT_COMMAND actions",
+    async ({ commandSent, dispatches }) => {
+        bots.setBot({
+            bot_status: {
+                bot_id: 1,
+                mission_state: MissionState.IN_MISSION__UNDERWAY__MOVEMENT__TRANSIT,
+            },
+        });
+        const jaiaDispatch = jest.fn();
+        const request = jest
+            .spyOn(jaia_rest_api, "request")
+            .mockResolvedValue({ command_result: { command_sent: commandSent } });
+
+        render(
+            <JaiaDispatchContext.Provider value={jaiaDispatch}>
+                <StopButton bot={bots.getBot(1)} />
+            </JaiaDispatchContext.Provider>,
+        );
+        await userEvent.click(screen.getByLabelText("stop-individual-bot"));
+        await userEvent.click(screen.getByText("Stop"));
+
+        expect(request).toHaveBeenCalledWith(expect.objectContaining({ target: { bots: [1] } }));
+        expect(jaiaDispatch).toHaveBeenCalledTimes(dispatches);
+        expect(
+            getNotifications().some(
+                (notification) =>
+                    notification.severity === "error" &&
+                    notification.message.includes("STOP to Bot 1"),
+            ),
+        ).toBe(!commandSent);
+        request.mockRestore();
     },
 );

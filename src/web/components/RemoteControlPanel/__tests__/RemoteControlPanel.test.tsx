@@ -1,9 +1,9 @@
-import { act, render } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { IJoystickUpdateEvent } from "react-joystick-component/build/lib/Joystick";
 
 import RemoteControlPanel from "../RemoteControlPanel";
 import { AnalogStickProps, AnalogStickTypes } from "../AnalogStick/AnalogStick";
-import { sendEngineeringCommand } from "../../../utils/commands";
+import { sendBotCommand, sendEngineeringCommand } from "../../../utils/commands";
 import { PIDControl } from "@proto/jaiabot/messages/engineering";
 
 // MotorBounds.throttle_zero_net_buoyancy default: more reverse than this sinks the bot
@@ -110,4 +110,35 @@ test("Commands tell the bot to stop within 2 s if they stop arriving", () => {
     waitForCommands(COMMAND_INTERVAL_MS);
 
     expect(lastCommand().timeout).toBe(2);
+});
+
+test("RC dive parameters are held to the proto's bounds", async () => {
+    fireEvent.mouseDown(screen.getByRole("combobox"));
+    fireEvent.click(screen.getByRole("option", { name: "Dive" }));
+    const inputs = new Map(
+        ["max_depth", "depth_interval", "hold_time", "drift_time"].map((name) => [
+            name,
+            document.querySelector(`input[name="${name}"]`) as HTMLInputElement,
+        ]),
+    );
+
+    fireEvent.change(inputs.get("max_depth"), { target: { value: "60" } });
+    fireEvent.change(inputs.get("depth_interval"), { target: { value: "0" } });
+    fireEvent.change(inputs.get("hold_time"), { target: { value: "100" } });
+    fireEvent.change(inputs.get("drift_time"), { target: { value: "12.6" } });
+
+    expect(Array.from(inputs.values()).map((input) => input.value)).toEqual([
+        "50",
+        "0",
+        "80",
+        "13",
+    ]);
+
+    (sendBotCommand as jest.Mock).mockResolvedValue({});
+    await act(async () => fireEvent.click(screen.getByTitle("Send Dive Command")));
+
+    expect((sendBotCommand as jest.Mock).mock.calls[0][0].rc_task).toMatchObject({
+        dive: { max_depth: 50, depth_interval: 50, hold_time: 80 },
+        surface_drift: { drift_time: 13 },
+    });
 });
