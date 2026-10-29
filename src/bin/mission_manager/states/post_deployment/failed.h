@@ -41,6 +41,7 @@ struct Failed : boost::statechart::state<Failed, PostDeployment>,
 
     using reactions =
         boost::mpl::list<boost::statechart::transition<EvShutdown, ShuttingDown>,
-                         boost::statechart::transition<EvRetryDataOffload, DataOffload>>;
+                         boost::statechart::transition<EvRetryDataOffload, DataOffload>,
+                         boost::statechart::transition<EvActivate, pre_deployment::SelfTest>>;
 };
 #endif

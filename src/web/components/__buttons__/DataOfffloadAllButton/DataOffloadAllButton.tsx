@@ -13,6 +13,7 @@ import Bot from "../../../data/bots/bot";
 import { MDI_BUTTON_SIZE } from "../../../utils/constants";
 import { isCommandAvailable, isControllingClient, sendBotCommand } from "../../../utils/commands";
 import { Command, Command_CommandType } from "@proto/jaiabot/messages/jaia_dccl";
+import { MissionState } from "@proto/jaiabot/messages/mission";
 import { DialogActions } from "../../../types/context-types";
 
 interface Props {
@@ -45,18 +46,16 @@ export default function DataOffloadAllButton(props: Props) {
         for (const [botID, bot] of props.bots.entries()) {
             if (bot.isCommsDropped()) {
                 updatedBotReadyStates.get(DisabledCodes.NO_COMMS).push(botID);
-            } else if (
-                !(
-                    isCommandAvailable(
-                        Command_CommandType.RECOVERED,
-                        bot.getMissionStatus().missionState,
-                    ) ||
-                    isCommandAvailable(
-                        Command_CommandType.RETRY_DATA_OFFLOAD,
-                        bot.getMissionStatus().missionState,
-                    )
+            } else if (!(
+                isCommandAvailable(
+                    Command_CommandType.RECOVERED,
+                    bot.getMissionStatus().missionState,
+                ) ||
+                isCommandAvailable(
+                    Command_CommandType.RETRY_DATA_OFFLOAD,
+                    bot.getMissionStatus().missionState,
                 )
-            ) {
+            )) {
                 updatedBotReadyStates.get(DisabledCodes.MISSION_STATE).push(botID);
             } else if (!bot.getWifiLinkQuality()) {
                 updatedBotReadyStates.get(DisabledCodes.WIFI_QUALITY).push(botID);
@@ -99,9 +98,13 @@ export default function DataOffloadAllButton(props: Props) {
 
         if (dialogAction === DialogActions.CONFIRMED) {
             for (const botID of botReadyStates.get(DisabledCodes.NONE)) {
+                const missionState = props.bots.get(botID)?.getMissionStatus().missionState;
                 const dataOffloadCommand: Command = {
                     bot_id: botID,
-                    type: Command_CommandType.RECOVERED,
+                    type:
+                        missionState === MissionState.POST_DEPLOYMENT__FAILED
+                            ? Command_CommandType.RETRY_DATA_OFFLOAD
+                            : Command_CommandType.RECOVERED,
                 };
                 sendBotCommand(dataOffloadCommand);
             }
