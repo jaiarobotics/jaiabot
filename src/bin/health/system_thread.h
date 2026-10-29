@@ -13,6 +13,7 @@
 #define JAIABOT_SRC_BIN_HEALTH_SYSTEM_THREAD_H
 
 #include <boost/units/systems/si.hpp>
+#include <goby/acomms/protobuf/modem_driver_status.pb.h>
 #include <goby/zeromq/application/multi_thread.h>
 #include <sqlite3.h>
 
@@ -346,6 +347,22 @@ class MotorStatusThread : public HealthMonitorThread<jaiabot::config::MotorStatu
         {16.14, 347},
         {14.98, 349},
         {13.95, 351}};
+};
+
+class IridiumStatusThread : public HealthMonitorThread<jaiabot::config::IridiumStatusConfig>
+{
+  public:
+    IridiumStatusThread(const jaiabot::config::IridiumStatusConfig& cfg);
+    ~IridiumStatusThread() {}
+
+  private:
+    void health(goby::middleware::protobuf::ThreadHealth& health) override;
+
+  private:
+    // grace period at startup before the first report is due
+    goby::time::SteadyClock::time_point last_report_time_{goby::time::SteadyClock::now()};
+    goby::acomms::protobuf::ModemDriverStatus::Status driver_status_{
+        goby::acomms::protobuf::ModemDriverStatus::NOMINAL};
 };
 
 // Watches the IMU and PAM groups for silence so it can trigger their recoveries. goby_coroner
