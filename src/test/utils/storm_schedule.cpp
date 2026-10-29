@@ -39,6 +39,8 @@ BOOST_AUTO_TEST_CASE(FirstInWaterAnchorsSchedule)
     BOOST_CHECK_EQUAL(plan.schedule.planned_slot(), microseconds(drop + 3h).count());
     BOOST_CHECK_EQUAL(plan.schedule.lead_seconds(), 90);
     BOOST_CHECK_EQUAL(plan.sleep.count(), std::chrono::seconds(3h - 25min - 90s).count());
+    BOOST_CHECK(plan.in_water == drop);
+    BOOST_CHECK(!plan.slot_error);
 }
 
 BOOST_AUTO_TEST_CASE(LateWakeLengthensLeadWithoutMovingSchedule)
@@ -49,6 +51,7 @@ BOOST_AUTO_TEST_CASE(LateWakeLengthensLeadWithoutMovingSchedule)
     BOOST_CHECK(!plan.new_schedule);
     BOOST_CHECK_EQUAL(plan.schedule.anchor(), drop.count());
     BOOST_CHECK_EQUAL(plan.schedule.lead_seconds(), 120);
+    BOOST_CHECK_EQUAL(plan.slot_error->count(), 30);
     BOOST_CHECK_EQUAL(plan.schedule.planned_slot(), microseconds(drop + 6h).count());
     BOOST_CHECK_EQUAL(plan.sleep.count(), std::chrono::seconds(3h - 22min - 120s).count());
 }
@@ -95,6 +98,8 @@ BOOST_AUTO_TEST_CASE(UnverifiedClockAssumesPlannedSlot)
 
     BOOST_CHECK(!plan.new_schedule);
     BOOST_CHECK_EQUAL(plan.schedule.lead_seconds(), 90);
+    BOOST_CHECK(!plan.in_water);
+    BOOST_CHECK(!plan.slot_error);
     BOOST_CHECK_EQUAL(plan.schedule.planned_slot(), microseconds(drop + 6h).count());
     BOOST_CHECK_EQUAL(plan.sleep.count(), std::chrono::seconds(3h - 20min - 90s).count());
 }

@@ -30,6 +30,9 @@ struct Plan
     protobuf::StormSchedule schedule;
     seconds sleep;
     bool new_schedule{false};
+    // set only when the clock was verified
+    std::optional<microseconds> in_water;
+    std::optional<seconds> slot_error;
 };
 
 // utc_now: UTC since the epoch, or nullopt if the clock isn't verified against GPS
@@ -46,6 +49,7 @@ inline Plan plan_sleep(const protobuf::StormSchedule& saved, const Params& param
     microseconds lead =
         saved.has_lead_seconds() ? seconds(saved.lead_seconds()) : params.default_lead;
 
+    const bool verified = utc_now.has_value();
     if (!utc_now)
     {
         if (!has_slot)
@@ -65,6 +69,12 @@ inline Plan plan_sleep(const protobuf::StormSchedule& saved, const Params& param
 
     const microseconds in_water = *utc_now - since_in_water;
     const microseconds planned_slot(saved.planned_slot());
+    if (verified)
+    {
+        plan.in_water = in_water;
+        if (has_slot)
+            plan.slot_error = std::chrono::duration_cast<seconds>(in_water - planned_slot);
+    }
 
     if (has_slot && std::chrono::abs(in_water - planned_slot) <= params.match_window)
     {

@@ -58,7 +58,12 @@ struct Wrapup : boost::statechart::state<Wrapup, SleepPrep>,
         { return goby::time::str(goby::time::MicroTime::from_value(micros)); };
         goby::glog.is_verbose() &&
             goby::glog << group("statechart") << "Schedule: " << (plan.new_schedule ? "new, " : "")
-                       << (utc_now ? "clock verified" : "clock unverified") << ", anchor "
+                       << (utc_now ? "clock verified" : "clock unverified") << ", in-water "
+                       << (plan.in_water ? utc_str(plan.in_water->count()) : "unknown")
+                       << ", slot error "
+                       << (plan.slot_error ? std::to_string(plan.slot_error->count()) + " s"
+                                           : "unknown")
+                       << ", anchor "
                        << (plan.schedule.has_anchor() ? utc_str(plan.schedule.anchor()) : "none")
                        << ", next slot "
                        << (plan.schedule.has_planned_slot() ? utc_str(plan.schedule.planned_slot())
