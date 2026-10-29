@@ -22,6 +22,8 @@ import { excludedTaskPacketsLayer } from "../openlayers/layers/vector/excluded-t
 import { DeviceMetadata, DeviceMetadata_Version } from "@proto/jaiabot/messages/metadata";
 import SoundEffects from "../style/audio/sound-effects";
 import { jaia_rest_api } from "../utils/jaia-rest-api";
+import { HUB_CONNECTION_STATUS_AGE } from "../utils/constants";
+import { microsecondsToSeconds } from "../utils/conversions";
 
 const MAX_REQUEST_TIME = 10000; // ms;
 // Frees a poll stuck on a request the hub will never answer
@@ -92,13 +94,15 @@ export async function pollStatus() {
             throw new Error("Status response is null");
         }
 
+        const hubStatuses = toPortalHubStatuses(status);
+
         updateBots(
             toPortalBotStatuses(status, engineering_response.engineering_status?.bots ?? []),
         );
-        updateHubs(toPortalHubStatuses(status));
+        updateHubs(hubStatuses);
         updateJaiaGlobal(status.controlling_client_id ?? null);
         updateOpenLayers();
-        updateWarning(CONNECTION_WARNING, false);
+        updateWarning(CONNECTION_WARNING, !isHubConnected(hubStatuses));
     } catch (error) {
         updateWarning(CONNECTION_WARNING, true);
         console.error(error);
@@ -349,6 +353,19 @@ function toPortalHubStatuses(status: APIResponse_Statuses): PortalHubStatus[] {
         hub_status: hubStatus,
         status_age: hubTime - Number(hubStatus.received_time ?? 0),
     }));
+}
+
+/**
+ * The REST API keeps answering from its cache after it loses the hub's portal, so only a recent
+ * hub status shows the hub is still connected
+ *
+ * @param {PortalHubStatus[]} hubStatuses Hub statuses from the latest status response
+ * @returns {boolean} True if at least one hub has reported recently
+ */
+function isHubConnected(hubStatuses: PortalHubStatus[]) {
+    return hubStatuses.some(
+        (hubStatus) => microsecondsToSeconds(hubStatus.status_age) <= HUB_CONNECTION_STATUS_AGE,
+    );
 }
 
 /**

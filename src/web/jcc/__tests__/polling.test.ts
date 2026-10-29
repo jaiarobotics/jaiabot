@@ -335,6 +335,44 @@ describe("pollTaskPackets", () => {
 });
 
 describe("pollStatus", () => {
+    /**
+     * Answers status requests with one hub whose status arrived ageMicros before the hub's time.
+     *
+     * @param {number} ageMicros Age of the hub's status in microseconds
+     * @returns {void}
+     */
+    function respondWithHubStatusAge(ageMicros: number) {
+        global.fetch = jest.fn((_url: string, init: RequestInit) => {
+            const request: APIRequest = JSON.parse(init.body as string);
+            const body: APIResponse = request.engineering_status
+                ? {}
+                : {
+                      status: {
+                          hubs: [{ hub_id: 1, received_time: "1000000" }],
+                          time: String(1_000_000 + ageMicros),
+                      },
+                  };
+            return Promise.resolve({ ok: true, json: () => Promise.resolve(body) });
+        }) as unknown as typeof fetch;
+    }
+
+    test("warns when the hub's status stops updating although the REST API answers", async () => {
+        document.body.innerHTML = '<div id="connection-warning"></div>';
+        const warning = document.getElementById("connection-warning");
+
+        respondWithHubStatusAge(1_000_000);
+        await pollStatus();
+        expect(warning.style.visibility).toBe("hidden");
+
+        respondWithHubStatusAge(60_000_000);
+        await pollStatus();
+        expect(warning.style.visibility).toBe("visible");
+
+        respondWithHubStatusAge(1_000_000);
+        await pollStatus();
+        expect(warning.style.visibility).toBe("hidden");
+    });
+
     test("combines each bot's status with its engineering status", async () => {
         const engineering: Engineering = { bot_id: 7, query_engineering_status: true };
         global.fetch = jest.fn((_url: string, init: RequestInit) => {
