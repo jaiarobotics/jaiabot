@@ -36,6 +36,7 @@
 // Jaiabot
 #include "jaiabot/intervehicle.h"
 #include "jaiabot/messages/low_control.pb.h"
+#include "jaiabot/utils/storm_schedule.h"
 using namespace jaiabot::protobuf;
 
 // Storm Manager app

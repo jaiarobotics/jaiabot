@@ -52,6 +52,7 @@ class StormManager : public goby::zeromq::MultiThreadApplication<config::StormMa
     void send_to_mcu(const protobuf::StormMCURequest& request);
     void enqueue_task_packet(protobuf::TaskPacket task_packet);
     void acknowledge_task_packet(const protobuf::TaskPacket& task_packet);
+    void save_schedule(const protobuf::StormSchedule& schedule);
 
   private:
     void initialize() override;
@@ -73,6 +74,8 @@ class StormManager : public goby::zeromq::MultiThreadApplication<config::StormMa
     std::filesystem::path mission_period_path() const;
     uint32_t load_mission_period_seconds();
     void save_mission_period_seconds(uint32_t mission_period_seconds);
+    std::filesystem::path schedule_path() const;
+    protobuf::StormSchedule load_schedule();
 
     template <typename Derived> friend class statechart::AppMethodsAccess;
 

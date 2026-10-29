@@ -252,6 +252,19 @@ message StormMissionStateChange
     required Direction direction = 2;
 }
 
+// saved by jaiabot_storm_manager across sleeps so each in-water detection lands on
+// anchor + n * period; times are UTC microseconds
+message StormSchedule
+{
+    optional uint32 period_seconds = 1;
+    // first in-water detection of the deployment
+    optional int64 anchor = 2;
+    // in-water detection time aimed for on the next wake
+    optional int64 planned_slot = 3;
+    // how long before the slot to wake so in-water detection lands on it
+    optional int32 lead_seconds = 4;
+}
+
 // added to BotStatus
 message StormStatus
 {

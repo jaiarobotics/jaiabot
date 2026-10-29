@@ -28,7 +28,44 @@ struct Wrapup : boost::statechart::state<Wrapup, SleepPrep>,
 {
     using StateBase = boost::statechart::state<Wrapup, SleepPrep>;
 
-    Wrapup(typename StateBase::my_context c) : StateBase(c) {}
+    Wrapup(typename StateBase::my_context c) : StateBase(c)
+    {
+        using std::chrono::duration_cast;
+        using std::chrono::microseconds;
+        using std::chrono::seconds;
+        namespace storm_schedule = ::jaiabot::utils::storm_schedule;
+
+        const storm_schedule::Params params{seconds(this->machine().mission_period_seconds()),
+                                            seconds(this->cfg().schedule_match_window_seconds()),
+                                            seconds(this->cfg().schedule_default_lead_seconds()),
+                                            min_sleep()};
+
+        std::optional<microseconds> utc_now;
+        if (this->machine().clock_verified())
+            utc_now =
+                duration_cast<microseconds>(goby::time::SystemClock::now().time_since_epoch());
+
+        const auto now = goby::time::SteadyClock::now();
+        const auto plan = storm_schedule::plan_sleep(
+            this->machine().schedule(), params, utc_now,
+            duration_cast<microseconds>(now - this->machine().in_water_time()));
+
+        this->machine().schedule() = plan.schedule;
+        this->app().save_schedule(plan.schedule);
+        wake_at_ = now + plan.sleep;
+
+        auto utc_str = [](std::int64_t micros)
+        { return goby::time::str(goby::time::MicroTime::from_value(micros)); };
+        goby::glog.is_verbose() &&
+            goby::glog << group("statechart") << "Schedule: " << (plan.new_schedule ? "new, " : "")
+                       << (utc_now ? "clock verified" : "clock unverified") << ", anchor "
+                       << (plan.schedule.has_anchor() ? utc_str(plan.schedule.anchor()) : "none")
+                       << ", next slot "
+                       << (plan.schedule.has_planned_slot() ? utc_str(plan.schedule.planned_slot())
+                                                            : "none")
+                       << ", lead " << plan.schedule.lead_seconds() << " s, sleep "
+                       << plan.sleep.count() << " s" << std::endl;
+    }
     ~Wrapup() {}
 
     void loop(const EvLoop& ev)
@@ -57,21 +94,20 @@ struct Wrapup : boost::statechart::state<Wrapup, SleepPrep>,
         // ~30-60 s of every app's logs (including this state's entry) is lost on each sleep.
         goby::glog.is_verbose() &&
             goby::glog << group("statechart") << "Syncing filesystems before requesting "
-                       << request.low_power_request().duration_seconds() << " s sleep of the "
-                       << this->machine().mission_period_seconds() << " s mission period"
-                       << std::endl;
+                       << request.low_power_request().duration_seconds() << " s sleep" << std::endl;
         ::sync();
 
         this->interprocess().template publish<::jaiabot::groups::power_board_command>(request);
     }
 
-    std::chrono::seconds sleep_for()
+    static constexpr std::chrono::seconds min_sleep() { return std::chrono::seconds(60); }
+
+    // the power board may take a few tries to accept, so request what's left of the planned sleep
+    std::chrono::seconds sleep_for() const
     {
-        auto period = std::chrono::seconds(this->machine().mission_period_seconds());
-        auto awake = goby::time::SteadyClock::now() - this->machine().wake_time();
-        // never request zero: the mission ran past its period, so wake as soon as possible
-        return std::max(std::chrono::duration_cast<std::chrono::seconds>(period - awake),
-                        std::chrono::seconds(60));
+        return std::max(std::chrono::duration_cast<std::chrono::seconds>(
+                            wake_at_ - goby::time::SteadyClock::now()),
+                        min_sleep());
     }
 
     void power_board_response(const EvPowerBoardResponse& ev)
@@ -88,5 +124,6 @@ struct Wrapup : boost::statechart::state<Wrapup, SleepPrep>,
 
   private:
     goby::time::SteadyClock::time_point next_mcu_send_time_{goby::time::SteadyClock::now()};
+    goby::time::SteadyClock::time_point wake_at_;
 };
 #endif
