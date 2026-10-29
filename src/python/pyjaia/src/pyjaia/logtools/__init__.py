@@ -175,7 +175,7 @@ class JaiaLogH5:
     log_path: str
 
     # Cache for paths with bot_id prefixes removed
-    _path_without_botid_prefix_cache: Dict[str, str] = {}
+    _path_without_botid_prefix_cache: Dict[str, str]
 
     def __init__(self, log_or_path: h5py.File | str | pathlib.Path):
         self._path_without_botid_prefix_cache = {}
