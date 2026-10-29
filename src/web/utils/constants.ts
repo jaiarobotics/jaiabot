@@ -7,6 +7,7 @@ export const TEXT_OFFSET_RADIUS = 11;
 export const HUB_TEXT_OFFSET_RADIUS = 10;
 export const NO_COMMS_STATUS_AGE = 30; // seconds
 export const IRIDIUM_NO_COMMS_STATUS_AGE = 180; // seconds (3 minutes)
+export const HUB_CONNECTION_STATUS_AGE = 10; // seconds
 export const DATA_MODEL_POLL_TIME = 500; // milliseconds
 export const TASK_PACKET_POLL_TIME = 1000; // milliseconds
 export const METADATA_POLL_TIME = 10_000; // milliseconds
