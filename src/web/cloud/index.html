@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Jaia Cloud</title>
+        <link rel="icon" href="/_jaia/logo.svg" />
+        <link rel="stylesheet" href="/_jaia/landing.css" />
+        <link rel="stylesheet" href="/_jaia/nav.css" />
+        <!-- nav.js fills the hrefs from this page's hostname and hides sites the user cannot open -->
+        <script defer src="/_jaia/nav.js"></script>
+    </head>
+
+    <body>
+        <main class="landing">
+            <header class="landing-header">
+                <img class="landing-logo" src="/_jaia/logo.svg" alt="Jaia" />
+                <h1 class="landing-title">Jaia Cloud</h1>
+                <div class="landing-user" data-jaia-signed-in hidden>
+                    <span>Signed in as <strong data-jaia-user></strong></span>
+                    <a class="landing-logout" data-jaia-logout href="#">Log out</a>
+                </div>
+            </header>
+
+            <ul class="landing-sites">
+                <li class="site" data-jaia-site="run">
+                    <h2 class="site-title"><a data-jaia-site="run-jcc" href="#">Run</a></h2>
+                    <p class="site-description">Command and control for the real fleet.</p>
+                    <div class="site-links">
+                        <a data-jaia-site="run-jcc" href="#">Jaia Command &amp; Control</a>
+                        <a data-jaia-site="run-jcu" href="#">Jaiabot Configuration &amp; Upgrade</a>
+                        <a data-jaia-site="run-jdv" href="#">Jaia Data Vision</a>
+                    </div>
+                </li>
+                <li class="site" data-jaia-site="sim" data-jaia-sim>
+                    <h2 class="site-title">
+                        <a data-jaia-site="sim-jcc" href="#">Sim</a>
+                        <span class="site-status" data-jaia-sim-status hidden></span>
+                    </h2>
+                    <p class="site-description">
+                        The simulated VirtualFleet for training and mission planning.
+                    </p>
+                    <p class="site-notice" data-jaia-sim-down hidden>
+                        <span data-jaia-sim-start>
+                            Start it from
+                            <a data-jaia-site="run-jcu" href="#">Jaiabot Configuration &amp; Upgrade</a>
+                            (VirtualFleet section).
+                        </span>
+                        <span data-jaia-sim-ask>Ask an administrator to start it.</span>
+                    </p>
+                    <div class="site-links">
+                        <a data-jaia-site="sim-jcc" href="#">Jaia Command &amp; Control</a>
+                        <a data-jaia-site="sim-jcu" href="#">Jaiabot Configuration &amp; Upgrade</a>
+                        <a data-jaia-site="sim-jdv" href="#">Jaia Data Vision</a>
+                    </div>
+                </li>
+                <li class="site" data-jaia-site="users">
+                    <h2 class="site-title"><a data-jaia-site="users" href="#">Users</a></h2>
+                    <p class="site-description">
+                        Add and remove users and set which sites they can access.
+                    </p>
+                </li>
+                <li class="site" data-jaia-site="auth">
+                    <h2 class="site-title"><a data-jaia-site="auth" href="#">Account</a></h2>
+                    <p class="site-description">
+                        Your password, security keys and other sign-in settings.
+                    </p>
+                </li>
+            </ul>
+        </main>
+    </body>
+</html>
