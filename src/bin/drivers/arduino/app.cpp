@@ -34,6 +34,7 @@ using namespace std;
 #include "jaiabot/messages/health.pb.h"
 #include "jaiabot/messages/imu.pb.h"
 #include "jaiabot/messages/low_control.pb.h"
+#include "jaiabot/messages/mission.pb.h"
 #include "jaiabot/serial/serial_fletcher16.h"
 #include "jaiabot/version.h"
 
@@ -122,6 +123,8 @@ class ArduinoDriver : public zeromq::MultiThreadApplication<config::ArduinoDrive
 
     // Publish FLASH_ARDUINO once per driver process when connection/version failure is first detected
     bool flash_arduino_issue_published_{false};
+
+    bool in_mission_{false};
 };
 
 } // namespace apps
@@ -185,6 +188,13 @@ jaiabot::apps::ArduinoDriver::ArduinoDriver()
             {
                 setBounds(engineering.bounds());
             }
+        });
+
+    interprocess().subscribe<jaiabot::groups::mission_report>(
+        [this](const jaiabot::protobuf::MissionReport& report)
+        {
+            in_mission_ =
+                jaiabot::protobuf::MissionState_Name(report.state()).rfind("IN_MISSION__", 0) == 0;
         });
 
     // Convert a ControlSurfaces command into an ArduinoCommand, and send to Arduino
@@ -638,6 +648,10 @@ void jaiabot::apps::ArduinoDriver::check_last_report(
 void jaiabot::apps::ArduinoDriver::request_arduino_flash()
 {
     if (flash_arduino_issue_published_)
+        return;
+
+    // Flashing cuts thrust and control surfaces; ask again once the mission is over
+    if (in_mission_)
         return;
 
     const auto now = goby::time::SteadyClock::now();
