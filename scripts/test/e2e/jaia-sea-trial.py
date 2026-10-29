@@ -210,6 +210,21 @@ class SeaTrial:
         log(f'fleet up: bots {bots}')
         return bots
 
+    def wait_for_portal(self, hub_id):
+        # The REST API refuses a hub command until the hub's portal has sent its metadata,
+        # which can come well after its first status
+        hub = self.hubs[hub_id]
+
+        def identified():
+            try:
+                metadata = hub.metadata()
+            except api.ApiError:
+                return False
+            return any(h.get('hub_id') == hub_id for h in metadata.get('hubs', []))
+
+        wait_for(identified, self.args.api_timeout, f'hub {hub_id} to report its metadata',
+                 self.args.poll_interval, progress=lambda: hub.last_error or 'none yet')
+
     def set_hub_location(self):
         # the simulator will not place the fleet until the hub has a position; each hub is
         # told through its own REST API, as a hub command only reaches the hub it is sent to
@@ -218,6 +233,7 @@ class SeaTrial:
             located += [h for h in self.hubs
                         if h != self.args.hub_id and h not in self.args.relay_only_hub]
         for hub_id in located:
+            self.wait_for_portal(hub_id)
             log(f'setting hub {hub_id} location')
             self.hubs[hub_id].command_for_hub(hub_id, {
                 'type': 'SET_HUB_LOCATION',

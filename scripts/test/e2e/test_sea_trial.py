@@ -186,6 +186,25 @@ class SeaTrialAgainstFakeHub(unittest.TestCase):
         names = [f['name'] for f in summary['tiers'][checks.OFFLOAD]['failures']]
         self.assertEqual(names, ['hub 1 kept its offload queue between bots'])
 
+    def test_a_hub_command_waits_for_the_portal_to_report_its_metadata(self):
+        # as the REST API does, refuse hub commands until the portal's metadata arrives
+        class LateMetadata(fake_hub.FakeHub):
+            metadata_requests = 0
+
+            def handle(self, path, payload, client_id=None):
+                if path.startswith('/metadata/'):
+                    self.metadata_requests += 1
+                    if self.metadata_requests <= 3:
+                        return {'metadata': {}}
+                elif path.startswith('/command_for_hub/') and self.metadata_requests <= 3:
+                    return {'error': {'code': 'API_ERROR__INVALID_TARGET', 'details': path}}
+                return super().handle(path, payload, client_id)
+
+        hub = LateMetadata(bots=1, dives_to_run=10)
+        code, summary, _ = self.run_trial(hub)
+        self.assertEqual(code, 0, summary['tiers'])
+        self.assertIsNotNone(hub.hub_location)
+
     def test_a_good_run_exports_the_dives_for_charting(self):
         _, _, directory = self.run_trial(fake_hub.FakeHub(bots=1, dives_to_run=10))
         for name in ('task_packets.kmz', 'task_packets.csv'):
