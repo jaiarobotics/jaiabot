@@ -19,6 +19,8 @@ import {
     MissionTask_TaskType,
 } from "@proto/jaiabot/messages/mission";
 import { sendBotCommand, sendEngineeringCommand } from "../../utils/commands";
+import { clampTaskParameter, depthIntervalForBot } from "../../utils/input";
+import { TaskParameterKeys } from "../../types/jaia-system-types";
 import { error, success } from "../../utils/notifications";
 import { DialogActions } from "../../types/context-types";
 import { SelectChangeEvent } from "@mui/material";
@@ -268,16 +270,28 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
         let mutableDiveParameters = { ...rcDiveParameters };
         switch (name) {
             case "max_depth":
-                mutableDiveParameters.max_depth = value;
+                mutableDiveParameters.max_depth = clampTaskParameter(
+                    TaskParameterKeys.MAX_DEPTH,
+                    value,
+                );
                 break;
             case "depth_interval":
-                mutableDiveParameters.depth_interval = value;
+                mutableDiveParameters.depth_interval = clampTaskParameter(
+                    TaskParameterKeys.DEPTH_INTERVAL,
+                    value,
+                );
                 break;
             case "hold_time":
-                mutableDiveParameters.hold_time = value;
+                mutableDiveParameters.hold_time = clampTaskParameter(
+                    TaskParameterKeys.HOLD_TIME,
+                    value,
+                );
                 break;
             case "drift_time":
-                mutableDiveParameters.drift_time = value;
+                mutableDiveParameters.drift_time = clampTaskParameter(
+                    TaskParameterKeys.DRIFT_TIME,
+                    value,
+                );
                 break;
             default:
                 console.log("Recieved invalid RC dive input name");
@@ -293,7 +307,7 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
     const handleRCDiveCommand = async () => {
         const diveParameters: MissionTask_DiveParameters = {
             max_depth: rcDiveParameters.max_depth,
-            depth_interval: rcDiveParameters.depth_interval,
+            depth_interval: depthIntervalForBot(rcDiveParameters.depth_interval),
             hold_time: rcDiveParameters.hold_time,
             bottom_dive: false,
         };

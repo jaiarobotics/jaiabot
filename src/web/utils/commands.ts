@@ -11,7 +11,10 @@ import { jaiaGlobal } from "../data/jaia_global/jaia-global";
  * that include all of the states of a Bot for which a command can be sent
  */
 const commandStates: Map<Command_CommandType, RegExp[]> = new Map<Command_CommandType, RegExp[]>([
-    [Command_CommandType.ACTIVATE, [/^.+__IDLE$/, /^PRE_DEPLOYMENT__FAILED$/]],
+    [
+        Command_CommandType.ACTIVATE,
+        [/^.+__IDLE$/, /^PRE_DEPLOYMENT__FAILED$/, /^POST_DEPLOYMENT__FAILED$/],
+    ],
     [Command_CommandType.NEXT_TASK, [/^IN_MISSION__(?!REMOTE_CONTROL).+$/]],
     [
         Command_CommandType.REBOOT_COMPUTER,
