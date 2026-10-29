@@ -25,8 +25,9 @@ from flask import Response, request, send_file
 l = logging.getLogger(__name__)
 
 
-def get_bots_and_hubs(target: APIRequest.Nodes):
-    """Gets lists of the bots and hubs corresponding to a REST Nodes object.
+def bot_ids_to_command(target: APIRequest.Nodes):
+    """Gets the IDs of the bots a command for a REST Nodes object goes to: every bot heard from for
+    `all`, otherwise every bot requested, heard from or not.
 
     WARNING:
         This function is not thread safe and should only be called within a `with common.shared_data.data_lock:` block.
@@ -35,15 +36,12 @@ def get_bots_and_hubs(target: APIRequest.Nodes):
         target (APIRequest.Nodes): The Nodes object containing the target information.
 
     Returns:
-        tuple: A tuple containing two lists: the first list contains the bots, and the second list contains the hubs.
+        list: The bot IDs.
     """
     if target.all:
-        bots = list(common.shared_data.data.bots.values())
-        hubs = list(common.shared_data.data.hubs.values())
-    else:
-        bots = [common.shared_data.data.bots[value] for value in target.bots if value in common.shared_data.data.bots]
-        hubs = [common.shared_data.data.hubs[value] for value in target.hubs if value in common.shared_data.data.hubs]
-    return bots, hubs
+        return list(common.shared_data.data.bots.keys())
+    # The hub can reach a bot over XBee or Iridium that this API hasn't heard from since it started
+    return list(target.bots)
 
 
 def process_request(jaia_request: APIRequest) -> APIResponse:
@@ -240,12 +238,7 @@ def command(jaia_request: APIRequest) -> APIResponse:
     hubs = list()    
 
     with common.shared_data.data_lock:
-        if jaia_request.target.all:
-            # all the bots we know about
-            bots = common.shared_data.data.bots.keys()
-        else:
-            # don't bother to send commands to bots we haven't heard from
-            bots = [value for value in jaia_request.target.bots if value in common.shared_data.data.bots.keys()]            
+        bots = bot_ids_to_command(jaia_request.target)
 
         if not jaia_request.target.hubs:
             # if no hubs specified, send via all hubs
@@ -294,14 +287,16 @@ def command_for_hub(jaia_request: APIRequest) -> APIResponse:
             # all the hubs we know about
             hubs = list(common.shared_data.data.hubs.keys())
         else:
-            # don't bother to send commands to hubs we haven't heard from
-            hubs = [value for value in jaia_request.target.hubs if value in common.shared_data.data.hubs.keys()]
+            hubs = list(jaia_request.target.hubs)
 
         # A portal runs a CommandForHub on its own hub whatever hub_id it names, so a hub
         # only heard through another hub's portal can't be sent one
         portal_endpoints = dict(common.shared_data.data.portal_endpoints)
         unreachable = [hub_id for hub_id in hubs if hub_id not in portal_endpoints]
         if unreachable and not jaia_request.target.all:
+            unheard = [hub_id for hub_id in unreachable if hub_id not in common.shared_data.data.hubs]
+            if unheard:
+                raise APIException(rest_api.API_ERROR__INVALID_TARGET, f"Hub {', '.join(str(hub_id) for hub_id in unheard)} has not been heard from, so there is no connection to send the command through.")
             identified_endpoints = set(portal_endpoints.values())
             unidentified = [hub_id for hub_id in unreachable
                             if common.shared_data.data.hub_endpoints.get(hub_id) not in identified_endpoints]
@@ -352,7 +347,7 @@ def engineering_command(jaia_request: APIRequest) -> APIResponse:
         if client_id is not None and controlling_client_id is not None and client_id != controlling_client_id:
             raise APIException(rest_api.API_ERROR__NOT_IN_CONTROL, f"Client {client_id} is not in control. Take control before sending engineering commands.")
 
-        bots, _ = get_bots_and_hubs(jaia_request.target)
+        bots = bot_ids_to_command(jaia_request.target)
         hubs = list(common.shared_data.data.hubs.keys())
         endpoints = common.shared_data.data.endpoints_for_hubs(hubs)
 
@@ -360,15 +355,15 @@ def engineering_command(jaia_request: APIRequest) -> APIResponse:
         engineering_command.time = utc_now_microseconds()
 
         for endpoint in endpoints:
-            for bot in bots:
-                engineering_command.bot_id = bot.bot_id
+            for bot_id in bots:
+                engineering_command.bot_id = bot_id
 
                 client_to_portal_msg = jaiabot.messages.portal_pb2.ClientToPortalMessage()
                 client_to_portal_msg.engineering_command.CopyFrom(engineering_command)
 
                 send_client_to_portal_message(endpoint, client_to_portal_msg)
 
-        jaia_response.target.bots.extend(bot.bot_id for bot in bots)
+        jaia_response.target.bots.extend(bots)
         jaia_response.target.hubs.extend(hubs)
         jaia_response.command_result.command_sent = len(endpoints) > 0 and len(bots) > 0
 
