@@ -235,12 +235,13 @@ function GridConfigs(props: Props) {
 
         switch (inputType) {
             case GridInputs.NUM_OF_LANES:
-                gridPlan.setNumOfLanes(input);
+                gridPlan.setNumOfLanes(Math.round(input));
                 gridPlan.clampNumOfLanesToBots();
                 setNumOfLanes(gridPlan.getNumOfLanes());
                 gridPlan.calculateMaxPointsPerLane();
                 break;
             case GridInputs.NUM_OF_BOTS:
+                input = Math.round(input);
                 setNumOfBots(input);
                 gridPlan.setNumOfBots(input);
                 gridPlan.calculateMaxPointsPerLane();
