@@ -1,7 +1,7 @@
 import { jaia_rest_api, JaiaRESTAPIError } from "./jaia-rest-api";
 import { error } from "./notifications";
 import { Engineering } from "@proto/jaiabot/messages/engineering";
-import { APIRequest, APIResponse } from "@proto/jaiabot/messages/rest_api";
+import { APIError, APIRequest, APIResponse } from "@proto/jaiabot/messages/rest_api";
 import { Command, CommandForHub, Command_CommandType } from "@proto/jaiabot/messages/jaia_dccl";
 import { MissionState } from "@proto/jaiabot/messages/mission";
 import { jaiaGlobal } from "../data/jaia_global/jaia-global";
@@ -66,29 +66,35 @@ export interface SendOptions {
 }
 
 /**
- * Sends a request to the REST API, resolving with the error rather than rejecting, so that a
- * caller sending to several Bots in turn carries on after one of them fails
+ * Sends a command request to the REST API, resolving with an error rather than rejecting when the
+ * request fails or the REST API did not send the command on, so that a caller sending to several
+ * Bots in turn carries on after one of them fails
  *
  * @param {APIRequest} request Request to send
  * @param {string} description What is being sent and to whom, for the error notification
  * @param {SendOptions} options Whether to notify the operator on failure
- * @returns {Promise<APIResponse>} The response, or one with only error set if the request failed
+ * @returns {Promise<APIResponse>} The response, or one with only error set if the command was not sent
  */
 async function sendRequest(
     request: APIRequest,
     description: string,
     options: SendOptions = {},
 ): Promise<APIResponse> {
+    let failure: APIError;
     try {
-        return await jaia_rest_api.request(request);
+        const response = await jaia_rest_api.request(request);
+        if (response.command_result?.command_sent) {
+            return response;
+        }
+        failure = { details: "no Hub is connected to send it through" };
     } catch (e) {
         const apiError = e instanceof JaiaRESTAPIError ? e : undefined;
-        const details = String((e as Error)?.message ?? e);
-        if (options.notifyOnError ?? true) {
-            error(`Could not send ${description}: ${details}`);
-        }
-        return { error: { code: apiError?.code, details } };
+        failure = { code: apiError?.code, details: String((e as Error)?.message ?? e) };
     }
+    if (options.notifyOnError ?? true) {
+        error(`Could not send ${description}: ${failure.details}`);
+    }
+    return { error: failure };
 }
 
 /**
