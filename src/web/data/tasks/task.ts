@@ -1,14 +1,11 @@
 import { jaiaGlobal } from "../jaia_global/jaia-global";
-import { clampInput } from "../../utils/input";
 import {
-    NO_CONSTRAINT,
-    TASK_ZERO_LOWER_BOUND,
-    TASK_MAX_DEPTH_CONSTRAINT,
-    TASK_MAX_HOLD_TIME_CONSTRAINT,
-    TASK_MAX_HEADING_CONSTRAINT,
-    TASK_MAX_SPEED_CONSTRAINT,
-    TASK_MIN_SPEED_CONSTRAINT,
-} from "../../utils/constants";
+    clampTaskParameter,
+    clampTaskParameters,
+    depthIntervalForBot,
+    TaskParameterFields,
+} from "../../utils/input";
+import { TASK_ZERO_LOWER_BOUND, TASK_MAX_DEPTH_CONSTRAINT } from "../../utils/constants";
 import { TaskParameterKeys, TaskParameterPair } from "../../types/jaia-system-types";
 import {
     MissionTask,
@@ -18,6 +15,23 @@ import {
     MissionTask_StationKeepParameters,
     MissionTask_TaskType,
 } from "@proto/jaiabot/messages/mission";
+
+const DIVE_FIELDS: TaskParameterFields<MissionTask_DiveParameters> = {
+    max_depth: TaskParameterKeys.MAX_DEPTH,
+    depth_interval: TaskParameterKeys.DEPTH_INTERVAL,
+    hold_time: TaskParameterKeys.HOLD_TIME,
+};
+const DRIFT_FIELDS: TaskParameterFields<MissionTask_DriftParameters> = {
+    drift_time: TaskParameterKeys.DRIFT_TIME,
+};
+const CONSTANT_HEADING_FIELDS: TaskParameterFields<MissionTask_ConstantHeadingParameters> = {
+    constant_heading: TaskParameterKeys.HEADING,
+    constant_heading_time: TaskParameterKeys.CONSTANT_HEADING_TIME,
+    constant_heading_speed: TaskParameterKeys.SPEED,
+};
+const STATION_KEEP_FIELDS: TaskParameterFields<MissionTask_StationKeepParameters> = {
+    station_keep_time: TaskParameterKeys.STATION_KEEP_TIME,
+};
 
 export default class Task {
     private type: MissionTask_TaskType;
@@ -68,7 +82,13 @@ export default class Task {
                 this.setDriftParameters(defaults.drift);
                 break;
             case MissionTask_TaskType.CONSTANT_HEADING:
-                this.setConstantHeadingParameters(defaults.constantHeading);
+                this.setConstantHeadingParameters(
+                    clampTaskParameters(
+                        defaults.constantHeading,
+                        CONSTANT_HEADING_FIELDS,
+                        this.isSafetyReturnTask(),
+                    ),
+                );
                 break;
             case MissionTask_TaskType.STATION_KEEP:
                 this.setStationKeepParameters(defaults.stationKeep);
@@ -86,47 +106,34 @@ export default class Task {
      */
     setParameter(taskParameterPair: TaskParameterPair) {
         const key = taskParameterPair.key;
-        let value = taskParameterPair.value;
-
-        if (!value) {
-            value = TASK_ZERO_LOWER_BOUND;
-        }
+        const value = clampTaskParameter(key, taskParameterPair.value, this.isSafetyReturnTask());
 
         switch (key) {
             case TaskParameterKeys.MAX_DEPTH:
-                value = clampInput(value, TASK_ZERO_LOWER_BOUND, TASK_MAX_DEPTH_CONSTRAINT);
                 this.diveParameters.max_depth = value;
                 break;
             case TaskParameterKeys.DEPTH_INTERVAL:
-                value = clampInput(value, TASK_ZERO_LOWER_BOUND, TASK_MAX_DEPTH_CONSTRAINT);
                 this.diveParameters.depth_interval = value;
                 break;
             case TaskParameterKeys.HOLD_TIME:
-                value = clampInput(value, TASK_ZERO_LOWER_BOUND, TASK_MAX_HOLD_TIME_CONSTRAINT);
                 this.diveParameters.hold_time = value;
                 break;
             case TaskParameterKeys.DRIFT_TIME:
-                value = clampInput(value, TASK_ZERO_LOWER_BOUND, NO_CONSTRAINT);
                 this.driftParameters.drift_time = value;
                 break;
             case TaskParameterKeys.HEADING:
-                value = clampInput(value, TASK_ZERO_LOWER_BOUND, TASK_MAX_HEADING_CONSTRAINT);
                 this.constantHeadingParameters.constant_heading = value;
                 break;
             case TaskParameterKeys.CONSTANT_HEADING_TIME:
-                value = clampInput(value, TASK_ZERO_LOWER_BOUND, NO_CONSTRAINT);
                 this.constantHeadingParameters.constant_heading_time = value;
                 break;
             case TaskParameterKeys.SPEED:
-                value = clampInput(value, TASK_MIN_SPEED_CONSTRAINT, TASK_MAX_SPEED_CONSTRAINT);
                 this.constantHeadingParameters.constant_heading_speed = value;
                 break;
             case TaskParameterKeys.STATION_KEEP_TIME:
-                value = clampInput(value, TASK_ZERO_LOWER_BOUND, NO_CONSTRAINT);
                 this.stationKeepParameters.station_keep_time = value;
                 break;
             case TaskParameterKeys.SAFETY_DEPTH:
-                value = clampInput(value, TASK_ZERO_LOWER_BOUND, NO_CONSTRAINT);
                 this.safetyDepth = value;
                 break;
         }
@@ -228,8 +235,18 @@ export default class Task {
     }
 
     /**
+     * Whether the parameters are a survey's safety return (BottomDepthSafetyParams), which
+     * allows less constant heading time than a MissionTask
+     *
+     * @returns {boolean} False for a waypoint or survey task
+     */
+    protected isSafetyReturnTask() {
+        return false;
+    }
+
+    /**
      * Formats the Task object into the MissionTask structure
-     * that is used on the Hub/Bot.
+     * that is used on the Hub/Bot, with each parameter clamped to its bounds in mission.proto.
      *
      * @returns {MissionTask} Task data formated for the Hub/Bot
      */
@@ -240,17 +257,28 @@ export default class Task {
 
         switch (this.type) {
             case MissionTask_TaskType.DIVE:
-                missionTask.dive = this.getDiveParameters();
-                missionTask.surface_drift = this.driftParameters;
+                missionTask.dive = clampTaskParameters(this.getDiveParameters(), DIVE_FIELDS);
+                if (missionTask.dive.depth_interval !== undefined) {
+                    missionTask.dive.depth_interval = depthIntervalForBot(
+                        missionTask.dive.depth_interval,
+                    );
+                }
+                missionTask.surface_drift = clampTaskParameters(this.driftParameters, DRIFT_FIELDS);
                 break;
             case MissionTask_TaskType.SURFACE_DRIFT:
-                missionTask.surface_drift = this.driftParameters;
+                missionTask.surface_drift = clampTaskParameters(this.driftParameters, DRIFT_FIELDS);
                 break;
             case MissionTask_TaskType.CONSTANT_HEADING:
-                missionTask.constant_heading = this.constantHeadingParameters;
+                missionTask.constant_heading = clampTaskParameters(
+                    this.constantHeadingParameters,
+                    CONSTANT_HEADING_FIELDS,
+                );
                 break;
             case MissionTask_TaskType.STATION_KEEP:
-                missionTask.station_keep = this.stationKeepParameters;
+                missionTask.station_keep = clampTaskParameters(
+                    this.stationKeepParameters,
+                    STATION_KEEP_FIELDS,
+                );
                 break;
         }
         missionTask.start_pam = this.useHydrophone;
