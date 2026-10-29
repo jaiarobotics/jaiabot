@@ -129,7 +129,7 @@ test("RC dive parameters are held to the proto's bounds", async () => {
 
     expect(Array.from(inputs.values()).map((input) => input.value)).toEqual([
         "50",
-        "0.1",
+        "0",
         "80",
         "13",
     ]);
@@ -138,7 +138,7 @@ test("RC dive parameters are held to the proto's bounds", async () => {
     await act(async () => fireEvent.click(screen.getByTitle("Send Dive Command")));
 
     expect((sendBotCommand as jest.Mock).mock.calls[0][0].rc_task).toMatchObject({
-        dive: { max_depth: 50, depth_interval: 0.1, hold_time: 80 },
+        dive: { max_depth: 50, depth_interval: 50, hold_time: 80 },
         surface_drift: { drift_time: 13 },
     });
 });

@@ -1,5 +1,10 @@
 import { jaiaGlobal } from "../jaia_global/jaia-global";
-import { clampTaskParameter, clampTaskParameters, TaskParameterFields } from "../../utils/input";
+import {
+    clampTaskParameter,
+    clampTaskParameters,
+    depthIntervalForBot,
+    TaskParameterFields,
+} from "../../utils/input";
 import { TASK_ZERO_LOWER_BOUND, TASK_MAX_DEPTH_CONSTRAINT } from "../../utils/constants";
 import { TaskParameterKeys, TaskParameterPair } from "../../types/jaia-system-types";
 import {
@@ -253,6 +258,11 @@ export default class Task {
         switch (this.type) {
             case MissionTask_TaskType.DIVE:
                 missionTask.dive = clampTaskParameters(this.getDiveParameters(), DIVE_FIELDS);
+                if (missionTask.dive.depth_interval !== undefined) {
+                    missionTask.dive.depth_interval = depthIntervalForBot(
+                        missionTask.dive.depth_interval,
+                    );
+                }
                 missionTask.surface_drift = clampTaskParameters(this.driftParameters, DRIFT_FIELDS);
                 break;
             case MissionTask_TaskType.SURFACE_DRIFT:

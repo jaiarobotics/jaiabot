@@ -82,7 +82,7 @@ export function clampTaskParameter(key: TaskParameterKeys, value: number, isSafe
         case TaskParameterKeys.MAX_DEPTH:
             return clampInput(value, TASK_ZERO_LOWER_BOUND, TASK_MAX_DEPTH_CONSTRAINT);
         case TaskParameterKeys.DEPTH_INTERVAL:
-            return clampInput(value, TASK_MIN_DEPTH_INTERVAL_CONSTRAINT, TASK_MAX_DEPTH_CONSTRAINT);
+            return clampInput(value, TASK_ZERO_LOWER_BOUND, TASK_MAX_DEPTH_CONSTRAINT);
         case TaskParameterKeys.HOLD_TIME:
             return clampInput(value, TASK_ZERO_LOWER_BOUND, TASK_MAX_HOLD_TIME_CONSTRAINT);
         case TaskParameterKeys.HEADING:
@@ -131,6 +131,19 @@ export function clampTaskParameters<T extends object>(
         }
     }
     return clamped;
+}
+
+/**
+ * Operators enter a depth interval below the proto's minimum (usually 0) to dive straight to max
+ * depth. An interval as deep as the deepest dive does that explicitly; 0.1 m would stop every 10 cm.
+ *
+ * @param {number} depthInterval Depth interval entered for a dive
+ * @returns {number} Depth interval to send to the bot
+ */
+export function depthIntervalForBot(depthInterval: number) {
+    return depthInterval < TASK_MIN_DEPTH_INTERVAL_CONSTRAINT
+        ? TASK_MAX_DEPTH_CONSTRAINT
+        : depthInterval;
 }
 
 /*

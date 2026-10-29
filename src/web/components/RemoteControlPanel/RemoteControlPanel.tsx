@@ -19,7 +19,7 @@ import {
     MissionTask_TaskType,
 } from "@proto/jaiabot/messages/mission";
 import { sendBotCommand, sendEngineeringCommand } from "../../utils/commands";
-import { clampTaskParameter } from "../../utils/input";
+import { clampTaskParameter, depthIntervalForBot } from "../../utils/input";
 import { TaskParameterKeys } from "../../types/jaia-system-types";
 import { error, success } from "../../utils/notifications";
 import { DialogActions } from "../../types/context-types";
@@ -307,7 +307,7 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
     const handleRCDiveCommand = async () => {
         const diveParameters: MissionTask_DiveParameters = {
             max_depth: rcDiveParameters.max_depth,
-            depth_interval: rcDiveParameters.depth_interval,
+            depth_interval: depthIntervalForBot(rcDiveParameters.depth_interval),
             hold_time: rcDiveParameters.hold_time,
             bottom_dive: false,
         };

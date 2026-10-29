@@ -40,7 +40,7 @@ describe("Task parameters are held to their bounds in mission.proto", () => {
         [TaskParameterKeys.MAX_DEPTH, -5, 0],
         [TaskParameterKeys.MAX_DEPTH, 60, 50],
         [TaskParameterKeys.MAX_DEPTH, 12.5, 12.5],
-        [TaskParameterKeys.DEPTH_INTERVAL, 0, 0.1],
+        [TaskParameterKeys.DEPTH_INTERVAL, -1, 0],
         [TaskParameterKeys.DEPTH_INTERVAL, 60, 50],
         [TaskParameterKeys.DEPTH_INTERVAL, 2.5, 2.5],
         [TaskParameterKeys.HOLD_TIME, -1, 0],
@@ -76,7 +76,7 @@ describe("Task parameters are held to their bounds in mission.proto", () => {
     test.each([
         [TaskParameterKeys.DRIFT_TIME, "12.6", 13],
         [TaskParameterKeys.MAX_DEPTH, "13", 13],
-        [TaskParameterKeys.DEPTH_INTERVAL, "", 0.1],
+        [TaskParameterKeys.DEPTH_INTERVAL, "", 0],
         [TaskParameterKeys.SAFETY_DEPTH, "", 0],
     ])("%s input %p is stored as the number %p", (key, value, expected) => {
         const task = new Task();
@@ -136,7 +136,8 @@ describe("packageTaskForHub", () => {
 
         const missionTask = task.packageTaskForHub();
 
-        expect(missionTask.dive).toEqual({ max_depth: 50, depth_interval: 0.1, hold_time: 80 });
+        // A depth interval of 0 means one dive straight to max depth
+        expect(missionTask.dive).toEqual({ max_depth: 50, depth_interval: 50, hold_time: 80 });
         expect(missionTask.surface_drift).toEqual({ drift_time: 13 });
     });
 
