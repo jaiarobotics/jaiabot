@@ -77,18 +77,22 @@ def hub_command(hub_id):
                       command_for_hub=CommandForHub(hub_id=hub_id, time=0, type=CommandForHub.SCAN_FOR_BOTS))
 
 
+def forget_everything():
+    data = common.shared_data.data
+    data.hubs = {}
+    data.bots = {}
+    data.hub_endpoints = {}
+    data.portal_endpoints = {}
+    data.hub_metadata = {}
+    data.active_mission_plans = {}
+    data.controlling_client_id = None
+    common.shared_data.to_portal_queue.clear()
+    common.shared_data.to_portal_queue[ENDPOINT] = Queue()
+
+
 class CommandForwardingTest(unittest.TestCase):
     def setUp(self):
-        data = common.shared_data.data
-        data.hubs = {}
-        data.bots = {}
-        data.hub_endpoints = {}
-        data.portal_endpoints = {}
-        data.hub_metadata = {}
-        data.active_mission_plans = {}
-        data.controlling_client_id = None
-        common.shared_data.to_portal_queue.clear()
-        common.shared_data.to_portal_queue[ENDPOINT] = Queue()
+        forget_everything()
 
     def test_bot_command_reaches_a_bot_not_heard_from(self):
         hear_hub()
@@ -155,6 +159,50 @@ class CommandForwardingTest(unittest.TestCase):
         self.assertEqual(raised.exception.code, rest_api.API_ERROR__INVALID_TARGET)
         self.assertIn('not been heard from', raised.exception.details)
         self.assertEqual(sent_messages(), [])
+
+
+class PortalHearingSeveralHubsTest(unittest.TestCase):
+    """A hub with no rest_api.pb.cfg has one endpoint, labelled 1, that carries its own status as
+    hub 2 and a relayed hub's. The endpoint label is not a hub ID, so commands must go once through
+    the endpoint, never by hub ID (SW-2717)."""
+
+    OWN_HUB_ID = 2
+    RELAYED_HUB_ID = 30
+
+    def setUp(self):
+        forget_everything()
+        hear_hub(self.OWN_HUB_ID)
+        hear_hub(self.RELAYED_HUB_ID)
+        hear_portal(self.OWN_HUB_ID)
+
+    def test_bot_command_to_a_bot_not_heard_from_goes_once_through_the_portal(self):
+        response = send(bot_command(APIRequest.Nodes(bots=[UNHEARD_BOT_ID])))
+
+        self.assertTrue(response.command_result.command_sent)
+        self.assertEqual([m.command.bot_id for m in sent_messages()], [UNHEARD_BOT_ID])
+
+    def test_engineering_command_to_a_bot_not_heard_from_goes_once_through_the_portal(self):
+        response = send(engineering_command(APIRequest.Nodes(bots=[UNHEARD_BOT_ID])))
+
+        self.assertTrue(response.command_result.command_sent)
+        self.assertEqual([m.engineering_command.bot_id for m in sent_messages()], [UNHEARD_BOT_ID])
+
+    def test_hub_command_for_a_relayed_hub_is_refused(self):
+        with self.assertRaises(APIException) as raised:
+            send(hub_command(self.RELAYED_HUB_ID))
+
+        self.assertEqual(raised.exception.code, rest_api.API_ERROR__INVALID_TARGET)
+        self.assertIn('only heard through another hub', raised.exception.details)
+        self.assertEqual(sent_messages(), [])
+
+    def test_hub_command_for_all_goes_only_to_the_portal_s_own_hub(self):
+        request = APIRequest(target=APIRequest.Nodes(all=True),
+                             command_for_hub=CommandForHub(hub_id=0, time=0, type=CommandForHub.SCAN_FOR_BOTS))
+
+        response = send(request)
+
+        self.assertTrue(response.command_result.command_sent)
+        self.assertEqual([m.command_for_hub.hub_id for m in sent_messages()], [self.OWN_HUB_ID])
 
 
 if __name__ == '__main__':
