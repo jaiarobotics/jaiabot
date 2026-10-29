@@ -178,6 +178,7 @@ class JaiaLogH5:
     _path_without_botid_prefix_cache: Dict[str, str] = {}
 
     def __init__(self, log_or_path: h5py.File | str | pathlib.Path):
+        self._path_without_botid_prefix_cache = {}
         if isinstance(log_or_path, h5py.File):
             self.log = log_or_path
             self.log_path = log_or_path.filename
