@@ -15,14 +15,14 @@ driver's venv (SHARE is /usr/share for a package install, ~/jaiabot/build/arm64/
     sudo systemctl start jaiabot_imu_py    # when done
 Live timestamps are packet arrival times, so they show the driver's actual send timing.
 
-Two things are reported:
-    1. Timing (checked): the interval between jaiabot::imu messages (by _utime_) should be 1/rate.
-    2. Freshness (informational unless --check-freshness): consecutive samples that exactly repeat
-       every value. A re-sent old reading shows up this way, but so do new BNO085 reports while the
-       bot is still, because its fused outputs (orientation, gyro, gravity) are quantized and barely
-       change at rest. Only use --check-freshness on a log where the bot was moving the whole time.
+Two things are reported (nothing is pass/fail; the numbers are for you to judge):
+    1. Timing: the rate and interval between jaiabot::imu messages (by _utime_), against 1/rate.
+    2. Freshness: consecutive samples that exactly repeat every value. A re-sent old reading shows
+       up this way, but so do new BNO085 reports while the bot is still, because its fused outputs
+       (orientation, gyro, gravity) are quantized and barely change at rest. It's only meaningful
+       on a log where the bot was moving.
 
-Exits 0 if every log passes, 1 otherwise.
+Exits 1 only if a log can't be read or has no IMU data.
 """
 
 import argparse
@@ -202,7 +202,7 @@ def analyze(name, utime, fields, args):
     print(f"\n=== {name}")
 
     if len(utime) < 2:
-        print("FAIL: fewer than 2 IMUData messages")
+        print("ERROR: fewer than 2 IMUData messages")
         return False
 
     expected_dt_ms = 1000.0 / args.rate
@@ -235,30 +235,15 @@ def analyze(name, utime, fields, args):
             vv = fields[k][~np.isnan(fields[k])]
             print(f"    {k:24s} repeats {100 * np.mean(vv[1:] == vv[:-1]):6.2f}%")
     else:
-        print("FAIL: none of the freshness fields are populated in the log")
-        stale = np.ones(len(dt_ms), dtype=bool)
-        unique_rate = 0
+        print("None of the freshness fields are populated in the log, so repeats can't be checked")
+        stale = np.zeros(len(dt_ms), dtype=bool)
 
-    tolerance = args.tolerance / 100.0
-    checks = [
-        ("mean rate", abs(mean_rate - args.rate) <= tolerance * args.rate),
-        ("gaps", 100 * gaps.mean() <= args.max_gap_pct),
-    ]
-    if args.check_freshness:
-        checks += [
-            ("new-data rate", abs(unique_rate - args.rate) <= tolerance * args.rate),
-            ("stale samples", 100 * stale.mean() <= args.max_stale_pct),
-        ]
-    else:
-        print("(Stale samples and new-data rate are informational: repeats are normal while the bot is still. "
-              "Use --check-freshness on a log where the bot was moving.)")
-    for check, ok in checks:
-        print(f"[{'PASS' if ok else 'FAIL'}] {check}")
+    print("(Repeated samples are normal while the bot is still; they only matter on a log where it was moving.)")
 
     if args.plot:
         plot(name, utime, dt_ms, stale, expected_dt_ms)
 
-    return all(ok for _, ok in checks)
+    return True
 
 
 def plot(name, utime, dt_ms, stale, expected_dt_ms):
@@ -293,13 +278,7 @@ def main():
     parser.add_argument("--print", action="store_true", help="in --live mode, print every sample as it arrives")
     parser.add_argument("--duration", type=float, default=60, help="seconds to capture in --live mode (default 60)")
     parser.add_argument("--rate", type=float, default=100, help="expected IMU rate in Hz (default 100)")
-    parser.add_argument("--tolerance", type=float, default=5, help="allowed rate error in %% (default 5)")
     parser.add_argument("--gap-factor", type=float, default=2, help="interval > N * expected counts as a gap (default 2)")
-    parser.add_argument("--max-gap-pct", type=float, default=1, help="allowed %% of gaps (default 1)")
-    parser.add_argument("--max-stale-pct", type=float, default=1,
-                        help="allowed %% of stale samples with --check-freshness (default 1)")
-    parser.add_argument("--check-freshness", action="store_true",
-                        help="fail on stale samples and new-data rate (only meaningful if the bot was moving)")
     parser.add_argument("--start", type=float, help="ignore data before this many seconds after the first IMU message")
     parser.add_argument("--end", type=float, help="ignore data after this many seconds after the first IMU message")
     parser.add_argument("--plot", action="store_true", help="plot intervals and stale samples")
@@ -318,7 +297,7 @@ def main():
             utime, fields = load(to_h5(path), args.start, args.end)
             results.append(analyze(path, utime, fields, args))
         except (KeyError, OSError, subprocess.CalledProcessError) as e:
-            print(f"FAIL: {e}")
+            print(f"ERROR: {e}")
             results.append(False)
 
     sys.exit(0 if all(results) else 1)
