@@ -13,7 +13,11 @@ import "./DepthMap3D.less";
  */
 export function getColorScale(): [number, string][] {
     const n = Math.max(2, colors.length);
-    return colors.map((rgb, index) => [index / (n - 1), `rgb(${rgb[0]},${rgb[1]},${rgb[2]})`]);
+    // colors.json holds 0–1 fractions; CSS rgb() takes 0–255, and Plotly 4 reads it strictly
+    return colors.map((rgb, index) => {
+        const [r, g, b] = rgb.map((fraction) => Math.round(fraction * 255));
+        return [index / (n - 1), `rgb(${r},${g},${b})`];
+    });
 }
 
 /**
