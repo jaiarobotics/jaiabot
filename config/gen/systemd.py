@@ -617,7 +617,7 @@ if jaia_imu_type.value == 'bno085':
         'description': 'JaiaBot BNO085 IMU Python Driver',
         'template': 'py-app.service.in',
         'subdir': 'adafruit',
-        'args': f'-t {IMU_TYPE.BNO085.value} -p {UDP_GATEWAY_PORT}',
+        'args': f'-t {IMU_TYPE.BNO085.value} -p {UDP_GATEWAY_PORT} -r 100',
         'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_IMU',
         'runs_on': [Type.BOT],
         'runs_when': Mode.RUNTIME,

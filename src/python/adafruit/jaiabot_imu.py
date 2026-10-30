@@ -60,13 +60,11 @@ def do_port_loop(imu: IMU, wave_analyzer: AccelerationAnalyzer):
     sampling_rate = args.sampling_rate
     sample_interval = 1.0 / sampling_rate
 
-    def take_reading_and_send_data():
-        port_log.debug(f'Taking IMU reading')
-        reading = imu.takeReading()
+    def send_reading(reading):
         port_log.debug(f'IMU reading taken:\n{reading}')
 
         if reading is None:
-            port_log.warning('takeReading() returned None')
+            port_log.warning('No IMU reading')
             return
         else:
             imu_data = reading.convertToIMUData()
@@ -103,6 +101,7 @@ def do_port_loop(imu: IMU, wave_analyzer: AccelerationAnalyzer):
             # Execute the command
             if command.type == IMUCommand.CONFIGURE:
                 sample_interval = 1.0 / command.sample_rate
+                imu.setRate(command.sample_rate)
                 port_log.info(f'Set IMU sample rate to {command.sample_rate} Hz (interval {sample_interval} seconds)')
             # elif command.type == IMUCommand.START_WAVE_HEIGHT_SAMPLING:
             #     wave_analyzer.startSamplingForWaveHeight()
@@ -119,7 +118,16 @@ def do_port_loop(imu: IMU, wave_analyzer: AccelerationAnalyzer):
         except Exception as e: # Some other error, log it but keep going
             traceback.print_exc()
 
-        take_reading_and_send_data()
+        if imu.is_event_driven:
+            # The sensor streams at its configured rate, so send each new reading as soon as it arrives
+            reading = imu.waitForReading(timeout=1.0)
+            send_reading(reading)
+            if reading is None:
+                # Don't spin on a failing sensor
+                sleep(sample_interval)
+            continue
+
+        send_reading(imu.takeReading())
 
         # Sleep until the next scheduled sample, so the time spent reading and sending doesn't slow the rate
         next_sample_time += sample_interval
