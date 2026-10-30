@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from time import sleep
+from time import sleep, monotonic
 import argparse
 import socket
 import traceback
@@ -70,13 +70,13 @@ def do_port_loop(imu: IMU, wave_analyzer: AccelerationAnalyzer):
             return
         else:
             imu_data = reading.convertToIMUData()
-            wave_analyzer.addIMUData(imu_data)
+            # wave_analyzer.addIMUData(imu_data)
 
-            if wave_analyzer._sampling_for_wave_height:
-                imu_data.significant_wave_height = wave_analyzer.getSignificantWaveHeight()
+            # if wave_analyzer._sampling_for_wave_height:
+            #     imu_data.significant_wave_height = wave_analyzer.getSignificantWaveHeight()
 
-            if wave_analyzer._sampling_for_bottom_characterization:
-                imu_data.max_acceleration = wave_analyzer.getMaximumAcceleration()
+            # if wave_analyzer._sampling_for_bottom_characterization:
+            #     imu_data.max_acceleration = wave_analyzer.getMaximumAcceleration()
 
             imu_data.imu_type = args.device_type
 
@@ -87,6 +87,8 @@ def do_port_loop(imu: IMU, wave_analyzer: AccelerationAnalyzer):
             port_log.debug(f'Sending UDPGatewayEnvelope to jaiabot_udp_gateway at {address}:\n{envelope}')
             sock.sendto(envelope.SerializeToString(), address)
 
+
+    next_sample_time = monotonic()
 
     while True:
 
@@ -102,10 +104,10 @@ def do_port_loop(imu: IMU, wave_analyzer: AccelerationAnalyzer):
             if command.type == IMUCommand.CONFIGURE:
                 sample_interval = 1.0 / command.sample_rate
                 port_log.info(f'Set IMU sample rate to {command.sample_rate} Hz (interval {sample_interval} seconds)')
-            elif command.type == IMUCommand.START_WAVE_HEIGHT_SAMPLING:
-                wave_analyzer.startSamplingForWaveHeight()
-            elif command.type == IMUCommand.STOP_WAVE_HEIGHT_SAMPLING:
-                wave_analyzer.stopSamplingForWaveHeight()
+            # elif command.type == IMUCommand.START_WAVE_HEIGHT_SAMPLING:
+            #     wave_analyzer.startSamplingForWaveHeight()
+            # elif command.type == IMUCommand.STOP_WAVE_HEIGHT_SAMPLING:
+            #     wave_analyzer.stopSamplingForWaveHeight()
             elif command.type == IMUCommand.START_BOTTOM_TYPE_SAMPLING:
                 wave_analyzer.startSamplingForBottomCharacterization()
             elif command.type == IMUCommand.STOP_BOTTOM_TYPE_SAMPLING:
@@ -118,7 +120,15 @@ def do_port_loop(imu: IMU, wave_analyzer: AccelerationAnalyzer):
             traceback.print_exc()
 
         take_reading_and_send_data()
-        sleep(sample_interval)
+
+        # Sleep until the next scheduled sample, so the time spent reading and sending doesn't slow the rate
+        next_sample_time += sample_interval
+        delay = next_sample_time - monotonic()
+        if delay > 0:
+            sleep(delay)
+        else:
+            # Fell behind; resync rather than bursting to catch up
+            next_sample_time = monotonic()
 
 
 def do_interactive_loop():
@@ -227,7 +237,7 @@ if __name__ == '__main__':
         imu = AdafruitBNO055()
     elif args.device_type == 'bno085':
         from imu_bno085 import *
-        imu = AdafruitBNO085()
+        imu = AdafruitBNO085(rate_hz=args.sampling_rate)
 
     # Setup the acceleration analyzer (for wave heights and surface type analysis)
     analyzer = AccelerationAnalyzer(sample_frequency=4, dump_html_flag=args.dump_html_flag)

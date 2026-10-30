@@ -1,6 +1,7 @@
 from imu import *
 
 import adafruit_bno08x
+from adafruit_bno08x import _BNO_CHANNEL_CONTROL, _FEATURE_ENABLE_TIMEOUT, _elapsed
 from adafruit_bno08x.uart import BNO08X_UART
 import serial
 import time
@@ -22,11 +23,24 @@ class AdafruitBNO085(IMU):
     _device_path: str = "/dev/ttyAMA0"
     sensor: BNO08X_UART
 
-    def __init__(self, device_path: str = "/dev/ttyAMA0"):
+    def __init__(self, device_path: str = "/dev/ttyAMA0", rate_hz: float = 10):
         self.is_setup = False
         self._lock = Lock()
         self._device_path = device_path
-        imu_logger.debug(f"Adafruit BNO085 initialized with device path {self._device_path}")
+        self._report_interval_us = int(1e6 / rate_hz)
+        imu_logger.debug(f"Adafruit BNO085 initialized with device path {self._device_path}, report rate {rate_hz} Hz")
+
+    def _enable_feature(self, feature_id: int):
+        """Same as BNO08X.enable_feature(), but with our report interval (the library's is fixed at 50 ms)"""
+        report = self.sensor._get_feature_enable_report(feature_id, report_interval=self._report_interval_us)
+        self.sensor._send_packet(_BNO_CHANNEL_CONTROL, report)
+
+        start_time = time.monotonic()
+        while _elapsed(start_time) < _FEATURE_ENABLE_TIMEOUT:
+            self.sensor._process_available_packets(max_packets=10)
+            if feature_id in self.sensor._readings:
+                return
+        raise RuntimeError("Was not able to enable feature", feature_id)
 
     def _setup(self):
         """Thread unsafe setup function.  Only used internally."""
@@ -39,7 +53,7 @@ class AdafruitBNO085(IMU):
                 imu_logger.debug('Connected, now lets enable output')
 
                 for feature in self._enabled_features:
-                    self.sensor.enable_feature(feature)
+                    self._enable_feature(feature)
 
                 self.is_setup = True
                 self.magnetometer_accuracy = None
