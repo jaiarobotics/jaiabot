@@ -21,7 +21,7 @@ import { DETAILS_DECIMALS, UNASSIGNED_ID } from "../../utils/constants";
 
 import BotSensors from "../../data/bots/bot-sensors";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
-import SleepDuration from "./SleepDuration/SleepDuration";
+import MissionPeriod from "./MissionPeriod/MissionPeriod";
 import StormStopMotor from "./StormStopMotor/StormStopMotor";
 import {
     getDistanceToHub,
@@ -168,10 +168,10 @@ export default function BotDetails() {
                                         </tr>
                                         <tr>
                                             <td style={{ verticalAlign: "middle" }}>
-                                                Sleep Duration
+                                                Mission Period
                                             </td>
                                             <td style={{ verticalAlign: "middle" }}>
-                                                <SleepDuration bot={bot} />
+                                                <MissionPeriod bot={bot} />
                                             </td>
                                         </tr>
                                         <tr>

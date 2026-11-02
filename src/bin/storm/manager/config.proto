@@ -39,4 +39,13 @@ message StormManager
     optional uint32 gps_fix_wait_timeout_seconds = 40
         [default = 0, (dccl.field).units = { base_dimensions: "T" }];
 
+    // in-water detection more than this from the planned slot starts a new schedule
+    optional uint32 schedule_match_window_seconds = 50 [default = 1800];
+
+    // initial time from waking to in-water detection; learned on each wake after that
+    optional uint32 schedule_default_lead_seconds = 51 [default = 90];
+
+    // the system clock is trusted for scheduling while within this of GPS time
+    optional double schedule_clock_tolerance_seconds = 52 [default = 2];
+
 }

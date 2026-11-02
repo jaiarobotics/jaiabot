@@ -28,7 +28,49 @@ struct Wrapup : boost::statechart::state<Wrapup, SleepPrep>,
 {
     using StateBase = boost::statechart::state<Wrapup, SleepPrep>;
 
-    Wrapup(typename StateBase::my_context c) : StateBase(c) {}
+    Wrapup(typename StateBase::my_context c) : StateBase(c)
+    {
+        using std::chrono::duration_cast;
+        using std::chrono::microseconds;
+        using std::chrono::seconds;
+        namespace storm_schedule = ::jaiabot::utils::storm_schedule;
+
+        const storm_schedule::Params params{seconds(this->machine().mission_period_seconds()),
+                                            seconds(this->cfg().schedule_match_window_seconds()),
+                                            seconds(this->cfg().schedule_default_lead_seconds()),
+                                            min_sleep()};
+
+        std::optional<microseconds> utc_now;
+        if (this->machine().clock_verified())
+            utc_now =
+                duration_cast<microseconds>(goby::time::SystemClock::now().time_since_epoch());
+
+        const auto now = goby::time::SteadyClock::now();
+        const auto plan = storm_schedule::plan_sleep(
+            this->machine().schedule(), params, utc_now,
+            duration_cast<microseconds>(now - this->machine().in_water_time()));
+
+        this->machine().schedule() = plan.schedule;
+        this->app().save_schedule(plan.schedule);
+        wake_at_ = now + plan.sleep;
+
+        auto utc_str = [](std::int64_t micros)
+        { return goby::time::str(goby::time::MicroTime::from_value(micros)); };
+        goby::glog.is_verbose() &&
+            goby::glog << group("statechart") << "Schedule: " << (plan.new_schedule ? "new, " : "")
+                       << (utc_now ? "clock verified" : "clock unverified") << ", in-water "
+                       << (plan.in_water ? utc_str(plan.in_water->count()) : "unknown")
+                       << ", slot error "
+                       << (plan.slot_error ? std::to_string(plan.slot_error->count()) + " s"
+                                           : "unknown")
+                       << ", anchor "
+                       << (plan.schedule.has_anchor() ? utc_str(plan.schedule.anchor()) : "none")
+                       << ", next slot "
+                       << (plan.schedule.has_planned_slot() ? utc_str(plan.schedule.planned_slot())
+                                                            : "none")
+                       << ", lead " << plan.schedule.lead_seconds() << " s, sleep "
+                       << plan.sleep.count() << " s" << std::endl;
+    }
     ~Wrapup() {}
 
     void loop(const EvLoop& ev)
@@ -50,8 +92,7 @@ struct Wrapup : boost::statechart::state<Wrapup, SleepPrep>,
         // elsewhere in this app, so publish directly to the power board driver instead.
         protobuf::PowerBoardRequest request;
         request.set_time_with_units(goby::time::SystemClock::now<goby::time::MicroTime>());
-        request.mutable_low_power_request()->set_duration_seconds(
-            this->machine().sleep_duration_seconds());
+        request.mutable_low_power_request()->set_duration_seconds(sleep_for().count());
 
         // The power board cuts power to the Pi as soon as it accepts this request, and the
         // log filesystem only commits dirty data every ~30 s, so without a sync the last
@@ -62,6 +103,16 @@ struct Wrapup : boost::statechart::state<Wrapup, SleepPrep>,
         ::sync();
 
         this->interprocess().template publish<::jaiabot::groups::power_board_command>(request);
+    }
+
+    static constexpr std::chrono::seconds min_sleep() { return std::chrono::seconds(60); }
+
+    // the power board may take a few tries to accept, so request what's left of the planned sleep
+    std::chrono::seconds sleep_for() const
+    {
+        return std::max(std::chrono::duration_cast<std::chrono::seconds>(
+                            wake_at_ - goby::time::SteadyClock::now()),
+                        min_sleep());
     }
 
     void power_board_response(const EvPowerBoardResponse& ev)
@@ -78,5 +129,6 @@ struct Wrapup : boost::statechart::state<Wrapup, SleepPrep>,
 
   private:
     goby::time::SteadyClock::time_point next_mcu_send_time_{goby::time::SteadyClock::now()};
+    goby::time::SteadyClock::time_point wake_at_;
 };
 #endif

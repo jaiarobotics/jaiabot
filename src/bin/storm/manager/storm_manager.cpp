@@ -20,10 +20,12 @@
 // You should have received a copy of the GNU General Public License
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
-#include <boost/units/systems/si/frequency.hpp>
 #include <algorithm>
+#include <boost/units/systems/si/frequency.hpp>
+#include <cmath>
 #include <cstdlib>
 #include <fstream>
+#include <sstream>
 namespace si = boost::units::si;
 using boost::units::quantity;
 
@@ -35,6 +37,7 @@ using boost::units::quantity;
 #include <goby/middleware/protobuf/intervehicle.pb.h>
 #include <goby/middleware/transport/intervehicle/groups.h>
 #include <goby/util/seawater.h>
+#include <google/protobuf/text_format.h>
 using goby::glog;
 namespace middleware = goby::middleware;
 
@@ -60,7 +63,8 @@ constexpr goby::middleware::Group mcu_serial_out{"jaiabot::storm::mcu_serial_out
 void jaiabot::apps::StormManager::initialize()
 {
     machine_.reset(new statechart::StormManagerStateMachine(*this, cfg().initial_mission()));
-    machine_->set_sleep_duration_override_seconds(load_sleep_duration_seconds());
+    machine_->set_mission_period_override_seconds(load_mission_period_seconds());
+    machine_->schedule() = load_schedule();
     load_pending_task_packets();
 
     machine_->initiate();
@@ -140,6 +144,15 @@ jaiabot::apps::StormManager::StormManager()
     interprocess().subscribe<goby::middleware::groups::gpsd::tpv>(
         [this](const goby::middleware::protobuf::gpsd::TimePositionVelocity& tpv)
         {
+            if (tpv.has_time() &&
+                tpv.mode() >= goby::middleware::protobuf::gpsd::TimePositionVelocity::Mode2D)
+            {
+                auto offset = goby::time::SystemClock::now<goby::time::SITime>() -
+                              tpv.time_with_units<goby::time::SITime>();
+                machine_->set_clock_verified(std::abs(offset.value()) <=
+                                             cfg().schedule_clock_tolerance_seconds());
+            }
+
             gps_altitude_.push_back(tpv.altitude_with_units());
             machine_->process_event(statechart::EvGPSAltitude(
                 gps_altitude_.mean(), gps_altitude_.median(), gps_altitude_.stddev()));
@@ -241,8 +254,7 @@ jaiabot::apps::StormManager::StormManager()
 
 jaiabot::apps::StormManager::~StormManager() {}
 
-std::filesystem::path
-jaiabot::apps::StormManager::outbox_dir() const
+std::filesystem::path jaiabot::apps::StormManager::outbox_dir() const
 {
     const char* log_dir = std::getenv("jaia_log_dir");
     const char* bot_index = std::getenv("jaia_bot_index");
@@ -257,35 +269,74 @@ jaiabot::apps::StormManager::task_packet_path(const protobuf::TaskPacket& task_p
     return outbox_dir() / (std::to_string(task_packet.storm_id()) + ".taskpacket");
 }
 
-std::filesystem::path jaiabot::apps::StormManager::sleep_duration_path() const
+std::filesystem::path jaiabot::apps::StormManager::mission_period_path() const
 {
-    return outbox_dir().parent_path() / "storm_sleep_duration_seconds";
+    return outbox_dir().parent_path() / "storm_mission_period_seconds";
 }
 
-uint32_t jaiabot::apps::StormManager::load_sleep_duration_seconds()
+uint32_t jaiabot::apps::StormManager::load_mission_period_seconds()
 {
-    std::ifstream file(sleep_duration_path());
-    uint32_t sleep_duration_seconds = 0;
-    if (file >> sleep_duration_seconds)
-        glog.is_verbose() && glog << "Loaded persisted sleep duration: " << sleep_duration_seconds
+    std::ifstream file(mission_period_path());
+    uint32_t mission_period_seconds = 0;
+    if (file >> mission_period_seconds)
+        glog.is_verbose() && glog << "Loaded persisted mission period: " << mission_period_seconds
                                   << " seconds" << std::endl;
 
-    return sleep_duration_seconds;
+    return mission_period_seconds;
 }
 
-void jaiabot::apps::StormManager::save_sleep_duration_seconds(uint32_t sleep_duration_seconds)
+void jaiabot::apps::StormManager::save_mission_period_seconds(uint32_t mission_period_seconds)
 {
-    const auto path = sleep_duration_path();
+    const auto path = mission_period_path();
     try
     {
         std::filesystem::create_directories(path.parent_path());
         std::ofstream file(path, std::ios::trunc);
-        if (!file || !(file << sleep_duration_seconds))
-            throw std::runtime_error("failed to write sleep duration");
+        if (!file || !(file << mission_period_seconds))
+            throw std::runtime_error("failed to write mission period");
     }
     catch (const std::exception& exception)
     {
-        glog.is_warn() && glog << "Failed to persist sleep duration to " << path << ": "
+        glog.is_warn() && glog << "Failed to persist mission period to " << path << ": "
+                               << exception.what() << std::endl;
+    }
+}
+
+std::filesystem::path jaiabot::apps::StormManager::schedule_path() const
+{
+    return outbox_dir().parent_path() / "storm_schedule.pb.txt";
+}
+
+jaiabot::protobuf::StormSchedule jaiabot::apps::StormManager::load_schedule()
+{
+    protobuf::StormSchedule schedule;
+    std::ifstream file(schedule_path());
+    std::stringstream contents;
+    contents << file.rdbuf();
+    if (file && google::protobuf::TextFormat::ParseFromString(contents.str(), &schedule))
+        glog.is_verbose() && glog << "Loaded persisted schedule: " << schedule.ShortDebugString()
+                                  << std::endl;
+    else
+        schedule.Clear();
+
+    return schedule;
+}
+
+void jaiabot::apps::StormManager::save_schedule(const protobuf::StormSchedule& schedule)
+{
+    const auto path = schedule_path();
+    try
+    {
+        std::filesystem::create_directories(path.parent_path());
+        std::string contents;
+        google::protobuf::TextFormat::PrintToString(schedule, &contents);
+        std::ofstream file(path, std::ios::trunc);
+        if (!file || !(file << contents))
+            throw std::runtime_error("failed to write schedule");
+    }
+    catch (const std::exception& exception)
+    {
+        glog.is_warn() && glog << "Failed to persist schedule to " << path << ": "
                                << exception.what() << std::endl;
     }
 }
@@ -489,21 +540,27 @@ void jaiabot::apps::StormManager::handle_command(const protobuf::Command& comman
             glog.is_warn() && glog << "Received STOP: disabling recovery motor thrust" << std::endl;
             machine_->set_motor_stopped();
             break;
-        case protobuf::Command::SET_SLEEP_DURATION:
+        case protobuf::Command::SET_MISSION_PERIOD:
         {
-            if (!command.has_sleep_duration_seconds())
+            if (!command.has_mission_period_seconds())
             {
-                glog.is_warn() && glog << "Invalid SET_SLEEP_DURATION: missing command_data "
-                                          "field 'sleep_duration_seconds'"
+                glog.is_warn() && glog << "Invalid SET_MISSION_PERIOD: missing command_data "
+                                          "field 'mission_period_seconds'"
                                        << std::endl;
                 return;
             }
 
-            glog.is_verbose() && glog << "Set sleep duration to "
-                                      << command.sleep_duration_seconds() << " seconds"
+            glog.is_verbose() && glog << "Set mission period to "
+                                      << command.mission_period_seconds() << " seconds"
                                       << std::endl;
-            machine_->set_sleep_duration_override_seconds(command.sleep_duration_seconds());
-            save_sleep_duration_seconds(command.sleep_duration_seconds());
+            machine_->set_mission_period_override_seconds(command.mission_period_seconds());
+            save_mission_period_seconds(command.mission_period_seconds());
+
+            // the next in-water detection anchors a new schedule; the learned lead still applies
+            auto& schedule = machine_->schedule();
+            schedule.clear_anchor();
+            schedule.clear_planned_slot();
+            save_schedule(schedule);
             break;
         }
         case protobuf::Command::STORM_DYNAMIC_MISSION_UPDATE:

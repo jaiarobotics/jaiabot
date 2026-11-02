@@ -1005,7 +1005,7 @@ void jaiabot::apps::MissionManager::handle_command(const protobuf::Command& comm
         case protobuf::Command::PAUSE: machine_->process_event(statechart::EvPause()); break;
         case protobuf::Command::RESUME: machine_->process_event(statechart::EvResume()); break;
 
-        case protobuf::Command::SET_SLEEP_DURATION:
+        case protobuf::Command::SET_MISSION_PERIOD:
             // owned by jaiabot_storm_manager, which commands the power board sleep
             break;
 

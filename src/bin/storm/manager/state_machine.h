@@ -24,6 +24,7 @@
 
 #include <algorithm>
 #include <map>
+#include <optional>
 
 // Boost
 #include <boost/statechart/state_machine.hpp>
@@ -73,16 +74,28 @@ struct StormManagerStateMachine
     void set_mission(const jaiabot::protobuf::StormMission& mission) { mission_ = mission; };
     const jaiabot::protobuf::StormMission& mission() { return mission_; }
 
-    // operator override from Command::SET_SLEEP_DURATION; 0 means use the configured mission value
-    void set_sleep_duration_override_seconds(uint32_t seconds)
+    // operator override from Command::SET_MISSION_PERIOD; 0 means use the configured mission value
+    void set_mission_period_override_seconds(uint32_t seconds)
     {
-        sleep_duration_override_seconds_ = seconds;
+        mission_period_override_seconds_ = seconds;
     }
-    uint32_t sleep_duration_seconds() const
+    uint32_t mission_period_seconds() const
     {
-        return sleep_duration_override_seconds_ > 0 ? sleep_duration_override_seconds_
-                                                    : mission_.sleep_for_minutes() * 60;
+        return mission_period_override_seconds_ > 0 ? mission_period_override_seconds_
+                                                    : mission_.mission_period_minutes() * 60;
     }
+
+    void set_in_water_time(goby::time::SteadyClock::time_point time) { in_water_time_ = time; }
+    // falls back to the start of this wake if water was never detected
+    goby::time::SteadyClock::time_point in_water_time() const
+    {
+        return in_water_time_.value_or(wake_time_);
+    }
+
+    void set_clock_verified(bool verified) { clock_verified_ = verified; }
+    bool clock_verified() const { return clock_verified_; }
+
+    protobuf::StormSchedule& schedule() { return schedule_; }
 
     void set_latest_location(const protobuf::GeographicCoordinate& loc)
     {
@@ -150,7 +163,12 @@ struct StormManagerStateMachine
     std::set<jaiabot::protobuf::Warning> warnings_;
 
     jaiabot::protobuf::StormMission mission_;
-    uint32_t sleep_duration_override_seconds_{0};
+    uint32_t mission_period_override_seconds_{0};
+    // the bot powers off to sleep, so manager startup marks the start of this wake
+    goby::time::SteadyClock::time_point wake_time_{goby::time::SteadyClock::now()};
+    std::optional<goby::time::SteadyClock::time_point> in_water_time_;
+    bool clock_verified_{false};
+    protobuf::StormSchedule schedule_;
     protobuf::GeographicCoordinate latest_location_;
     bool has_latest_location_{false};
     bool gps_connected_{false};

@@ -57,6 +57,7 @@ class StormManager : public goby::zeromq::MultiThreadApplication<config::StormMa
     // publish the self test result to jaiabot_mission_manager, and keep it to re-send if
     // jaiabot_mission_manager asks again (it may not have been in SELF_TEST to accept it)
     void publish_self_test_result(const protobuf::MissionStateDelegateResponse& resp);
+    void save_schedule(const protobuf::StormSchedule& schedule);
 
   private:
     void initialize() override;
@@ -74,10 +75,12 @@ class StormManager : public goby::zeromq::MultiThreadApplication<config::StormMa
     std::filesystem::path outbox_dir() const;
     std::filesystem::path task_packet_path(const protobuf::TaskPacket& task_packet) const;
 
-    // the sleep duration must survive the power cycle the power board performs while sleeping
-    std::filesystem::path sleep_duration_path() const;
-    uint32_t load_sleep_duration_seconds();
-    void save_sleep_duration_seconds(uint32_t sleep_duration_seconds);
+    // the mission period must survive the power cycle the power board performs while sleeping
+    std::filesystem::path mission_period_path() const;
+    uint32_t load_mission_period_seconds();
+    void save_mission_period_seconds(uint32_t mission_period_seconds);
+    std::filesystem::path schedule_path() const;
+    protobuf::StormSchedule load_schedule();
 
     template <typename Derived> friend class statechart::AppMethodsAccess;
 
