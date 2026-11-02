@@ -31,8 +31,6 @@ using boost::units::quantity;
 
 #include <goby/middleware/application/multi_thread.h>
 #include <goby/middleware/gpsd/groups.h>
-#include <goby/middleware/protobuf/intervehicle.pb.h>
-#include <goby/middleware/transport/intervehicle/groups.h>
 #include <goby/middleware/protobuf/gpsd.pb.h>
 #include <goby/middleware/protobuf/intervehicle.pb.h>
 #include <goby/middleware/transport/intervehicle/groups.h>
