@@ -29,10 +29,35 @@ struct WaitForMissionManager
 {
     using StateBase = boost::statechart::state<WaitForMissionManager, MissionPlanning>;
 
-    WaitForMissionManager(typename StateBase::my_context c) : StateBase(c) {}
+    WaitForMissionManager(typename StateBase::my_context c) : StateBase(c)
+    {
+        const auto timeout_seconds = this->cfg().mission_manager_wait_timeout_seconds();
+        timeout_enabled_ = timeout_seconds > 0;
+        if (timeout_enabled_)
+            timeout_ = goby::time::SteadyClock::now() + std::chrono::seconds(timeout_seconds);
+    }
     ~WaitForMissionManager() {}
 
+    void loop(const EvLoop& ev)
+    {
+        if (timeout_enabled_ && goby::time::SteadyClock::now() >= timeout_)
+        {
+            goby::glog.is_warn() && goby::glog
+                                        << group("statechart") << "Mission manager not ready after "
+                                        << this->cfg().mission_manager_wait_timeout_seconds()
+                                        << " seconds; skipping this cycle's mission" << std::endl;
+            post_event(EvMissionManagerTimeout());
+        }
+    }
+
     using reactions = boost::mpl::list<
-        boost::statechart::transition<EvMissionManagerReadyForMission, WaitForRemoteMission>>;
+        boost::statechart::transition<EvMissionManagerReadyForMission, WaitForRemoteMission>,
+        boost::statechart::transition<EvMissionManagerTimeout, SleepPrep>,
+        boost::statechart::in_state_reaction<EvLoop, WaitForMissionManager,
+                                             &WaitForMissionManager::loop>>;
+
+  private:
+    bool timeout_enabled_{false};
+    goby::time::SteadyClock::time_point timeout_;
 };
 #endif

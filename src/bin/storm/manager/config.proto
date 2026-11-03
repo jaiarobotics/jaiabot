@@ -39,4 +39,9 @@ message StormManager
     optional uint32 gps_fix_wait_timeout_seconds = 40
         [default = 0, (dccl.field).units = { base_dimensions: "T" }];
 
+    // time to wait for jaiabot_mission_manager to be ready for a mission before
+    // skipping this cycle's mission and going to sleep; 0 disables the timeout
+    optional uint32 mission_manager_wait_timeout_seconds = 41
+        [default = 0, (dccl.field).units = { base_dimensions: "T" }];
+
 }

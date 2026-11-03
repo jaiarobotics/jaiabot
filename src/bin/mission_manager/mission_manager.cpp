@@ -1243,6 +1243,8 @@ bool jaiabot::apps::MissionManager::health_considered_ok(
             {
                 case protobuf::ERROR__MISSING_DATA__GPS_FIX:
                 case protobuf::ERROR__MISSING_DATA__GPS_POSITION:
+                // speed comes from the GPS fix
+                case protobuf::ERROR__MISSING_DATA__SPEED:
                 case protobuf::ERROR__NOT_RESPONDING__GOBY_GPS: break;
                 default: return false;
             }
