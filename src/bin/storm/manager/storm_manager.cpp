@@ -186,8 +186,8 @@ jaiabot::apps::StormManager::StormManager()
         [this](const jaiabot::protobuf::ICASStatus& status)
         {
             last_icas_receive_time_ = goby::time::SteadyClock::now();
-            last_icas_status_time_ = last_icas_receive_time_;
-            icas_dump_mode_ = status.dump_mode();
+            // FW_1.2.0 never sets dump_mode; an empty ring buffer means the replay is sent
+            icas_replay_drained_ = !status.dump_mode() && status.ring_buffer_count() == 0;
         });
 
     // receive data from MCU
@@ -277,8 +277,9 @@ bool jaiabot::apps::StormManager::icas_transfer_complete() const
     if (now - last_icas_receive_time_ >= quiet)
         return true;
 
-    // connected and replay drained: everything recorded so far has been delivered
-    return last_icas_status_time_ && now - *last_icas_status_time_ < quiet && !icas_dump_mode_;
+    // connected and replay drained: everything recorded so far has been delivered (STATUS is
+    // only sent on change, so the latest one holds while connected)
+    return icas_replay_drained_;
 }
 
 void jaiabot::apps::StormManager::mark_icas_air_descent_complete()

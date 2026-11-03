@@ -110,8 +110,7 @@ class StormManager : public goby::zeromq::MultiThreadApplication<config::StormMa
     std::deque<ICASSample> icas_samples_;
     // starts at launch so a bot without an ICAS is "quiet" after icas_transfer_quiet_seconds
     goby::time::SteadyClock::time_point last_icas_receive_time_{goby::time::SteadyClock::now()};
-    std::optional<goby::time::SteadyClock::time_point> last_icas_status_time_;
-    bool icas_dump_mode_{false};
+    bool icas_replay_drained_{false};
 };
 
 } // namespace apps

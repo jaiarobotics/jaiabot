@@ -115,7 +115,7 @@ class SampleTracker:
         # min(host_time - t_us): least-delayed packet gives the best boot-time estimate
         self._offset_us = None
         self._offset_from_live = False
-        self._dump_mode = None
+        self._replay_drained = False
         self._held = []
         self._hold_start = None
 
@@ -129,10 +129,11 @@ class SampleTracker:
 
     def start_session(self):
         # peripheral replays its ring buffer each time we subscribe
-        self._dump_mode = None
+        self._replay_drained = False
 
-    def set_dump_mode(self, dump_mode: bool):
-        self._dump_mode = dump_mode
+    def set_status(self, status: ICASStatus):
+        # FW_1.2.0 never sets dump_mode, but reports an empty ring buffer once the replay is sent
+        self._replay_drained = not status.dump_mode and status.ring_buffer_count == 0
 
     def flush(self):
         for data in self._held:
@@ -167,7 +168,7 @@ class SampleTracker:
 
         offset = host_time_us - data.t_us
         self._offset_us = offset if self._offset_us is None else min(self._offset_us, offset)
-        if self._dump_mode is False:
+        if self._replay_drained:
             self._offset_from_live = True
 
         if self._offset_from_live:
@@ -290,7 +291,7 @@ async def run_session(args, publisher: ICASUdpPublisher, tracker: SampleTracker)
             except struct.error as e:
                 lg.warning('Failed to decode STATUS packet (%d bytes): %s', len(payload), e)
                 return
-            tracker.set_dump_mode(status.dump_mode)
+            tracker.set_status(status)
             publisher.send_status(status)
 
         def on_adc(_characteristic, payload: bytearray):
