@@ -75,8 +75,7 @@ Depends: ${shlibs:Depends}, ${misc:Depends},
          python3-ftdi,
          python3-sysv-ipc,
          python3-typing-extensions,
-         python3-usb,
-         bluez
+         python3-usb
 Section: science
 Architecture: all
 Description: Python applications and virtual environment (venv) of the Python dependencies for the Jaiabot Project
@@ -145,7 +144,7 @@ Depends: debconf,
          goby3-apps, goby3-moos, goby3-gui,
          jaiabot-apps, jaiabot-python, jaiabot-config, jaiabot-arduino, jaiabot-stm32, jaiabot-web,
          moos-ivp-apps, moosdb10, libmoos-ivp,
-         gpsd, ntp, ntpstat,
+         gpsd, ntp, ntpstat, bluez,
          ansible
 Section: science
 Architecture: all
