@@ -3,6 +3,7 @@ $interprocess_block
 
 bot_id: $bot_id
 gps_fix_wait_timeout_seconds: 300
+mission_manager_wait_timeout_seconds: 300
 
 rolling_stats_sample_count {
   conductivity: 1
