@@ -316,7 +316,10 @@ else:
     jaia_electronics_stack = ELECTRONICS_STACK.STACK_0
     jaia_gps_type = GPS_TYPE.I2C
 
-if dc('bot_type') == 'hydro':
+# a selections file that skipped jaiabot-embedded.config can leave a hub on the hydro default
+if dc('type') == 'hub':
+    jaia_bot_type = BOT_TYPE.NONE
+elif dc('bot_type') == 'hydro':
     jaia_bot_type = BOT_TYPE.HYDRO
 elif dc('bot_type') == 'pam':
     jaia_bot_type = BOT_TYPE.PAM
@@ -585,6 +588,13 @@ jaiabot_apps = [
      'error_on_fail': 'ERROR__FAILED__JAIABOT_COMMS_MANAGER',
      'runs_on': [Type.BOTH],
      'wanted_by': 'jaiabot_health.service'},
+    {'exe': 'jaiabot_simulator',
+     'description': 'JaiaBot Simulator',
+     'template': 'goby-app.service.in',
+     'error_on_fail': 'ERROR__FAILED__JAIABOT_SIMULATOR',
+     'runs_on': [Type.BOTH],
+     'runs_when': Mode.SIMULATION,
+     'wanted_by': 'jaiabot_health.service'},
 
     ## HUB Services ##
     
@@ -631,13 +641,6 @@ jaiabot_apps = [
      'error_on_fail': 'ERROR__FAILED__JAIABOT_FUSION',
      'runs_on': [Type.BOT],
      'wanted_by': 'jaiabot_health.service'},
-    {'exe': 'jaiabot_simulator',
-     'description': 'JaiaBot Simulator',
-     'template': 'goby-app.service.in',
-     'error_on_fail': 'ERROR__FAILED__JAIABOT_SIMULATOR',
-     'runs_on': [Type.BOT],
-     'runs_when': Mode.SIMULATION,
-     'wanted_by': 'jaiabot_health.service'},       
     {'exe': 'goby_moos_gateway',
      'description': 'Goby to MOOS Gateway',
      'template': 'goby-app.service.in',
