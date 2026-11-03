@@ -40,6 +40,7 @@ struct Movement : boost::statechart::state<Movement, Underway, movement::Movemen
             this->machine().set_mission_plan(
                 mission_feasible_event->plan,
                 false); // do not reset the datum on Replanned missions to avoid a race condition with IvP
+            context<InMission>().apply_first_segment_params();
         }
     }
     ~Movement() {}

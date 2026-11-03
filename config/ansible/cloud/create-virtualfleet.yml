@@ -66,7 +66,7 @@
 
     - name: Create VirtualFleet inventory 
       shell: |
-        /usr/bin/jaia-create-ansible-inventory.sh -b "{{ range(1, n_bots|int + 1) | join(',') }}" -h "1" -f {{ cloud_env_vars.jaia_fleet_id }} -n vfleet_vpn  > /etc/jaiabot/vfleet-inventory.yml
+        /usr/bin/jaia-create-ansible-inventory.sh -b "{{ range(1, n_bots|int + 1) | join(',') }}" -h "{{ range(1, n_hubs|default(1)|int + 1) | join(',') }}" -f {{ cloud_env_vars.jaia_fleet_id }} -n vfleet_vpn  > /etc/jaiabot/vfleet-inventory.yml
       become: yes
         
     - name: Create the user data directories

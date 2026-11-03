@@ -182,7 +182,7 @@ class HubManager : public ApplicationBase
                                                   boost::units::si::seconds};
 
     // data offload
-    // track bot going into DataOffload state
+    // track bot going into DataOffload state, from the statuses this hub hears itself
     std::map<int, protobuf::MissionState> latest_bot_mission_state_;
     std::deque<int> bots_pending_data_offload_;
     std::unique_ptr<std::thread> offload_thread_;
@@ -791,6 +791,13 @@ void jaiabot::apps::HubManager::loop()
 {
     latest_hub_status_.set_time_with_units(goby::time::SystemClock::now<goby::time::MicroTime>());
 
+    // Start the next offload before reporting, so the queue isn't missing from a status between bots
+    if (!offload_thread_ && !bots_pending_data_offload_.empty())
+    {
+        start_dataoffload(bots_pending_data_offload_.front());
+        bots_pending_data_offload_.pop_front();
+    }
+
     if (offload_thread_)
     {
         latest_hub_status_.mutable_bot_offload()->set_bot_id(current_offload_bot_id_);
@@ -822,11 +829,6 @@ void jaiabot::apps::HubManager::loop()
             handle_command(command);
             offload_thread_.reset();
         }
-    }
-    else if (!offload_thread_ && !bots_pending_data_offload_.empty())
-    {
-        start_dataoffload(bots_pending_data_offload_.front());
-        bots_pending_data_offload_.pop_front();
     }
 
     if (last_health_report_time_ + std::chrono::seconds(cfg().health_report_timeout_seconds()) <
@@ -998,20 +1000,24 @@ void jaiabot::apps::HubManager::handle_bot_nav(jaiabot::protobuf::BotStatus dccl
         node_status.mutable_global_fix()->set_depth_with_units(dccl_nav.sensor_depth_with_units());
 
     // check for data offload
-
-    auto previous_mission_state = latest_bot_mission_state_.count(dccl_nav.bot_id())
-                                      ? latest_bot_mission_state_.at(dccl_nav.bot_id())
-                                      : protobuf::PRE_DEPLOYMENT__STARTING_UP;
-
-    if (dccl_nav.mission_state() == protobuf::POST_DEPLOYMENT__DATA_OFFLOAD &&
-        previous_mission_state != protobuf::POST_DEPLOYMENT__DATA_OFFLOAD)
+    // Only the hub that hears the bot itself can reach it to offload; another hub's attempt would
+    // fail and tell the bot so, even when this one succeeds
+    if (!from_other_hub)
     {
-        glog.is_debug1() && glog << group("main") << "Queuing offload for bot " << dccl_nav.bot_id()
-                                 << std::endl;
-        bots_pending_data_offload_.push_back(dccl_nav.bot_id());
-    }
+        auto previous_mission_state = latest_bot_mission_state_.count(dccl_nav.bot_id())
+                                          ? latest_bot_mission_state_.at(dccl_nav.bot_id())
+                                          : protobuf::PRE_DEPLOYMENT__STARTING_UP;
 
-    latest_bot_mission_state_[dccl_nav.bot_id()] = dccl_nav.mission_state();
+        if (dccl_nav.mission_state() == protobuf::POST_DEPLOYMENT__DATA_OFFLOAD &&
+            previous_mission_state != protobuf::POST_DEPLOYMENT__DATA_OFFLOAD)
+        {
+            glog.is_debug1() && glog << group("main") << "Queuing offload for bot "
+                                     << dccl_nav.bot_id() << std::endl;
+            bots_pending_data_offload_.push_back(dccl_nav.bot_id());
+        }
+
+        latest_bot_mission_state_[dccl_nav.bot_id()] = dccl_nav.mission_state();
+    }
 
     if (rewarped_dccl_nav_time > known_bots_[dccl_nav.bot_id()])
         known_bots_[dccl_nav.bot_id()] = rewarped_dccl_nav_time;
@@ -1523,12 +1529,13 @@ void jaiabot::apps::HubManager::start_dataoffload(int bot_id)
     std::string offload_command = cfg().data_offload_script() + " " + cfg().log_staging_dir() +
                                   " " + cfg().log_offload_dir() + " " + bot_ip + " 2>&1";
 
+    // Reset before the thread starts, as loop() checks offload_complete_ as soon as it exists
+    offload_complete_ = false;
+    offload_success_ = false;
+    data_offload_percentage_ = 0;
+
     auto offload_func = [this, offload_command]()
     {
-        // reset data offload global variables
-        offload_complete_ = false;
-        offload_success_ = false;
-
         glog.is_debug1() && glog << group("main") << "Offloading data with command: ["
                                  << offload_command << "]" << std::endl;
 

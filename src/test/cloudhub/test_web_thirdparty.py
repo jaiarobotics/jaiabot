@@ -13,6 +13,7 @@ THIRDPARTY = SOURCE_DIR / "src" / "web" / "thirdparty"
 DEBIAN = SOURCE_DIR / "debian"
 FIRST_BOOT_SCRIPTS = [
     SOURCE_DIR / "src" / "sh" / "system" / "jaia_configure_authelia.sh",
+    SOURCE_DIR / "src" / "sh" / "system" / "jaia-authelia-common.sh",
     SOURCE_DIR / "src" / "sh" / "system" / "jaia_configure_cloudhub.sh",
     SOURCE_DIR / "rootfs" / "customization" / "includes.chroot" / "etc" / "jaiabot" / "init"
     / "common-first-boot.yml",
@@ -21,6 +22,11 @@ THIRD_PARTY_HOSTS = ["caddyserver.com", "authelia.com", "awscli.amazonaws.com", 
 
 
 COMMON_VERSIONS = SOURCE_DIR / "scripts" / "common-versions.env"
+
+
+def configure_text():
+    """jaia_configure_authelia.sh with the setup it sources"""
+    return FIRST_BOOT_SCRIPTS[0].read_text() + FIRST_BOOT_SCRIPTS[1].read_text()
 
 
 def versions():
@@ -45,7 +51,7 @@ class FirstBootTest(unittest.TestCase):
                 self.assertNotIn(host, text, f"{script.name} still reaches {host}")
 
     def test_configure_installs_the_package_without_upgrading_it(self):
-        text = FIRST_BOOT_SCRIPTS[0].read_text()
+        text = configure_text()
         self.assertIn("apt-get install -y --no-upgrade jaiabot-web-thirdparty", text)
         self.assertNotIn("apt-get install -y authelia", text)
 
@@ -65,7 +71,7 @@ class FirstBootTest(unittest.TestCase):
 class ConfigureScriptTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.text = FIRST_BOOT_SCRIPTS[0].read_text()
+        cls.text = configure_text()
 
     def test_caddy_restarts_when_its_binary_was_replaced(self):
         self.assertIn('readlink "/proc/$caddy_pid/exe"', self.text)
@@ -76,8 +82,9 @@ class ConfigureScriptTest(unittest.TestCase):
         self.assertIn("/usr/libexec/lldap/bootstrap.sh", self.text)
         self.assertIn("LLDAP_SET_PASSWORD_PATH=/usr/bin/lldap_set_password", self.text)
         self.assertIn("systemctl enable lldap", self.text)
-        config = re.search(r"cat <<EOF > /etc/lldap/lldap_config.toml\n(.*?)\nEOF", self.text,
-                           re.DOTALL).group(1)
+        self.assertIn("lldap_config > /etc/lldap/lldap_config.toml", self.text)
+        config = self.text[self.text.index("lldap_config()\n"):]
+        config = config[:config.index("\n}\n")]
         for key in ("ldap_port", "http_port", "jwt_secret", "key_seed", "ldap_base_dn",
                     "ldap_user_dn", "ldap_user_pass", "database_url"):
             self.assertRegex(config, re.compile(rf"^{key} = ", re.MULTILINE),
@@ -85,8 +92,9 @@ class ConfigureScriptTest(unittest.TestCase):
         self.assertIn('database_url = "sqlite://$lldap_persistent_dir/users.db?mode=rwc"', config)
 
     def test_lldap_bootstrap_reads_the_same_directories_as_before(self):
-        self.assertIn("USER_CONFIGS_DIR=/etc/lldap/bootstrap/user-configs", self.text)
-        self.assertIn("GROUP_CONFIGS_DIR=/etc/lldap/bootstrap/group-configs", self.text)
+        self.assertIn("lldap_bootstrap authelia \"$authelia_ldap_password\" /etc/lldap/bootstrap", self.text)
+        self.assertIn("USER_CONFIGS_DIR=$config_dir/user-configs", self.text)
+        self.assertIn("GROUP_CONFIGS_DIR=$config_dir/group-configs", self.text)
         self.assertIn("DO_CLEANUP=false", self.text)
 
     def test_the_script_written_lldap_unit_gives_way_to_the_package_unit(self):

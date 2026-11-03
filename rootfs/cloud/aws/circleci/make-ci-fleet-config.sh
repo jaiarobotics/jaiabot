@@ -12,6 +12,7 @@ Usage: $0 [options] <output path>
 
   --fleet <n>           Fleet ID (default: 9)
   --bots <n>            Number of bots (default: 2)
+  --hubs <n>            Number of VirtualHubs, besides the CloudHub (default: 1)
   --warp <n>            Simulator warp (default: 5)
   --customer <s>        jaia_customer tag for the fleet's AWS resources (default: the fleet config's)
   --authorized-key <s>  Public key to install on every node; repeatable. Defaults to
@@ -27,6 +28,7 @@ set -u -e
 
 FLEET=9
 BOTS=2
+HUBS=1
 WARP=5
 CUSTOMER=""
 AUTHORIZED_KEYS=()
@@ -39,6 +41,7 @@ while (( $# > 0 )); do
     case "$1" in
         --fleet) FLEET="${2:-}"; shift 2 ;;
         --bots) BOTS="${2:-}"; shift 2 ;;
+        --hubs) HUBS="${2:-}"; shift 2 ;;
         --warp) WARP="${2:-}"; shift 2 ;;
         --customer) CUSTOMER="${2:-}"; shift 2 ;;
         --authorized-key) AUTHORIZED_KEYS+=("${2:-}"); shift 2 ;;
@@ -58,7 +61,7 @@ done
 BASE_URI="${BASE_URI:-fleet${FLEET}.ci.invalid}"
 
 CLOUDHUB_ID=$(jaia_bounds --cloudhub_id)
-VIRTUALHUB_ID=1
+VIRTUALHUB_IDS=($(seq 1 "${HUBS}"))
 
 if (( ${#AUTHORIZED_KEYS[@]} == 0 )); then
     if [[ ! -f "${HOME}/.ssh/id_ed25519.pub" ]]; then
@@ -81,7 +84,7 @@ function escaped_private_key() {
     awk '{printf "%s\\n", $0}' "${KEYDIR}/$1"
 }
 
-generate_key "hub${VIRTUALHUB_ID}"
+for hub_id in "${VIRTUALHUB_IDS[@]}"; do generate_key "hub${hub_id}"; done
 generate_key "vpn_tmp"
 
 {
@@ -90,17 +93,19 @@ generate_key "vpn_tmp"
     if [[ -n "$CUSTOMER" ]]; then
         echo "customer: \"${CUSTOMER}\""
     fi
-    echo "hubs: [${VIRTUALHUB_ID}, ${CLOUDHUB_ID}]"
+    echo "hubs: [$(IFS=,; echo "${VIRTUALHUB_IDS[*]}"), ${CLOUDHUB_ID}]"
     echo "bots: [$(seq -s', ' 1 "${BOTS}")]"
     echo "ssh {"
     for key in "${AUTHORIZED_KEYS[@]}"; do
         echo "  permanent_authorized_keys: \"${key}\""
     done
-    echo "  hub {"
-    echo "    id: ${VIRTUALHUB_ID}"
-    echo "    private_key: \"$(escaped_private_key "hub${VIRTUALHUB_ID}")\""
-    echo "    public_key: \"$(cat "${KEYDIR}/hub${VIRTUALHUB_ID}.pub")\""
-    echo "  }"
+    for hub_id in "${VIRTUALHUB_IDS[@]}"; do
+        echo "  hub {"
+        echo "    id: ${hub_id}"
+        echo "    private_key: \"$(escaped_private_key "hub${hub_id}")\""
+        echo "    public_key: \"$(cat "${KEYDIR}/hub${hub_id}.pub")\""
+        echo "  }"
+    done
     echo "  vpn_tmp {"
     echo "    private_key: \"$(escaped_private_key vpn_tmp)\""
     echo "    public_key: \"$(cat "${KEYDIR}/vpn_tmp.pub")\""
@@ -120,4 +125,4 @@ generate_key "vpn_tmp"
 } > "${OUTPUT}"
 
 chmod 600 "${OUTPUT}"
-echo "Wrote fleet ${FLEET} config for ${BOTS} bot(s) at warp ${WARP} to ${OUTPUT}"
+echo "Wrote fleet ${FLEET} config for ${HUBS} VirtualHub(s) and ${BOTS} bot(s) at warp ${WARP} to ${OUTPUT}"

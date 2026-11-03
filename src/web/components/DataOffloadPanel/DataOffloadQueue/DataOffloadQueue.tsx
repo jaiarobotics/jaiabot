@@ -18,41 +18,34 @@ export default function DataOffloadQueue() {
         return;
     }
 
-    const hub = jaiaContext.hubs.getHubs().values().next()?.value;
-    if (!hub) {
-        return;
-    }
-
-    /**
-     * Creates a QueueItem component for each Bot pending a data offload
-     *
-     * @returns {QueueItem[]} QueueItem elements for Bots pending data offload
-     */
-    const renderBotsPending = () => {
-        const botsPending: number[] = hub.getBotOffload().bots_pending;
-        if (botsPending) {
-            return botsPending.map((botID) => (
-                <QueueItem botID={botID} offloadPercentage={0} key={botID} />
-            ));
+    // Whichever Hub the Bot is offloading to, not necessarily the lowest numbered one
+    const queueItems = [];
+    for (const hub of jaiaContext.hubs.getHubs().values()) {
+        const botOffload = hub.getBotOffload();
+        if (!botOffload || botOffload.bot_id === UNASSIGNED_ID) {
+            continue;
         }
-        return;
-    };
 
-    const botOffload = hub.getBotOffload();
-    if (botOffload && botOffload.bot_id !== UNASSIGNED_ID) {
-        return (
-            <div className="data-offload-queue">
-                <QueueItem
-                    botID={botOffload.bot_id}
-                    offloadPercentage={botOffload.data_offload_percentage}
-                    key={botOffload.bot_id}
-                />
-                {renderBotsPending()}
-            </div>
+        queueItems.push(
+            <QueueItem
+                botID={botOffload.bot_id}
+                offloadPercentage={botOffload.data_offload_percentage}
+                key={`${hub.getHubID()}-${botOffload.bot_id}`}
+            />,
         );
+
+        for (const botID of botOffload.bots_pending ?? []) {
+            queueItems.push(
+                <QueueItem
+                    botID={botID}
+                    offloadPercentage={0}
+                    key={`${hub.getHubID()}-${botID}`}
+                />,
+            );
+        }
     }
 
-    return <div className="data-offload-queue"></div>;
+    return <div className="data-offload-queue">{queueItems}</div>;
 }
 
 /**

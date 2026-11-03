@@ -1,6 +1,11 @@
+import cloneDeep from "lodash/cloneDeep";
+
 import Mission from "../../mission_set/mission";
 import { gridPlan } from "../grid-plan";
-import { MAX_LANES_PER_BOT } from "../../../utils/constants";
+import { jaiaGlobal } from "../../jaia_global/jaia-global";
+import { TaskParameterKeys } from "../../../types/jaia-system-types";
+import { MissionTask_TaskType } from "@proto/jaiabot/messages/mission";
+import { MAX_LANES_PER_BOT, MAX_WAYPOINTS, MISSION_ENDPOINTS } from "../../../utils/constants";
 
 const START = { lat: 0, lon: 0 };
 const END = { lat: 0, lon: 1 };
@@ -107,5 +112,57 @@ describe("clampNumOfLanesToBots", () => {
         gridPlan.setNumOfLanes(20);
         gridPlan.clampNumOfLanesToBots();
         expect(gridPlan.getNumOfLanes()).toBe(20);
+    });
+});
+
+describe("0 Bots", () => {
+    beforeEach(() => {
+        gridPlan.reset();
+    });
+
+    test("fitLanesToBots leaves each lane its own mission", () => {
+        const pointsPerLane = [2, 3, 2];
+
+        const missions = fitLanes(pointsPerLane, 0);
+
+        expect(missions.map((mission) => mission.getWaypoints().length)).toEqual(
+            pointsPerLane.map((pointCount) => pointCount + MISSION_ENDPOINTS),
+        );
+        for (const mission of missions) {
+            expect(mission.getSegments()).toEqual([{ start_goal_index: 0 }]);
+        }
+    });
+
+    test("calculateMaxPointsPerLane allows each lane a whole mission", () => {
+        gridPlan.setNumOfLanes(5);
+        gridPlan.setNumOfBots(0);
+
+        gridPlan.calculateMaxPointsPerLane();
+
+        expect(gridPlan.getMaxWaypointsPerLane()).toBe(MAX_WAYPOINTS - MISSION_ENDPOINTS);
+    });
+});
+
+describe("applySafetyReturnParameters", () => {
+    const initialDefaults = cloneDeep(jaiaGlobal.getDefaultTaskParameters());
+
+    afterEach(() => {
+        jaiaGlobal.setDefaultTaskParameters(cloneDeep(initialDefaults));
+    });
+
+    test("holds the safety return to BottomDepthSafetyParams' bounds", () => {
+        gridPlan.reset();
+        gridPlan.setMissions(makeLaneMissions([2]));
+        const srpTask = gridPlan.getSRPTask();
+        srpTask.setType(MissionTask_TaskType.CONSTANT_HEADING);
+        srpTask.setParameter({ key: TaskParameterKeys.CONSTANT_HEADING_TIME, value: 500 });
+        srpTask.setParameter({ key: TaskParameterKeys.SAFETY_DEPTH, value: 12 });
+
+        gridPlan.applySafetyReturnParameters();
+
+        expect(gridPlan.getMissions().get(1).getBottomDepthSafetyParams()).toMatchObject({
+            constant_heading_time: 360,
+            safety_depth: 10,
+        });
     });
 });

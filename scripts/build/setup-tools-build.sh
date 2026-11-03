@@ -24,6 +24,7 @@ set -a; source ${script_dir}/../common-versions.env; set +a
 
 export GOBYSOFT_SIGNING_KEY=19478082E2F8D3FE
 export JAIABOT_SIGNING_KEY=954A004CD5D8CF32
+export GOLANG_BACKPORTS_SIGNING_KEY=876B22BA887CA91614B5323FC631127F87FA12D1
 
 log=$(mktemp)
 trap 'rm -f "${log}"' EXIT
@@ -70,6 +71,21 @@ add_apt_sources() {
     target_ubuntu_codename=${jaia_version_ubuntu_codename}
     echo "deb [signed-by=/etc/apt/keyrings/gobysoft.gpg] http://packages.jaia.tech/ubuntu/gobysoft/continuous/${default_version}/ $(. /etc/os-release; echo "$VERSION_CODENAME")/" | $SUDO tee /etc/apt/sources.list.d/gobysoft_continuous.list
     echo "deb-src [signed-by=/etc/apt/keyrings/jaiabot.gpg] http://packages.jaia.tech/ubuntu/continuous/${default_version}/ ${target_ubuntu_codename}/" | $SUDO tee /etc/apt/sources.list.d/jaiabot_continuous.list
+    apt_get update
+}
+
+# An older Ubuntu than the release targets (e.g. 24.04, with Go 1.22) can't meet debian/control's
+# golang-go, which Caddy's go.mod sets
+add_go_backports_if_needed() {
+    local required candidate
+    required=$(sed -n 's/.*golang-go[^(,]*(>= *\([^)]*\)).*/\1/p' ${script_dir}/../../debian/control)
+    candidate=$(apt-cache policy golang-go | sed -n 's/^ *Candidate: //p')
+    if dpkg --compare-versions "${candidate}" ge "${required}" 2>/dev/null; then
+        return
+    fi
+
+    curl -fsSL "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x${GOLANG_BACKPORTS_SIGNING_KEY}" | gpg --dearmor | $SUDO tee /etc/apt/keyrings/golang-backports.gpg > /dev/null
+    echo "deb [signed-by=/etc/apt/keyrings/golang-backports.gpg] https://ppa.launchpadcontent.net/longsleep/golang-backports/ubuntu $(. /etc/os-release; echo "$VERSION_CODENAME") main" | $SUDO tee /etc/apt/sources.list.d/golang-backports.list
     apt_get update
 }
 
@@ -139,6 +155,7 @@ install_precommit_hook() {
 step "Updating apt and installing prerequisites" install_prereqs
 step "Installing the packages.jaia.tech / packages.gobysoft.org apt signing keys" install_apt_keys
 step "Adding the packages.jaia.tech / packages.gobysoft.org apt mirror" add_apt_sources
+step "Adding a newer Go if this Ubuntu's is too old" add_go_backports_if_needed
 step "Installing apt build dependencies (this can take a while)" install_build_deps
 step "Installing arduino-cli" install_arduino_cli
 step "Installing the STM32 ARM GCC toolchain and flashing tools" install_stm32_toolchain

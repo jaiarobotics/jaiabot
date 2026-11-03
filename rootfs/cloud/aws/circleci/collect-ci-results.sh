@@ -9,6 +9,7 @@ Usage: $0 [options]
 
   --fleet <n>       Fleet ID (default: \$JAIA_CI_FLEET, else 9)
   --bots <n>        Number of bots (default: 2)
+  --hubs <n>        Number of VirtualHubs (default: 2)
   --output-dir <s>  Where to collect into (default: /tmp/sea-trial)
 EOF
     exit 1
@@ -18,12 +19,14 @@ set -u
 
 FLEET="${JAIA_CI_FLEET:-9}"
 BOTS=2
+HUBS=2
 OUTPUT_DIR=/tmp/sea-trial
 
 while (( $# > 0 )); do
     case "$1" in
         --fleet) FLEET="${2:-}"; shift 2 ;;
         --bots) BOTS="${2:-}"; shift 2 ;;
+        --hubs) HUBS="${2:-}"; shift 2 ;;
         --output-dir) OUTPUT_DIR="${2:-}"; shift 2 ;;
         -h|--help) usage ;;
         *) echo "Unknown option: $1" >&2; usage ;;
@@ -40,7 +43,7 @@ mkdir -p "${OUTPUT_DIR}"
 # text, which the offload excludes, so they come from here
 rsync "${SSH_RSYNC[@]}" "${script_dir}/collect-fleet-logs.sh" "jaia@${CLOUDHUB}:/tmp/" || true
 ssh -o StrictHostKeyChecking=no "jaia@${CLOUDHUB}" \
-    "/tmp/collect-fleet-logs.sh --fleet ${FLEET} --bots ${BOTS} ${OUTPUT_DIR}/fleet-logs" || true
+    "/tmp/collect-fleet-logs.sh --fleet ${FLEET} --bots ${BOTS} --hubs ${HUBS} ${OUTPUT_DIR}/fleet-logs" || true
 
 rsync "${SSH_RSYNC[@]}" "jaia@${CLOUDHUB}:${OUTPUT_DIR}/" "${OUTPUT_DIR}/" || true
 ssh -o StrictHostKeyChecking=no "jaia@${CLOUDHUB}" \

@@ -1027,8 +1027,12 @@ void jaiabot::apps::MissionManager::handle_command(const protobuf::Command& comm
             break;
 
         case protobuf::Command::DATA_OFFLOAD_FAILED:
-            machine_->process_event(statechart::EvDataOffloadFailed());
-            machine_->insert_warning(jaiabot::protobuf::WARNING__MISSION__DATA_OFFLOAD_FAILED);
+            // A failure reported after the offload already finished (e.g. by another hub) is stale
+            if (machine_->state_cast<const statechart::post_deployment::DataOffload*>())
+            {
+                machine_->process_event(statechart::EvDataOffloadFailed());
+                machine_->insert_warning(jaiabot::protobuf::WARNING__MISSION__DATA_OFFLOAD_FAILED);
+            }
             break;
 
             // handled by jaiabot_health
@@ -1234,7 +1238,8 @@ void jaiabot::apps::MissionManager::set_hub_id(int hub_id)
 bool jaiabot::apps::MissionManager::health_considered_ok(
     const goby::middleware::protobuf::VehicleHealth& vehicle_health)
 {
-    if (vehicle_health.state() != goby::middleware::protobuf::HEALTH__FAILED)
+    if (jaiabot::health::vehicle_health_state(vehicle_health) !=
+        goby::middleware::protobuf::HEALTH__FAILED)
     {
         return true;
     }

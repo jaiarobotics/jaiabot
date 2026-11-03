@@ -577,6 +577,7 @@ The API returns these error codes (defined in `rest_api.proto`):
 | `API_ERROR__REQUEST_NOT_INITIALIZED`          | Missing required fields         |
 | `API_ERROR__INVALID_TARGET`                   | Invalid bot/hub ID              |
 | `API_ERROR__NOT_IMPLEMENTED`                  | Action exists but not coded yet |
+| `API_ERROR__INTERNAL_ERROR`                   | Unexpected fault in the API     |
 
 ## Troubleshooting
 

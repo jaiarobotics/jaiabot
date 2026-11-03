@@ -22,8 +22,12 @@ import { excludedTaskPacketsLayer } from "../openlayers/layers/vector/excluded-t
 import { DeviceMetadata, DeviceMetadata_Version } from "@proto/jaiabot/messages/metadata";
 import SoundEffects from "../style/audio/sound-effects";
 import { jaia_rest_api } from "../utils/jaia-rest-api";
+import { HUB_CONNECTION_STATUS_AGE } from "../utils/constants";
+import { microsecondsToSeconds } from "../utils/conversions";
 
 const MAX_REQUEST_TIME = 10000; // ms;
+// Frees a poll stuck on a request the hub will never answer
+const REQUEST_TIMEOUT = 30000; // ms
 const VERSION_LENGTH = 3;
 
 const CONNECTION_WARNING = "connection-warning";
@@ -43,6 +47,9 @@ let lastFetchedWindowKey = "";
 let latestTaskPacketRequest = 0;
 
 let statusRequestStartTime = new Date().getTime();
+
+// Hub time of the last status response, in microseconds
+let lastStatusHubTime: number | undefined;
 
 /**
  * Hits the status endpoint and updates the data model and openlayers
@@ -64,18 +71,24 @@ export async function pollStatus() {
         statusRequestStartTime = new Date().getTime();
 
         const [rest_response, engineering_response] = await Promise.all([
-            jaia_rest_api.request({
-                target: {
-                    all: true,
+            jaia_rest_api.request(
+                {
+                    target: {
+                        all: true,
+                    },
+                    status: true,
                 },
-                status: true,
-            }),
-            jaia_rest_api.request({
-                target: {
-                    all: true,
+                REQUEST_TIMEOUT,
+            ),
+            jaia_rest_api.request(
+                {
+                    target: {
+                        all: true,
+                    },
+                    engineering_status: true,
                 },
-                engineering_status: true,
-            }),
+                REQUEST_TIMEOUT,
+            ),
         ]);
 
         const status = rest_response.status;
@@ -84,13 +97,18 @@ export async function pollStatus() {
             throw new Error("Status response is null");
         }
 
-        updateBots(
-            toPortalBotStatuses(status, engineering_response.engineering_status?.bots ?? []),
+        const botStatuses = toPortalBotStatuses(
+            status,
+            engineering_response.engineering_status?.bots ?? [],
         );
-        updateHubs(toPortalHubStatuses(status));
+        const hubStatuses = toPortalHubStatuses(status);
+
+        updateBots(botStatuses);
+        updateHubs(hubStatuses);
+        ageUnreportedNodes(botStatuses, hubStatuses, Number(status.time ?? 0));
         updateJaiaGlobal(status.controlling_client_id ?? null);
         updateOpenLayers();
-        updateWarning(CONNECTION_WARNING, false);
+        updateWarning(CONNECTION_WARNING, !isHubConnected(hubStatuses));
     } catch (error) {
         updateWarning(CONNECTION_WARNING, true);
         console.error(error);
@@ -185,17 +203,20 @@ async function fetchTaskPacketsForWindow(knownVersion?: number): Promise<TaskPac
         known_version?: number,
     ) =>
         jaia_rest_api
-            .request({
-                target: {
-                    all: true,
+            .request(
+                {
+                    target: {
+                        all: true,
+                    },
+                    task_packets: {
+                        start_time: String(taskPacketFilter.getStartDate().getTime() * 1000),
+                        end_time: String(taskPacketFilter.getEndDate().getTime() * 1000),
+                        known_version,
+                        ...inclusion,
+                    },
                 },
-                task_packets: {
-                    start_time: String(taskPacketFilter.getStartDate().getTime() * 1000),
-                    end_time: String(taskPacketFilter.getEndDate().getTime() * 1000),
-                    known_version,
-                    ...inclusion,
-                },
-            })
+                REQUEST_TIMEOUT,
+            )
             .then((response) => response.task_packets ?? {});
 
     // Any change bumps the hub's single version, so the included query's version covers both
@@ -225,12 +246,15 @@ export async function pollMetadata() {
     try {
         metadataRequestInFlight = true;
 
-        const metadata_response = await jaia_rest_api.request({
-            target: {
-                all: true,
+        const metadata_response = await jaia_rest_api.request(
+            {
+                target: {
+                    all: true,
+                },
+                metadata: true,
             },
-            metadata: true,
-        });
+            REQUEST_TIMEOUT,
+        );
 
         // Get metadata for the first hub
         const metadata = metadata_response.metadata?.hubs?.[0];
@@ -335,6 +359,56 @@ function toPortalHubStatuses(status: APIResponse_Statuses): PortalHubStatus[] {
         hub_status: hubStatus,
         status_age: hubTime - Number(hubStatus.received_time ?? 0),
     }));
+}
+
+/**
+ * The REST API keeps answering from its cache after it loses the hub's portal, so only a recent
+ * hub status shows the hub is still connected
+ *
+ * @param {PortalHubStatus[]} hubStatuses Hub statuses from the latest status response
+ * @returns {boolean} True if at least one hub has reported recently
+ */
+function isHubConnected(hubStatuses: PortalHubStatus[]) {
+    return hubStatuses.some(
+        (hubStatus) => microsecondsToSeconds(hubStatus.status_age) <= HUB_CONNECTION_STATUS_AGE,
+    );
+}
+
+/**
+ * A restarted REST API reports only the bots and hubs it has heard from since, so the others are
+ * aged by the hub time since the last response instead of keeping the age they had
+ *
+ * @param {PortalBotStatus[]} botStatuses Bots in the latest status response
+ * @param {PortalHubStatus[]} hubStatuses Hubs in the latest status response
+ * @param {number} hubTime Hub's time in the latest status response, in microseconds
+ * @returns {void}
+ */
+function ageUnreportedNodes(
+    botStatuses: PortalBotStatus[],
+    hubStatuses: PortalHubStatus[],
+    hubTime: number,
+) {
+    const elapsed = hubTime - (lastStatusHubTime ?? hubTime);
+    lastStatusHubTime = hubTime;
+    if (elapsed <= 0) {
+        return;
+    }
+
+    const reportedBotIDs = new Set(botStatuses.map((botStatus) => botStatus.bot_status?.bot_id));
+    for (const [botID, bot] of bots.getBots()) {
+        if (!reportedBotIDs.has(botID)) {
+            const wasCommsDropped = bot.isCommsDropped();
+            bot.setStatusAge((bot.getStatusAge() ?? 0) + elapsed);
+            handleBotSoundEffects(wasCommsDropped, bot.isCommsDropped());
+        }
+    }
+
+    const reportedHubIDs = new Set(hubStatuses.map((hubStatus) => hubStatus.hub_status?.hub_id));
+    for (const [hubID, hub] of hubs.getHubs()) {
+        if (!reportedHubIDs.has(hubID)) {
+            hub.setStatusAge((hub.getStatusAge() ?? 0) + elapsed);
+        }
+    }
 }
 
 /**

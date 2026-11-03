@@ -6,6 +6,7 @@
 
 import argparse
 from flask import Flask, request, jsonify, abort
+from werkzeug.exceptions import HTTPException
 import jaiabot.messages.rest_api_pb2
 import jaiabot.messages.option_extensions_pb2
 import google.protobuf.json_format
@@ -109,6 +110,10 @@ def jaia_api_short(version):
     except APIException as e:  
         jaia_response.error.code = e.code
         jaia_response.error.details = e.details
+    except HTTPException:
+        raise
+    except Exception as e:
+        set_internal_error(jaia_response, jaia_request, e)
         
     return finalize_response(jaia_response, jaia_request)
 
@@ -165,6 +170,10 @@ def jaia_api_long(version, action, target_str):
     except APIException as e:  
         jaia_response.error.code = e.code
         jaia_response.error.details = e.details
+    except HTTPException:
+        raise
+    except Exception as e:
+        set_internal_error(jaia_response, jaia_request, e)
 
     return finalize_response(jaia_response, jaia_request)
 
@@ -208,6 +217,13 @@ def parse_get_args(jaia_request_action, action_field_desc):
                 raise APIException(jaiabot.messages.rest_api_pb2.API_ERROR__ACTION_REQUIRES_JSON_POST_DATA, "The type of field '" + field.name + "' is not supported via GET. Use POST to pass JSON according to the '" + jaia_request_action.DESCRIPTOR.full_name + "' Protobuf message")
                 
     return jaia_request_action
+
+
+def set_internal_error(jaia_response: APIResponse, jaia_request: APIRequest, e: Exception):
+    # Otherwise Flask answers with its HTML error page, which clients fail to parse as JSON
+    logging.exception(f'Unexpected error handling action {jaia_request.WhichOneof("action")}')
+    jaia_response.error.code = jaiabot.messages.rest_api_pb2.API_ERROR__INTERNAL_ERROR
+    jaia_response.error.details = f'Internal REST API error: {type(e).__name__}: {e}'
 
 
 def check_initialized(jaia_request):

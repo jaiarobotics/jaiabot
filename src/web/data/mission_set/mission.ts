@@ -9,8 +9,21 @@ import {
 } from "@proto/jaiabot/messages/mission";
 import Waypoint from "../waypoints/waypoint";
 import Task from "../tasks/task";
-import { GhostParameters } from "../../types/jaia-system-types";
-import { DEFAULT_SPEED, UNASSIGNED_ID } from "../../utils/constants";
+import { GhostParameters, TaskParameterKeys } from "../../types/jaia-system-types";
+import {
+    clampInteger,
+    clampSpeed,
+    clampTaskParameters,
+    TaskParameterFields,
+} from "../../utils/input";
+import { DEFAULT_SPEED, MAX_REPEATS, MIN_REPEATS, UNASSIGNED_ID } from "../../utils/constants";
+
+const SAFETY_RETURN_FIELDS: TaskParameterFields<BottomDepthSafetyParams> = {
+    constant_heading: TaskParameterKeys.HEADING,
+    constant_heading_time: TaskParameterKeys.CONSTANT_HEADING_TIME,
+    constant_heading_speed: TaskParameterKeys.SPEED,
+    safety_depth: TaskParameterKeys.SAFETY_DEPTH,
+};
 
 export default class Mission {
     private missionID: number;
@@ -70,7 +83,7 @@ export default class Mission {
     }
 
     setRepeats(repeats: number) {
-        this.repeats = repeats;
+        this.repeats = clampInteger(repeats, MIN_REPEATS, MAX_REPEATS);
     }
 
     getBottomDepthSafetyParams(segmentIndex: number = 0) {
@@ -186,15 +199,37 @@ export default class Mission {
                 recover_at_final_goal: true,
             },
             speeds: {
-                transit: this.getTransitSpeed(),
-                stationkeep_outer: this.getStationkeepSpeed(),
+                transit: clampSpeed(this.getTransitSpeed()),
+                stationkeep_outer: clampSpeed(this.getStationkeepSpeed()),
             },
-            repeats: this.repeats,
+            repeats: clampInteger(this.repeats, MIN_REPEATS, MAX_REPEATS),
             mission_name: missionSetName,
-            segments: this.segments,
+            segments: this.segments.map((segment) => this.packageSegmentForHub(segment)),
         };
 
         return missionPlan;
+    }
+
+    /**
+     * Copies a segment with its speed and safety return parameters clamped to their bounds
+     * in mission.proto
+     *
+     * @param {MissionPlan_Segment} segment Segment to package
+     * @returns {MissionPlan_Segment} Segment for the Hub/Bot
+     */
+    private packageSegmentForHub(segment: MissionPlan_Segment) {
+        const packaged = { ...segment };
+        if (segment.speed !== undefined) {
+            packaged.speed = clampSpeed(segment.speed);
+        }
+        if (segment.bottom_depth_safety_params) {
+            packaged.bottom_depth_safety_params = clampTaskParameters(
+                segment.bottom_depth_safety_params,
+                SAFETY_RETURN_FIELDS,
+                true,
+            );
+        }
+        return packaged;
     }
 
     packageWaypointsForHub() {
