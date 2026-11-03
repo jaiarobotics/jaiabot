@@ -36,10 +36,11 @@ test("Omit bottom depth safety params when unset", () => {
 test("Packaged plan holds only whole speeds within the proto's bounds", () => {
     const mission = new Mission();
     mission.addWaypoint(locationA);
-    mission.addWaypoint(locationB);
-    mission.setSegments([{ start_goal_index: 0 }, { start_goal_index: 1 }]);
     mission.setTransitSpeed(1.5);
-    mission.getSegments()[1].speed = 0.5;
+    const secondSegment = new Mission();
+    secondSegment.addWaypoint(locationB);
+    secondSegment.setTransitSpeed(0.5);
+    mission.appendWaypointsFrom(secondSegment);
     mission.setStationkeepSpeed(3.5);
     mission.setBottomDepthSafetyParams({
         constant_heading: 0,
@@ -54,7 +55,7 @@ test("Packaged plan holds only whole speeds within the proto's bounds", () => {
         constant_heading_time: 10,
         constant_heading_speed: 1.5,
     });
-    mission.getWaypoint(1).setTask(task);
+    mission.setWaypointTask(1, task);
 
     const missionPlan = mission.packageMissionForHub("test-mission");
 

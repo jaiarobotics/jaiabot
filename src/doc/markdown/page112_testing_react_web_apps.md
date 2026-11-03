@@ -29,6 +29,10 @@
     - [Mocking Partials](#mocking-partials)
   - [Test Setup, Teardown and Scoping](#test-setup-teardown-and-scoping)
   - [Parameterized Tests](#parameterized-tests)
+  - [Tests That Pass for the Wrong Reason](#tests-that-pass-for-the-wrong-reason)
+    - [A Mocked Library Means You Are Testing the Mock](#a-mocked-library-means-you-are-testing-the-mock)
+    - [Assert the Precondition](#assert-the-precondition)
+    - [Pin Anything the Code Gets to Choose](#pin-anything-the-code-gets-to-choose)
   - [Test Configuration](#test-configuration)
     - [src/web/jest.config.js](#srcwebjestconfigjs)
     - [src/web/tests/jest.setup.js](#srcwebtestsjestsetupjs)
@@ -69,7 +73,7 @@ Unit tests should be located with the item being tested in a special directory n
 
 For example:
 
-*This section written by Copilot*
+_This section written by Copilot_
 
 ```
 TaskParameters/
@@ -107,7 +111,7 @@ Ran all test suites.
 If you want to run the test suites in a particular directory, you just need the name of the directory, you do not need the entire path.
 In the example below, we are in the `src/web` directory and ran all the tests under `src/web/components/MissionsPanel`. It ran 4 test suites (files) from that directory and its subdirectories.
 
-*This section written by Copilot*
+_This section written by Copilot_
 
 ```
 :~/jaiabot/src/web$ npm test MissionsPanel
@@ -138,7 +142,7 @@ Ran all test suites matching /MissionsPanel/i.
 
 If you want to run a single Test Suite you can provide the entire path to the file containing the Test Suite.
 
-*This section written by Copilot*
+_This section written by Copilot_
 
 ```
 :~/jaiabot/src/web$ npm test components/WaypointPanel/TaskParameters/__tests__/TaskParameters.test.tsx
@@ -449,7 +453,7 @@ module.exports = {
 };
 ```
 
-*This section written by Copilot*
+_This section written by Copilot_
 
 A test then substitutes the mock for the real module with `jest.mock`, using paths relative to the test file, e.g.:
 
@@ -546,6 +550,62 @@ Here is the output from the parameterized test:
     ✓ Input Task: Valid Station Keeping, Select all Options (119 ms)
     ✓ Input Task: Valid None Task Type, Select all Options (119 ms)
 ```
+
+## Tests That Pass for the Wrong Reason
+
+_This section written by Claude_
+
+A failing test tells you something is broken. A passing test only tells you something
+useful if it _could_ have failed. These three traps each produced a test that passed
+while proving nothing.
+
+### A Mocked Library Means You Are Testing the Mock
+
+`moduleNameMapper` in `jest.config.js` can replace a third-party library wholesale, and
+nothing at the call site says so. `clipper2-ts`, the polygon library used for exclusion
+zone safety buffers, is replaced by a stub in `src/web/tests/__mocks__/clipper2-ts.ts`
+whose `union` returns its input unchanged, whose `inflatePaths` scales each vertex
+outward from the average of the polygon's vertices, and whose path simplification is the
+identity function.
+
+The buffer tests therefore exercise the stub, not the library — and the stub's outward
+scaling is the exact approach the real code was changed _away_ from, because a vertex
+average is not guaranteed to lie inside a concave polygon. Anything that depends on the
+real library's behaviour cannot be reproduced under Jest at all; verifying it needs a
+standalone script run against the real package.
+
+Before trusting a test that exercises a third-party library, check `moduleNameMapper`
+and `src/web/tests/__mocks__/` for whether that library is actually present. Treat green
+results as evidence about your own logic, not about the dependency underneath it.
+
+### Assert the Precondition
+
+A test for "X is preserved" passes trivially if X was never at risk. If the behaviour
+under test only applies in a particular state, assert that the state holds before
+exercising it.
+
+For example, a test that a mission keeps its route when an unrelated edit occurs will
+pass whether or not the fix works, if the mission happened to be protected by some other
+mechanism. Asserting first that no protection was in play is what makes the test
+meaningful:
+
+```ts
+// Without this the test would also pass against a handler that simply refused the
+// edit, since that left the same waypoints behind.
+expect(obstacleAvoidanceData.getPendingChange()?.type).toBe("reroute");
+```
+
+### Pin Anything the Code Gets to Choose
+
+When the code under test picks between equally good options, the choice can flip on
+changes unrelated to what you are testing, and an assertion on the result becomes
+flaky — or worse, quietly starts asserting something else.
+
+Route planning is the common case here: a route through the centre of a symmetric
+exclusion zone has two equally short detours, and the pathfinder swings between them on
+any change to the search grid. Offsetting the route towards one edge forces the choice
+and makes the expected result stable. The same applies anywhere a tie exists — sort
+order over equal keys, first match among equals, layout of equally sized elements.
 
 ## Test Configuration
 

@@ -21,10 +21,6 @@ import MeasurePanel from "../components/MeasurePanel/MeasurePanel";
 import NotificationHost from "../components/Notifications/NotificationHost";
 import MissionsPanel from "../components/MissionsPanel/MissionsPanel";
 import ExclusionZonesPanel from "../components/ExclusionZonesPanel/ExclusionZonesPanel";
-import MissionRerouteDialog from "../components/MissionRerouteDialog/MissionRerouteDialog";
-import WaypointRemovalDialog from "../components/WaypointRemovalDialog/WaypointRemovalDialog";
-
-import PlacementErrorDialog from "../components/PlacementErrorDialog/PlacementErrorDialog";
 import SettingsPanel from "../components/SettingsPanel/SettingsPanel";
 import WaypointPanel from "../components/WaypointPanel/WaypointPanel";
 import ZoneVertexPanel from "../components/ZoneVertexPanel/ZoneVertexPanel";
@@ -81,9 +77,6 @@ export default function App() {
                 <SimulationBanner />
                 <NotificationDot className="jaia-about-button" />
                 <TakeControl />
-                <MissionRerouteDialog />
-                <WaypointRemovalDialog />
-                <PlacementErrorDialog />
                 <NotificationHost />
             </JaiaContextProvider>
             <div id="connection-warning">Connection to Hub Dropped</div>

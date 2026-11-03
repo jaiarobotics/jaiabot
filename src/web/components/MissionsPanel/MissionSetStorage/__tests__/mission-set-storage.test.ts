@@ -17,6 +17,7 @@ import {
     loadSnapshotFromHub,
     LoadResultType,
     loadSnapshotFromFile,
+    migrateMission_2_1,
 } from "../mission-set-storage";
 import { UNASSIGNED_ID } from "../../../../utils/constants";
 
@@ -69,19 +70,17 @@ describe("Exercise functions to save and load missions from the hub", () => {
         // Create test mission set
         let mission1 = new Mission();
         mission1.addWaypoint(locationA);
-        let waypoint1 = mission1.getWaypoint(1);
         let task1 = new Task();
         task1.setType(MissionTask_TaskType.DIVE);
         task1.setParameter({ key: TaskParameterKeys.MAX_DEPTH, value: 13 });
-        waypoint1.setTask(task1);
+        mission1.setWaypointTask(1, task1);
         mission1.addWaypoint(locationB);
 
         let mission2 = new Mission();
         mission2.addWaypoint(locationC);
-        let waypoint2 = mission2.getWaypoint(1);
         let task2 = new Task();
         task2.setType(MissionTask_TaskType.STATION_KEEP);
-        waypoint2.setTask(task2);
+        mission2.setWaypointTask(1, task2);
         mission2.addWaypoint(locationD);
 
         const mission1ID = missionSet.addMission(mission1);
@@ -307,7 +306,7 @@ describe("Exercise functions to save and load missions from the hub", () => {
                         1,
                         {
                             waypoints: [{ location: locationD }],
-                            segments: [{ start_goal_index: 1 }],
+                            firstSegment: { speed: 2 },
                         },
                     ],
                 ],
@@ -404,6 +403,84 @@ describe("Exercise functions to save and load missions from the hub", () => {
     test("loadSnapshotFromFile reports a file holding null as invalid", async () => {
         const result = await loadFromFile("null");
         expect(result.resultType).toBe(LoadResultType.INVALID_FORMAT);
+        expect(result.snapshot).toBeNull();
+    });
+
+    test("Migrate 2.1: indexed segments become first-segment settings and markers", async () => {
+        const srp = { safety_depth: "5" };
+        fakeHubStorage["Set-2.1"] = {
+            version: "2.1",
+            name: "Set-2.1",
+            nextMissionID: 2,
+            missionIDInEditMode: UNASSIGNED_ID,
+            missions: [
+                [
+                    1,
+                    {
+                        waypoints: [
+                            { location: locationA },
+                            { location: locationB, isBypass: true },
+                            { location: locationC },
+                            { location: locationD },
+                        ],
+                        segments: [
+                            { start_goal_index: 0, speed: 1, bottom_depth_safety_params: srp },
+                            { start_goal_index: 2, lane_start_goal_indices: [3], speed: 2 },
+                        ],
+                    },
+                ],
+            ],
+        };
+
+        const loadResult = await loadSnapshotFromHub("Set-2.1");
+
+        expect(loadResult.resultType).toBe(LoadResultType.OLD_FORMAT);
+        const [, mission] = loadResult.snapshot!.missions[0];
+        expect(mission.getWaypoint(2)!.getIsDetour()).toBe(true);
+        // The detour before the second segment's start belongs to that segment
+        expect(mission.getSegments()).toEqual([
+            { start_goal_index: 0, speed: 1, bottom_depth_safety_params: srp },
+            { start_goal_index: 1, lane_start_goal_indices: [3], speed: 2 },
+        ]);
+        expect((mission as any).segments).toBeUndefined();
+    });
+
+    test("Migrate 2.1: a segment or lane start saved on a detour moves to the next waypoint", () => {
+        const migrated = migrateMission_2_1({
+            waypoints: [
+                { location: locationA },
+                { location: locationB, isBypass: true },
+                { location: locationC },
+                { location: locationD },
+            ],
+            segments: [
+                { start_goal_index: 0, speed: 1 },
+                { start_goal_index: 1, lane_start_goal_indices: [1], speed: 2 },
+            ],
+        });
+
+        expect(migrated.waypoints[1]).toEqual({ location: locationB, isDetour: true });
+        expect(migrated.waypoints[2]).toEqual({
+            location: locationC,
+            segmentStart: { speed: 2 },
+            isLaneStart: true,
+        });
+    });
+
+    test("refuses a mission set from the hub with a version it does not know", async () => {
+        fakeHubStorage["Newer-Set"] = { version: "9.9", name: "Newer-Set", missions: [] };
+
+        const loadResult = await loadSnapshotFromHub("Newer-Set");
+
+        expect(loadResult).toEqual({ snapshot: null, resultType: LoadResultType.UNKNOWN_FORMAT });
+    });
+
+    test("refuses a mission set file with a version it does not know", async () => {
+        const result = await loadFromFile(
+            JSON.stringify({ version: "9.9", snapshot: { name: "Newer", missions: [] } }),
+        );
+
+        expect(result.resultType).toBe(LoadResultType.UNKNOWN_FORMAT);
         expect(result.snapshot).toBeNull();
     });
 });

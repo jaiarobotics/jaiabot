@@ -6,21 +6,66 @@
     scrollbar-width: none;
 }
 
+@status-icon-gap: 8px;
+
+.mission-accordion-header {
+    display: block;
+    position: relative;
+    margin: 1px 0 0 0;
+}
+
 .mission-accordion-summary {
-    gap: 12px;
-    margin: 1px 0 0 0 !important;
+    gap: 4px;
+    padding: 0 8px !important;
     background-color: @cc-accordian-color !important;
     color: @cc-text-color-light !important;
 }
 
-.mission-accordion-title {
-    width: 100%;
+// Leaves room for two status icons.
+// The margins keep MUI's 48 px and 64 px header heights with a two-line title.
+.mission-accordion-summary .MuiAccordionSummary-content {
+    min-width: 0;
+    margin: 6px 0;
+    padding-right: 2 * @status-icon-size + 2 * @status-icon-gap;
+}
+
+.mission-accordion-summary .MuiAccordionSummary-content.Mui-expanded {
+    margin: 14px 0;
+}
+
+.mission-status-icons {
+    position: absolute;
+    top: 50%;
+    right: @status-icon-inset;
+    transform: translateY(-50%);
     display: flex;
-    justify-content: space-between;
+    gap: @status-icon-gap;
+    // Taps between icons, or on a disabled one, reach the summary underneath
+    pointer-events: none;
+
+    > * {
+        pointer-events: auto;
+    }
+}
+
+.mission-accordion-title {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    white-space: nowrap;
+}
+
+.mission-accordion-title p {
+    margin: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .mission-assignment {
+    font-size: 14px;
     font-style: italic;
+    // Room for the italic overhang, which overflow: hidden would clip
+    padding-right: 2px;
 }
 
 .mission-accordion-details {

@@ -8,6 +8,7 @@ import { JCC_CONTAINER, MAX_SEGMENTS, MAX_WAYPOINTS } from "../../../utils/const
 import {
     listSavedMissionSetsFromHub,
     loadSnapshotFromHub,
+    LoadResultType,
 } from "../MissionSetStorage/mission-set-storage";
 import { MissionSetSnapshot } from "../../../data/mission_set/mission-set";
 import {
@@ -108,7 +109,15 @@ export function MissionSetEditorDialog(props: DialogProps) {
         if (!missionSetSnapshotCache.current.has(selectedSavedName)) {
             try {
                 const loadResult = await loadSnapshotFromHub(selectedSavedName);
-                missionSetSnapshotCache.current.set(selectedSavedName, loadResult.snapshot!);
+                if (!loadResult.snapshot) {
+                    setLimitWarning(
+                        loadResult.resultType === LoadResultType.UNKNOWN_FORMAT
+                            ? `"${selectedSavedName}" was saved in an unknown format, possibly by a newer version of JCC, and cannot be added.`
+                            : `"${selectedSavedName}" could not be loaded.`,
+                    );
+                    return;
+                }
+                missionSetSnapshotCache.current.set(selectedSavedName, loadResult.snapshot);
             } catch (error) {
                 console.error(
                     `Failed to load mission set "${selectedSavedName}" from the hub:`,

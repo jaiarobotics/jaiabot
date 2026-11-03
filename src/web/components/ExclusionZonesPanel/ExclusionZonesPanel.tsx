@@ -18,8 +18,8 @@ export default function ExclusionZonesPanel() {
     const jaiaDispatch = useContext(JaiaDispatchContext);
 
     const isDrawing = exclusionZoneLayer.isDrawActive();
-    const zoneCount = jaiaContext!.exclusionZoneSet?.getZones().size ?? 0;
-    const zoneSetName = jaiaContext!.exclusionZoneSet?.getName() ?? "";
+    const zoneCount = jaiaContext!.exclusionZoneSet.getZones().size;
+    const zoneSetName = jaiaContext!.exclusionZoneSet.getName();
 
     const handleDrawClick = () => jaiaDispatch({ type: JaiaActions.TOGGLE_EXCLUSION_ZONE_DRAWING });
     const handleClearClick = () => jaiaDispatch({ type: JaiaActions.CLEAR_EXCLUSION_ZONES });

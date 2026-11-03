@@ -5,6 +5,7 @@ interface DialogProps {
     isVisible: boolean;
     botReadyStates: Map<DisabledCodes, number[]>;
     numBots: number;
+    routeWarnings: string[];
     onClose: (dialogAction: DialogActions) => void;
 }
 
@@ -130,6 +131,9 @@ export function StartAllMissionsDialog(props: DialogProps) {
             <div className={getClassName()}>
                 <Title botReadyStates={props.botReadyStates} />
                 {formatMessage()}
+                {props.routeWarnings.map((warning) => (
+                    <p key={warning}>{warning}</p>
+                ))}
                 <ButtonRow
                     botReadyStates={props.botReadyStates}
                     onClose={(dialogAction) => props.onClose(dialogAction)}
