@@ -662,11 +662,11 @@ message StormCTDProfile
 message TaskPacket
 {
     /*
-        Actual maximum size of message: 224 bytes / 1792 bits
+        Actual maximum size of message: 234 bytes / 1872 bits
             dccl.id head..........................16
             user head..............................0
-            body................................1776
-            padding to full byte...................0
+            body................................1851
+            padding to full byte...................5
     Allowed maximum size of message: 250 bytes / 2000 bits
     */
     option (dccl.msg) = {

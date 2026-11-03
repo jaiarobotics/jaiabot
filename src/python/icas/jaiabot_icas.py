@@ -66,6 +66,9 @@ COMPLETE_MARKER_NAME = 'icas_air_descent_complete'
 # more than the peripheral's 2048-sample ring buffer, so any replay is recognized
 SEEN_SAMPLES_MAX = 4096
 
+# release held replay samples anyway if the peripheral never reports leaving dump mode
+HOLD_TIMEOUT_SECONDS = 30
+
 
 class ICASUdpPublisher:
     def __init__(self, port: int):
@@ -99,20 +102,52 @@ class ICASUdpPublisher:
 
 class SampleTracker:
     """Drops samples re-sent by the peripheral's ring buffer replay on reconnect, and estimates
-    each sample's wall-clock time from the peripheral's uptime clock (t_us)."""
+    each sample's wall-clock time from the peripheral's uptime clock (t_us).
 
-    def __init__(self):
+    Replayed samples arrive long after they were taken, so they are held until a live sample
+    gives an accurate offset between the two clocks."""
+
+    def __init__(self, publish):
+        self._publish = publish
         self._seen = set()
         self._seen_order = deque()
         self._max_seq = None
         # min(host_time - t_us): least-delayed packet gives the best boot-time estimate
         self._offset_us = None
+        self._offset_from_live = False
+        self._dump_mode = None
+        self._held = []
+        self._hold_start = None
 
     def _reset(self):
+        self.flush()
         self._seen.clear()
         self._seen_order.clear()
         self._max_seq = None
         self._offset_us = None
+        self._offset_from_live = False
+
+    def start_session(self):
+        # peripheral replays its ring buffer each time we subscribe
+        self._dump_mode = None
+
+    def set_dump_mode(self, dump_mode: bool):
+        self._dump_mode = dump_mode
+
+    def flush(self):
+        for data in self._held:
+            self._send(data)
+        self._held.clear()
+
+    def flush_if_stale(self):
+        if self._held and time.monotonic() - self._hold_start >= HOLD_TIMEOUT_SECONDS:
+            lg.warning('No live ICAS sample after %d s; releasing %d held samples with an '
+                       'estimated time', HOLD_TIMEOUT_SECONDS, len(self._held))
+            self.flush()
+
+    def _send(self, data: ICASData):
+        data.sample_time = data.t_us + self._offset_us
+        self._publish(data)
 
     def accept(self, data: ICASData, host_time_us: int) -> bool:
         key = (data.seq, data.t_us)
@@ -132,7 +167,16 @@ class SampleTracker:
 
         offset = host_time_us - data.t_us
         self._offset_us = offset if self._offset_us is None else min(self._offset_us, offset)
-        data.sample_time = data.t_us + self._offset_us
+        if self._dump_mode is False:
+            self._offset_from_live = True
+
+        if self._offset_from_live:
+            self.flush()
+            self._send(data)
+        else:
+            if not self._held:
+                self._hold_start = time.monotonic()
+            self._held.append(data)
         return True
 
 
@@ -237,16 +281,17 @@ async def run_session(args, publisher: ICASUdpPublisher, tracker: SampleTracker)
             except struct.error as e:
                 lg.warning('Failed to decode DATA packet (%d bytes): %s', len(payload), e)
                 return
-            if tracker.accept(data, int(time.time() * 1e6)):
-                publisher.send_data(data)
-            else:
+            if not tracker.accept(data, int(time.time() * 1e6)):
                 lg.debug('Dropping replayed ICAS sample (seq=%d)', data.seq)
 
         def on_status(_characteristic, payload: bytearray):
             try:
-                publisher.send_status(decode_status(bytes(payload)))
+                status = decode_status(bytes(payload))
             except struct.error as e:
                 lg.warning('Failed to decode STATUS packet (%d bytes): %s', len(payload), e)
+                return
+            tracker.set_dump_mode(status.dump_mode)
+            publisher.send_status(status)
 
         def on_adc(_characteristic, payload: bytearray):
             try:
@@ -254,6 +299,7 @@ async def run_session(args, publisher: ICASUdpPublisher, tracker: SampleTracker)
             except struct.error as e:
                 lg.warning('Failed to decode ADC packet (%d bytes): %s', len(payload), e)
 
+        tracker.start_session()
         await client.start_notify(DATA_CHAR_UUID, on_data)
         await client.start_notify(STATUS_CHAR_UUID, on_status)
         if args.adc_enabled:
@@ -270,6 +316,7 @@ async def run_session(args, publisher: ICASUdpPublisher, tracker: SampleTracker)
             if air_descent_complete(args):
                 lg.info('Air descent complete, disconnecting from ICAS peripheral')
                 return
+            tracker.flush_if_stale()
             await asyncio.sleep(1)
 
     lg.warning('Disconnected from ICAS peripheral')
@@ -290,7 +337,7 @@ def air_descent_complete(args) -> bool:
 async def main_loop(args):
     publisher = ICASUdpPublisher(args.port)
     # persists across reconnects so ring buffer replays are de-duplicated
-    tracker = SampleTracker()
+    tracker = SampleTracker(publisher.send_data)
 
     # not every STORM bot carries an ICAS, so only warn once until it is found
     not_found_logged = False
@@ -306,6 +353,9 @@ async def main_loop(args):
             lg.warning('BLE error: %s', e)
         except asyncio.TimeoutError:
             lg.warning('Timed out communicating with ICAS peripheral')
+        finally:
+            # held samples are already marked seen, so a later replay won't resend them
+            tracker.flush()
 
         lg.info('Retrying in %d seconds...', RECONNECT_DELAY_SECONDS)
         await asyncio.sleep(RECONNECT_DELAY_SECONDS)

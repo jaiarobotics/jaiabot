@@ -90,6 +90,14 @@ message StormAirDescentICASData
             max: 100
             precision: 1
         }];
+
+        // seconds after the TaskPacket start_time; samples are unevenly spaced after downsampling
+        optional uint32 time_offset = 3 [(dccl.field) = {
+            units { base_dimensions: "T" }
+            min: 0
+            max: 1800
+            precision: 0
+        }];
     }
 
     required uint32 packet_index = 1 [(dccl.field) = { min: 0 max: 99 }];

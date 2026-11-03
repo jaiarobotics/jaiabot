@@ -20,6 +20,7 @@
 // You should have received a copy of the GNU General Public License
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
+#include <cmath>
 #include <numeric>
 
 #include "../../states.h"
@@ -222,6 +223,12 @@ void jaiabot::statechart::self_test::AirDescentDataOffload::convert_icas_data_to
                                                .GetExtension(dccl::field)
                                                .max_repeat();
 
+    const double max_time_offset = protobuf::StormAirDescentICASData::Sample::descriptor()
+                                       ->FindFieldByName("time_offset")
+                                       ->options()
+                                       .GetExtension(dccl::field)
+                                       .max();
+
     const std::size_t max_task_packets =
         std::max(1, this->cfg().icas_air_descent_max_task_packets());
     const std::size_t max_total_samples = samples_per_packet * max_task_packets;
@@ -256,6 +263,8 @@ void jaiabot::statechart::self_test::AirDescentDataOffload::convert_icas_data_to
         const std::size_t chunk_end =
             std::min(chunk_start + samples_per_packet, selected_indices.size());
 
+        const auto start_time = icas_samples[selected_indices[chunk_start]].sample_time;
+
         protobuf::StormAirDescentICASData icas_data;
         icas_data.set_packet_index(packet_index);
         for (std::size_t i = chunk_start; i < chunk_end; ++i)
@@ -264,13 +273,18 @@ void jaiabot::statechart::self_test::AirDescentDataOffload::convert_icas_data_to
             auto* out_sample = icas_data.add_sample();
             out_sample->set_temperature(sample.data.temperature_celsius());
             out_sample->set_relative_humidity(sample.data.relative_humidity_percent());
+
+            // left unset if out of order or beyond the DCCL range
+            const double time_offset =
+                std::round(goby::time::SITime(sample.sample_time - start_time).value());
+            if (time_offset >= 0 && time_offset <= max_time_offset)
+                out_sample->set_time_offset(time_offset);
         }
 
         protobuf::TaskPacket task_packet;
         task_packet.set_bot_id(this->cfg().bot_id());
         task_packet.set_type(protobuf::MissionTask::STORM_AIR_DESCENT);
-        task_packet.set_start_time_with_units(
-            icas_samples[selected_indices[chunk_start]].sample_time);
+        task_packet.set_start_time_with_units(start_time);
         task_packet.set_end_time_with_units(
             icas_samples[selected_indices[chunk_end - 1]].sample_time);
         *task_packet.mutable_icas_air_descent() = icas_data;
