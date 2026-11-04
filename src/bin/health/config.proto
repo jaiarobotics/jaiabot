@@ -82,6 +82,14 @@ message MotorStatusConfig
     optional int32 motor_thermistor_report_timeout_seconds = 11 [default = 40];
     optional jaiabot.protobuf.MotorHarnessType motor_harness_type = 12 [default = NONE];
 
+    // Power board motor thermistor divider (schematic S10122-03, Motor sheet)
+    optional double power_board_thermistor_supply_voltage = 13 [default = 5.0];
+    optional double power_board_thermistor_fixed_ohms = 14 [default = 10000];
+    // reported voltage / divider node voltage
+    optional double power_board_thermistor_adc_gain = 15 [default = 0.6666667];
+    // true: thermistor between supply and divider node, fixed resistor to GND
+    optional bool power_board_thermistor_high_side = 16 [default = true];
+
     optional string vehicle_db_path = 50 [default = "/var/log/jaiabot/db/vehicle.db"];
     optional string tail_serial_number = 51 [default = "unknown_serial_number"];
     optional string bot_vin = 52 [default = "unknown_vin"];

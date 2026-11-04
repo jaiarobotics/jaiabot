@@ -6,3 +6,4 @@ if(NOT fetch_drivers_result EQUAL 0)
 endif()
 
 add_subdirectory(bio_payload)
+add_subdirectory(power_board)

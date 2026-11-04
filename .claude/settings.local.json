@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 config/gen/bot.py jaiabot_simulator)",
+      "Bash(jaia_bot_index=1 jaia_warp=1 jaia_electronics_stack=2 jaia_bot_type=HYDRO ../../gen/bot.py jaiabot_simulator)"
+    ]
+  }
+}
