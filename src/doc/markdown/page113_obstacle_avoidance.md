@@ -232,6 +232,12 @@ first plans 2.5 m clear of each zone. Clipper2's decimal functions inflate by th
 a tenth of it, then simplify with a tolerance of a tenth. _If ignored:_ simplifying first, or the
 integer functions, which round to whole metres, let corners come closer than the clearance.
 
+**A leg out of or into a waypoint inside a zone's planning clearance is tested by distance:
+it may never come closer to that zone than the waypoint is.** Every leg from such a waypoint
+crosses the clearance's outline or runs inside it, so the outline test would reject them all.
+Other zones still get the full clearance. _If ignored:_ the detour keeps the grid cell the search
+started from, which can lie behind the waypoint, and the route doubles back.
+
 **A detour is kept only if every leg of it passes the leg test the status icons use.** The A\*
 search does not test every step it takes: a grid step can cut a zone's corner, and a leg whose
 ends are both inside the planning clearance never crosses its outline. _If ignored:_ Reroute
@@ -291,6 +297,10 @@ bow-tie. The router handles it, but the area excluded is not the one the operato
 every tracked action, so after a reroute that leaves the missions as they were ("no detours
 needed", or "Not rerouted"), the next toolbar Undo appears to do nothing. Skipping it needs a way
 for a handler to tell the reducer not to save history.
+
+**A route can run close to a zone after a waypoint placed close to it.** A leg leaving a
+waypoint inside the 2.5 m planning clearance may run along the zone at the waypoint's own
+distance, for as long as the detour needs, instead of stepping out to 2.5 m.
 
 **Zones across ±180° longitude** project to a shape spanning the globe in their latitude band,
 so waypoints anywhere in that band count as blocked.

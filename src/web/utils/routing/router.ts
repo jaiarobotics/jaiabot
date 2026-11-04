@@ -219,6 +219,66 @@ function dist(A: XYPt, B: XYPt): number {
     return Math.sqrt(distSq(A, B));
 }
 
+/**
+ * Returns the distance from point P to segment AB.
+ *
+ * @param {XYPt} P Point to measure from
+ * @param {XYPt} A Start of the segment
+ * @param {XYPt} B End of the segment
+ * @returns {number} Distance, in the points' units
+ */
+function pointSegmentDistance(P: XYPt, A: XYPt, B: XYPt): number {
+    const lengthSq = distSq(A, B);
+    const t =
+        lengthSq === 0
+            ? 0
+            : Math.max(
+                  0,
+                  Math.min(1, ((P.x - A.x) * (B.x - A.x) + (P.y - A.y) * (B.y - A.y)) / lengthSq),
+              );
+    return dist(P, { x: A.x + t * (B.x - A.x), y: A.y + t * (B.y - A.y) });
+}
+
+/**
+ * Returns the distance from point P to the outline of a polygon.
+ *
+ * @param {XYPt} P Point to measure from
+ * @param {readonly XYPt[]} poly Polygon vertices in order
+ * @returns {number} Distance, in the points' units
+ */
+function pointPolygonDistance(P: XYPt, poly: readonly XYPt[]): number {
+    let nearest = Infinity;
+    for (let i = 0; i < poly.length; i++) {
+        nearest = Math.min(nearest, pointSegmentDistance(P, poly[i], poly[(i + 1) % poly.length]));
+    }
+    return nearest;
+}
+
+/**
+ * Returns the distance from segment AB to the outline of a polygon: 0 if they cross.
+ *
+ * @param {XYPt} A Start of the segment
+ * @param {XYPt} B End of the segment
+ * @param {readonly XYPt[]} poly Polygon vertices in order
+ * @returns {number} Distance, in the points' units
+ */
+function segmentPolygonDistance(A: XYPt, B: XYPt, poly: readonly XYPt[]): number {
+    if (segmentIntersectsPolygon(A, B, poly)) return 0;
+    let nearest = Infinity;
+    for (let i = 0; i < poly.length; i++) {
+        const C = poly[i];
+        const D = poly[(i + 1) % poly.length];
+        nearest = Math.min(
+            nearest,
+            pointSegmentDistance(A, C, D),
+            pointSegmentDistance(B, C, D),
+            pointSegmentDistance(C, A, B),
+            pointSegmentDistance(D, A, B),
+        );
+    }
+    return nearest;
+}
+
 // ── Polygon expansion ──────────────────────────────────────────────────────────
 
 /**
@@ -465,14 +525,36 @@ function findBypassPath(A: XYPt, B: XYPt, zoneGeoms: ZoneGeom[]): XYPt[] {
         // Every zone reaching into the grid still blocks cells, not just the ones
         // blocking the direct line, so a detour cannot be routed through a zone it
         // merely passes near. Zones outside the grid contain none of its cells.
-        const gridPolys = collisionPolys.filter((poly) =>
-            polygonOverlapsBounds(poly, { minX, minY, maxX, maxY }),
+        const gridZones = zoneGeoms.flatMap((zg, k) =>
+            polygonOverlapsBounds(collisionPolys[k], { minX, minY, maxX, maxY })
+                ? [{ vertices: zg.vertices, clearance: collisionPolys[k] }]
+                : [],
         );
-        const gridZones = zoneGeoms.filter((zg) =>
-            polygonOverlapsBounds(zg.vertices, { minX, minY, maxX, maxY }),
-        );
-        const crossesZone = (P: XYPt, Q: XYPt) =>
-            gridZones.some((zg) => segmentIntersectsPolygon(P, Q, zg.vertices));
+        const gridPolys = gridZones.map((zone) => zone.clearance);
+
+        // Per zone, how far a point inside that zone's clearance is from it; 0 if not inside.
+        const distancesInClearance = new Map<XYPt, number[]>();
+        const distanceInClearance = (P: XYPt, k: number) => {
+            let distances = distancesInClearance.get(P);
+            if (!distances) {
+                distances = gridZones.map((z) =>
+                    pointInPolygon(P, z.clearance) ? pointPolygonDistance(P, z.vertices) : 0,
+                );
+                distancesInClearance.set(P, distances);
+            }
+            return distances[k];
+        };
+        // A waypoint inside a clearance can't be left without crossing it, so its legs need
+        // only keep as far from that zone as the waypoint is.
+        const isLegClear = (P: XYPt, Q: XYPt) =>
+            gridZones.every((zone, k) => {
+                const near = Math.min(
+                    distanceInClearance(P, k) || Infinity,
+                    distanceInClearance(Q, k) || Infinity,
+                );
+                if (near === Infinity) return !segmentIntersectsPolygon(P, Q, zone.clearance);
+                return segmentPolygonDistance(P, Q, zone.vertices) >= near;
+            });
 
         // Mark blocked cells — any cell whose centre is inside an expanded polygon.
         const blocked = new Uint8Array(cols * rows);
@@ -496,11 +578,12 @@ function findBypassPath(A: XYPt, B: XYPt, zoneGeoms: ZoneGeom[]): XYPt[] {
         const startCell = ptToCell(A);
         const goalCell = ptToCell(B);
 
-        // Nearest free cell the point can reach without crossing a zone, its own cell if possible.
+        // A free cell joined to the point by a clear leg: its own if possible, else the first found
+        // ring by ring.
         const findFreeNear = (
             col: number,
             row: number,
-            from: XYPt,
+            isJoinClear: (centre: XYPt) => boolean,
         ): { col: number; row: number } | null => {
             for (let r = 0; r <= 5; r++) {
                 for (let dc = -r; dc <= r; dc++) {
@@ -511,16 +594,15 @@ function findBypassPath(A: XYPt, B: XYPt, zoneGeoms: ZoneGeom[]): XYPt[] {
                         if (nc < 0 || nr < 0 || nc >= cols || nr >= rows) continue;
                         if (blocked[cellToIdx(nc, nr)]) continue;
                         const centre = { x: minX + nc * cellSize, y: minY + nr * cellSize };
-                        if (crossesZone(from, centre)) continue;
-                        return { col: nc, row: nr };
+                        if (isJoinClear(centre)) return { col: nc, row: nr };
                     }
                 }
             }
             return null;
         };
 
-        const startFree = findFreeNear(startCell.col, startCell.row, A);
-        const goalFree = findFreeNear(goalCell.col, goalCell.row, B);
+        const startFree = findFreeNear(startCell.col, startCell.row, (c) => isLegClear(A, c));
+        const goalFree = findFreeNear(goalCell.col, goalCell.row, (c) => isLegClear(c, B));
 
         if (!startFree || !goalFree) return [];
 
@@ -617,10 +699,10 @@ function findBypassPath(A: XYPt, B: XYPt, zoneGeoms: ZoneGeom[]): XYPt[] {
             cur = n.parent;
         }
 
-        // A start moved off A's own cell stays in the path: the leg to it was tested when it was chosen.
-        const startMoved = startFree.col !== startCell.col || startFree.row !== startCell.row;
+        // The rebuilt path ends at the goal cell but leaves out the start cell, whose leg from A
+        // was tested when it was chosen.
         const startPt = { x: minX + startFree.col * cellSize, y: minY + startFree.row * cellSize };
-        const fullPath = startMoved ? [A, startPt, ...gridPath, B] : [A, ...gridPath, B];
+        const fullPath = [A, startPt, ...gridPath, B];
 
         // Line-of-sight simplification: from each kept point, find the farthest
         // reachable point along the full path whose direct segment is clear.
@@ -631,13 +713,7 @@ function findBypassPath(A: XYPt, B: XYPt, zoneGeoms: ZoneGeom[]): XYPt[] {
         while (i < fullPath.length - 1) {
             let farthest = i + 1;
             for (let j = i + 2; j < fullPath.length; j++) {
-                const from = simplified[simplified.length - 1];
-                // Both ends can be inside the clearance, so the zones are tested too.
-                const clear =
-                    !collisionPolys.some((poly) =>
-                        segmentIntersectsPolygon(from, fullPath[j], poly),
-                    ) && !crossesZone(from, fullPath[j]);
-                if (clear) farthest = j;
+                if (isLegClear(simplified[simplified.length - 1], fullPath[j])) farthest = j;
             }
             i = farthest;
             simplified.push(fullPath[i]);
@@ -654,12 +730,7 @@ function findBypassPath(A: XYPt, B: XYPt, zoneGeoms: ZoneGeom[]): XYPt[] {
             const curr = simplified[k];
             const next = simplified[k + 1];
             const closeToPrev = dist(prev, curr) < minBypassSpacing;
-            const canSkip = !collisionPolys.some(
-                (poly) =>
-                    segmentIntersectsPolygon(prev, next, poly) ||
-                    pointInPolygon(prev, poly) ||
-                    pointInPolygon(next, poly),
-            );
+            const canSkip = isLegClear(prev, next);
             if (closeToPrev && canSkip) continue;
             compact.push(curr);
         }
@@ -674,12 +745,7 @@ function findBypassPath(A: XYPt, B: XYPt, zoneGeoms: ZoneGeom[]): XYPt[] {
             const curr = compact[k];
             const next = compact[k + 1];
             const isBacktrack = dist(curr, B) > dist(prev, B) + backtrackTolerance;
-            const canSkip = !collisionPolys.some(
-                (poly) =>
-                    segmentIntersectsPolygon(prev, next, poly) ||
-                    pointInPolygon(prev, poly) ||
-                    pointInPolygon(next, poly),
-            );
+            const canSkip = isLegClear(prev, next);
             if (isBacktrack && canSkip) continue;
             progressSmoothed.push(curr);
         }

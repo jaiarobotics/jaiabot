@@ -477,6 +477,93 @@ describe("detours are clear of every zone", () => {
         }
     });
 
+    test("never doubles back from or to a waypoint just outside the zone", () => {
+        // Each leg's waypoints sit about 1 m from the zone, inside the planning clearance
+        exclusionZoneSet.addZone(CORNER_ZONE);
+        const ahead = (
+            from: GeographicCoordinate,
+            to: GeographicCoordinate,
+            next: GeographicCoordinate,
+        ) => {
+            const east = (p: GeographicCoordinate) =>
+                (p.lon! - from.lon!) * Math.cos((from.lat! * Math.PI) / 180);
+            const north = (p: GeographicCoordinate) => p.lat! - from.lat!;
+            return east(to) * east(next) + north(to) * north(next) > 0;
+        };
+
+        for (const leg of CORNER_LEGS) {
+            const path = routedPath(leg, routedSteps(leg));
+            const last = path.length - 1;
+            expect(path.length).toBeGreaterThan(2);
+            expect(ahead(path[0], path[1], path[last])).toBe(true);
+            expect(ahead(path[last], path[last - 1], path[0])).toBe(true);
+        }
+    });
+
+    test("never takes a leg from a waypoint just outside the zone closer to it", () => {
+        const zone = [
+            [27.19, 4.61],
+            [8.36, 19.58],
+            [-21.94, 13.16],
+            [-17.8, -9.75],
+            [3.98, -19.12],
+        ];
+        const leg = [
+            [18.2, -7.23],
+            [24.11, 9.53],
+        ];
+        const toMetres = (p: GeographicCoordinate) => [
+            (p.lon! + 72.0) * METERS_PER_DEG * Math.cos((41.0 * Math.PI) / 180),
+            (p.lat! - 41.0) * METERS_PER_DEG,
+        ];
+        const pointToSegment = ([px, py]: number[], [ax, ay]: number[], [bx, by]: number[]) => {
+            const lengthSq = (bx - ax) ** 2 + (by - ay) ** 2;
+            const t = Math.max(
+                0,
+                Math.min(1, ((px - ax) * (bx - ax) + (py - ay) * (by - ay)) / lengthSq),
+            );
+            return Math.hypot(px - ax - t * (bx - ax), py - ay - t * (by - ay));
+        };
+        const legToZone = (a: number[], b: number[]) => {
+            const steps = Math.max(1, Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1]) / 0.1));
+            let nearest = Infinity;
+            for (let k = 0; k <= steps; k++) {
+                const p = [a[0] + ((b[0] - a[0]) * k) / steps, a[1] + ((b[1] - a[1]) * k) / steps];
+                for (let e = 0; e < zone.length; e++) {
+                    nearest = Math.min(
+                        nearest,
+                        pointToSegment(p, zone[e], zone[(e + 1) % zone.length]),
+                    );
+                }
+            }
+            return nearest;
+        };
+        exclusionZoneSet.addZone({ vertices: zone.map(([x, y]) => metres(x, y)) });
+        const waypoints = leg.map(([x, y]) => metres(x, y));
+
+        const path = routedPath(waypoints, routedSteps(waypoints)).map(toMetres);
+
+        const last = path.length - 1;
+        expect(legToZone(path[0], path[1])).toBeGreaterThan(legToZone(path[0], path[0]) - 0.05);
+        expect(legToZone(path[last - 1], path[last])).toBeGreaterThan(
+            legToZone(path[last], path[last]) - 0.05,
+        );
+    });
+
+    test("routes a leg whose search starts from a cell next to the waypoint's own", () => {
+        const zone = [
+            [33.08, -4.6],
+            [-12.19, 21.17],
+            [-6.81, -21.25],
+        ];
+        expect(
+            routeLeg(zone, [
+                [-1.67, 16.92],
+                [16.8, -12.51],
+            ]),
+        ).toBe("clear");
+    });
+
     test("starts a detour from a cell the waypoint reaches without crossing the zone", () => {
         // Both ends are within the planning clearance, near the triangle's corners
         const zone = [
