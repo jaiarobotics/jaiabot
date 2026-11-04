@@ -232,6 +232,12 @@ first plans 2.5 m clear of each zone. Clipper2's decimal functions inflate by th
 a tenth of it, then simplify with a tolerance of a tenth. _If ignored:_ simplifying first, or the
 integer functions, which round to whole metres, let corners come closer than the clearance.
 
+**A detour is kept only if every leg of it passes the leg test the status icons use.** The A\*
+search does not test every step it takes: a grid step can cut a zone's corner, and a leg whose
+ends are both inside the planning clearance never crosses its outline. _If ignored:_ Reroute
+reports a mission rerouted while its status icon stays red, and rerouting again gives the same
+detour.
+
 **Size the search grid from the blocking zones, but test against every zone reaching into it.**
 _If ignored:_ sizing it from the whole zone set makes the search area scale with the distance
 between unrelated zones, up to tens of millions of cells; narrowing the collision test to the
@@ -270,8 +276,8 @@ width quadruples the work. On a development machine, one blocking zone and one l
 290 ms for a 1 km zone, 1.1 s for 4 km and 2.1 s for 6 km. The search is synchronous, runs once
 per blocked leg per mission, and twice per leg when the first clearance fails. A tablet is
 several times slower. A ceiling on grid cells reports the leg unroutable instead of freezing.
-The remedy is a cell size that scales with the search area, paired with an exact check of the
-final path, since a zone narrower than a cell can slip between cell centres.
+The remedy is a cell size that scales with the search area. A zone narrower than a cell can then
+slip between cell centres, and the check of each detour reports that leg as unroutable.
 
 **Some legs are not routed.** The bot's leg to waypoint 1 is not routed, because the bot moves
 and a detour planned in advance would be stale; Run warns when that straight leg crosses a zone.

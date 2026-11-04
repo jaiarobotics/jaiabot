@@ -306,6 +306,20 @@ function zonesBlockingSegment(A: XYPt, B: XYPt, zoneGeoms: ZoneGeom[]): ZoneGeom
 }
 
 /**
+ * Whether any leg between consecutive points is blocked by a zone, by `zonesBlockingSegment`.
+ *
+ * @param {readonly XYPt[]} points Projected points of the route, in order
+ * @param {ZoneGeom[]} zoneGeoms Projected zone geometry to test against
+ * @returns {boolean} Whether any leg is blocked
+ */
+function anyLegBlocked(points: readonly XYPt[], zoneGeoms: ZoneGeom[]): boolean {
+    for (let i = 0; i < points.length - 1; i++) {
+        if (zonesBlockingSegment(points[i], points[i + 1], zoneGeoms).length > 0) return true;
+    }
+    return false;
+}
+
+/**
  * Projects every exclusion zone. A zone is projected once and reused until the zone is
  * replaced.
  *
@@ -399,15 +413,15 @@ class MinHeap {
 
 /**
  * Finds a clear path from A to B avoiding every zone using A* on a regular grid.
- * Returns intermediate bypass points (excluding A and B), or [] if no bypass is
- * needed or the direct path is already clear.
+ * Returns intermediate bypass points (excluding A and B), or [] if no clear bypass
+ * is found or the direct path is already clear.
  *
  * Grid approach is robust for any zone shape — concave, complex, or irregular.
  *
  * @param {XYPt} A Start point of the segment to route
  * @param {XYPt} B End point of the segment to route
  * @param {ZoneGeom[]} zoneGeoms Projected zones to avoid
- * @returns {XYPt[]} Intermediate bypass waypoints between A and B, or empty array if no bypass is needed
+ * @returns {XYPt[]} Intermediate bypass waypoints between A and B, or an empty array
  */
 function findBypassPath(A: XYPt, B: XYPt, zoneGeoms: ZoneGeom[]): XYPt[] {
     // Grid sizes and tolerances are set in metres and converted at the leg's latitude.
@@ -416,6 +430,8 @@ function findBypassPath(A: XYPt, B: XYPt, zoneGeoms: ZoneGeom[]): XYPt[] {
     const gridPadding = GRID_PADDING * scale;
     const minBypassSpacing = MIN_BYPASS_SPACING * scale;
     const backtrackTolerance = BACKTRACK_TOLERANCE * scale;
+    // The search does not test every step it takes, so a detour is kept only if every leg is clear.
+    const isClear = (detour: XYPt[]) => !anyLegBlocked([A, ...detour, B], zoneGeoms);
 
     const tryFindBypass = (planningClearance: number): XYPt[] => {
         const collisionPolys =
@@ -452,6 +468,11 @@ function findBypassPath(A: XYPt, B: XYPt, zoneGeoms: ZoneGeom[]): XYPt[] {
         const gridPolys = collisionPolys.filter((poly) =>
             polygonOverlapsBounds(poly, { minX, minY, maxX, maxY }),
         );
+        const gridZones = zoneGeoms.filter((zg) =>
+            polygonOverlapsBounds(zg.vertices, { minX, minY, maxX, maxY }),
+        );
+        const crossesZone = (P: XYPt, Q: XYPt) =>
+            gridZones.some((zg) => segmentIntersectsPolygon(P, Q, zg.vertices));
 
         // Mark blocked cells — any cell whose centre is inside an expanded polygon.
         const blocked = new Uint8Array(cols * rows);
@@ -475,8 +496,12 @@ function findBypassPath(A: XYPt, B: XYPt, zoneGeoms: ZoneGeom[]): XYPt[] {
         const startCell = ptToCell(A);
         const goalCell = ptToCell(B);
 
-        // If start or goal cell is blocked, nudge to nearest free cell.
-        const findFreeNear = (col: number, row: number): { col: number; row: number } | null => {
+        // Nearest free cell the point can reach without crossing a zone, its own cell if possible.
+        const findFreeNear = (
+            col: number,
+            row: number,
+            from: XYPt,
+        ): { col: number; row: number } | null => {
             for (let r = 0; r <= 5; r++) {
                 for (let dc = -r; dc <= r; dc++) {
                     for (let dr = -r; dr <= r; dr++) {
@@ -484,19 +509,18 @@ function findBypassPath(A: XYPt, B: XYPt, zoneGeoms: ZoneGeom[]): XYPt[] {
                         const nc = col + dc,
                             nr = row + dr;
                         if (nc < 0 || nr < 0 || nc >= cols || nr >= rows) continue;
-                        if (!blocked[cellToIdx(nc, nr)]) return { col: nc, row: nr };
+                        if (blocked[cellToIdx(nc, nr)]) continue;
+                        const centre = { x: minX + nc * cellSize, y: minY + nr * cellSize };
+                        if (crossesZone(from, centre)) continue;
+                        return { col: nc, row: nr };
                     }
                 }
             }
             return null;
         };
 
-        const startFree = blocked[cellToIdx(startCell.col, startCell.row)]
-            ? findFreeNear(startCell.col, startCell.row)
-            : startCell;
-        const goalFree = blocked[cellToIdx(goalCell.col, goalCell.row)]
-            ? findFreeNear(goalCell.col, goalCell.row)
-            : goalCell;
+        const startFree = findFreeNear(startCell.col, startCell.row, A);
+        const goalFree = findFreeNear(goalCell.col, goalCell.row, B);
 
         if (!startFree || !goalFree) return [];
 
@@ -556,6 +580,15 @@ function findBypassPath(A: XYPt, B: XYPt, zoneGeoms: ZoneGeom[]): XYPt[] {
                 if (nc < 0 || nr < 0 || nc >= cols || nr >= rows) continue;
                 const nIdx = cellToIdx(nc, nr);
                 if (blocked[nIdx]) continue;
+                // A diagonal step past a blocked cell can cut the corner of the zone in it.
+                const [dc, dr] = directions[d];
+                if (
+                    dc !== 0 &&
+                    dr !== 0 &&
+                    (blocked[cellToIdx(col + dc, row)] || blocked[cellToIdx(col, row + dr)])
+                ) {
+                    continue;
+                }
 
                 const ng = currentNode.g + dirCosts[d];
                 const existing = nodes.get(nIdx);
@@ -584,7 +617,10 @@ function findBypassPath(A: XYPt, B: XYPt, zoneGeoms: ZoneGeom[]): XYPt[] {
             cur = n.parent;
         }
 
-        const fullPath = [A, ...gridPath, B];
+        // A start moved off A's own cell stays in the path: the leg to it was tested when it was chosen.
+        const startMoved = startFree.col !== startCell.col || startFree.row !== startCell.row;
+        const startPt = { x: minX + startFree.col * cellSize, y: minY + startFree.row * cellSize };
+        const fullPath = startMoved ? [A, startPt, ...gridPath, B] : [A, ...gridPath, B];
 
         // Line-of-sight simplification: from each kept point, find the farthest
         // reachable point along the full path whose direct segment is clear.
@@ -595,9 +631,12 @@ function findBypassPath(A: XYPt, B: XYPt, zoneGeoms: ZoneGeom[]): XYPt[] {
         while (i < fullPath.length - 1) {
             let farthest = i + 1;
             for (let j = i + 2; j < fullPath.length; j++) {
-                const clear = !collisionPolys.some((poly) =>
-                    segmentIntersectsPolygon(simplified[simplified.length - 1], fullPath[j], poly),
-                );
+                const from = simplified[simplified.length - 1];
+                // Both ends can be inside the clearance, so the zones are tested too.
+                const clear =
+                    !collisionPolys.some((poly) =>
+                        segmentIntersectsPolygon(from, fullPath[j], poly),
+                    ) && !crossesZone(from, fullPath[j]);
                 if (clear) farthest = j;
             }
             i = farthest;
@@ -653,11 +692,12 @@ function findBypassPath(A: XYPt, B: XYPt, zoneGeoms: ZoneGeom[]): XYPt[] {
     // First pass: small adaptive epsilon to avoid discretization edge clipping.
     const adaptiveClearance = Math.max(1, GRID_CELL_SIZE * 0.5) * scale;
     const firstPass = tryFindBypass(adaptiveClearance);
-    if (firstPass.length > 0) return firstPass;
+    if (firstPass.length > 0 && isClear(firstPass)) return firstPass;
 
     // Fallback: retry against the zones themselves (no planning clearance)
     // to reduce false "impossible" classifications in tight corridors.
-    return tryFindBypass(0);
+    const fallback = tryFindBypass(0);
+    return fallback.length > 0 && isClear(fallback) ? fallback : [];
 }
 
 // ── Public API ─────────────────────────────────────────────────────────────────
@@ -723,11 +763,7 @@ export function getBlockingZoneIDs(
  * @returns {boolean} Whether any leg of the route is blocked by a zone
  */
 export function routeNeedsBypass(route: GeographicCoordinate[], geometry: ZoneGeometry): boolean {
-    const xy = route.map(toXY);
-    for (let i = 0; i < xy.length - 1; i++) {
-        if (zonesBlockingSegment(xy[i], xy[i + 1], geometry.zones).length > 0) return true;
-    }
-    return false;
+    return anyLegBlocked(route.map(toXY), geometry.zones);
 }
 
 /**

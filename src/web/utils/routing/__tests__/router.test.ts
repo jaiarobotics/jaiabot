@@ -423,6 +423,139 @@ describe("routeNeedsBypass", () => {
     });
 });
 
+// ── Detours are clear ──────────────────────────────────────────────────────────
+
+describe("detours are clear of every zone", () => {
+    beforeEach(() => {
+        exclusionZoneSet.clearZones();
+    });
+
+    /** A point given in metres east and north of (41, -72). */
+    function metres(x: number, y: number): GeographicCoordinate {
+        return coord(
+            41.0 + y / METERS_PER_DEG,
+            -72.0 + x / (METERS_PER_DEG * Math.cos((41.0 * Math.PI) / 180)),
+        );
+    }
+
+    /** Routes a leg around a zone given in metres; returns how it ended. */
+    function routeLeg(zone: number[][], leg: number[][]): string {
+        const geometry = buildZoneGeometry(
+            new Map([[1, { vertices: zone.map(([x, y]) => metres(x, y)) }]]),
+        );
+        const waypoints = leg.map(([x, y]) => metres(x, y));
+        const routing = autoRoute(waypoints, geometry);
+        if (routing.kind !== "routed") return routing.kind;
+        return routeNeedsBypass(routedPath(waypoints, routing.steps), geometry)
+            ? "crosses"
+            : "clear";
+    }
+
+    /** A quadrilateral zone, and survey legs across it that pass close to its corners. */
+    const CORNER_ZONE: ExclusionZone = {
+        vertices: [
+            coord(41.657787190101146, -71.2814099038529),
+            coord(41.658400233754094, -71.27833288844988),
+            coord(41.65615237849735, -71.27744397288899),
+            coord(41.65548822442989, -71.27932437119085),
+        ],
+    };
+    const CORNER_LEGS = [
+        [
+            coord(41.65816642187831, -71.27955489438975),
+            coord(41.655822940921176, -71.27832170348505),
+        ],
+        [coord(41.6581993269311, -71.27944287000624), coord(41.6558558447766, -71.27820968254764)],
+    ];
+
+    test("routes a leg across a zone without clipping its corner", () => {
+        exclusionZoneSet.addZone(CORNER_ZONE);
+        const geometry = buildZoneGeometry(exclusionZoneSet.getZones());
+
+        for (const leg of CORNER_LEGS) {
+            expect(routeNeedsBypass(routedPath(leg, routedSteps(leg)), geometry)).toBe(false);
+        }
+    });
+
+    test("starts a detour from a cell the waypoint reaches without crossing the zone", () => {
+        // Both ends are within the planning clearance, near the triangle's corners
+        const zone = [
+            [16.52, 39.41],
+            [-42.27, -1.93],
+            [25.39, -28.62],
+        ];
+        expect(
+            routeLeg(zone, [
+                [26.26, -26.7],
+                [-29.37, -9.44],
+            ]),
+        ).toBe("clear");
+    });
+
+    test("routes a leg from just outside a sharp corner clear of the zone", () => {
+        const zone = [
+            [-31.79, 47.39],
+            [-54.39, -58.81],
+            [54.94, 6.05],
+        ];
+        expect(
+            routeLeg(zone, [
+                [-47.03, -55.98],
+                [45.57, 13.46],
+            ]),
+        ).toBe("clear");
+    });
+
+    test("routes every survey lane across a zone, and none still crosses it", () => {
+        // Survey-like lanes of closely spaced waypoints across rotated rectangles
+        let seed = 1;
+        const random = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+
+        for (let trial = 0; trial < 200; trial++) {
+            const width = 40 + random() * 110;
+            const height = 40 + random() * 110;
+            const turn = random() * Math.PI;
+            const rotate = ([x, y]: number[]) =>
+                metres(
+                    x * Math.cos(turn) - y * Math.sin(turn),
+                    x * Math.sin(turn) + y * Math.cos(turn),
+                );
+            const zones = new Map([
+                [
+                    1,
+                    {
+                        vertices: [
+                            [-width / 2, -height / 2],
+                            [width / 2, -height / 2],
+                            [width / 2, height / 2],
+                            [-width / 2, height / 2],
+                        ].map(rotate),
+                    },
+                ],
+            ]);
+            const spacing = 10 + random() * 40;
+            const offset = (random() - 0.5) * Math.min(width, height);
+            const heading = random() * Math.PI;
+            const lane: GeographicCoordinate[] = [];
+            for (let along = -300; along <= 300; along += spacing) {
+                lane.push(
+                    metres(
+                        along * Math.cos(heading) - offset * Math.sin(heading),
+                        along * Math.sin(heading) + offset * Math.cos(heading),
+                    ),
+                );
+            }
+            const geometry = buildZoneGeometry(zones);
+
+            const routing = autoRoute(lane, geometry);
+
+            expect(routing.kind).toBe("routed");
+            if (routing.kind !== "routed") continue;
+            expect(routeNeedsBypass(routedPath(lane, routing.steps), geometry)).toBe(false);
+        }
+    });
+});
+
 // ── Grid bounding ──────────────────────────────────────────────────────────────
 
 describe("bypass grid bounding", () => {
