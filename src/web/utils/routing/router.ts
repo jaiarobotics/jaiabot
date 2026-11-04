@@ -486,7 +486,6 @@ class MinHeap {
 function findBypassPath(A: XYPt, B: XYPt, zoneGeoms: ZoneGeom[]): XYPt[] {
     // Grid sizes and tolerances are set in metres and converted at the leg's latitude.
     const scale = unitsPerMetre((A.y + B.y) / 2);
-    const cellSize = GRID_CELL_SIZE * scale;
     const gridPadding = GRID_PADDING * scale;
     const minBypassSpacing = MIN_BYPASS_SPACING * scale;
     const backtrackTolerance = BACKTRACK_TOLERANCE * scale;
@@ -500,12 +499,14 @@ function findBypassPath(A: XYPt, B: XYPt, zoneGeoms: ZoneGeom[]): XYPt[] {
                 : zoneGeoms.map((zg) => zg.vertices);
 
         // Check if direct path is clear.
-        const blockingPolys = collisionPolys.filter(
-            (poly) =>
-                segmentIntersectsPolygon(A, B, poly) ||
-                pointInPolygon(A, poly) ||
-                pointInPolygon(B, poly),
+        const blocking = zoneGeoms.flatMap((zg, k) =>
+            segmentIntersectsPolygon(A, B, collisionPolys[k]) ||
+            pointInPolygon(A, collisionPolys[k]) ||
+            pointInPolygon(B, collisionPolys[k])
+                ? [k]
+                : [],
         );
+        const blockingPolys = blocking.map((k) => collisionPolys[k]);
         // Suppress if either endpoint is inside a zone (unroutable).
         const aInZone = zoneGeoms.some((zg) => pointInPolygon(A, zg.vertices));
         const bInZone = zoneGeoms.some((zg) => pointInPolygon(B, zg.vertices));
@@ -516,7 +517,21 @@ function findBypassPath(A: XYPt, B: XYPt, zoneGeoms: ZoneGeom[]): XYPt[] {
         // Sizing it from every zone in the set would scale the search area with the
         // distance between unrelated zones — two zones tens of kilometres apart would
         // produce a grid of tens of millions of cells for a detour around either one.
-        const { minX, minY, maxX, maxY } = boundsOf([A, B, ...blockingPolys.flat()], gridPadding);
+        const bounds = boundsOf([A, B, ...blockingPolys.flat()], gridPadding);
+        // Legs around the same zone share one lattice, so their detours meet at the same points.
+        // It is offset half a cell from the zone's first vertex so that no cell centre is on it.
+        const anchor = zoneGeoms[blocking[0]].vertices[0];
+        const cellSize = GRID_CELL_SIZE * scale;
+        const originX = anchor.x + cellSize / 2;
+        const originY = anchor.y + cellSize / 2;
+        const firstCol = Math.floor((bounds.minX - originX) / cellSize);
+        const firstRow = Math.floor((bounds.minY - originY) / cellSize);
+        const cellCentre = (col: number, row: number): XYPt => ({
+            x: originX + (firstCol + col) * cellSize,
+            y: originY + (firstRow + row) * cellSize,
+        });
+        const { x: minX, y: minY } = cellCentre(0, 0);
+        const { maxX, maxY } = bounds;
 
         const cols = Math.ceil((maxX - minX) / cellSize) + 1;
         const rows = Math.ceil((maxY - minY) / cellSize) + 1;
@@ -560,9 +575,8 @@ function findBypassPath(A: XYPt, B: XYPt, zoneGeoms: ZoneGeom[]): XYPt[] {
         const blocked = new Uint8Array(cols * rows);
         for (let row = 0; row < rows; row++) {
             for (let col = 0; col < cols; col++) {
-                const cx = minX + col * cellSize;
-                const cy = minY + row * cellSize;
-                if (gridPolys.some((poly) => pointInPolygon({ x: cx, y: cy }, poly))) {
+                const centre = cellCentre(col, row);
+                if (gridPolys.some((poly) => pointInPolygon(centre, poly))) {
                     blocked[row * cols + col] = 1;
                 }
             }
@@ -593,7 +607,7 @@ function findBypassPath(A: XYPt, B: XYPt, zoneGeoms: ZoneGeom[]): XYPt[] {
                             nr = row + dr;
                         if (nc < 0 || nr < 0 || nc >= cols || nr >= rows) continue;
                         if (blocked[cellToIdx(nc, nr)]) continue;
-                        const centre = { x: minX + nc * cellSize, y: minY + nr * cellSize };
+                        const centre = cellCentre(nc, nr);
                         if (isJoinClear(centre)) return { col: nc, row: nr };
                     }
                 }
@@ -692,16 +706,13 @@ function findBypassPath(A: XYPt, B: XYPt, zoneGeoms: ZoneGeom[]): XYPt[] {
             if (!n || n.parent === null) return [];
             const col = cur % cols;
             const row = Math.floor(cur / cols);
-            gridPath.unshift({
-                x: minX + col * cellSize,
-                y: minY + row * cellSize,
-            });
+            gridPath.unshift(cellCentre(col, row));
             cur = n.parent;
         }
 
         // The rebuilt path ends at the goal cell but leaves out the start cell, whose leg from A
         // was tested when it was chosen.
-        const startPt = { x: minX + startFree.col * cellSize, y: minY + startFree.row * cellSize };
+        const startPt = cellCentre(startFree.col, startFree.row);
         const fullPath = [A, startPt, ...gridPath, B];
 
         // Line-of-sight simplification: from each kept point, find the farthest

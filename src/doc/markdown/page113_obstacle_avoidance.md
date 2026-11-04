@@ -244,6 +244,11 @@ ends are both inside the planning clearance never crosses its outline. _If ignor
 reports a mission rerouted while its status icon stays red, and rerouting again gives the same
 detour.
 
+**Legs around the same zone share one search lattice,** offset half a cell from the first vertex
+of the first zone the leg crosses, and counted from that origin. _If ignored:_ each grid starts
+wherever its leg's box does, so parallel lanes round the same corner at points up to a cell
+apart.
+
 **Size the search grid from the blocking zones, but test against every zone reaching into it.**
 _If ignored:_ sizing it from the whole zone set makes the search area scale with the distance
 between unrelated zones, up to tens of millions of cells; narrowing the collision test to the

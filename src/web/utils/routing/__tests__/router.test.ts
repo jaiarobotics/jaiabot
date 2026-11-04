@@ -23,6 +23,14 @@ function routedSteps(waypoints: GeographicCoordinate[]): RerouteStep[] {
     return routing.steps;
 }
 
+/** A point given in metres east and north of (41, -72). */
+function metres(x: number, y: number): GeographicCoordinate {
+    return coord(
+        41.0 + y / METERS_PER_DEG,
+        -72.0 + x / (METERS_PER_DEG * Math.cos((41.0 * Math.PI) / 180)),
+    );
+}
+
 function detourCount(steps: RerouteStep[]): number {
     return steps.reduce((count, step) => count + step.detoursAfter.length, 0);
 }
@@ -430,14 +438,6 @@ describe("detours are clear of every zone", () => {
         exclusionZoneSet.clearZones();
     });
 
-    /** A point given in metres east and north of (41, -72). */
-    function metres(x: number, y: number): GeographicCoordinate {
-        return coord(
-            41.0 + y / METERS_PER_DEG,
-            -72.0 + x / (METERS_PER_DEG * Math.cos((41.0 * Math.PI) / 180)),
-        );
-    }
-
     /** Routes a leg around a zone given in metres; returns how it ended. */
     function routeLeg(zone: number[][], leg: number[][]): string {
         const geometry = buildZoneGeometry(
@@ -552,14 +552,15 @@ describe("detours are clear of every zone", () => {
 
     test("routes a leg whose search starts from a cell next to the waypoint's own", () => {
         const zone = [
-            [33.08, -4.6],
-            [-12.19, 21.17],
-            [-6.81, -21.25],
+            [-14, 21.66],
+            [-18.52, -15.61],
+            [8.38, -22.35],
+            [18.23, 6.38],
         ];
         expect(
             routeLeg(zone, [
-                [-1.67, 16.92],
-                [16.8, -12.51],
+                [10.85, -18.74],
+                [-1.34, -21.08],
             ]),
         ).toBe("clear");
     });
@@ -579,18 +580,31 @@ describe("detours are clear of every zone", () => {
         ).toBe("clear");
     });
 
-    test("routes a leg from just outside a sharp corner clear of the zone", () => {
-        const zone = [
-            [-31.79, 47.39],
-            [-54.39, -58.81],
-            [54.94, 6.05],
-        ];
-        expect(
-            routeLeg(zone, [
+    test.each([
+        {
+            zone: [
+                [-31.79, 47.39],
+                [-54.39, -58.81],
+                [54.94, 6.05],
+            ],
+            leg: [
                 [-47.03, -55.98],
                 [45.57, 13.46],
-            ]),
-        ).toBe("clear");
+            ],
+        },
+        {
+            zone: [
+                [8.63, -23.83],
+                [14.43, 15.29],
+                [-29.99, 6.39],
+            ],
+            leg: [
+                [-23.68, 8.78],
+                [12.54, -6.23],
+            ],
+        },
+    ])("routes a leg from just outside a sharp corner clear of the zone", ({ zone, leg }) => {
+        expect(routeLeg(zone, leg)).toBe("clear");
     });
 
     test("routes every survey lane across a zone, and none still crosses it", () => {
@@ -640,6 +654,63 @@ describe("detours are clear of every zone", () => {
             if (routing.kind !== "routed") continue;
             expect(routeNeedsBypass(routedPath(lane, routing.steps), geometry)).toBe(false);
         }
+    });
+});
+
+// ── Parallel lanes ─────────────────────────────────────────────────────────────
+
+describe("parallel lanes", () => {
+    beforeEach(() => {
+        exclusionZoneSet.clearZones();
+    });
+
+    const LANE_ZONE: ExclusionZone = {
+        vertices: [
+            [-50, -30],
+            [50, -30],
+            [50, 30],
+            [-50, 30],
+        ].map(([x, y]) => metres(x, y)),
+    };
+
+    /** The last detour of each of six west-to-east lanes 10 m apart across LANE_ZONE. */
+    function lastDetours() {
+        return [0, 1, 2, 3, 4, 5].map((lane) => {
+            const waypoints: GeographicCoordinate[] = [];
+            for (let x = -200; x <= 200; x += 20) {
+                waypoints.push(metres(x + lane * 3, -25 + lane * 10));
+            }
+            const detours = routedSteps(waypoints).flatMap((step) => step.detoursAfter);
+            expect(detours.length).toBeGreaterThan(0);
+            return detours[detours.length - 1];
+        });
+    }
+
+    test("round the far corners of a zone at the same points", () => {
+        exclusionZoneSet.addZone(LANE_ZONE);
+
+        const detours = lastDetours();
+
+        const south = detours.slice(0, 3);
+        const north = detours.slice(3);
+        for (const point of south) {
+            expect(point.lat!).toBeLessThan(metres(0, -30).lat!);
+            expect(approxDistMetres(point, south[0])).toBeLessThan(0.001);
+        }
+        for (const point of north) {
+            expect(point.lat!).toBeGreaterThan(metres(0, 30).lat!);
+            expect(approxDistMetres(point, north[0])).toBeLessThan(0.001);
+        }
+    });
+
+    test("are not moved by another zone in the set", () => {
+        exclusionZoneSet.addZone(LANE_ZONE);
+        const alone = lastDetours();
+        exclusionZoneSet.clearZones();
+        exclusionZoneSet.addZone(squareZone(41.09, -72.0));
+        exclusionZoneSet.addZone(LANE_ZONE);
+
+        expect(lastDetours()).toEqual(alone);
     });
 });
 
