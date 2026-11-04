@@ -11,7 +11,7 @@ import { RoutingAction } from "../../../types/routing-types";
  * A custom React hook: each component that uses it gets its own copy of this state.
  *
  * @returns {object} `running`, the action in progress, or null; `lastRun`, the last action
- * this hook ran, or null; `run`, which starts an action; and `undo`, which backs out the last one
+ * this hook ran, or null; and `run`, which starts an action
  */
 export function useRoutingAction() {
     const jaiaDispatch = useContext(JaiaDispatchContext);
@@ -43,16 +43,5 @@ export function useRoutingAction() {
         );
     };
 
-    /**
-     * Backs out the last action, as the toolbar Undo would, but keeps the visible panel.
-     *
-     * @returns {void}
-     */
-    const undo = () => {
-        // Restoring the panel of the previous edit could close the dialog
-        jaiaDispatch({ type: JaiaActions.CLICKED_UNDO, keepPanelState: true });
-        setLastRun(null);
-    };
-
-    return { running, lastRun, run, undo };
+    return { running, lastRun, run };
 }

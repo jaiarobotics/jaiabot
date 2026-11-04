@@ -273,43 +273,17 @@ describe("undo", () => {
         expect(state.rerouteReport).toBeNull();
     });
 
-    describe("after an edit in another panel", () => {
-        function rerouteFromMissionsPanel() {
-            const missionID = addMission(WEST, EAST);
-            const state = makeMutableState();
-            state.visiblePanel = ButtonNames.EXCLUSION_ZONES_PANEL;
-            jaiaGlobal.setZoneInEditMode(1);
-            jaiaGlobal.setSelectedZoneVertex({ zoneID: 1, vertexIndex: 0, isMoveable: false });
-            saveHistory(state, JaiaActions.MOVE_ZONE_VERTEX);
-            // Switching panels is untracked and leaves zone editing
-            state.visiblePanel = ButtonNames.MISSIONS_PANEL;
-            jaiaGlobal.setZoneInEditMode(UNASSIGNED_ID);
-            jaiaGlobal.resetSelectedZoneVertex();
-            reroute(state, missionID);
-            saveHistory(state, JaiaActions.REROUTE_MISSIONS);
-            return { state, missionID };
-        }
+    test("returns to the panel of the edit before the reroute", () => {
+        const missionID = addMission(WEST, EAST);
+        const state = makeMutableState();
+        state.visiblePanel = ButtonNames.EXCLUSION_ZONES_PANEL;
+        saveHistory(state, JaiaActions.MOVE_ZONE_VERTEX);
+        state.visiblePanel = ButtonNames.MISSIONS_PANEL;
+        reroute(state, missionID);
+        saveHistory(state, JaiaActions.REROUTE_MISSIONS);
 
-        test("returns to that panel", () => {
-            const { state } = rerouteFromMissionsPanel();
+        const undone = handleClickedUndo(state);
 
-            const undone = handleClickedUndo(state, { type: JaiaActions.CLICKED_UNDO });
-
-            expect(undone.visiblePanel).toBe(ButtonNames.EXCLUSION_ZONES_PANEL);
-        });
-
-        test("keeps the visible panel and leaves zone editing off when asked, and still backs out the reroute", () => {
-            const { state, missionID } = rerouteFromMissionsPanel();
-
-            const undone = handleClickedUndo(state, {
-                type: JaiaActions.CLICKED_UNDO,
-                keepPanelState: true,
-            });
-
-            expect(undone.visiblePanel).toBe(ButtonNames.MISSIONS_PANEL);
-            expect(jaiaGlobal.getZoneInEditMode()).toBe(UNASSIGNED_ID);
-            expect(jaiaGlobal.getSelectedZoneVertex().zoneID).toBe(UNASSIGNED_ID);
-            expect(missionSet.getMission(missionID)!.isRerouted()).toBe(false);
-        });
+        expect(undone.visiblePanel).toBe(ButtonNames.EXCLUSION_ZONES_PANEL);
     });
 });

@@ -2,11 +2,7 @@ import { useContext } from "react";
 import { createPortal } from "react-dom";
 
 import RoutingActionButton from "../RoutingDialog/RoutingActionButton";
-import {
-    describeMissionSetReport,
-    describeMissionSetStatus,
-    isNotRerouted,
-} from "../RoutingDialog/routing-text";
+import { describeMissionSetReport, describeMissionSetStatus } from "../RoutingDialog/routing-text";
 import { useRoutingAction } from "../RoutingDialog/use-routing-action";
 
 import { JaiaContext } from "../../../context/JaiaContext";
@@ -21,11 +17,11 @@ interface Props {
 
 /**
  * Shows how many missions in the set cross a zone, with Reroute all and Restore all, and
- * reports what this dialog's last action did, with an Undo for it.
+ * reports what this dialog's last action did.
  */
 export default function MissionSetRoutingDialog({ onClose }: Props) {
     const jaiaContext = useContext(JaiaContext);
-    const { running, lastRun, run, undo } = useRoutingAction();
+    const { running, lastRun, run } = useRoutingAction();
 
     const missions = Array.from(jaiaContext.missionSet.getMissions().values());
     const routable = missions.filter((mission) => mission.getOriginalWaypoints().length > 0);
@@ -37,7 +33,6 @@ export default function MissionSetRoutingDialog({ onClose }: Props) {
     );
     const outcomes = lastRun ? jaiaContext.rerouteReport : null;
     const report = lastRun && outcomes ? describeMissionSetReport(lastRun, outcomes) : undefined;
-    const canUndo = outcomes?.some((outcome) => !isNotRerouted(outcome));
 
     // Rendered on the body so a positioned panel cannot stack above it
     return createPortal(
@@ -57,15 +52,6 @@ export default function MissionSetRoutingDialog({ onClose }: Props) {
                                     <li key={line}>{line}</li>
                                 ))}
                             </ul>
-                        )}
-                        {canUndo && (
-                            <button
-                                className="dialog-button"
-                                onClick={undo}
-                                disabled={running !== null}
-                            >
-                                {lastRun === "reroute" ? "Undo reroute" : "Undo restore"}
-                            </button>
                         )}
                     </div>
                 )}

@@ -9,7 +9,6 @@ import {
     handleRerouteMissions,
     handleRestoreOriginalWaypoints,
 } from "../../../../../context/handlers/routing-handlers";
-import { handleClickedUndo, saveHistory } from "../../../../../context/handlers/history-handlers";
 import {
     coord,
     makeMutableState,
@@ -37,32 +36,21 @@ function crossingMission(): Mission {
 
 /**
  * Renders a mission's routing button with a mocked dispatch. `apply` runs the last dispatched
- * action through its handler, saves history for a tracked action, and re-renders with the
- * result, as the reducer would.
+ * action through its handler and re-renders with the result, as the reducer would.
  */
 function renderButton(mission: Mission) {
     let state: JaiaContextType = makeMutableState();
-    saveHistory(state, JaiaActions.INIT);
     const dispatch = jest.fn();
     const view = () => (
         <JaiaContext.Provider value={state}>
             <JaiaDispatchContext.Provider value={dispatch}>
-                {/* Undo replaces the mission object, so look it up as the missions list does */}
-                <MissionRoutingButton
-                    mission={missionSet.getMission(mission.getMissionID())!}
-                    routingLevel={RoutingLevel.CROSSES_ZONE}
-                />
+                <MissionRoutingButton mission={mission} routingLevel={RoutingLevel.CROSSES_ZONE} />
             </JaiaDispatchContext.Provider>
         </JaiaContext.Provider>
     );
     const { rerender } = render(view());
-    const apply = (
-        handler: (state: JaiaContextType, action: JaiaAction) => JaiaContextType,
-        tracked = true,
-    ) => {
-        const action: JaiaAction = dispatch.mock.lastCall[0];
-        state = handler({ ...state }, action);
-        if (tracked) saveHistory(state, action.type);
+    const apply = (handler: (state: JaiaContextType, action: JaiaAction) => JaiaContextType) => {
+        state = handler({ ...state }, dispatch.mock.lastCall[0]);
         rerender(view());
     };
     return { dispatch, apply };
@@ -124,7 +112,7 @@ describe("MissionRoutingDialog", () => {
         );
     });
 
-    test("reports its reroute, with the new status and an Undo", async () => {
+    test("reports its reroute, with the new status", async () => {
         const mission = crossingMission();
         const { dispatch, apply } = renderButton(mission);
         const dialog = await openDialog();
@@ -139,15 +127,9 @@ describe("MissionRoutingDialog", () => {
         expect(
             within(dialog).getByRole("button", { name: "Restore original waypoints" }),
         ).toBeEnabled();
-
-        await userEvent.click(within(dialog).getByRole("button", { name: "Undo reroute" }));
-        expect(dispatch).toHaveBeenLastCalledWith({
-            type: JaiaActions.CLICKED_UNDO,
-            keepPanelState: true,
-        });
     });
 
-    test("reports its restore with an Undo restore", async () => {
+    test("reports its restore", async () => {
         const mission = crossingMission();
         const { dispatch, apply } = renderButton(mission);
         const dialog = await openDialog();
@@ -167,29 +149,9 @@ describe("MissionRoutingDialog", () => {
         apply(handleRestoreOriginalWaypoints);
 
         expect(within(dialog).getByText(/^Original waypoints restored: /)).toBeVisible();
-        expect(within(dialog).getByRole("button", { name: "Undo restore" })).toBeVisible();
     });
 
-    test("Undo backs out the reroute and drops the report, leaving the dialog open", async () => {
-        const mission = crossingMission();
-        const { dispatch, apply } = renderButton(mission);
-        const dialog = await openDialog();
-        await userEvent.click(within(dialog).getByRole("button", { name: "Reroute" }));
-        await waitFor(() => expect(dispatch).toHaveBeenCalled());
-        apply(handleRerouteMissions);
-
-        await userEvent.click(within(dialog).getByRole("button", { name: "Undo reroute" }));
-        apply(handleClickedUndo, false);
-
-        const undone = missionSet.getMission(mission.getMissionID())!;
-        expect(undone.getWaypoints()).toHaveLength(2);
-        expect(screen.getByRole("heading")).toBeVisible();
-        expect(screen.getByText("The route crosses an exclusion zone.")).toBeVisible();
-        expect(within(dialog).queryByText(/^Rerouted: /)).toBeNull();
-        expect(within(dialog).queryByRole("button", { name: "Undo reroute" })).toBeNull();
-    });
-
-    test("offers no Undo when the mission was not rerouted", async () => {
+    test("reports why a mission was not rerouted", async () => {
         const mission = new Mission();
         mission.addWaypoint(coord(41.0, -72.0));
         missionSet.addMission(mission);
@@ -203,7 +165,6 @@ describe("MissionRoutingDialog", () => {
         expect(
             within(dialog).getByText("Not rerouted: every waypoint is inside an exclusion zone."),
         ).toBeVisible();
-        expect(within(dialog).queryByRole("button", { name: "Undo reroute" })).toBeNull();
     });
 
     test("a reopened dialog shows no earlier report", async () => {
@@ -218,6 +179,5 @@ describe("MissionRoutingDialog", () => {
         dialog = await openDialog();
 
         expect(within(dialog).queryByText(/^Rerouted: /)).toBeNull();
-        expect(within(dialog).queryByRole("button", { name: "Undo reroute" })).toBeNull();
     });
 });

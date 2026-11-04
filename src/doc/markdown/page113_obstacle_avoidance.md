@@ -34,7 +34,7 @@ turn, plus GPS error. Draw each zone with the margin the site needs built in.
   for every mission. It starts from the operator's original waypoints, suppresses the ones
   inside a zone and adds detour waypoints around the zones. **Restore original waypoints**
   removes the detours and brings the suppressed waypoints back. Each action is one undo entry,
-  even for the whole set, and the dialog reports what it did, with its own Undo.
+  even for the whole set, and the dialog reports what it did.
 - **Placing a point inside a zone asks first.** Adding or moving a waypoint, a rally point or a
   survey corner inside a zone asks the operator to confirm; Cancel dispatches nothing. Appending
   past the waypoint limit is refused.
@@ -68,10 +68,6 @@ are worked out when the mission layer draws.
 **The reroute report is screen state.** `rerouteReport` in `JaiaContextType` is kept out of undo
 snapshots, and Undo clears it. A dialog shows it only after its own action, so a reopened dialog
 never shows an old report.
-
-**The dialogs' Undo keeps the visible panel.** An ordinary Undo restores the panel that was open
-at the previous edit. From a routing dialog that could close the panel the dialog was opened
-over, so the dialog sends `CLICKED_UNDO` with `keepPanelState`.
 
 **The operator decides what is sent.** Run sends exactly the visible waypoints. Crossing a zone
 is a warning, never a refusal.
@@ -149,7 +145,7 @@ version is refused.
 flowchart TD
     subgraph UI["Components"]
         ICON["Status icons<br/>MissionRoutingButton, MissionSetRoutingButton"]
-        DLG["Routing dialogs<br/>Reroute, Restore, report and Undo"]
+        DLG["Routing dialogs<br/>Reroute, Restore and report"]
         PLACE["usePlacementCheck<br/>Map.tsx, waypoint panel"]
         RUN["Run and Run all<br/>start dialogs"]
     end
@@ -187,7 +183,7 @@ segment tests against the zones.
 | `components/MissionsPanel/MissionStatusIcon/`                                          | The status icon that is also a button: its colour gives the level, a tap runs its handler. Reusable for other header statuses.                                                                           |
 | `components/MissionsPanel/MissionsList/MissionRoutingButton/`                          | A mission's icon and dialog.                                                                                                                                                                             |
 | `components/MissionsPanel/MissionSetRoutingButton/`                                    | The set's icon and dialog.                                                                                                                                                                               |
-| `components/MissionsPanel/RoutingDialog/`                                              | What both dialogs share: the wording (`routing-text.ts`), the action hook with its spinner and Undo, the action button.                                                                                  |
+| `components/MissionsPanel/RoutingDialog/`                                              | What both dialogs share: the wording (`routing-text.ts`), the action hook with its spinner, the action button.                                                                                           |
 | `components/PlacementDialog/PlacementDialog.tsx`                                       | The confirm and refuse dialog, and `usePlacementCheck`, which every placement uses.                                                                                                                      |
 | `components/__buttons__/Start*Button/`                                                 | The Run warnings, computed when the start dialog opens.                                                                                                                                                  |
 | `openlayers/layers/vector/mission-layer.ts`, `openlayers/features/waypoint-feature.ts` | Red blocked waypoints and numbered detours. The ghost layer is never coloured.                                                                                                                           |
@@ -203,7 +199,6 @@ segment tests against the zones.
 | Tap a status icon, or close a routing dialog   | none: component state                     | none                             | no                   |
 | Reroute, or Reroute all                        | `REROUTE_MISSIONS` with the mission IDs   | `handleRerouteMissions`          | one for all missions |
 | Restore original waypoints, or Restore all     | `RESTORE_ORIGINAL_WAYPOINTS` with the IDs | `handleRestoreOriginalWaypoints` | one for all missions |
-| Undo in a routing dialog's report              | `CLICKED_UNDO` with `keepPanelState`      | `handleClickedUndo`              | n/a                  |
 | Run or Run all                                 | `SENT_COMMAND`, after the start dialog    | `handleSentCommand`              | no                   |
 
 Zone edits change only the zone set; they redraw the mission layer so the red waypoints follow

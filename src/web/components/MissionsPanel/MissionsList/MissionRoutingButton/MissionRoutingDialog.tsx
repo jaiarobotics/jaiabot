@@ -2,11 +2,7 @@ import { useContext } from "react";
 import { createPortal } from "react-dom";
 
 import RoutingActionButton from "../../RoutingDialog/RoutingActionButton";
-import {
-    describeOutcome,
-    describeRoutingStatus,
-    isNotRerouted,
-} from "../../RoutingDialog/routing-text";
+import { describeOutcome, describeRoutingStatus } from "../../RoutingDialog/routing-text";
 import { useRoutingAction } from "../../RoutingDialog/use-routing-action";
 
 import { JaiaContext } from "../../../../context/JaiaContext";
@@ -24,11 +20,11 @@ interface Props {
 
 /**
  * Shows a mission's routing status, with Reroute and Restore original waypoints, and reports
- * what this dialog's last action did, with an Undo for it.
+ * what this dialog's last action did.
  */
 export default function MissionRoutingDialog({ mission, onClose }: Props) {
     const jaiaContext = useContext(JaiaContext);
-    const { running, lastRun, run, undo } = useRoutingAction();
+    const { running, lastRun, run } = useRoutingAction();
 
     const missionID = mission.getMissionID();
     const botID = jaiaContext.missionsManager.getBotID(missionID);
@@ -39,7 +35,6 @@ export default function MissionRoutingDialog({ mission, onClose }: Props) {
     const outcome = lastRun
         ? jaiaContext.rerouteReport?.find((report) => report.missionID === missionID)
         : undefined;
-    const canUndo = outcome !== undefined && !isNotRerouted(outcome);
 
     // Rendered on the body so a positioned panel cannot stack above it
     return createPortal(
@@ -55,15 +50,6 @@ export default function MissionRoutingDialog({ mission, onClose }: Props) {
                 {outcome && (
                     <div className="routing-report">
                         <p>{describeOutcome(outcome)}</p>
-                        {canUndo && (
-                            <button
-                                className="dialog-button"
-                                onClick={undo}
-                                disabled={running !== null}
-                            >
-                                {lastRun === "reroute" ? "Undo reroute" : "Undo restore"}
-                            </button>
-                        )}
                     </div>
                 )}
                 <div className="dialog-button-row">
