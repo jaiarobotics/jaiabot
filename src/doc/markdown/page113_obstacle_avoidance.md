@@ -36,7 +36,8 @@ turn, plus GPS error. Draw each zone with the margin the site needs built in.
   It starts from the operator's original waypoints, suppresses the ones inside a zone and adds
   detour waypoints around the zones. **Restore original waypoints** removes the detours and
   brings the suppressed waypoints back. Each action is one undo entry, even for the whole set,
-  and the panel reports what it did.
+  and the panel reports what it did. The set's report is one line that counts the missions
+  that could not be rerouted; a mission's own Reroute says why.
 - **Placing a point inside a zone asks first.** Adding or moving a waypoint, a rally point or a
   survey corner inside a zone asks the operator to confirm; Cancel dispatches nothing. Appending
   past the waypoint limit is refused.

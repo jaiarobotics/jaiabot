@@ -44,14 +44,7 @@ export default function MissionSetRoutingView({ onClose }: Props) {
             {lastRun && report && (
                 <div className="routing-report">
                     <p className="routing-report-heading">{describeReportHeading(lastRun)}</p>
-                    <p>{report.summary}</p>
-                    {report.unchanged.length > 0 && (
-                        <ul className="routing-report-unchanged">
-                            {report.unchanged.map((line) => (
-                                <li key={line}>{line}</li>
-                            ))}
-                        </ul>
-                    )}
+                    <p>{report}</p>
                 </div>
             )}
             <div className="routing-buttons">

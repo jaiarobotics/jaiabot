@@ -85,23 +85,17 @@ describe("MissionSetRoutingView", () => {
         );
     });
 
-    test("reports a reroute with only the missions left unchanged", async () => {
+    test("reports in one line how many missions could not be rerouted", async () => {
         addMission(WEST, EAST);
-        const blocked = addMission(INSIDE);
+        addMission(INSIDE);
         addMission();
         const { dispatch, apply, panel } = renderSetPanel();
 
         await clickAndApply(panel, "Reroute all", dispatch, apply);
 
         expect(within(panel).getByText("Last reroute")).toBeVisible();
-        expect(within(panel).getByText("1 mission could not be rerouted:")).toBeVisible();
-        expect(within(panel).getAllByRole("listitem")).toHaveLength(1);
-        expect(
-            within(panel).getByText(
-                `Mission ${blocked.getMissionID()}: Not rerouted: every waypoint is inside an ` +
-                    "exclusion zone.",
-            ),
-        ).toBeVisible();
+        expect(within(panel).getByText("1 mission could not be rerouted.")).toBeVisible();
+        expect(within(panel).queryByText(/^Not rerouted: /)).toBeNull();
         expect(within(panel).getByText("1 of 3 missions crosses a zone.")).toBeVisible();
     });
 
@@ -122,7 +116,6 @@ describe("MissionSetRoutingView", () => {
         expect(
             within(panel).getByText("All missions restored to original waypoints."),
         ).toBeVisible();
-        expect(within(panel).queryByRole("listitem")).toBeNull();
     });
 
     test("a reopened panel shows no earlier report", async () => {

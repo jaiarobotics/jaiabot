@@ -75,36 +75,25 @@ export function describeMissionSetStatus(
  * @param {RerouteOutcome} outcome The mission's outcome
  * @returns {boolean} True for the "Not rerouted" outcomes
  */
-export function isNotRerouted(outcome: RerouteOutcome): boolean {
+function isNotRerouted(outcome: RerouteOutcome): boolean {
     return outcome.kind !== "changed" && outcome.kind !== "restored";
 }
 
 /**
- * Describes the result of a reroute or restore of several missions: a summary, and a line for
- * each mission that could not be rerouted.
+ * Describes the result of a reroute or restore of several missions in one line.
  *
  * @param {RoutingAction} action Reroute or restore
  * @param {RerouteOutcome[]} outcomes One outcome per mission
- * @returns {object} `summary`, one line; `unchanged`, a line per mission left unchanged
+ * @returns {string} The report line
  */
 export function describeMissionSetReport(
     action: RoutingAction,
     outcomes: RerouteOutcome[],
-): { summary: string; unchanged: string[] } {
-    const unchanged = outcomes.filter(isNotRerouted);
-    let summary = "All missions restored to original waypoints.";
-    if (action === "reroute") {
-        summary =
-            unchanged.length === 0
-                ? "All missions rerouted."
-                : `${countOf(unchanged.length, "mission")} could not be rerouted:`;
-    }
-    return {
-        summary,
-        unchanged: unchanged.map(
-            (outcome) => `Mission ${outcome.missionID}: ${describeOutcome(outcome)}`,
-        ),
-    };
+): string {
+    if (action === "restore") return "All missions restored to original waypoints.";
+    const unchanged = outcomes.filter(isNotRerouted).length;
+    if (unchanged === 0) return "All missions rerouted.";
+    return `${countOf(unchanged, "mission")} could not be rerouted.`;
 }
 
 /**

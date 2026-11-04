@@ -4,7 +4,6 @@ import {
     describeMissionSetStatus,
     describeOutcome,
     describeRoutingStatus,
-    isNotRerouted,
 } from "../routing-text";
 import { RoutingStatus } from "../../../utils/routing/routing-status";
 import { RerouteOutcome } from "../../../types/routing-types";
@@ -169,25 +168,24 @@ describe("describeMissionSetReport", () => {
         suppressed: 0,
         restored: 0,
     };
+    const unneeded: RerouteOutcome = { ...changed, detoursAdded: 0 };
     const blocked: RerouteOutcome = { missionID: 5, kind: "allWaypointsBlocked" };
     const noRoute: RerouteOutcome = { missionID: 6, kind: "noRoute", leg: [2, 3] };
+    const overLimit: RerouteOutcome = { missionID: 7, kind: "overWaypointLimit" };
 
     test("says every mission was rerouted when none was refused", () => {
-        expect(describeMissionSetReport("reroute", [changed, changed])).toEqual({
-            summary: "All missions rerouted.",
-            unchanged: [],
-        });
+        expect(describeMissionSetReport("reroute", [changed, unneeded])).toBe(
+            "All missions rerouted.",
+        );
     });
 
-    test("lists only the missions that could not be rerouted, with their reasons", () => {
-        expect(describeMissionSetReport("reroute", [changed, blocked, noRoute])).toEqual({
-            summary: "2 missions could not be rerouted:",
-            unchanged: [
-                "Mission 5: Not rerouted: every waypoint is inside an exclusion zone.",
-                "Mission 6: Not rerouted: no way around the zones between waypoints 2 and 3. " +
-                    "Move those waypoints or the zone.",
-            ],
-        });
+    test("counts the missions that could not be rerouted, in one line", () => {
+        expect(describeMissionSetReport("reroute", [changed, blocked, noRoute, overLimit])).toBe(
+            "3 missions could not be rerouted.",
+        );
+        expect(describeMissionSetReport("reroute", [changed, blocked])).toBe(
+            "1 mission could not be rerouted.",
+        );
     });
 
     test("summarises a restore", () => {
@@ -197,20 +195,9 @@ describe("describeMissionSetReport", () => {
             detoursRemoved: 2,
             restored: 0,
         };
-        expect(describeMissionSetReport("restore", [restored, restored])).toEqual({
-            summary: "All missions restored to original waypoints.",
-            unchanged: [],
-        });
-    });
-
-    test("treats only the Not rerouted outcomes as unchanged", () => {
-        expect(isNotRerouted(changed)).toBe(false);
-        expect(
-            isNotRerouted({ missionID: 1, kind: "restored", detoursRemoved: 0, restored: 0 }),
-        ).toBe(false);
-        expect(isNotRerouted(blocked)).toBe(true);
-        expect(isNotRerouted(noRoute)).toBe(true);
-        expect(isNotRerouted({ missionID: 1, kind: "overWaypointLimit" })).toBe(true);
+        expect(describeMissionSetReport("restore", [restored, restored])).toBe(
+            "All missions restored to original waypoints.",
+        );
     });
 });
 
