@@ -1,16 +1,24 @@
 import { render, screen } from "@testing-library/react";
+import { userEvent } from "@testing-library/user-event";
 
 import MissionSetRoutingButton from "../MissionSetRoutingButton";
 
+import { JaiaDispatchContext } from "../../../../context/JaiaContext";
+import { JaiaActions } from "../../../../context/jaia-actions";
+import { ButtonNames, ButtonTypes } from "../../../../types/context-types";
 import { RoutingLevel } from "../../../../utils/routing/routing-status";
+
+const dispatch = jest.fn();
 
 const { CROSSES_ZONE, HAS_CLEAR_SUPPRESSED, CLEAR } = RoutingLevel;
 
 function renderButton(...routingLevels: (RoutingLevel | undefined)[]) {
     render(
-        <MissionSetRoutingButton
-            routingLevels={new Map(routingLevels.map((level, i) => [i + 1, level]))}
-        />,
+        <JaiaDispatchContext.Provider value={dispatch}>
+            <MissionSetRoutingButton
+                routingLevels={new Map(routingLevels.map((level, i) => [i + 1, level]))}
+            />
+        </JaiaDispatchContext.Provider>,
     );
     return screen.getByRole("button", { name: /^Mission set routing status: / });
 }
@@ -46,5 +54,16 @@ describe("MissionSetRoutingButton", () => {
 
         expect(button).toHaveClass("normal");
         expect(button).toBeEnabled();
+    });
+
+    test("opens the routing panel for the mission set", async () => {
+        await userEvent.click(renderButton(CROSSES_ZONE));
+
+        expect(dispatch).toHaveBeenCalledWith({
+            type: JaiaActions.CLICKED_BUTTON,
+            buttonType: ButtonTypes.MAP_MODE,
+            buttonName: ButtonNames.ROUTING_PANEL,
+            routingTarget: { kind: "missionSet" },
+        });
     });
 });

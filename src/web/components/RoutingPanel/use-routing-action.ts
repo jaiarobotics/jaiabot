@@ -1,8 +1,8 @@
 import { useContext, useState } from "react";
 
-import { JaiaDispatchContext } from "../../../context/JaiaContext";
-import { JaiaActions } from "../../../context/jaia-actions";
-import { RoutingAction } from "../../../types/routing-types";
+import { JaiaDispatchContext } from "../../context/JaiaContext";
+import { JaiaActions } from "../../context/jaia-actions";
+import { RoutingAction } from "../../types/routing-types";
 
 /**
  * Runs a reroute or a restore of some missions, and tracks which one is running and which one

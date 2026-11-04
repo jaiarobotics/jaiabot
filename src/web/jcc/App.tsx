@@ -24,6 +24,7 @@ import ExclusionZonesPanel from "../components/ExclusionZonesPanel/ExclusionZone
 import SettingsPanel from "../components/SettingsPanel/SettingsPanel";
 import WaypointPanel from "../components/WaypointPanel/WaypointPanel";
 import ZoneVertexPanel from "../components/ZoneVertexPanel/ZoneVertexPanel";
+import RoutingPanel from "../components/RoutingPanel/RoutingPanel";
 import SurveyPlanner from "../components/SurveyPlanner/SurveyPlanner";
 import NotificationDot from "../components/NotificationDot/NotificationDot";
 import TaskPacketPanel from "../components/TaskPacketPanel/TaskPacketPanel";
@@ -124,6 +125,8 @@ function Panel() {
             return <WaypointPanel />;
         case ButtonNames.ZONE_VERTEX_PANEL:
             return <ZoneVertexPanel />;
+        case ButtonNames.ROUTING_PANEL:
+            return <RoutingPanel />;
         case ButtonNames.HELP_PANEL:
             return <HelpWindow />;
         case ButtonNames.JAIA_ABOUT_PANEL:

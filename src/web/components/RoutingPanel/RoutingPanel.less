@@ -1,0 +1,74 @@
+@import "../../style/stylesheets/vars.less";
+
+.routing-panel {
+    display: flex;
+    flex-direction: column;
+    row-gap: 15px;
+    width: 300px;
+
+    color: @cc-text-color-light;
+
+    p {
+        margin: 0;
+        text-align: center;
+    }
+
+    button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+}
+
+.routing-report {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 0;
+    border-top: 1px solid @panel-accent-color;
+    border-bottom: 1px solid @panel-accent-color;
+}
+
+.routing-report-heading {
+    font-weight: 600;
+}
+
+.routing-report-unchanged {
+    max-height: 40vh;
+    overflow-y: auto;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+
+    li + li {
+        margin-top: 8px;
+    }
+}
+
+.routing-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+}
+
+.routing-button {
+    all: unset;
+    box-sizing: border-box;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 130px;
+    min-height: 48px;
+    padding: 6px;
+    border: 1px solid @panel-accent-color;
+    border-radius: 3px;
+    text-align: center;
+    cursor: pointer;
+}
+
+.routing-close {
+    all: unset;
+    align-self: center;
+    padding: 9px;
+    cursor: pointer;
+}

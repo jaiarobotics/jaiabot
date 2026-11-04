@@ -108,6 +108,18 @@ test.skip("Select and deselect Bot and Hub icons on map", () => {
     mapModule.map.forEachFeatureAtPixel = jest.fn().mockReturnValue(undefined);
 });
 
+test("A map click adds nothing while the routing panel is open", () => {
+    const missionID = missionSet.addMission(new Mission());
+    expect(missionSet.getMissionIDInEditMode()).toBe(missionID);
+    jaiaGlobal.setMapMode(MapModes.ROUTING);
+
+    act(() => {
+        map.dispatchEvent(mapBrowserEventMock);
+    });
+
+    expect(missionSet.getMission(missionID)!.getWaypoints()).toHaveLength(0);
+});
+
 test("Click on map twice with mission in edit mode", () => {
     const mission = new Mission();
     const missionID = missionSet.addMission(mission);

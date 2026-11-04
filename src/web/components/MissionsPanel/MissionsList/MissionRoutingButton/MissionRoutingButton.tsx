@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useContext } from "react";
 import { mdiMapMarkerPath } from "@mdi/js";
 
 import MissionStatusIcon, { StatusLevel } from "../../MissionStatusIcon/MissionStatusIcon";
-import MissionRoutingDialog from "./MissionRoutingDialog";
 
+import { JaiaDispatchContext } from "../../../../context/JaiaContext";
+import { JaiaActions } from "../../../../context/jaia-actions";
 import Mission from "../../../../data/mission_set/mission";
+import { ButtonNames, ButtonTypes } from "../../../../types/context-types";
 import { RoutingLevel } from "../../../../utils/routing/routing-status";
 
 const STATUSES: Record<RoutingLevel, { level: StatusLevel; label: string }> = {
@@ -23,31 +25,30 @@ interface Props {
 }
 
 /**
- * A mission's routing status, which opens the mission's routing dialog. Disabled while the
+ * A mission's routing status, which opens the routing panel for the mission. Disabled while the
  * mission has no waypoints.
  */
 export default function MissionRoutingButton(props: Props) {
-    const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const jaiaDispatch = useContext(JaiaDispatchContext);
     const { routingLevel } = props;
     const { level, label } =
         routingLevel === undefined
             ? { level: "normal" as const, label: "no waypoints" }
             : STATUSES[routingLevel];
     return (
-        <>
-            <MissionStatusIcon
-                level={level}
-                iconPath={mdiMapMarkerPath}
-                label={`Routing status: ${label}`}
-                onClick={() => setIsDialogOpen(true)}
-                disabled={routingLevel === undefined}
-            />
-            {isDialogOpen && (
-                <MissionRoutingDialog
-                    mission={props.mission}
-                    onClose={() => setIsDialogOpen(false)}
-                />
-            )}
-        </>
+        <MissionStatusIcon
+            level={level}
+            iconPath={mdiMapMarkerPath}
+            label={`Routing status: ${label}`}
+            onClick={() =>
+                jaiaDispatch({
+                    type: JaiaActions.CLICKED_BUTTON,
+                    buttonType: ButtonTypes.MAP_MODE,
+                    buttonName: ButtonNames.ROUTING_PANEL,
+                    routingTarget: { kind: "mission", missionID: props.mission.getMissionID() },
+                })
+            }
+            disabled={routingLevel === undefined}
+        />
     );
 }

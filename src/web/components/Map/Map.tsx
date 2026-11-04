@@ -78,6 +78,9 @@ export default function Map() {
             case MapModes.EXCLUSION_ZONE_DRAWING:
                 // When drawing is active, the OL Draw interaction handles pointer events directly
                 return;
+            case MapModes.ROUTING:
+                // Only pan and zoom while the routing panel is open
+                return;
         }
 
         if (jaiaGlobal.getSelectedWaypoint().isMoveable) {

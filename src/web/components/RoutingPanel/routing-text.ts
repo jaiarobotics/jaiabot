@@ -1,5 +1,5 @@
-import { RerouteOutcome, RoutingAction } from "../../../types/routing-types";
-import { RoutingStatus } from "../../../utils/routing/routing-status";
+import { RerouteOutcome, RoutingAction } from "../../types/routing-types";
+import { RoutingStatus } from "../../utils/routing/routing-status";
 
 /**
  * Gives a count with its noun, singular for one.
@@ -149,4 +149,14 @@ export function describeOutcome(outcome: RerouteOutcome): string {
                 : "Original waypoints restored: nothing had changed.";
         }
     }
+}
+
+/**
+ * Gives the heading of the report on a reroute or a restore.
+ *
+ * @param {RoutingAction} action The action the report describes
+ * @returns {string} The heading
+ */
+export function describeReportHeading(action: RoutingAction): string {
+    return action === "reroute" ? "Last reroute" : "Last restore";
 }

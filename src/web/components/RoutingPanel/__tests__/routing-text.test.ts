@@ -1,12 +1,13 @@
 import {
+    describeReportHeading,
     describeMissionSetReport,
     describeMissionSetStatus,
     describeOutcome,
     describeRoutingStatus,
     isNotRerouted,
 } from "../routing-text";
-import { RoutingStatus } from "../../../../utils/routing/routing-status";
-import { RerouteOutcome } from "../../../../types/routing-types";
+import { RoutingStatus } from "../../../utils/routing/routing-status";
+import { RerouteOutcome } from "../../../types/routing-types";
 
 describe("describeRoutingStatus", () => {
     test("says the route is clear when nothing holds", () => {
@@ -210,5 +211,12 @@ describe("describeMissionSetReport", () => {
         expect(isNotRerouted(blocked)).toBe(true);
         expect(isNotRerouted(noRoute)).toBe(true);
         expect(isNotRerouted({ missionID: 1, kind: "overWaypointLimit" })).toBe(true);
+    });
+});
+
+describe("describeReportHeading", () => {
+    test("names the action the report records", () => {
+        expect(describeReportHeading("reroute")).toBe("Last reroute");
+        expect(describeReportHeading("restore")).toBe("Last restore");
     });
 });

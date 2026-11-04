@@ -17,6 +17,9 @@ export interface SelectedZoneVertex {
     isMoveable: boolean;
 }
 
+/** The mission, or the whole mission set, the routing panel shows. */
+export type RoutingTarget = { kind: "mission"; missionID: number } | { kind: "missionSet" };
+
 export interface JaiaGlobalSnapshot {
     selectedNode: SelectedNode;
     selectedWaypoint: SelectedWaypoint;
@@ -25,6 +28,7 @@ export interface JaiaGlobalSnapshot {
     defaultTaskParameters: TaskParameters;
     selectedZoneVertex: SelectedZoneVertex;
     zoneInEditMode: number;
+    routingTarget: RoutingTarget;
 }
 
 const defaultTaskParameters: TaskParameters = {
@@ -58,6 +62,7 @@ export class JaiaGlobal {
     private selectedTaskPacket: SelectedTaskPacket;
     private selectedZoneVertex: SelectedZoneVertex;
     private zoneInEditMode: number;
+    private routingTarget: RoutingTarget;
     private mapMode: MapModes;
     private defaultTaskParameters: TaskParameters;
     private controllingClientID: string | null;
@@ -85,6 +90,7 @@ export class JaiaGlobal {
             isMoveable: false,
         };
         this.zoneInEditMode = UNASSIGNED_ID;
+        this.routingTarget = { kind: "missionSet" };
         this.mapMode = MapModes.DEFAULT;
         this.defaultTaskParameters = defaultTaskParameters;
         this.coordinateSystem = CoordinateSystem.LAT_LON;
@@ -115,6 +121,14 @@ export class JaiaGlobal {
 
     setSelectedWaypoint(clickedWaypoint: SelectedWaypoint) {
         this.selectedWaypoint = clickedWaypoint;
+    }
+
+    getRoutingTarget() {
+        return this.routingTarget;
+    }
+
+    setRoutingTarget(routingTarget: RoutingTarget) {
+        this.routingTarget = routingTarget;
     }
 
     getSelectedTaskPacket() {
@@ -244,6 +258,7 @@ export class JaiaGlobal {
             defaultTaskParameters: this.defaultTaskParameters,
             selectedZoneVertex: this.selectedZoneVertex,
             zoneInEditMode: this.zoneInEditMode,
+            routingTarget: this.routingTarget,
         };
         return cloneDeep(snapshot);
     }
@@ -268,6 +283,7 @@ export class JaiaGlobal {
             isMoveable: false,
         };
         this.zoneInEditMode = restored.zoneInEditMode ?? UNASSIGNED_ID;
+        this.routingTarget = restored.routingTarget;
     }
 }
 

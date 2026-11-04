@@ -25,16 +25,18 @@ turn, plus GPS error. Draw each zone with the margin the site needs built in.
   waypoint inside a zone is drawn red, unless its mission is being edited (gold) or it is a
   running bot's target. All of it is recomputed from the missions and zones as they are now.
 - **The status icons are buttons.** Unlike most status indicators in the JCC, each icon is
-  styled as a button and tapping it opens a routing dialog: a mission's icon opens that
-  mission's dialog, and the set's icon opens the dialog for the whole set. These dialogs are the
-  only way into Reroute and Restore; there are no separate Reroute or Restore buttons. Every
-  mission shows its icon, even when the route is clear, and it is disabled while the mission has
-  no waypoints.
-- **Reroute is an explicit action**, from a mission's routing dialog, or from the set's dialog
-  for every mission. It starts from the operator's original waypoints, suppresses the ones
-  inside a zone and adds detour waypoints around the zones. **Restore original waypoints**
-  removes the detours and brings the suppressed waypoints back. Each action is one undo entry,
-  even for the whole set, and the dialog reports what it did.
+  styled as a button and tapping it opens the routing panel in place of the Missions panel: a
+  mission's icon opens it for that mission, and the set's icon for the whole set. The routing
+  panel is the only way into Reroute and Restore; there are no separate Reroute or Restore
+  buttons. Every mission shows its icon, even when the route is clear, and it is disabled while
+  the mission has no waypoints.
+- **The map only pans and zooms while the routing panel is open.** Close opens the Missions
+  panel again.
+- **Reroute is an explicit action**, from the routing panel for a mission, or for the whole set.
+  It starts from the operator's original waypoints, suppresses the ones inside a zone and adds
+  detour waypoints around the zones. **Restore original waypoints** removes the detours and
+  brings the suppressed waypoints back. Each action is one undo entry, even for the whole set,
+  and the panel reports what it did.
 - **Placing a point inside a zone asks first.** Adding or moving a waypoint, a rally point or a
   survey corner inside a zone asks the operator to confirm; Cancel dispatches nothing. Appending
   past the waypoint limit is refused.
@@ -66,8 +68,16 @@ are worked out when the mission layer draws.
 **Each reroute or restore is one tracked action and one undo entry,** even for the whole set.
 
 **The reroute report is screen state.** `rerouteReport` in `JaiaContextType` is kept out of undo
-snapshots, and Undo clears it. A dialog shows it only after its own action, so a reopened dialog
-never shows an old report.
+snapshots, and Undo clears it. The routing panel shows it only after its own action, so a
+reopened panel never shows an old report. It is headed "Last reroute" or "Last restore" because
+it is a record of that action: a mission deleted from the bot details while the panel is open
+leaves the report as it was.
+
+**The routing panel is a panel like any other.** Its target (a mission, or the set) is kept on
+`jaiaGlobal` beside the selected waypoint, and the map lock is a map mode,
+`MapModes.ROUTING`, set with it, as the Survey tool does. The panel, its target and the map
+mode are in undo snapshots together, so Undo can bring the routing panel back, showing current
+status and no report, as Undo does for every panel.
 
 **The operator decides what is sent.** Run sends exactly the visible waypoints. Crossing a zone
 is a warning, never a refusal.
@@ -81,7 +91,7 @@ is a warning, never a refusal.
 | Suppressed waypoint | A blocked waypoint a reroute took out of the path. It stays in the mission with its task, but is not drawn and not sent. A flag on the waypoint.                                                                |
 | Visible waypoints   | The mission's waypoints without the suppressed ones: what the map shows and exactly what is sent.                                                                                                               |
 | Original waypoints  | The waypoints without detours, with the suppressed ones included: what the operator or survey planner made. Derived, never stored as a copy. Reroute's input.                                                   |
-| Waypoint number     | A waypoint's position among the visible waypoints, detours included. The one numbering everywhere: map markers, waypoint panel, dialogs and the bot's reported target waypoint. Suppressed waypoints have none. |
+| Waypoint number     | A waypoint's position among the visible waypoints, detours included. The one numbering everywhere: map markers, waypoint panel, routing panel and the bot's target waypoint. Suppressed waypoints have none.    |
 | Routing status      | Whether the visible route crosses a zone, how many waypoints are suppressed, and how many of those are clear again. Derived at render.                                                                          |
 | Clear again         | A suppressed waypoint that is no longer blocked, because a zone moved or was deleted.                                                                                                                           |
 
@@ -145,7 +155,7 @@ version is refused.
 flowchart TD
     subgraph UI["Components"]
         ICON["Status icons<br/>MissionRoutingButton, MissionSetRoutingButton"]
-        DLG["Routing dialogs<br/>Reroute, Restore and report"]
+        DLG["Routing panel<br/>Reroute, Restore and report"]
         PLACE["usePlacementCheck<br/>Map.tsx, waypoint panel"]
         RUN["Run and Run all<br/>start dialogs"]
     end
@@ -176,14 +186,14 @@ segment tests against the zones.
 | Where                                                                                  | What                                                                                                                                                                                                     |
 | -------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `utils/routing/router.ts`                                                              | `buildZoneGeometry` projects each zone, and caches each zone's shape. `autoRoute` routes original waypoints into steps for `Mission.reroute`. Point and leg tests.                                       |
-| `utils/routing/routing-status.ts`                                                      | `getRoutingStatus` and `getRoutingLevel` for the icons and dialogs; `getRouteWarnings` for Run.                                                                                                          |
+| `utils/routing/routing-status.ts`                                                      | `getRoutingStatus` and `getRoutingLevel` for the icons and the panel; `getRouteWarnings` for Run.                                                                                                        |
 | `utils/routing/placement.ts`                                                           | `checkPlacement`: allowed, confirm (inside a zone) or refused (waypoint limit), with the message.                                                                                                        |
 | `context/handlers/routing-handlers.ts`                                                 | The two tracked actions. Each stores one `RerouteOutcome` per mission with waypoints in `rerouteReport` and keeps the waypoint selection on the same waypoint.                                           |
 | `types/routing-types.ts`                                                               | `RoutingResult`, `RerouteOutcome`, `RoutingAction`.                                                                                                                                                      |
 | `components/MissionsPanel/MissionStatusIcon/`                                          | The status icon that is also a button: its colour gives the level, a tap runs its handler. Reusable for other header statuses.                                                                           |
-| `components/MissionsPanel/MissionsList/MissionRoutingButton/`                          | A mission's icon and dialog.                                                                                                                                                                             |
-| `components/MissionsPanel/MissionSetRoutingButton/`                                    | The set's icon and dialog.                                                                                                                                                                               |
-| `components/MissionsPanel/RoutingDialog/`                                              | What both dialogs share: the wording (`routing-text.ts`), the action hook with its spinner, the action button.                                                                                           |
+| `components/MissionsPanel/MissionsList/MissionRoutingButton/`                          | A mission's icon, which opens the routing panel for the mission.                                                                                                                                         |
+| `components/MissionsPanel/MissionSetRoutingButton/`                                    | The set's icon, which opens the routing panel for the set.                                                                                                                                               |
+| `components/RoutingPanel/`                                                             | The routing panel: a mission view and a set view, the wording (`routing-text.ts`), the action hook with its spinner, the action button.                                                                  |
 | `components/PlacementDialog/PlacementDialog.tsx`                                       | The confirm and refuse dialog, and `usePlacementCheck`, which every placement uses.                                                                                                                      |
 | `components/__buttons__/Start*Button/`                                                 | The Run warnings, computed when the start dialog opens.                                                                                                                                                  |
 | `openlayers/layers/vector/mission-layer.ts`, `openlayers/features/waypoint-feature.ts` | Red blocked waypoints and numbered detours. The ghost layer is never coloured.                                                                                                                           |
@@ -196,7 +206,8 @@ segment tests against the zones.
 | … inside a zone, cancelled                     | none: checked before dispatch             | none                             | no                   |
 | Place a rally point or survey corner in a zone | as usual, once confirmed                  | as usual                         | as usual             |
 | Draw, edit, delete or load zones               | the zone actions                          | `exclusion-zone-handlers.ts`     | yes                  |
-| Tap a status icon, or close a routing dialog   | none: component state                     | none                             | no                   |
+| Tap a status icon                              | `CLICKED_BUTTON` with `ROUTING_PANEL`     | `handleClickedButton`            | no                   |
+| Close the routing panel                        | `CLICKED_BUTTON` with `MISSIONS_PANEL`    | `handleClickedButton`            | no                   |
 | Reroute, or Reroute all                        | `REROUTE_MISSIONS` with the mission IDs   | `handleRerouteMissions`          | one for all missions |
 | Restore original waypoints, or Restore all     | `RESTORE_ORIGINAL_WAYPOINTS` with the IDs | `handleRestoreOriginalWaypoints` | one for all missions |
 | Run or Run all                                 | `SENT_COMMAND`, after the start dialog    | `handleSentCommand`              | no                   |

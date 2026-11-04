@@ -6,7 +6,7 @@ import {
 } from "../data/missions_manager/missions-manager";
 import { GridPlan, GridPlanningStates, GridPanSnapshot } from "../data/survey_planner/grid-plan";
 import { RallyPoints, RallyPointsSnapshot } from "../data/rally_points/rally-points";
-import { JaiaGlobal, JaiaGlobalSnapshot } from "../data/jaia_global/jaia-global";
+import { JaiaGlobal, JaiaGlobalSnapshot, RoutingTarget } from "../data/jaia_global/jaia-global";
 import {
     ExclusionZone,
     ExclusionZoneSet,
@@ -84,6 +84,7 @@ export interface JaiaAction {
     botID?: number;
     missionID?: number;
     missionIDs?: number[];
+    routingTarget?: RoutingTarget;
     rallyID?: number;
     zoneID?: number;
 
@@ -206,6 +207,7 @@ export const enum ButtonNames {
     TASK_PACKET_PANEL = "task_packet_panel",
     WAYPOINT_PANEL = "waypoint_panel",
     ZONE_VERTEX_PANEL = "zone_vertex_panel",
+    ROUTING_PANEL = "routing_panel",
     DEPTH_MAP_3D = "depth_map_3d",
 }
 

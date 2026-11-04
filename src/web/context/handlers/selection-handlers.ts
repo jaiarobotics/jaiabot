@@ -56,7 +56,8 @@ export function handleClickedTapToMove(mutableState: JaiaContextType) {
  * of the application
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
- * @param {JaiaAction} action including buttonType and buttonName of panel the button
+ * @param {JaiaAction} action including buttonType and buttonName of panel the button, and
+ *     routingTarget for the routing panel
  * @returns {JaiaContextType} Updated mutable state object
  */
 export function handleClickedButton(mutableState: JaiaContextType, action: JaiaAction) {
@@ -86,6 +87,12 @@ export function handleClickedButton(mutableState: JaiaContextType, action: JaiaA
             ) {
                 mapMode = MapModes.SURVEY_PLANNING;
                 visiblePanel = action.buttonName;
+            }
+
+            if (action.buttonName === ButtonNames.ROUTING_PANEL) {
+                mapMode = MapModes.ROUTING;
+                visiblePanel = action.buttonName;
+                jaiaGlobal.setRoutingTarget(action.routingTarget);
             }
             break;
         case ButtonTypes.PANEL:

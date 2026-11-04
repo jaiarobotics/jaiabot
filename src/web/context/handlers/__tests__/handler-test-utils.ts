@@ -9,6 +9,7 @@ import { jaiaGlobal } from "../../../data/jaia_global/jaia-global";
 import { missionsManager } from "../../../data/missions_manager/missions-manager";
 import { ExclusionZone, exclusionZoneSet } from "../../../data/exclusion_zones/exclusion-zone-set";
 import { NodeTypes } from "../../../types/jaia-system-types";
+import { MapModes } from "../../../types/openlayers-types";
 import {
     ButtonNames,
     WaypointSections,
@@ -87,6 +88,8 @@ export function resetHandlerSingletons() {
     jaiaGlobal.resetSelectedWaypoint();
     jaiaGlobal.resetSelectedZoneVertex();
     jaiaGlobal.setZoneInEditMode(UNASSIGNED_ID);
+    jaiaGlobal.setRoutingTarget({ kind: "missionSet" });
+    jaiaGlobal.setMapMode(MapModes.DEFAULT);
     gridPlan.reset();
 }
 
