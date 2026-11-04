@@ -10,7 +10,7 @@ describe("describeRouteWarning", () => {
             "Bot 3's path to its first waypoint crosses an exclusion zone. Move the first waypoint, or drive the bot clear first.",
         );
         expect(describeRouteWarning(RouteWarning.START_INSIDE_ZONE, 3, 7)).toBe(
-            "Bot 3 is inside an exclusion zone or its safety margin.",
+            "Bot 3 is inside an exclusion zone.",
         );
     });
 });
@@ -25,7 +25,7 @@ describe("describeRouteWarningsForBots", () => {
 
         expect(describeRouteWarningsForBots(botsByWarning)).toEqual([
             "Mission routes cross an exclusion zone for Bots: 2, 5.",
-            "Bot: 4 is inside an exclusion zone or its safety margin.",
+            "Bot: 4 is inside an exclusion zone.",
         ]);
     });
 

@@ -9,7 +9,6 @@ import { exclusionZoneSet } from "../../../data/exclusion_zones/exclusion-zone-s
 import { OpenLayersColors } from "../../../style/openlayers/colors";
 import { MapFeatureTypes } from "../../../types/openlayers-types";
 import { UNASSIGNED_ID } from "../../../utils/constants";
-import { buildZoneGeometry, isLocationBlocked } from "../../../utils/routing/router";
 import {
     coord,
     resetHandlerSingletons,
@@ -18,8 +17,8 @@ import {
 
 const WEST = coord(41.0, -72.005);
 const INSIDE = coord(41.0, -72.0);
-// Just east of the zone's east edge: outside the zone, inside its safety margin
-const IN_MARGIN = coord(41.0, -71.99948);
+// Just east of the zone's east edge
+const JUST_OUTSIDE = coord(41.0, -71.99948);
 const EAST = coord(41.0, -71.995);
 
 function addMission(waypoints: { location: ReturnType<typeof coord>; isDetour?: boolean }[]) {
@@ -87,14 +86,12 @@ describe("mission layer waypoint markers", () => {
         ]);
     });
 
-    test("colour a waypoint inside only the safety margin red", () => {
-        const zones = exclusionZoneSet.getZones();
-        expect(isLocationBlocked(IN_MARGIN, buildZoneGeometry(zones, 0))).toBe(false);
-        addMission([{ location: WEST }, { location: IN_MARGIN }]);
+    test("leave a waypoint just outside a zone its usual colour", () => {
+        addMission([{ location: WEST }, { location: JUST_OUTSIDE }]);
 
         missionLayer.updateFeatures();
 
-        expect(markers()[1].color).toEqual(color(OpenLayersColors.BLOCKED));
+        expect(markers()[1].color).toEqual(color(OpenLayersColors.DEFAULT));
     });
 
     test("keep the edit-mode colour on a blocked waypoint of the mission being edited", () => {

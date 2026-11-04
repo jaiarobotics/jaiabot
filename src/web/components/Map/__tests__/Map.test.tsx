@@ -259,9 +259,7 @@ test("A rally point inside an exclusion zone asks to confirm, without the rerout
     });
 
     expect(rallyPoints.getRallyPoints().size).toBe(before);
-    expect(
-        screen.getByText("This point is inside an exclusion zone or its safety margin."),
-    ).toBeTruthy();
+    expect(screen.getByText("This point is inside an exclusion zone.")).toBeTruthy();
 
     fireEvent.click(screen.getByText("Place anyway"));
     expect(rallyPoints.getRallyPoints().size).toBe(before + 1);
@@ -277,9 +275,7 @@ test("A survey corner inside an exclusion zone asks to confirm", () => {
     });
 
     expect(gridPlan.getState()).toBe(GridPlanningStates.ACCEPTING_MISSION_START_LOCATION);
-    expect(
-        screen.getByText("This point is inside an exclusion zone or its safety margin."),
-    ).toBeTruthy();
+    expect(screen.getByText("This point is inside an exclusion zone.")).toBeTruthy();
 
     fireEvent.click(screen.getByText("Place anyway"));
     expect(gridPlan.getMissionStart()).toEqual(

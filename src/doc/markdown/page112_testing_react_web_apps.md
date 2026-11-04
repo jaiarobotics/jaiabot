@@ -562,13 +562,13 @@ while proving nothing.
 ### A Mocked Library Means You Are Testing the Mock
 
 `moduleNameMapper` in `jest.config.js` can replace a third-party library wholesale, and
-nothing at the call site says so. `clipper2-ts`, the polygon library used for exclusion
-zone safety buffers, is replaced by a stub in `src/web/tests/__mocks__/clipper2-ts.ts`
-whose `union` returns its input unchanged, whose `inflatePaths` scales each vertex
-outward from the average of the polygon's vertices, and whose path simplification is the
-identity function.
+nothing at the call site says so. `clipper2-ts`, the polygon library the router uses to
+inflate exclusion zones by its planning clearance, is replaced by a stub in
+`src/web/tests/__mocks__/clipper2-ts.ts` whose `union` returns its input unchanged, whose
+`inflatePaths` scales each vertex outward from the average of the polygon's vertices, and
+whose path simplification is the identity function.
 
-The buffer tests therefore exercise the stub, not the library — and the stub's outward
+The router tests therefore exercise the stub, not the library — and the stub's outward
 scaling is the exact approach the real code was changed _away_ from, because a vertex
 average is not guaranteed to lie inside a concave polygon. Anything that depends on the
 real library's behaviour cannot be reproduced under Jest at all; verifying it needs a

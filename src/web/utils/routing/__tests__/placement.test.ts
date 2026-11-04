@@ -33,7 +33,7 @@ function missionOf(count: number): Mission {
 const ALLOWED = { kind: "allowed" };
 const confirm = (message: string) => ({ kind: "confirm", message });
 const refused = (message: RegExp) => ({ kind: "refused", message: expect.stringMatching(message) });
-const INSIDE_MESSAGE = "This point is inside an exclusion zone or its safety margin.";
+const INSIDE_MESSAGE = "This point is inside an exclusion zone.";
 const WAYPOINT_INSIDE_MESSAGE = `${INSIDE_MESSAGE} A reroute will take it out of the path.`;
 
 describe("checkPlacement", () => {
@@ -52,10 +52,9 @@ describe("checkPlacement", () => {
         },
     );
 
-    test("asks to confirm a location in a zone's safety margin", () => {
-        // 2 m east of the zone's east edge, inside the 5 m margin
+    test("allows a location 2 m outside a zone", () => {
         expect(checkPlacement(coord(41.0, -71.9995 + 0.000024), ZONES, "waypoint")).toEqual(
-            confirm(WAYPOINT_INSIDE_MESSAGE),
+            ALLOWED,
         );
     });
 

@@ -273,8 +273,6 @@ describe("a freshly rerouted mission", () => {
 describe("getRouteWarnings", () => {
     const NORTH_WEST = coord(41.01, -72.005);
     const NORTH_EAST = coord(41.01, -71.995);
-    // Just north of ZONE's edge: outside the zone, inside its safety margin
-    const IN_MARGIN = coord(41.0005 + 2 / 111_320, -72.0);
     const { ROUTE_CROSSES_ZONE, APPROACH_CROSSES_ZONE, START_INSIDE_ZONE } = RouteWarning;
 
     test("is empty for a clear route and a clear path to it", () => {
@@ -315,14 +313,11 @@ describe("getRouteWarnings", () => {
         expect(getRouteWarnings(mission, WEST, ZONE_GEOMETRY)).toEqual([]);
     });
 
-    test.each([
-        ["inside a zone", INSIDE],
-        ["inside a zone's safety margin", IN_MARGIN],
-    ])("leaves a first waypoint %s to the route warning", (_name, first) => {
-        expect(getRouteWarnings(plainMission(first), undefined, ZONE_GEOMETRY)).toEqual([
+    test("leaves a first waypoint inside a zone to the route warning", () => {
+        expect(getRouteWarnings(plainMission(INSIDE), undefined, ZONE_GEOMETRY)).toEqual([
             ROUTE_CROSSES_ZONE,
         ]);
-        expect(getRouteWarnings(plainMission(first), WEST, ZONE_GEOMETRY)).toEqual([
+        expect(getRouteWarnings(plainMission(INSIDE), WEST, ZONE_GEOMETRY)).toEqual([
             ROUTE_CROSSES_ZONE,
         ]);
     });

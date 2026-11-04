@@ -18,7 +18,7 @@ export type PlacementCheck =
 
 /**
  * Checks whether a point may be placed at a location. Appending past the waypoint limit is
- * refused. A location inside a zone or its safety margin needs the operator to confirm.
+ * refused. A location inside a zone needs the operator to confirm.
  *
  * @param {GeographicCoordinate} location Where the point would go
  * @param {ReadonlyMap<number, ExclusionZone>} zones Exclusion zones, keyed by zone ID
@@ -39,7 +39,7 @@ export function checkPlacement(
         };
     }
     if (isLocationBlockedByZone(location, zones)) {
-        const inside = "This point is inside an exclusion zone or its safety margin.";
+        const inside = "This point is inside an exclusion zone.";
         return {
             kind: "confirm",
             message:

@@ -3,14 +3,12 @@ import { ExclusionZone, exclusionZoneSet } from "../../../data/exclusion_zones/e
 import { RerouteStep } from "../../../data/mission_set/mission";
 import {
     autoRoute,
-    getZoneBufferVertices,
     buildZoneGeometry,
     getBlockingZoneIDs,
     isLocationBlockedByZone,
     routeNeedsBypass,
 } from "../router";
 import { METERS_PER_DEG } from "../../constants";
-import { Clipper } from "clipper2-ts";
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -19,11 +17,8 @@ function coord(lat: number, lon: number): GeographicCoordinate {
 }
 
 /** Routes the waypoints, failing the test unless a route is found. */
-function routedSteps(waypoints: GeographicCoordinate[], safetyMargin?: number): RerouteStep[] {
-    const routing = autoRoute(
-        waypoints,
-        buildZoneGeometry(exclusionZoneSet.getZones(), safetyMargin),
-    );
+function routedSteps(waypoints: GeographicCoordinate[]): RerouteStep[] {
+    const routing = autoRoute(waypoints, buildZoneGeometry(exclusionZoneSet.getZones()));
     if (routing.kind !== "routed") throw new Error(`expected a route, got ${routing.kind}`);
     return routing.steps;
 }
@@ -69,22 +64,6 @@ function triangleZone(centerLat: number, centerLon: number, radiusDeg = 0.0003):
             coord(centerLat - radiusDeg / 2, centerLon + radiusDeg),
         ],
     };
-}
-
-/**
- * Signed area of a lat/lon polygon via the shoelace formula, treating lon as
- * x and lat as y (consistent with the router's toXY). Sign indicates winding
- * direction — only the sign matters here, not the magnitude, so no metric
- * projection is needed.
- */
-function signedArea(poly: GeographicCoordinate[]): number {
-    let area = 0;
-    for (let i = 0; i < poly.length; i++) {
-        const a = poly[i];
-        const b = poly[(i + 1) % poly.length];
-        area += a.lon! * b.lat! - b.lon! * a.lat!;
-    }
-    return area / 2;
 }
 
 /**
@@ -138,95 +117,6 @@ function properSegmentsIntersect(
     return ((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0)) && ((d3 > 0 && d4 < 0) || (d3 < 0 && d4 > 0));
 }
 
-// ── getZoneBufferVertices ──────────────────────────────────────────────────────
-
-describe("getZoneBufferVertices", () => {
-    test("returns buffer vertices for a triangle", () => {
-        const zone = triangleZone(41.0, -72.0);
-        const buffer = getZoneBufferVertices(zone, 15);
-        expect(buffer.length).toBeGreaterThanOrEqual(3);
-    });
-
-    test("buffer vertices are further from centroid than original vertices", () => {
-        const zone = squareZone(41.0, -72.0);
-        const buffer = getZoneBufferVertices(zone, 15);
-
-        const centroidLat = zone.vertices!.reduce((s, v) => s + v.lat!, 0) / zone.vertices!.length;
-        const centroidLon = zone.vertices!.reduce((s, v) => s + v.lon!, 0) / zone.vertices!.length;
-
-        const maxOrigDist = Math.max(
-            ...zone.vertices!.map((v) => Math.hypot(v.lat! - centroidLat, v.lon! - centroidLon)),
-        );
-        const minBufferDist = Math.min(
-            ...buffer.map((v) => Math.hypot(v.lat! - centroidLat, v.lon! - centroidLon)),
-        );
-        expect(minBufferDist).toBeGreaterThan(maxOrigDist * 0.9);
-    });
-
-    test("buffer clearance is approximately the safety margin", () => {
-        const margin = 20;
-        const zone = squareZone(41.0, -72.0, 0.001);
-        const buffer = getZoneBufferVertices(zone, margin);
-
-        // Measure the minimum distance from any buffer vertex to its nearest
-        // hull vertex. For a Minkowski-sum expansion this should be ~margin.
-        const hull = zone.vertices!;
-        const minDist = Math.min(
-            ...buffer.map((bv) => Math.min(...hull.map((hv) => approxDistMetres(bv, hv)))),
-        );
-        expect(minDist).toBeGreaterThan(margin * 0.9);
-        expect(minDist).toBeLessThan(margin * 1.2);
-    });
-
-    test("returns empty array for fewer than 3 vertices", () => {
-        const zone: ExclusionZone = { vertices: [coord(41.0, -72.0)] };
-        expect(getZoneBufferVertices(zone, 15)).toEqual([]);
-    });
-
-    test("returns empty array for undefined vertices", () => {
-        expect(getZoneBufferVertices({}, 15)).toEqual([]);
-    });
-
-    // expandPolygon's winding self-correction tests
-    // pointInPolygon(vertexAverage, pts), but a vertex average isn't
-    // guaranteed inside a concave polygon, so it can flip a polygon whose
-    // winding was already correct.
-    test("buffer winding is consistent between a convex zone and a concave (crescent) zone", () => {
-        const margin = 15;
-
-        // Convex control: a convex polygon's vertex average is always
-        // inside it, so this winding is known-correct by construction.
-        const convexZone = squareZone(41.0, -72.0, 0.0006);
-        const convexWinding = Math.sign(signedArea(getZoneBufferVertices(convexZone, margin)));
-
-        // Concave "crescent": a wide C-shaped ring. Its vertex average sits
-        // in the hollow centre — outside the ring material — because the
-        // arc spans nearly a semicircle: averaging outer-arc points alone
-        // lands within the ring band, but averaging inner-arc points alone
-        // lands inside the hollow, and combined they pull the overall
-        // average into the hollow too.
-        const outerR = 10 * 0.0006;
-        const innerR = 6 * 0.0006;
-        const startDeg = 100;
-        const endDeg = 260;
-        const steps = 10;
-        const outerPts: GeographicCoordinate[] = [];
-        const innerPts: GeographicCoordinate[] = [];
-        for (let i = 0; i <= steps; i++) {
-            const deg = startDeg + ((endDeg - startDeg) * i) / steps;
-            const rad = (deg * Math.PI) / 180;
-            outerPts.push(coord(41.0 + outerR * Math.sin(rad), -72.0 + outerR * Math.cos(rad)));
-            innerPts.push(coord(41.0 + innerR * Math.sin(rad), -72.0 + innerR * Math.cos(rad)));
-        }
-        const crescentZone: ExclusionZone = {
-            vertices: [...outerPts, ...innerPts.reverse()],
-        };
-        const crescentWinding = Math.sign(signedArea(getZoneBufferVertices(crescentZone, margin)));
-
-        expect(crescentWinding).toBe(convexWinding);
-    });
-});
-
 // ── isLocationBlockedByZone / getBlockingZoneIDs ───────────────────────────────
 
 describe("isLocationBlockedByZone", () => {
@@ -246,28 +136,11 @@ describe("isLocationBlockedByZone", () => {
         );
     });
 
-    test("point just outside zone but inside buffer is blocked", () => {
+    test("point 2 m outside the zone is not blocked", () => {
         const halfSide = 0.0003;
         exclusionZoneSet.addZone(squareZone(41.0, -72.0, halfSide));
-        const justOutside = coord(41.0 + halfSide + 0.00005, -72.0);
-        expect(isLocationBlockedByZone(justOutside, exclusionZoneSet.getZones(), 15)).toBe(true);
-    });
-
-    test("point outside buffer is not blocked", () => {
-        const halfSide = 0.0003;
-        exclusionZoneSet.addZone(squareZone(41.0, -72.0, halfSide));
-        const farOut = coord(41.0 + halfSide + 0.005, -72.0);
-        expect(isLocationBlockedByZone(farOut, exclusionZoneSet.getZones(), 15)).toBe(false);
-    });
-
-    test("works with a very small safety margin", () => {
-        exclusionZoneSet.addZone(squareZone(41.0, -72.0, 0.0003));
-        // margin=1m: center is still blocked, far point is not
-        expect(isLocationBlockedByZone(coord(41.0, -72.0), exclusionZoneSet.getZones(), 1)).toBe(
-            true,
-        );
-        const outside = coord(41.0 + 0.001, -72.0);
-        expect(isLocationBlockedByZone(outside, exclusionZoneSet.getZones(), 1)).toBe(false);
+        const justOutside = coord(41.0 + halfSide + 2 / METERS_PER_DEG, -72.0);
+        expect(isLocationBlockedByZone(justOutside, exclusionZoneSet.getZones())).toBe(false);
     });
 });
 
@@ -339,7 +212,7 @@ describe("autoRoute", () => {
 
     test("puts detours after the waypoint that starts the blocked leg", () => {
         exclusionZoneSet.addZone(squareZone(41.0, -72.0, 0.0005));
-        const steps = routedSteps([WEST, EAST], 15);
+        const steps = routedSteps([WEST, EAST]);
 
         expect(steps[0].suppress).toBe(false);
         expect(steps[0].detoursAfter.length).toBeGreaterThan(0);
@@ -348,7 +221,7 @@ describe("autoRoute", () => {
 
     test("detours only the legs that cross a zone", () => {
         exclusionZoneSet.addZone(squareZone(41.0, -72.0, 0.0005));
-        const steps = routedSteps([coord(41.005, -72.005), WEST, EAST], 15);
+        const steps = routedSteps([coord(41.005, -72.005), WEST, EAST]);
 
         expect(steps[0].detoursAfter).toEqual([]);
         expect(steps[1].detoursAfter.length).toBeGreaterThan(0);
@@ -358,14 +231,14 @@ describe("autoRoute", () => {
         const zone = squareZone(41.0, -72.0, 0.0005);
         exclusionZoneSet.addZone(zone);
         const waypoints = [WEST, EAST];
-        expectPathClearOf(routedPath(waypoints, routedSteps(waypoints, 15)), zone.vertices!);
+        expectPathClearOf(routedPath(waypoints, routedSteps(waypoints)), zone.vertices!);
     });
 
     test("routed path around a triangle does not cross the zone hull", () => {
         const zone = triangleZone(41.0, -72.0, 0.0005);
         exclusionZoneSet.addZone(zone);
         const waypoints = [WEST, EAST];
-        expectPathClearOf(routedPath(waypoints, routedSteps(waypoints, 15)), zone.vertices!);
+        expectPathClearOf(routedPath(waypoints, routedSteps(waypoints)), zone.vertices!);
     });
 
     test("routes around multiple zones", () => {
@@ -374,7 +247,7 @@ describe("autoRoute", () => {
         exclusionZoneSet.addZone(west);
         exclusionZoneSet.addZone(east);
         const waypoints = [coord(41.0, -72.006), coord(41.0, -71.994)];
-        const steps = routedSteps(waypoints, 15);
+        const steps = routedSteps(waypoints);
 
         expect(detourCount(steps)).toBeGreaterThan(0);
         // The path has to clear both zones, not just whichever it met first.
@@ -386,46 +259,31 @@ describe("autoRoute", () => {
     test("routes around overlapping zones", () => {
         exclusionZoneSet.addZone(squareZone(41.0, -72.0002, 0.0005));
         exclusionZoneSet.addZone(squareZone(41.0, -71.9998, 0.0005));
-        expect(detourCount(routedSteps([WEST, EAST], 15))).toBeGreaterThan(0);
+        expect(detourCount(routedSteps([WEST, EAST]))).toBeGreaterThan(0);
     });
 
     test("routes legs that each cross a different zone", () => {
         exclusionZoneSet.addZone(squareZone(41.001, -72.0, 0.0004));
         exclusionZoneSet.addZone(squareZone(40.999, -72.0, 0.0004));
-        const steps = routedSteps(
-            [coord(41.003, -72.0), coord(41.0, -72.0), coord(40.997, -72.0)],
-            15,
-        );
+        const steps = routedSteps([coord(41.003, -72.0), coord(41.0, -72.0), coord(40.997, -72.0)]);
 
         expect(steps[0].detoursAfter.length).toBeGreaterThan(0);
         expect(steps[1].detoursAfter.length).toBeGreaterThan(0);
     });
 
-    test("adds no detour when the route passes near but outside the zone buffer", () => {
-        exclusionZoneSet.addZone(squareZone(41.0, -72.0, 0.0003));
-        // ~33 m north of the zone edge, well outside the 15 m buffer
-        expect(detourCount(routedSteps([coord(41.001, -72.005), coord(41.001, -71.995)], 15))).toBe(
-            0,
-        );
-    });
-
-    test("still detours with a safety margin of 0", () => {
-        exclusionZoneSet.addZone(squareZone(41.0, -72.0, 0.0005));
-        expect(detourCount(routedSteps([WEST, EAST], 0))).toBeGreaterThan(0);
-    });
-
-    test("a large safety margin detours a route that misses the hull", () => {
-        exclusionZoneSet.addZone(squareZone(41.0, -72.0, 0.0003));
-        // ~30 m north of the zone edge, inside a 50 m buffer
+    test("adds no detour when the route passes 2 m outside the zone", () => {
+        const halfSide = 0.0003;
+        exclusionZoneSet.addZone(squareZone(41.0, -72.0, halfSide));
+        const justNorth = 41.0 + halfSide + 2 / METERS_PER_DEG;
         expect(
-            detourCount(routedSteps([coord(41.0006, -72.005), coord(41.0006, -71.995)], 50)),
-        ).toBeGreaterThan(0);
+            detourCount(routedSteps([coord(justNorth, -72.005), coord(justNorth, -71.995)])),
+        ).toBe(0);
     });
 
     test("detours a diagonal leg that clips a zone corner", () => {
         exclusionZoneSet.addZone(squareZone(41.0, -72.0, 0.0005));
         expect(
-            detourCount(routedSteps([coord(40.999, -72.002), coord(41.001, -71.998)], 15)),
+            detourCount(routedSteps([coord(40.999, -72.002), coord(41.001, -71.998)])),
         ).toBeGreaterThan(0);
     });
 
@@ -433,7 +291,7 @@ describe("autoRoute", () => {
 
     test("suppresses a waypoint inside a zone and joins its neighbours", () => {
         exclusionZoneSet.addZone(squareZone(41.0, -72.0, 0.0005));
-        const steps = routedSteps([WEST, coord(41.0, -72.0), EAST], 15);
+        const steps = routedSteps([WEST, coord(41.0, -72.0), EAST]);
 
         expect(steps[1]).toEqual({ suppress: true, detoursAfter: [] });
         // The leg now runs from the first waypoint to the last, so its detours follow the first
@@ -441,17 +299,17 @@ describe("autoRoute", () => {
         expect(steps[2].detoursAfter).toEqual([]);
     });
 
-    test("suppresses a waypoint inside the buffer but outside the hull", () => {
+    test("keeps a waypoint 2 m outside the zone", () => {
         const halfSide = 0.0005;
         exclusionZoneSet.addZone(squareZone(41.0, -72.0, halfSide));
-        const inBuffer = coord(41.0 + halfSide + 2 / METERS_PER_DEG, -72.0);
+        const justOutside = coord(41.0 + halfSide + 2 / METERS_PER_DEG, -72.0);
 
-        expect(routedSteps([WEST, inBuffer], 15)[1].suppress).toBe(true);
+        expect(routedSteps([WEST, justOutside])[1].suppress).toBe(false);
     });
 
     test("suppresses a blocked first waypoint and routes from the first kept one", () => {
         exclusionZoneSet.addZone(squareZone(41.0, -72.0, 0.0005));
-        const steps = routedSteps([coord(41.0, -72.0), WEST, EAST], 15);
+        const steps = routedSteps([coord(41.0, -72.0), WEST, EAST]);
 
         expect(steps[0]).toEqual({ suppress: true, detoursAfter: [] });
         expect(steps[1].detoursAfter.length).toBeGreaterThan(0);
@@ -523,19 +381,17 @@ describe("routeNeedsBypass", () => {
         ).toBe(true);
     });
 
-    test("counts the safety buffer, not just the drawn hull", () => {
+    test("returns false for a leg passing 2 m outside the zone", () => {
         const halfSide = 0.0005;
         exclusionZoneSet.addZone(squareZone(41.0, -72.0, halfSide));
 
-        // A leg passing ~2 m north of the hull edge clears the zone itself but not its
-        // safety buffer, so a detour is still required.
         const justOutside = 41.0 + halfSide + 2 / METERS_PER_DEG;
         expect(
             routeNeedsBypass(
                 [coord(justOutside, -72.005), coord(justOutside, -71.995)],
                 buildZoneGeometry(exclusionZoneSet.getZones()),
             ),
-        ).toBe(true);
+        ).toBe(false);
     });
 
     test("ignores a zone that already contains an endpoint, matching the router", () => {
@@ -648,94 +504,82 @@ describe("bypass grid bounding", () => {
 });
 
 describe("one zone geometry for every test", () => {
-    // Points 1 cm inside and outside each corner of the buffer ring drawn on the map, nudged
-    // along the line from the ring's centre through the corner.
-    function nudgedCorners(ring: GeographicCoordinate[], metres: number) {
-        const centre = {
-            lat: ring.reduce((sum, p) => sum + p.lat!, 0) / ring.length,
-            lon: ring.reduce((sum, p) => sum + p.lon!, 0) / ring.length,
-        };
-        return ring.map((corner) => {
-            const fraction = metres / approxDistMetres(centre, corner);
-            const at = (f: number) =>
-                coord(
-                    corner.lat! + (corner.lat! - centre.lat) * f,
-                    corner.lon! + (corner.lon! - centre.lon) * f,
-                );
-            return { inside: at(-fraction), outside: at(fraction), farOut: at(400) };
+    const zone = squareZone(41.0, -72.0, 0.0005);
+    const centre = coord(41.0, -72.0);
+
+    // Points 1 cm inside and outside each corner, along the line from the centre, and a leg
+    // through each, square to that line.
+    function nudgedCorners() {
+        return zone.vertices!.map((corner) => {
+            const dLat = corner.lat! - centre.lat!;
+            const dLon = corner.lon! - centre.lon!;
+            const fraction = 0.01 / approxDistMetres(centre, corner);
+            const at = (f: number) => coord(corner.lat! + dLat * f, corner.lon! + dLon * f);
+            const across = (point: GeographicCoordinate) => [
+                coord(point.lat! + dLon, point.lon! - dLat),
+                coord(point.lat! - dLon, point.lon! + dLat),
+            ];
+            return { inside: at(-fraction), outside: at(fraction), across };
         });
     }
 
-    test("the buffer drawn on the map is the boundary the blocked test uses", () => {
-        const zone = squareZone(41.0, -72.0, 0.0005);
+    test("the zone drawn on the map is the boundary the blocked test uses", () => {
         const zones = new Map([[1, zone]]);
 
-        for (const { inside, outside } of nudgedCorners(getZoneBufferVertices(zone), 0.01)) {
+        for (const { inside, outside } of nudgedCorners()) {
             expect(isLocationBlockedByZone(inside, zones)).toBe(true);
             expect(isLocationBlockedByZone(outside, zones)).toBe(false);
         }
     });
 
-    test("a leg's test agrees with the point test at the ring, however far away it starts", () => {
-        // Each leg comes straight in from ~30 km out, so only its end can touch the buffer.
-        const zone = squareZone(41.0, -72.0, 0.0005);
+    test("a leg's test agrees with the point test at the zone's edge", () => {
         const geometry = buildZoneGeometry(new Map([[1, zone]]));
 
-        for (const { inside, outside, farOut } of nudgedCorners(
-            getZoneBufferVertices(zone),
-            0.01,
-        )) {
-            expect(routeNeedsBypass([farOut, inside], geometry)).toBe(true);
-            expect(routeNeedsBypass([farOut, outside], geometry)).toBe(false);
+        for (const { inside, outside, across } of nudgedCorners()) {
+            expect(routeNeedsBypass(across(inside), geometry)).toBe(true);
+            expect(routeNeedsBypass(across(outside), geometry)).toBe(false);
         }
     });
 });
 
-describe("zone shapes are built once per zone", () => {
+describe("zones are projected once per zone", () => {
     beforeEach(() => exclusionZoneSet.clearZones());
-    afterEach(() => jest.restoreAllMocks());
-
-    /** Counts the zone buffers built from here on. */
-    function countBuffers() {
-        return jest.spyOn(Clipper, "inflatePathsD");
-    }
 
     test("reuses an unchanged zone's shape", () => {
         const zones = new Map([[1, squareZone(41.0, -72.0)]]);
         const first = buildZoneGeometry(zones);
-        const buffers = countBuffers();
 
         const second = buildZoneGeometry(zones);
 
-        expect(buffers).not.toHaveBeenCalled();
-        expect(second.zones[0].expanded).toBe(first.zones[0].expanded);
+        expect(second.zones[0].vertices).toBe(first.zones[0].vertices);
     });
 
     test("rebuilds only the zone an edit replaced", () => {
         const movedID = exclusionZoneSet.addZone(squareZone(41.0, -72.0));
         const keptID = exclusionZoneSet.addZone(squareZone(41.01, -72.0));
-        const kept = buildZoneGeometry(exclusionZoneSet.getZones()).zones[1].expanded;
-        const buffers = countBuffers();
+        const before = buildZoneGeometry(exclusionZoneSet.getZones());
 
         exclusionZoneSet.moveVertex(movedID, 0, coord(40.999, -72.001));
-        const geometry = buildZoneGeometry(exclusionZoneSet.getZones());
+        const after = buildZoneGeometry(exclusionZoneSet.getZones());
 
-        expect(buffers).toHaveBeenCalledTimes(1);
-        expect(geometry.zones.find((z) => z.zoneID === keptID)!.expanded).toBe(kept);
+        const shapeOf = (geometry: typeof before, zoneID: number) =>
+            geometry.zones.find((z) => z.zoneID === zoneID)!.vertices;
+        expect(shapeOf(after, keptID)).toBe(shapeOf(before, keptID));
+        expect(shapeOf(after, movedID)).not.toBe(shapeOf(before, movedID));
     });
 
     test("rebuilds after a vertex is added or deleted", () => {
         const zoneID = exclusionZoneSet.addZone(squareZone(41.0, -72.0));
-        buildZoneGeometry(exclusionZoneSet.getZones());
-        const buffers = countBuffers();
+        const original = buildZoneGeometry(exclusionZoneSet.getZones()).zones[0].vertices;
 
         exclusionZoneSet.addVertex(zoneID, coord(41.0, -72.001));
-        buildZoneGeometry(exclusionZoneSet.getZones());
+        const added = buildZoneGeometry(exclusionZoneSet.getZones()).zones[0].vertices;
         const zone = exclusionZoneSet.getZone(zoneID)!;
         exclusionZoneSet.updateZone(zoneID, { ...zone, vertices: zone.vertices!.slice(1) });
-        buildZoneGeometry(exclusionZoneSet.getZones());
+        const deleted = buildZoneGeometry(exclusionZoneSet.getZones()).zones[0].vertices;
 
-        expect(buffers).toHaveBeenCalledTimes(2);
+        expect(added).toHaveLength(original.length + 1);
+        expect(deleted).toHaveLength(original.length);
     });
 
     test("gives a restored zone set the shapes of the zones restored", () => {
@@ -748,26 +592,6 @@ describe("zone shapes are built once per zone", () => {
         exclusionZoneSet.restoreFromSnapshot(snapshot);
 
         expect(buildZoneGeometry(exclusionZoneSet.getZones())).toEqual(before);
-    });
-
-    test("rebuilds for a different safety margin", () => {
-        const zones = new Map([[1, squareZone(41.0, -72.0)]]);
-        buildZoneGeometry(zones, 5);
-        const buffers = countBuffers();
-
-        buildZoneGeometry(zones, 10);
-
-        expect(buffers).toHaveBeenCalledTimes(1);
-    });
-
-    test("the buffer drawn on the map reuses the shape the router tests against", () => {
-        const zone = squareZone(41.0, -72.0);
-        buildZoneGeometry(new Map([[1, zone]]));
-        const buffers = countBuffers();
-
-        getZoneBufferVertices(zone);
-
-        expect(buffers).not.toHaveBeenCalled();
     });
 });
 

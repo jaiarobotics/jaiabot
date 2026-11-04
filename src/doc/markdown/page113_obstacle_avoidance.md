@@ -12,9 +12,9 @@ break when changing it. It assumes the action, dispatch, handler and context mod
 
 ## 1. What it does
 
-Each zone has a fixed **safety margin** of 5 m, drawn on the map as a dashed orange outline
-around the zone. A point inside the margin counts as inside the zone, except where section 7 says
-otherwise.
+**Zones are used as drawn, with no safety margin added.** Detours are planned 2.5 m clear of a
+zone where there is room, and up to its edge where there isn't. A bot can run about 5 m inside a
+turn, plus GPS error. Draw each zone with the margin the site needs built in.
 
 - **Editing never reroutes.** Adding, moving or deleting waypoints, and drawing, editing or
   loading zones, never run the router or add detours, and no dialog opens. Deleting the last
@@ -80,7 +80,7 @@ is a warning, never a refusal.
 
 | Term                | Meaning                                                                                                                                                                                                         |
 | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Blocked waypoint    | A waypoint inside a zone or its safety margin. Derived, by `isLocationBlocked`.                                                                                                                                 |
+| Blocked waypoint    | A waypoint inside a zone. Derived, by `isLocationBlocked`.                                                                                                                                                      |
 | Detour waypoint     | A waypoint a reroute added. It cannot be selected or edited. A flag on the waypoint.                                                                                                                            |
 | Suppressed waypoint | A blocked waypoint a reroute took out of the path. It stays in the mission with its task, but is not drawn and not sent. A flag on the waypoint.                                                                |
 | Visible waypoints   | The mission's waypoints without the suppressed ones: what the map shows and exactly what is sent.                                                                                                               |
@@ -175,11 +175,11 @@ flowchart TD
 ```
 
 Only the reroute handler runs the A\* search. Everything drawn at render uses the cheap point and
-segment tests against the buffered zones.
+segment tests against the zones.
 
 | Where                                                                                  | What                                                                                                                                                                                                     |
 | -------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `utils/routing/router.ts`                                                              | `buildZoneGeometry` projects and buffers each zone, and caches each zone's shape. `autoRoute` routes original waypoints into steps for `Mission.reroute`. Point and leg tests. The buffer the map draws. |
+| `utils/routing/router.ts`                                                              | `buildZoneGeometry` projects each zone, and caches each zone's shape. `autoRoute` routes original waypoints into steps for `Mission.reroute`. Point and leg tests.                                       |
 | `utils/routing/routing-status.ts`                                                      | `getRoutingStatus` and `getRoutingLevel` for the icons and dialogs; `getRouteWarnings` for Run.                                                                                                          |
 | `utils/routing/placement.ts`                                                           | `checkPlacement`: allowed, confirm (inside a zone) or refused (waypoint limit), with the message.                                                                                                        |
 | `context/handlers/routing-handlers.ts`                                                 | The two tracked actions. Each stores one `RerouteOutcome` per mission with waypoints in `rerouteReport` and keeps the waypoint selection on the same waypoint.                                           |
@@ -216,10 +216,9 @@ Each of these is easy to break with a change that compiles and passes most tests
 goes wrong if it is ignored.
 
 **A waypoint inside a zone needs its own test.** The leg test skips a zone when either end of
-the leg is inside the zone itself (not just its margin), treating the leg as unroutable rather
-than blocked. `routing-status.ts` tests the waypoints and the legs separately. _If ignored:_ a
-status check built on the leg test alone shows a route as clear while one of its waypoints sits
-in a zone.
+the leg is inside the zone, treating the leg as unroutable rather than blocked.
+`routing-status.ts` tests the waypoints and the legs separately. _If ignored:_ a status check
+built on the leg test alone shows a route as clear while one of its waypoints sits in a zone.
 
 **Zones are never changed in place.** Every zone edit stores a new zone object, and load and undo
 build new ones. `buildZoneGeometry` caches each zone's shape in a `WeakMap` keyed by the zone
@@ -227,17 +226,16 @@ object. `ExclusionZone` is `readonly` down to its coordinates, so the compiler c
 attempts. _If ignored:_ the zone's old shape stays in use, and placement, status, colouring and
 routing all test against a zone that is no longer there.
 
-**One projection, Web Mercator, for every zone test.** Placement, suppression, status, routing
-and the drawn buffer all use the shapes `buildZoneGeometry` builds. Lengths in metres (the
-margin, the A\* cell, clearances) are converted at the local latitude. _If ignored:_ a test that
-projects or buffers on its own disagrees with the drawn outline near its edge, so a point can be
-red on the map but placed without confirmation, or the reverse.
+**One projection, Web Mercator, for every zone test.** Placement, suppression, status and
+routing all use the shapes `buildZoneGeometry` builds, in the projection the map draws zones in.
+Lengths in metres (the A\* cell, the grid padding, clearances) are converted at the local
+latitude. _If ignored:_ a test that projects on its own disagrees with the drawn outline near its
+edge, so a point can be red on the map but placed without confirmation, or the reverse.
 
-**Buffers are inflated, then simplified, with the margin kept.** Clipper2's decimal functions
-inflate by the margin plus a tenth of it, then simplify with a tolerance of a tenth, so a buffer
-is never closer to the zone than the margin (5–5.5 m for a 5 m margin). _If ignored:_ simplifying
-first, or the integer functions, which round to whole metres, let corners come closer than the
-margin.
+**The planning clearance is inflated, then simplified, with the distance kept.** The A\* search
+first plans 2.5 m clear of each zone. Clipper2's decimal functions inflate by the clearance plus
+a tenth of it, then simplify with a tolerance of a tenth. _If ignored:_ simplifying first, or the
+integer functions, which round to whole metres, let corners come closer than the clearance.
 
 **Size the search grid from the blocking zones, but test against every zone reaching into it.**
 _If ignored:_ sizing it from the whole zone set makes the search area scale with the distance
@@ -296,8 +294,8 @@ for a handler to tell the reducer not to save history.
 **Zones across ±180° longitude** project to a shape spanning the globe in their latitude band,
 so waypoints anywhere in that band count as blocked.
 
-**Jest mocks Clipper2**, so no test runs the real buffering. Corner and rounding behaviour is
-checked in the browser.
+**Jest mocks Clipper2**, so no test runs the real clearance inflation. Corner and rounding
+behaviour is checked in the browser.
 
 **Every redraw tests every route and waypoint against every zone.** It is estimated at well under
 a millisecond for typical sets and roughly 5–20 ms at the limits (20 missions of 80 waypoints, 10

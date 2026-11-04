@@ -36,7 +36,7 @@ import missionFlagIcon from "../../style/icons/mission-flag.svg";
  * @param {GeographicCoordinate} location Lat/lon of waypoint
  * @param {number} waypointNum Positon of waypoint in mission sequence (to be displayed on icon)
  * @param {Mission} mission Used to determine color of waypoint
- * @param {boolean} [isBlocked] The waypoint is inside an exclusion zone or its safety margin
+ * @param {boolean} [isBlocked] The waypoint is inside an exclusion zone
  * @returns {Feature} Waypoint icon to display on map
  */
 export function generateWaypointFeature(
@@ -68,7 +68,7 @@ export function generateWaypointFeature(
  *
  * @param {number} waypointNum Positon of waypoint in mission sequence (to be displayed on icon)
  * @param {Mission} mission Used to determine color of waypoint
- * @param {boolean} isBlocked The waypoint is inside an exclusion zone or its safety margin
+ * @param {boolean} isBlocked The waypoint is inside an exclusion zone
  * @returns {Style} Style to be applied to a waypoint feature
  */
 function generateWaypointStyle(waypointNum: number, mission: Mission, isBlocked: boolean) {
@@ -255,7 +255,7 @@ export function getWaypointSrc(task: Task) {
  *
  * @param {Mission} mission Used to determine color of the line segment
  * @param {number} waypointNum Makes color change for target waypoint
- * @param {boolean} [isBlocked] The waypoint is inside an exclusion zone or its safety margin
+ * @param {boolean} [isBlocked] The waypoint is inside an exclusion zone
  * @returns {OpenLayersColors} Color to be applied to waypoint
  */
 function getWaypointColor(mission: Mission, waypointNum?: number, isBlocked = false) {

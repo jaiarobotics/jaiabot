@@ -12,7 +12,6 @@ import { fromLonLat, toLonLat } from "ol/proj";
 import JaiaVectorLayer from "./jaia-vector-layer";
 import { layersZIndexes } from "../zindex";
 import { LayerTitles, MapFeatureTypes } from "../../../types/openlayers-types";
-import { getZoneBufferVertices } from "../../../utils/routing/router";
 import { jaiaGlobal } from "../../../data/jaia_global/jaia-global";
 import { exclusionZoneSet } from "../../../data/exclusion_zones/exclusion-zone-set";
 import { OpenLayersColors } from "../../../style/openlayers/colors";
@@ -23,8 +22,6 @@ const ZONE_STROKE = "rgba(220, 0, 0, 0.85)";
 const ZONE_EDIT_FILL = "rgba(255, 215, 0, 0.18)";
 const ZONE_EDIT_STROKE = "rgba(255, 215, 0, 0.9)";
 const DRAW_STROKE = "rgba(220, 0, 0, 0.6)";
-const BUFFER_STROKE = "rgba(255, 140, 0, 0.7)";
-const BUFFER_FILL = "rgba(255, 140, 0, 0.06)";
 
 class ExclusionZoneLayer extends JaiaVectorLayer {
     private draw: Draw | null = null;
@@ -117,16 +114,6 @@ class ExclusionZoneLayer extends JaiaVectorLayer {
             if (!zone.vertices || zone.vertices.length < 3) return;
             zoneNum++;
 
-            // Draw the safety buffer ring first (underneath the zone).
-            const bufferVerts = getZoneBufferVertices(zone);
-            if (bufferVerts.length >= 3) {
-                const bufferCoords = bufferVerts.map((v) => fromLonLat([v.lon, v.lat]));
-                bufferCoords.push(bufferCoords[0]);
-                const bufferFeature = new Feature({ geometry: new Polygon([bufferCoords]) });
-                bufferFeature.set("isBuffer", true);
-                this.getVectorLayer().getSource().addFeature(bufferFeature);
-            }
-
             // Draw the zone polygon.
             const coords3857 = zone.vertices.map((v) => fromLonLat([v.lon, v.lat]));
             coords3857.push(coords3857[0]); // close ring
@@ -183,13 +170,6 @@ class ExclusionZoneLayer extends JaiaVectorLayer {
      * @returns {Style} The computed style for the feature
      */
     private getZoneStyle(feature: Feature): Style {
-        if (feature.get("isBuffer")) {
-            return new Style({
-                fill: new Fill({ color: BUFFER_FILL }),
-                stroke: new Stroke({ color: BUFFER_STROKE, width: 1.5, lineDash: [5, 5] }),
-            });
-        }
-
         if (feature.get("isDrawnPolygon")) {
             const zoneID = feature.get("zoneID") as number;
             const isEditing = zoneID === jaiaGlobal.getZoneInEditMode();

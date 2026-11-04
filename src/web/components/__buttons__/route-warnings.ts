@@ -15,7 +15,7 @@ export function describeRouteWarning(warning: RouteWarning, botID: number, missi
         case RouteWarning.APPROACH_CROSSES_ZONE:
             return `Bot ${botID}'s path to its first waypoint crosses an exclusion zone. Move the first waypoint, or drive the bot clear first.`;
         case RouteWarning.START_INSIDE_ZONE:
-            return `Bot ${botID} is inside an exclusion zone or its safety margin.`;
+            return `Bot ${botID} is inside an exclusion zone.`;
     }
 }
 
@@ -43,9 +43,7 @@ export function describeRouteWarningsForBots(botsByWarning: Map<RouteWarning, nu
                 );
                 break;
             case RouteWarning.START_INSIDE_ZONE:
-                lines.push(
-                    `${bots} ${many ? "are" : "is"} inside an exclusion zone or its safety margin.`,
-                );
+                lines.push(`${bots} ${many ? "are" : "is"} inside an exclusion zone.`);
                 break;
         }
     }

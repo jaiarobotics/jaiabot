@@ -219,27 +219,27 @@ function dist(A: XYPt, B: XYPt): number {
     return Math.sqrt(distSq(A, B));
 }
 
-// ── Buffer expansion ───────────────────────────────────────────────────────────
+// ── Polygon expansion ──────────────────────────────────────────────────────────
 
 /**
- * Expands a polygon outward by `margin` using Clipper2's inflatePathsD.
+ * Expands a polygon outward by `distance` using Clipper2's inflatePathsD.
  * Returns a single expanded polygon with consistent winding (centroid inside).
  *
  * @param {readonly XYPt[]} poly Polygon vertices to expand
- * @param {number} margin Outward expansion distance, in the polygon's units
+ * @param {number} distance Outward expansion distance, in the polygon's units
  * @returns {readonly XYPt[]} Expanded polygon vertices
  */
-function expandPolygon(poly: readonly XYPt[], margin: number): readonly XYPt[] {
+function expandPolygon(poly: readonly XYPt[], distance: number): readonly XYPt[] {
     const input = [poly.map((p) => ({ x: p.x, y: p.y }))];
     const cleaned = Clipper.unionD(input, FillRule.NonZero);
     const subject = cleaned.length > 0 ? cleaned : input;
 
     // Simplifying cuts across the rounded corners by up to its tolerance, so inflate that much
-    // further first: the simplified buffer then never comes closer than `margin`.
-    const tolerance = margin * 0.1;
+    // further first: the simplified polygon then never comes closer than `distance`.
+    const tolerance = distance * 0.1;
     const result = Clipper.inflatePathsD(
         subject,
-        margin + tolerance,
+        distance + tolerance,
         JoinType.Round,
         EndType.Polygon,
     );
@@ -267,38 +267,29 @@ function expandPolygon(poly: readonly XYPt[], margin: number): readonly XYPt[] {
 
 // ── Zone geometry ──────────────────────────────────────────────────────────────
 
-/** A zone's projected and buffered shape. */
-interface ZoneShape {
-    /** Raw user-drawn vertices (possibly concave). */
-    raw: readonly XYPt[];
-    /** Expanded safety buffer polygon. */
-    expanded: readonly XYPt[];
-}
-
-interface ZoneGeom extends ZoneShape {
+interface ZoneGeom {
     zoneID: number;
+    /** The zone's vertices as drawn, projected (possibly concave). */
+    vertices: readonly XYPt[];
 }
 
 /**
- * Each zone's shape and the margin it was buffered by, keyed by the zone object. Zones are
- * never changed in place, so a zone object always has the same shape; an entry is freed with
- * its zone.
+ * Each zone's projected vertices, keyed by the zone object. Zones are never changed in place,
+ * so a zone object always has the same shape; an entry is freed with its zone.
  */
-const zoneShapes = new WeakMap<ExclusionZone, { safetyMargin: number; shape: ZoneShape }>();
+const projectedZones = new WeakMap<ExclusionZone, readonly XYPt[]>();
 
 /**
- * Every zone projected and buffered once, so every test about a zone uses the same shape.
+ * Every zone projected once, so every test about a zone uses the same shape.
  */
 export interface ZoneGeometry {
-    /** Safety buffer distance in metres the zones were buffered by. */
-    safetyMargin: number;
     zones: ZoneGeom[];
 }
 
 /**
- * Returns the zones whose safety buffer blocks direct travel from A to B.
- * A zone is skipped when either endpoint lies inside its raw hull: the segment is
- * then unroutable rather than blocked, and routing around it is not attempted.
+ * Returns the zones that block direct travel from A to B.
+ * A zone is skipped when either endpoint lies inside it: the segment is then
+ * unroutable rather than blocked, and routing around it is not attempted.
  *
  * @param {XYPt} A Start of the segment
  * @param {XYPt} B End of the segment
@@ -308,41 +299,31 @@ export interface ZoneGeometry {
 function zonesBlockingSegment(A: XYPt, B: XYPt, zoneGeoms: ZoneGeom[]): ZoneGeom[] {
     return zoneGeoms.filter(
         (zg) =>
-            !pointInPolygon(A, zg.raw) &&
-            !pointInPolygon(B, zg.raw) &&
-            (segmentIntersectsPolygon(A, B, zg.expanded) ||
-                pointInPolygon(A, zg.expanded) ||
-                pointInPolygon(B, zg.expanded)),
+            !pointInPolygon(A, zg.vertices) &&
+            !pointInPolygon(B, zg.vertices) &&
+            segmentIntersectsPolygon(A, B, zg.vertices),
     );
 }
 
 /**
- * Projects and buffers every exclusion zone. Each zone's margin is converted to Mercator
- * units at the zone's own latitude. A zone's shape is built once and reused until the zone
- * is replaced.
+ * Projects every exclusion zone. A zone is projected once and reused until the zone is
+ * replaced.
  *
  * @param {ReadonlyMap<number, ExclusionZone>} zones Exclusion zones to project, keyed by zone ID
- * @param {number} [safetyMargin] Safety buffer distance in metres around each zone
- * @returns {ZoneGeometry} Projected, buffered geometry for every valid zone
+ * @returns {ZoneGeometry} Projected geometry for every valid zone
  */
-export function buildZoneGeometry(
-    zones: ReadonlyMap<number, ExclusionZone>,
-    safetyMargin = DEFAULT_SAFETY_MARGIN_METERS,
-): ZoneGeometry {
+export function buildZoneGeometry(zones: ReadonlyMap<number, ExclusionZone>): ZoneGeometry {
     const zoneGeoms: ZoneGeom[] = [];
     for (const [zoneID, zone] of zones) {
         if (!zone.vertices || zone.vertices.length < 3) continue;
-        let cached = zoneShapes.get(zone);
-        if (cached?.safetyMargin !== safetyMargin) {
-            const raw = zone.vertices.map(toXY);
-            const meanY = raw.reduce((sum, p) => sum + p.y, 0) / raw.length;
-            const expanded = expandPolygon(raw, safetyMargin * unitsPerMetre(meanY));
-            cached = { safetyMargin, shape: { raw, expanded } };
-            zoneShapes.set(zone, cached);
+        let vertices = projectedZones.get(zone);
+        if (!vertices) {
+            vertices = zone.vertices.map(toXY);
+            projectedZones.set(zone, vertices);
         }
-        zoneGeoms.push({ zoneID, ...cached.shape });
+        zoneGeoms.push({ zoneID, vertices });
     }
-    return { safetyMargin, zones: zoneGeoms };
+    return { zones: zoneGeoms };
 }
 
 // ── A* grid pathfinding ────────────────────────────────────────────────────────
@@ -358,7 +339,8 @@ const GRID_CELL_SIZE = 5; // metres per grid cell
  * ceiling can still take seconds.
  */
 const MAX_GRID_CELLS = 4_000_000;
-const DEFAULT_SAFETY_MARGIN_METERS = 5;
+/** Room in metres around the blocking zones for the search to pass them. */
+const GRID_PADDING = GRID_CELL_SIZE * 2;
 const MIN_BYPASS_SPACING = GRID_CELL_SIZE * 1.5;
 const BACKTRACK_TOLERANCE = GRID_CELL_SIZE * 1.5;
 
@@ -416,31 +398,30 @@ class MinHeap {
 }
 
 /**
- * Finds a clear path from A to B avoiding all expanded zone polygons using A*
- * on a regular grid. Returns intermediate bypass points (excluding A and B),
- * or [] if no bypass is needed or the direct path is already clear.
+ * Finds a clear path from A to B avoiding every zone using A* on a regular grid.
+ * Returns intermediate bypass points (excluding A and B), or [] if no bypass is
+ * needed or the direct path is already clear.
  *
  * Grid approach is robust for any zone shape — concave, complex, or irregular.
  *
  * @param {XYPt} A Start point of the segment to route
  * @param {XYPt} B End point of the segment to route
- * @param {ZoneGeom[]} zoneGeoms Pre-computed raw and expanded polygon geometry for each zone
- * @param {number} safetyMargin Safety buffer distance in metres used to size the planning grid
+ * @param {ZoneGeom[]} zoneGeoms Projected zones to avoid
  * @returns {XYPt[]} Intermediate bypass waypoints between A and B, or empty array if no bypass is needed
  */
-function findBypassPath(A: XYPt, B: XYPt, zoneGeoms: ZoneGeom[], safetyMargin: number): XYPt[] {
+function findBypassPath(A: XYPt, B: XYPt, zoneGeoms: ZoneGeom[]): XYPt[] {
     // Grid sizes and tolerances are set in metres and converted at the leg's latitude.
     const scale = unitsPerMetre((A.y + B.y) / 2);
     const cellSize = GRID_CELL_SIZE * scale;
+    const gridPadding = GRID_PADDING * scale;
     const minBypassSpacing = MIN_BYPASS_SPACING * scale;
     const backtrackTolerance = BACKTRACK_TOLERANCE * scale;
 
     const tryFindBypass = (planningClearance: number): XYPt[] => {
-        const GRID_PADDING = safetyMargin * scale;
         const collisionPolys =
             planningClearance > 0
-                ? zoneGeoms.map((zg) => expandPolygon(zg.expanded, planningClearance))
-                : zoneGeoms.map((zg) => zg.expanded);
+                ? zoneGeoms.map((zg) => expandPolygon(zg.vertices, planningClearance))
+                : zoneGeoms.map((zg) => zg.vertices);
 
         // Check if direct path is clear.
         const blockingPolys = collisionPolys.filter(
@@ -449,17 +430,17 @@ function findBypassPath(A: XYPt, B: XYPt, zoneGeoms: ZoneGeom[], safetyMargin: n
                 pointInPolygon(A, poly) ||
                 pointInPolygon(B, poly),
         );
-        // Suppress if either endpoint is inside the raw zone (unroutable).
-        const aInRaw = zoneGeoms.some((zg) => pointInPolygon(A, zg.raw));
-        const bInRaw = zoneGeoms.some((zg) => pointInPolygon(B, zg.raw));
-        if (aInRaw || bInRaw) return [];
+        // Suppress if either endpoint is inside a zone (unroutable).
+        const aInZone = zoneGeoms.some((zg) => pointInPolygon(A, zg.vertices));
+        const bInZone = zoneGeoms.some((zg) => pointInPolygon(B, zg.vertices));
+        if (aInZone || bInZone) return [];
         if (blockingPolys.length === 0) return [];
 
         // Size the grid from the endpoints and the zones actually blocking this segment.
         // Sizing it from every zone in the set would scale the search area with the
         // distance between unrelated zones — two zones tens of kilometres apart would
         // produce a grid of tens of millions of cells for a detour around either one.
-        const { minX, minY, maxX, maxY } = boundsOf([A, B, ...blockingPolys.flat()], GRID_PADDING);
+        const { minX, minY, maxX, maxY } = boundsOf([A, B, ...blockingPolys.flat()], gridPadding);
 
         const cols = Math.ceil((maxX - minX) / cellSize) + 1;
         const rows = Math.ceil((maxY - minY) / cellSize) + 1;
@@ -674,7 +655,7 @@ function findBypassPath(A: XYPt, B: XYPt, zoneGeoms: ZoneGeom[], safetyMargin: n
     const firstPass = tryFindBypass(adaptiveClearance);
     if (firstPass.length > 0) return firstPass;
 
-    // Fallback: retry against the true safety boundary (no extra planning buffer)
+    // Fallback: retry against the zones themselves (no planning clearance)
     // to reduce false "impossible" classifications in tight corridors.
     return tryFindBypass(0);
 }
@@ -682,7 +663,7 @@ function findBypassPath(A: XYPt, B: XYPt, zoneGeoms: ZoneGeom[], safetyMargin: n
 // ── Public API ─────────────────────────────────────────────────────────────────
 
 /**
- * Routes waypoints around the zones. A waypoint inside a zone or its buffer is suppressed,
+ * Routes waypoints around the zones. A waypoint inside a zone is suppressed,
  * and each leg between kept waypoints that crosses a zone gets the detour points A* finds
  * around every zone. Waypoints are numbered from 1, in the order given.
  *
@@ -708,7 +689,7 @@ export function autoRoute(
         const B = toXY(waypoints[to]);
         if (zonesBlockingSegment(A, B, geometry.zones).length === 0) continue;
 
-        const detour = findBypassPath(A, B, geometry.zones, geometry.safetyMargin);
+        const detour = findBypassPath(A, B, geometry.zones);
         if (detour.length === 0) return { kind: "noRoute", leg: [from + 1, to + 1] };
         steps[from].detoursAfter = detour.map(toLatLon);
     }
@@ -716,26 +697,11 @@ export function autoRoute(
 }
 
 /**
- * Returns the safety-buffer polygon vertices (in lat/lon) for a single zone.
+ * Returns the IDs of every zone that contains the given location.
  *
- * @param {ExclusionZone} zone Zone whose buffer vertices are needed
- * @param {number} [safetyMargin] Safety buffer distance in metres around the zone
- * @returns {GeographicCoordinate[]} Buffer polygon vertices in geographic coordinates
- */
-export function getZoneBufferVertices(
-    zone: ExclusionZone,
-    safetyMargin = DEFAULT_SAFETY_MARGIN_METERS,
-): GeographicCoordinate[] {
-    const [zoneGeom] = buildZoneGeometry(new Map([[0, zone]]), safetyMargin).zones;
-    return zoneGeom ? zoneGeom.expanded.map(toLatLon) : [];
-}
-
-/**
- * Returns the IDs of every zone whose safety-margin buffer contains the given location.
- *
- * @param {GeographicCoordinate} location Geographic point to test against all zone buffers
+ * @param {GeographicCoordinate} location Geographic point to test
  * @param {ZoneGeometry} geometry Zones to test against
- * @returns {number[]} IDs of zones whose buffer contains the location
+ * @returns {number[]} IDs of zones containing the location
  */
 export function getBlockingZoneIDs(
     location: GeographicCoordinate,
@@ -743,7 +709,7 @@ export function getBlockingZoneIDs(
 ): number[] {
     const point = toXY(location);
     return geometry.zones
-        .filter((zoneGeom) => pointInPolygon(point, zoneGeom.expanded))
+        .filter((zoneGeom) => pointInPolygon(point, zoneGeom.vertices))
         .map((zoneGeom) => zoneGeom.zoneID);
 }
 
@@ -765,7 +731,7 @@ export function routeNeedsBypass(route: GeographicCoordinate[], geometry: ZoneGe
 }
 
 /**
- * Reports whether a location is inside a zone or its safety margin.
+ * Reports whether a location is inside a zone.
  *
  * @param {GeographicCoordinate} location Location to test
  * @param {ZoneGeometry} geometry Zones to test against
@@ -776,18 +742,15 @@ export function isLocationBlocked(location: GeographicCoordinate, geometry: Zone
 }
 
 /**
- * Returns true if the given location falls inside the safety-margin buffer
- * of any exclusion zone.
+ * Returns true if the given location falls inside any exclusion zone.
  *
  * @param {GeographicCoordinate} location Geographic point to test
  * @param {ReadonlyMap<number, ExclusionZone>} zones Exclusion zones to test against, keyed by zone ID
- * @param {number} [safetyMargin] Safety buffer distance in metres around each zone
- * @returns {boolean} Whether the location is blocked by any zone's safety buffer
+ * @returns {boolean} Whether the location is inside any zone
  */
 export function isLocationBlockedByZone(
     location: GeographicCoordinate,
     zones: ReadonlyMap<number, ExclusionZone>,
-    safetyMargin = DEFAULT_SAFETY_MARGIN_METERS,
 ): boolean {
-    return isLocationBlocked(location, buildZoneGeometry(zones, safetyMargin));
+    return isLocationBlocked(location, buildZoneGeometry(zones));
 }
