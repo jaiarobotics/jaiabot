@@ -38,7 +38,6 @@ function LimitWarning({ message, onClose }: LimitWarningProps) {
 }
 
 interface DialogProps {
-    isVisible: boolean;
     onClose: () => void;
 }
 
@@ -71,16 +70,10 @@ export function MissionSetEditorDialog(props: DialogProps) {
     const [savedMissionSets, setSavedMissionSets] = useState<string[]>([]);
 
     useEffect(() => {
-        if (props.isVisible) {
-            listSavedMissionSetsFromHub()
-                .then(setSavedMissionSets)
-                .catch(() => setSavedMissionSets([]));
-        }
-    }, [props.isVisible]);
-
-    if (!props.isVisible) {
-        return <div></div>;
-    }
+        listSavedMissionSetsFromHub()
+            .then(setSavedMissionSets)
+            .catch(() => setSavedMissionSets([]));
+    }, []);
 
     /** Toggles selection of a stored mission set item; deselects if already selected.
      *
