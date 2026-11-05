@@ -273,7 +273,12 @@ describe("a freshly rerouted mission", () => {
 describe("getRouteWarnings", () => {
     const NORTH_WEST = coord(41.01, -72.005);
     const NORTH_EAST = coord(41.01, -71.995);
-    const { ROUTE_CROSSES_ZONE, APPROACH_CROSSES_ZONE, START_INSIDE_ZONE } = RouteWarning;
+    const {
+        ROUTE_CROSSES_ZONE,
+        RETURN_LEG_CROSSES_ZONE,
+        APPROACH_CROSSES_ZONE,
+        START_INSIDE_ZONE,
+    } = RouteWarning;
 
     test("is empty for a clear route and a clear path to it", () => {
         expect(getRouteWarnings(plainMission(NORTH_EAST), NORTH_WEST, ZONE_GEOMETRY)).toEqual([]);
@@ -320,6 +325,87 @@ describe("getRouteWarnings", () => {
         expect(getRouteWarnings(plainMission(INSIDE), WEST, ZONE_GEOMETRY)).toEqual([
             ROUTE_CROSSES_ZONE,
         ]);
+    });
+
+    describe("the return leg", () => {
+        function repeating(mission: Mission): Mission {
+            mission.setRepeats(2);
+            return mission;
+        }
+
+        const AROUND_THE_ZONE = [WEST, NORTH_WEST, NORTH_EAST, EAST];
+
+        test("warns when a repeating mission's last waypoint to its first crosses a zone", () => {
+            const mission = repeating(plainMission(...AROUND_THE_ZONE));
+
+            expect(getRouteWarnings(mission, undefined, ZONE_GEOMETRY)).toEqual([
+                RETURN_LEG_CROSSES_ZONE,
+            ]);
+            expect(getRouteWarnings(mission, WEST, ZONE_GEOMETRY)).toEqual([
+                RETURN_LEG_CROSSES_ZONE,
+            ]);
+        });
+
+        test("is not tested for a mission that does not repeat", () => {
+            expect(
+                getRouteWarnings(plainMission(...AROUND_THE_ZONE), undefined, ZONE_GEOMETRY),
+            ).toEqual([]);
+        });
+
+        test("is clear when the waypoints go around the zone and back", () => {
+            const mission = repeating(plainMission(WEST, NORTH_WEST, NORTH_EAST));
+
+            expect(getRouteWarnings(mission, undefined, ZONE_GEOMETRY)).toEqual([]);
+        });
+
+        test("ends at the last visible waypoint, not a suppressed one", () => {
+            const mission = repeating(
+                loadMission([
+                    { location: WEST },
+                    { location: NORTH_WEST },
+                    { location: NORTH_EAST },
+                    { location: EAST, isSuppressed: true },
+                ]),
+            );
+
+            expect(getRouteWarnings(mission, undefined, ZONE_GEOMETRY)).toEqual([]);
+        });
+
+        test("ends at the first visible waypoint, not a suppressed one", () => {
+            const mission = repeating(
+                loadMission([
+                    { location: EAST, isSuppressed: true },
+                    { location: NORTH_WEST },
+                    { location: NORTH_EAST },
+                    { location: WEST },
+                ]),
+            );
+
+            expect(getRouteWarnings(mission, undefined, ZONE_GEOMETRY)).toEqual([]);
+        });
+
+        test("does not exist for a single waypoint", () => {
+            expect(
+                getRouteWarnings(repeating(plainMission(EAST)), undefined, ZONE_GEOMETRY),
+            ).toEqual([]);
+        });
+
+        test("is warned about alongside a route that crosses a zone", () => {
+            const mission = repeating(plainMission(WEST, EAST, NORTH_EAST, EAST));
+
+            expect(getRouteWarnings(mission, undefined, ZONE_GEOMETRY)).toEqual([
+                ROUTE_CROSSES_ZONE,
+                RETURN_LEG_CROSSES_ZONE,
+            ]);
+        });
+
+        test("leaves a last waypoint inside a zone to the route warning", () => {
+            const mission = repeating(plainMission(WEST, NORTH_WEST, INSIDE));
+
+            expect(getRouteWarnings(mission, undefined, ZONE_GEOMETRY)).toEqual([
+                ROUTE_CROSSES_ZONE,
+            ]);
+        });
     });
 
     test("still warns about the path when it crosses another zone", () => {

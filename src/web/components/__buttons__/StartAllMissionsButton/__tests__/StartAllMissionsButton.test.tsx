@@ -279,7 +279,8 @@ describe("route warnings", () => {
         bots.getBots().clear();
         missionsManager.clear();
 
-        // Bots 1 and 6 run routes across the zone; Bot 7's path to its first waypoint crosses it
+        // Bots 1 and 6 run routes across the zone; Bot 7's path to its first waypoint crosses it;
+        // Bot 8's route goes around it, but its return leg crosses it
         const crossing = (): Mission => {
             const mission = new Mission();
             mission.addWaypoint(WEST);
@@ -288,10 +289,17 @@ describe("route warnings", () => {
         };
         const beyond = new Mission();
         beyond.addWaypoint(EAST);
+        const repeating = new Mission();
+        repeating.addWaypoint(WEST);
+        repeating.addWaypoint({ lat: 41.01, lon: -72.005 });
+        repeating.addWaypoint({ lat: 41.01, lon: -71.995 });
+        repeating.addWaypoint(EAST);
+        repeating.setRepeats(2);
         for (const [botID, mission] of [
             [1, crossing()],
             [6, crossing()],
             [7, beyond],
+            [8, repeating],
         ] as [number, Mission][]) {
             bots.setBot({
                 ...botStatusMock1,
@@ -311,13 +319,18 @@ describe("route warnings", () => {
         );
         await userEvent.click(screen.getByRole("button", { name: "start-all-missions" }));
 
-        expect(screen.getByText("Send missions to Bots: 1, 6, 7")).toBeInTheDocument();
+        expect(screen.getByText("Send missions to Bots: 1, 6, 7, 8")).toBeInTheDocument();
         expect(
             screen.getByText("Mission routes cross an exclusion zone for Bots: 1, 6."),
         ).toBeInTheDocument();
         expect(
             screen.getByText(
                 /^The path to the first waypoint crosses an exclusion zone for Bot: 7\./,
+            ),
+        ).toBeInTheDocument();
+        expect(
+            screen.getByText(
+                /^The return leg from the last waypoint back to waypoint 1 crosses an exclusion zone for Bot: 8\./,
             ),
         ).toBeInTheDocument();
         expect(screen.getByText("Start Missions")).toBeInTheDocument();

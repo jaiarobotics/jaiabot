@@ -82,8 +82,8 @@ export default function StartAllMissionsButton(props: Props) {
     };
 
     /**
-     * Checks each Bot's assigned mission route, and the Bot's path to its first waypoint,
-     * against the exclusion zones
+     * Checks each Bot's assigned mission route, its return leg when it repeats, and the Bot's
+     * path to its first waypoint against the exclusion zones
      *
      * @param {number[]} readyBotIDs IDs of the Bots to check
      * @returns {string[]} One line per warning, listing the Bots it applies to
@@ -92,6 +92,7 @@ export default function StartAllMissionsButton(props: Props) {
         const geometry = buildZoneGeometry(exclusionZoneSet.getZones());
         const botsByWarning = new Map<RouteWarning, number[]>([
             [RouteWarning.ROUTE_CROSSES_ZONE, []],
+            [RouteWarning.RETURN_LEG_CROSSES_ZONE, []],
             [RouteWarning.APPROACH_CROSSES_ZONE, []],
             [RouteWarning.START_INSIDE_ZONE, []],
         ]);

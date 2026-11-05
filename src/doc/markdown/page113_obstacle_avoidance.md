@@ -42,8 +42,9 @@ turn, plus GPS error. Draw each zone with the margin the site needs built in.
   survey corner inside a zone asks the operator to confirm; Cancel dispatches nothing. Appending
   past the waypoint limit is refused. The limit counts detours, which are sent, and suppressed
   waypoints, which Restore brings back.
-- **Run and Run all warn, and never block,** when a route crosses a zone, when the bot's straight
-  path to its first waypoint crosses one, or when the bot is inside one.
+- **Run and Run all warn, and never block,** when a route crosses a zone, when a repeating
+  mission's return leg crosses one, when the bot's straight path to its first waypoint crosses
+  one, or when the bot is inside one.
 
 ## 2. Design principles
 
@@ -305,7 +306,11 @@ slip between cell centres, and the check of each detour reports that leg as unro
 
 **Some legs are not routed.** The bot's leg to waypoint 1 is not routed, because the bot moves
 and a detour planned in advance would be stale; Run warns when that straight leg crosses a zone.
-The repeat leg (last waypoint back to waypoint 1) and the leg to a rally point are not checked.
+A repeating mission's return leg (last waypoint back to waypoint 1) is not routed either, because
+a mission's goals are the same on every pass, so a detour would also be driven at the end of the
+last pass. Run warns when it crosses a zone, with a tip to add waypoints at the end of the
+mission. Waypoints added that way are driven on every pass too, and the bot then finishes at the
+last of them, but the operator chooses that. The leg to a rally point is not checked.
 
 **A zone can be made to cross itself.** Vertices are appended, as waypoints are, because
 targeting an edge on a tablet is unreliable. Appending far from the closing edge makes a

@@ -80,14 +80,16 @@ export function getWorstRoutingLevel(
 /** A way a run of a mission would enter an exclusion zone. */
 export enum RouteWarning {
     ROUTE_CROSSES_ZONE,
+    RETURN_LEG_CROSSES_ZONE,
     APPROACH_CROSSES_ZONE,
     START_INSIDE_ZONE,
 }
 
 /**
  * Lists the ways a run of the mission from `start` would enter an exclusion zone: the
- * mission's visible route, `start` itself, or the straight path from `start` to the first
- * visible waypoint. Nothing is routed. Without a start position only the route is tested.
+ * mission's visible route, the return leg of a repeating mission, `start` itself, or the
+ * straight path from `start` to the first visible waypoint. Nothing is routed. Without a
+ * start position only the route and the return leg are tested.
  *
  * @param {Mission} mission Mission to test
  * @param {GeographicCoordinate | undefined} start Position the run starts from
@@ -101,6 +103,9 @@ export function getRouteWarnings(
 ): RouteWarning[] {
     const warnings: RouteWarning[] = [];
     if (isRouteConflicted(mission, geometry)) warnings.push(RouteWarning.ROUTE_CROSSES_ZONE);
+    if (isReturnLegConflicted(mission, geometry)) {
+        warnings.push(RouteWarning.RETURN_LEG_CROSSES_ZONE);
+    }
 
     const first = mission.getWaypoints()[0]?.getLocation();
     if (!start || !first) return warnings;
@@ -135,4 +140,19 @@ function isRouteConflicted(mission: Mission, geometry: ZoneGeometry): boolean {
         route.some((location) => isLocationBlocked(location, geometry)) ||
         routeNeedsBypass(route, geometry)
     );
+}
+
+/**
+ * Reports whether a repeating mission's leg from its last visible waypoint back to its first
+ * crosses a zone.
+ *
+ * @param {Mission} mission Mission to test
+ * @param {ZoneGeometry} geometry Zones to test against
+ * @returns {boolean} True if the mission repeats and that leg is blocked
+ */
+function isReturnLegConflicted(mission: Mission, geometry: ZoneGeometry): boolean {
+    const waypoints = mission.getWaypoints();
+    if (mission.getRepeats() <= 1 || waypoints.length < 2) return false;
+    const last = waypoints[waypoints.length - 1];
+    return routeNeedsBypass([last.getLocation(), waypoints[0].getLocation()], geometry);
 }

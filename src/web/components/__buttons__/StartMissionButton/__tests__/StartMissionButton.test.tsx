@@ -161,6 +161,8 @@ test("Start mission", async () => {
 describe("route warnings", () => {
     const WEST = { lat: 41.0, lon: -72.005 };
     const EAST = { lat: 41.0, lon: -71.995 };
+    const NORTH_WEST = { lat: 41.01, lon: -72.005 };
+    const NORTH_EAST = { lat: 41.01, lon: -71.995 };
     const zone = {
         vertices: [
             { lat: 40.9995, lon: -72.0005 },
@@ -206,6 +208,22 @@ describe("route warnings", () => {
 
         expect(screen.getByText(/^Bot 7's path to its first waypoint crosses an exclusion zone/));
         expect(screen.queryByText(/route crosses an exclusion zone/)).toBeNull();
+    });
+
+    test("warn when a repeating mission's return leg crosses a zone, and still offer to start", async () => {
+        const mission = readyBotWithMission(9, WEST, NORTH_WEST, NORTH_EAST, EAST);
+        mission.setRepeats(2);
+        render(<StartMissionButton bot={bots.getBot(9)} mission={mission} missionSetName="Set" />);
+        await userEvent.click(screen.getByRole("button", { name: "start-mission-individual-bot" }));
+
+        expect(
+            screen.getByText(
+                new RegExp(
+                    `^Mission ${mission.getMissionID()}'s return leg, .* crosses an exclusion zone`,
+                ),
+            ),
+        );
+        expect(screen.getAllByText("Start Mission").length).toBe(2);
     });
 
     test("are absent when the route and the path are clear", async () => {
