@@ -36,7 +36,9 @@ jaiabot::apps::admin::ssh::PubKeyManager::PubKeyManager()
 
     // list of permanently revoked pubkeys (e.g., lost or stolen Yubikeys)
     std::vector<std::string> revoked_pubkeys = {
-        "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOJmloXO9vgefQef+j3xqvPpVhCqHm5uYurkSmD5wIKp testkey1"
+        "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOJmloXO9vgefQef+j3xqvPpVhCqHm5uYurkSmD5wIKp testkey1",
+        "sk-ssh-ed25519@openssh.com AAAAGnNrLXNzaC1lZDI1NTE5QG9wZW5zc2guY29tAAAAIAYj5aIGNftWabkI0trrSyZ2rhVm/uVYIYiWya9oo9lAAAAABHNzaDo= jaia@root_yubikey26073970",
+        "sk-ssh-ed25519@openssh.com AAAAGnNrLXNzaC1lZDI1NTE5QG9wZW5zc2guY29tAAAAII6nSmj2Avjtrf3ytCRQoZjRZZReUmZLLD0ItD+FDd/mAAAABHNzaDo= jaia@root_yubikey26074983"
     };
     // clang-format on
     for (const auto k : revoked_pubkeys)
@@ -58,8 +60,10 @@ jaiabot::apps::admin::ssh::PubKeyManager::PubKeyManager()
         "sk-ssh-ed25519@openssh.com AAAAGnNrLXNzaC1lZDI1NTE5QG9wZW5zc2guY29tAAAAIO+kWrYWj6jxgChGWGewaUgwLVYtPH9KfW11Qh3Z6SguAAAABHNzaDo= jaia@root_yubikey26102776",
         "sk-ssh-ed25519@openssh.com AAAAGnNrLXNzaC1lZDI1NTE5QG9wZW5zc2guY29tAAAAILnZcXd1MoZv4e4AdWYOTH746Y31C86dRMX6M/ZDDUo2AAAABHNzaDo= jaia@root_yubikey26102919",
         "sk-ssh-ed25519@openssh.com AAAAGnNrLXNzaC1lZDI1NTE5QG9wZW5zc2guY29tAAAAINSfaU/fVGOg9SU8/tWtjKqjkjclMePVoKijU8qY5wPVAAAABHNzaDo= jaia@root_yubikey26102551",
-        "sk-ssh-ed25519@openssh.com AAAAGnNrLXNzaC1lZDI1NTE5QG9wZW5zc2guY29tAAAAIAYj5aIGNftWabkI0trrSyZ2rhVm/uVYIYiWya9oo9lAAAAABHNzaDo= jaia@root_yubikey26073970",
-        "sk-ssh-ed25519@openssh.com AAAAGnNrLXNzaC1lZDI1NTE5QG9wZW5zc2guY29tAAAAII6nSmj2Avjtrf3ytCRQoZjRZZReUmZLLD0ItD+FDd/mAAAABHNzaDo= jaia@root_yubikey26074983",
+        "sk-ssh-ed25519@openssh.com AAAAGnNrLXNzaC1lZDI1NTE5QG9wZW5zc2guY29tAAAAIC/QeCaCCE4gmjsIEWHdELYc1AOYWdu+p2+ZpeCSnP3RAAAABHNzaDo= jaia@root_yubikey26073891",
+        "sk-ssh-ed25519@openssh.com AAAAGnNrLXNzaC1lZDI1NTE5QG9wZW5zc2guY29tAAAAIE4XivaJ1tkMMzhbiVgd5BM9zOfRhQCzo/fPQT1z4UbPAAAABHNzaDo= jaia@root_yubikey26046059",
+        "sk-ssh-ed25519@openssh.com AAAAGnNrLXNzaC1lZDI1NTE5QG9wZW5zc2guY29tAAAAIBPojFHnEykVxYAZVUPe1Wn6BrgPZbMn2boNmlA2DoGWAAAABHNzaDo= jaia@root_yubikey26833512",
+        "sk-ssh-ed25519@openssh.com AAAAGnNrLXNzaC1lZDI1NTE5QG9wZW5zc2guY29tAAAAIMIynvZqU9IUEx6OqGZhPkP74dPaLp6mJu4p5Go3PDeSAAAABHNzaDo= jaia@root_yubikey26046056",
         "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCWVm+RgEobZnz2gsOBBQ8jinPxmuroios5L0Jpb7XVw0/wr730JqIY4Pr7zipTTiwZSSuFCvT0vjAA2aQbw3witiPyhYpffXHtM6mpxvdj9U3dsTth2bbkolI28/J8P/AO8nUPsjh/Zack1a4vtVP+PJGSK9yHR54hkbBnDZ+MrjMpnHteTVAF2SEJF3IlpqeIpAja/qceflPL24LgMPq5rlY7f0K0xxT6YDPToRaZ/rNO+FgzW4ZaKOrU51TNX5WgN2AiiavyqKa3iVT/9VTo+HveWldoW1p9Ov4iCY6QfP2kiF7gfsxZZJ/Xpn99H3ya5SIng1Qs+gQ40vvKQVVT toby@yubikey16719472",
         "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDkhjS74aGshxZcl2yTzJIDlxhVdA4aeMdSwHyXNolNzem5kowIrBp5/twQmaUPpUegk/fy8PSSB36qoCEde+8saFfYKKMKW/u4WApWs8nrKljBJg+tAPXwMdkowhIaFM2FNoo8GGa9LsssaCHNG8McYGS5IBjoU2+xlIw+Wo5w9fVLNpp+uXJopO4GFsEXYHj5ZnCUFTxAVrHcVVv3rBOdZ6acrPoayi3SExhSWzKpG9OE9r6Qwip+TT6LuBVr7fzExSFl6dynJhjXbyNuTHQFLRgt2MaRb2Zcfmcvb7o4KVO3cuIDQ/c/gwlk1x+9KWKllExEaUXIO4etlTgSoZUF toby@yubikey16718427",
         "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDBxM4LhQ6Kfohk6oMesU9iPYsqiu1bI6hXS0TWQSsqF3sZgTb5BWO4FuoDXrc49EeeG8fQv0UKeZKmEK/VcXlu/YbHtirl0DYcsIA1SEBoTWEvwTN7SNf4hA9kDZH4WB+xJq2Ob+qmcRDmbVSovE9WSJUujJdYkZuuFl7w6j/UDys8waxV0vlw9FqY6bN/slxr26xY7CUwDygljP+b/VDzn4WNBZGLP8Xlb5vMtw9Gg5Jr0jH+IdVXpPtqhFa2zlWhpKTHq0mx7w6iKVaa1NZVyOX1Jlodml1NTted3P73K6dQ8g/SlKBTUvO/en6R+ZUpJFY3QvO/w5KgTl6d3v17 toby@yubikey16719053",

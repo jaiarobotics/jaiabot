@@ -1,4 +1,18 @@
-import { getDepthIntensities } from "../depth-map-3D";
+import { getColorScale, getDepthIntensities } from "../depth-map-3D";
+
+describe("getColorScale", () => {
+    test("gives CSS rgb() colors on the 0-255 scale, from the deepest color to the shallowest", () => {
+        const colorScale = getColorScale();
+
+        expect(colorScale[0]).toEqual([0, "rgb(40,26,44)"]);
+        expect(colorScale.at(-1)[0]).toBe(1);
+        const channels = colorScale.flatMap(([, color]) =>
+            color.match(/\d+/g).map((channel) => Number(channel)),
+        );
+        expect(Math.max(...channels)).toBeGreaterThan(200);
+        expect(channels.every((channel) => Number.isInteger(channel) && channel <= 255)).toBe(true);
+    });
+});
 
 describe("getDepthIntensities", () => {
     test("scales a spread of depths from 0 (deepest) to 1 (shallowest)", () => {
