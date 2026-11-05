@@ -100,15 +100,12 @@ detect_deployment()
     fi
 }
 
-## Move JCC from port 80 to port 8080
+## Move Apache from port 80 to port 8080 (systemd.py writes jcc.conf for 8080 on a CloudHub)
 configure_apache()
 {
     sed -i -E \
         -e 's/^Listen[[:space:]]+80$/Listen 8080/' \
         /etc/apache2/ports.conf
-    sed -i -E \
-        -e 's/<VirtualHost[[:space:]]+\*:80>/<VirtualHost *:8080>/I' \
-        /etc/apache2/sites-available/jcc.conf
 
     # Authelia authenticates the REST API's callers; it has no key of its own
     cat <<EOF > /etc/jaiabot/rest_api.pb.cfg

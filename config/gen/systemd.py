@@ -623,6 +623,8 @@ jaiabot_apps = [
      'runs_on': [Type.HUB]},
     {'service': 'jcc.conf',
      'template': 'jcc.conf.in',
+     # A CloudHub's Caddy holds port 80 and proxies to Apache on 8080
+     'jcc_port': 8080 if is_cloudhub else 80,
      'runs_on': [Type.HUB]},
     {'service': 'jaiabot_dns',
      'description': 'JaiaBot Fleet DNS Server',
