@@ -1,0 +1,21 @@
+@import "../../../style/stylesheets/vars.less";
+
+// !important used to override .jaia-button
+.jaia-button.mission-status-icon {
+    height: @status-icon-size;
+    width: @status-icon-size;
+    min-width: @status-icon-size !important;
+    flex-shrink: 0;
+}
+
+.jaia-button.mission-status-icon.error {
+    background-color: @error-color !important;
+
+    svg {
+        color: @cc-text-color-light !important;
+    }
+}
+
+.jaia-button.mission-status-icon.warning {
+    background-color: @status-warning-color !important;
+}

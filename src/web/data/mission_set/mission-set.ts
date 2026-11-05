@@ -6,7 +6,7 @@ import { Speeds } from "@proto/jaiabot/messages/mission";
 // This constant will be used to track versions of mission sets
 // exported to files, update whenever the class or supporting
 // classes are updated
-export const MISSION_SET_VERSION = "2.1";
+export const MISSION_SET_VERSION = "2.2";
 
 export interface MissionSetSnapshot {
     missions: [number, Mission][];

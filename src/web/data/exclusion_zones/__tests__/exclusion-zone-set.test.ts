@@ -178,4 +178,21 @@ describe("ExclusionZoneSet — snapshot", () => {
         zoneSet.moveVertex(id, 0, coord(99, 99));
         expect(snapshot.zones[0][1].vertices![0]).not.toEqual(coord(99, 99));
     });
+
+    test("restoreFromSnapshot restores the name alongside the zones", () => {
+        zoneSet.setName("harbor-a");
+        zoneSet.addZone(squareZone());
+        const snapshot = zoneSet.captureSnapshot();
+
+        // Stands in for loading a different set, then undoing back to this one: a
+        // restore that left the name behind would let the operator save these zones
+        // over the other set's file. The other set's name is left in place rather than
+        // cleared, since that is the state undo restores into.
+        zoneSet.setName("harbor-b");
+        zoneSet.addZone(squareZone(42.0, -73.0));
+        zoneSet.restoreFromSnapshot(snapshot);
+
+        expect(zoneSet.getName()).toBe("harbor-a");
+        expect(zoneSet.getZones().size).toBe(1);
+    });
 });

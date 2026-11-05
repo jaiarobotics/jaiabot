@@ -8,5 +8,6 @@ export enum OpenLayersColors {
     INNER_COMMS = "green",
     OUTER_COMMS = "rgba(192,0,0)",
     MEASURE_LINE = "white",
-    BYPASS = "orange",
+    DETOUR = "orange",
+    BLOCKED = "#cc0505",
 }
