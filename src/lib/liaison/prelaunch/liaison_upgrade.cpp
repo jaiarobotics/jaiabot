@@ -99,17 +99,19 @@ jaiabot::LiaisonUpgrade::LiaisonUpgrade(const goby::apps::zeromq::protobuf::Liai
     wApp->enableUpdates(true);
     const std::string session_id = wApp->sessionId();
     std::weak_ptr<int> alive = alive_;
+    // schedule() rather than post(): Wt runs posts one at a time on a strand, and goby
+    // liaison keeps a session-expiry job sleeping on it, which held updates for up to 10 s
     subscription_ = runner_.subscribe(
         [this, session_id, alive]()
         {
-            Wt::WServer::instance()->post(session_id,
-                                          [this, alive]()
-                                          {
-                                              if (!alive.lock())
-                                                  return;
-                                              sync(false);
-                                              wApp->triggerUpdate();
-                                          });
+            Wt::WServer::instance()->schedule(std::chrono::milliseconds(1), session_id,
+                                              [this, alive]()
+                                              {
+                                                  if (!alive.lock())
+                                                      return;
+                                                  sync(false);
+                                                  wApp->triggerUpdate();
+                                              });
         });
     sync(true);
 }
