@@ -312,10 +312,7 @@ function expandPolygon(poly: readonly XYPt[], distance: number): readonly XYPt[]
     const output = simplified.length > 0 ? simplified[0] : merged[0];
     const pts = output.map((p: { x: number; y: number }) => ({ x: p.x, y: p.y }));
 
-    // Ensure consistent winding via signed area (shoelace formula), which is
-    // well-defined for any simple polygon regardless of convexity — unlike a
-    // vertex-average centroid, which isn't guaranteed to lie inside a
-    // concave shape and could flip a polygon that was already correct.
+    // Signed area, not a vertex average, which can lie outside a concave polygon
     let signedArea = 0;
     for (let i = 0; i < pts.length; i++) {
         const a = pts[i];
@@ -498,7 +495,6 @@ function findBypassPath(A: XYPt, B: XYPt, zoneGeoms: ZoneGeom[]): XYPt[] {
                 ? zoneGeoms.map((zg) => expandPolygon(zg.vertices, planningClearance))
                 : zoneGeoms.map((zg) => zg.vertices);
 
-        // Check if direct path is clear.
         const blocking = zoneGeoms.flatMap((zg, k) =>
             segmentIntersectsPolygon(A, B, collisionPolys[k]) ||
             pointInPolygon(A, collisionPolys[k]) ||
@@ -571,7 +567,6 @@ function findBypassPath(A: XYPt, B: XYPt, zoneGeoms: ZoneGeom[]): XYPt[] {
                 return segmentPolygonDistance(P, Q, zone.vertices) >= near;
             });
 
-        // Mark blocked cells — any cell whose centre is inside an expanded polygon.
         const blocked = new Uint8Array(cols * rows);
         for (let row = 0; row < rows; row++) {
             for (let col = 0; col < cols; col++) {
@@ -623,7 +618,6 @@ function findBypassPath(A: XYPt, B: XYPt, zoneGeoms: ZoneGeom[]): XYPt[] {
         const startIdx = cellToIdx(startFree.col, startFree.row);
         const goalIdx = cellToIdx(goalFree.col, goalFree.row);
 
-        // A* with 8-directional movement.
         const nodes = new Map<number, GridNode>();
         const open = new MinHeap();
 
@@ -698,7 +692,6 @@ function findBypassPath(A: XYPt, B: XYPt, zoneGeoms: ZoneGeom[]): XYPt[] {
 
         if (!found) return [];
 
-        // Reconstruct grid path.
         const gridPath: XYPt[] = [];
         let cur = goalIdx;
         while (cur !== startIdx) {
@@ -762,7 +755,6 @@ function findBypassPath(A: XYPt, B: XYPt, zoneGeoms: ZoneGeom[]): XYPt[] {
         }
         progressSmoothed.push(compact[compact.length - 1]);
 
-        // Return only the intermediate points (not A and B themselves).
         return progressSmoothed.slice(1, -1);
     };
 
