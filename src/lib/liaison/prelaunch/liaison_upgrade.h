@@ -4,20 +4,14 @@
 #include <Wt/Http/Response.h>
 #include <Wt/WFileResource.h>
 
-#include <chrono>
-#include <future>
-
-#include <boost/asio/io_context.hpp>
-#include <boost/process.hpp>
-#include <boost/process.hpp>
-#if __has_include(<boost/process/v1.hpp>)
-#include <boost/process/v1.hpp>
-#endif
+#include <cstdint>
+#include <memory>
 
 #include <goby/util/thirdparty/nlohmann/json.hpp>
 #include <goby/zeromq/liaison/liaison_container.h>
 
 #include "config.pb.h"
+#include "playbook_runner.h"
 
 namespace jaiabot
 {
@@ -25,6 +19,7 @@ class LiaisonUpgrade : public goby::zeromq::LiaisonContainer
 {
   public:
     LiaisonUpgrade(const goby::apps::zeromq::protobuf::LiaisonConfig& cfg);
+    ~LiaisonUpgrade() override;
 
   private:
     class LogFileResource : public Wt::WResource
@@ -55,11 +50,14 @@ class LiaisonUpgrade : public goby::zeromq::LiaisonContainer
             this->setHeight(300);
         }
 
-        void addText(Wt::WString line)
+        template <typename It> void addLines(It begin, It end)
         {
-            this->addNew<Wt::WText>(line + "<br/>");
+            if (begin == end)
+                return;
+            for (auto it = begin; it != end; ++it)
+                this->addNew<Wt::WText>(Wt::WString::fromUTF8(*it), Wt::TextFormat::Plain)
+                    ->setInline(false);
 
-            // JavaScript to scroll to the bottom
             std::string jsCode = "var obj = document.getElementById('" + this->id() +
                                  "'); obj.scrollTop = obj.scrollHeight;";
             Wt::WApplication::instance()->doJavaScript(jsCode);
@@ -69,15 +67,14 @@ class LiaisonUpgrade : public goby::zeromq::LiaisonContainer
     struct AnsiblePlaybookConfig
     {
         AnsiblePlaybookConfig(const jaiabot::protobuf::UpgradeConfig::AnsiblePlaybook& playbook,
-                              Wt::WContainerWidget* parent, LiaisonUpgrade* upgrade,
+                              int cfg_index, Wt::WContainerWidget* parent, LiaisonUpgrade* upgrade,
                               std::size_t playbook_index);
         AnsiblePlaybookConfig() = delete;
         AnsiblePlaybookConfig(const AnsiblePlaybookConfig&) = delete;
         AnsiblePlaybookConfig(AnsiblePlaybookConfig&&) = default;
 
-        std::string file;
-        std::string stdout_file;
-        std::string json_file;
+        // index into UpgradeConfig::ansible_playbook, which the runner knows it by
+        int cfg_index;
 
         Wt::WPushButton* run_button{0};
         Wt::WPushButton* log_button{0};
@@ -87,36 +84,15 @@ class LiaisonUpgrade : public goby::zeromq::LiaisonContainer
         Wt::WGroupBox* stdout_group{0};
         AutoScrollWidget* stdout_div{0};
 
-        std::vector<std::string>::const_iterator run_text_it;
         // name -> value
         std::map<std::string, std::string> input_var;
         // name -> display name
         std::map<std::string, std::string> output_var;
         std::vector<std::string> output_var_order;
 
-        struct ProcessData
-        {
-            ProcessData(const protobuf::UpgradeConfig& cfg, const std::string& playbook_file,
-                        const jaiabot::protobuf::UpgradeConfig::AnsiblePlaybook& pb_playbook,
-                        const std::string& input_vars, const std::string& ansible_stdout_file,
-                        const std::string& ansible_json_file);
-            ~ProcessData();
-
-            boost::asio::io_context io;
-            std::future<std::string> stderr;
-
-#if __has_include(<boost/process/v1.hpp>)
-            boost::process::v1::child process;
-#else
-            boost::process::child process;
-#endif
-            
-            std::thread io_thread;
-            std::ifstream stdout;
-        };
-        std::unique_ptr<ProcessData> pdata;
-        std::string last_log;
         std::shared_ptr<LogFileResource> log_resource;
+        // run_id of the result shown, 0 for none
+        std::uint64_t result_run_id{0};
         const jaiabot::protobuf::UpgradeConfig::AnsiblePlaybook& pb_playbook;
 
         void show_stdout();
@@ -140,12 +116,14 @@ class LiaisonUpgrade : public goby::zeromq::LiaisonContainer
     void set_input_var(int selection_index, Wt::WComboBox* selection, std::string name,
                        std::size_t playbook_index);
 
-    void process_ansible_json_result(nlohmann::json j, AnsiblePlaybookConfig& playbook);
+    // redirect: send the browser to the reboot page if this run reboots this hub
+    void process_ansible_json_result(nlohmann::json j, AnsiblePlaybookConfig& playbook,
+                                     bool redirect);
     void toggle_stdout(std::size_t playbook_index);
 
-    void loop();
-    void focus() override { timer_.start(); }
-    void unfocus() override { timer_.stop(); }
+    // Draws the runner's state; initial when the page is first drawn rather than updated
+    void sync(bool initial);
+    AnsiblePlaybookConfig* playbook_for(int cfg_index);
 
   private:
     struct SectionWidgets
@@ -159,8 +137,15 @@ class LiaisonUpgrade : public goby::zeromq::LiaisonContainer
     const protobuf::UpgradeConfig& cfg_;
     protobuf::UpgradeConfig::Role role_;
     std::vector<AnsiblePlaybookConfig> playbooks_;
-    Wt::WTimer timer_;
-    static const std::vector<std::string> running_;
+
+    PlaybookRunner& runner_;
+    int subscription_{-1};
+    // Posts from the runner's thread check this is still alive before touching the page
+    std::shared_ptr<int> alive_{std::make_shared<int>(0)};
+    std::uint64_t run_id_seen_{0};
+    // the run this page watched while it ran, so may follow to the reboot page
+    std::uint64_t run_id_watched_{0};
+    std::size_t lines_shown_{0};
     static const Wt::WColor color_success_;
     static const Wt::WColor color_failure_;
 };
