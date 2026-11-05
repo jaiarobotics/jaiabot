@@ -312,6 +312,14 @@ last pass. Run warns when it crosses a zone, with a tip to add waypoints at the 
 mission. Waypoints added that way are driven on every pass too, and the bot then finishes at the
 last of them, but the operator chooses that. The leg to a rally point is not checked.
 
+**Route checks use waypoints, not the paths driven during tasks.** The status icons, the Run
+warnings and Reroute test straight legs between waypoint locations, and the routing code never
+reads a task. After a constant-heading task the bot starts the next leg from where the track
+ended. The map draws that track and that leg, but neither is tested against the zones, and a
+detour after that waypoint is planned from the waypoint. Station keeping and drift after a dive
+are not tested either. A track's end is a prediction, time and speed along the heading, with
+nothing for wind or current. Testing these paths would be a new feature.
+
 **A zone can be made to cross itself.** Vertices are appended, as waypoints are, because
 targeting an edge on a tablet is unreliable. Appending far from the closing edge makes a
 bow-tie. The router handles it, but the area excluded is not the one the operator meant.
