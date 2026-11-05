@@ -73,7 +73,7 @@ Unit tests should be located with the item being tested in a special directory n
 
 For example:
 
-_This section written by Copilot_
+*This section written by Copilot*
 
 ```
 TaskParameters/
@@ -111,7 +111,7 @@ Ran all test suites.
 If you want to run the test suites in a particular directory, you just need the name of the directory, you do not need the entire path.
 In the example below, we are in the `src/web` directory and ran all the tests under `src/web/components/MissionsPanel`. It ran 4 test suites (files) from that directory and its subdirectories.
 
-_This section written by Copilot_
+*This section written by Copilot*
 
 ```
 :~/jaiabot/src/web$ npm test MissionsPanel
@@ -142,7 +142,7 @@ Ran all test suites matching /MissionsPanel/i.
 
 If you want to run a single Test Suite you can provide the entire path to the file containing the Test Suite.
 
-_This section written by Copilot_
+*This section written by Copilot*
 
 ```
 :~/jaiabot/src/web$ npm test components/WaypointPanel/TaskParameters/__tests__/TaskParameters.test.tsx
@@ -453,7 +453,7 @@ module.exports = {
 };
 ```
 
-_This section written by Copilot_
+*This section written by Copilot*
 
 A test then substitutes the mock for the real module with `jest.mock`, using paths relative to the test file, e.g.:
 
@@ -553,7 +553,7 @@ Here is the output from the parameterized test:
 
 ## Tests That Pass for the Wrong Reason
 
-_This section written by Claude_
+*This section written by Claude*
 
 A failing test tells you something is broken. A passing test only tells you something
 useful if it _could_ have failed. These three traps each produced a test that passed
