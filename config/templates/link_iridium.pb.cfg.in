@@ -20,6 +20,8 @@ link {
     }
 
     ack_timeout: $ack_timeout
+    # keep the portal's other links running if the modem fails, and retry it
+    restart_on_failure { interval: 60 }
     # read from _sub_buffer.pb.cfg.in
     $sub_buffer
 }

@@ -6,6 +6,7 @@ add_jaiabot_application(TARGET jaiabot_health
     helm_ivp_thread.cpp
     motor_thread.cpp
     sensor_watchdog_thread.cpp
+    iridium_status_thread.cpp
   LINK_DEFAULT_LIBRARIES
   LINK_LIBRARIES boost_filesystem sqlite3
 )

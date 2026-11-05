@@ -311,6 +311,9 @@ enum Warning
     // from xbee driver
     WARNING__COMMS_LOW_SIGNAL_STRENGTH = 300
         [(jaia.ev).rest_api.presence = GUARANTEED];
+    // from jaiabot_health
+    WARNING__COMMS__IRIDIUM_NOT_RESPONDING = 301
+        [(jaia.ev).rest_api.presence = GUARANTEED];
 
     // from jaiabot_health
     WARNING__VEHICLE__LOW_BATTERY = 400
