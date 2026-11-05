@@ -3,52 +3,75 @@
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Server Reboot Check</title>
+    <title>Hub Reboot Check</title>
     <link rel="stylesheet" type="text/css" href="liaison.css">
     <script>
-      const serverIP = window.location.hostname;
-      const checkInterval = 1000; // 1 second
-      let serverDown = false;
-      let elapsedTime = 0;
-      
-      async function checkServer() {
+      const checkIntervalMs = 2000;
+      const giveUpAfterS = 300;
+
+      // Back to the JCU page that sent us here, if it is on this hub
+      function returnUrl() {
+          const fallback = window.location.origin + "/jcu/";
+          const asked = new URLSearchParams(window.location.search).get("return");
+          if (!asked)
+              return fallback;
           try {
-              await fetch(`http://${serverIP}:80`, { method: "HEAD", mode: "no-cors" });
-              serverDown = false;
-          } catch (error) {
-              serverDown = true;
-              console.log("Server unreachable, waiting...");
-          }
-          
-          updateStatus();
-          if (serverDown) {
-              checkServerRestore();
-          } else {
-              setTimeout(checkServer, checkInterval);
+              const url = new URL(asked);
+              return url.hostname === window.location.hostname ? url.href : fallback;
+          } catch (e) {
+              return fallback;
           }
       }
-      
-      function updateStatus() {
-          if (serverDown) {             
-              document.getElementById("status").innerText = `Waiting for Hub to finish rebooting, please wait... (${elapsedTime}s)`;
-              setTimeout(updateStatus, 1000);  // 1 second
-          }
-          else {
-              document.getElementById("status").innerText = `Finishing task (this make take several minutes), please wait... (${elapsedTime}s)`;
-          }
-          elapsedTime += 1;
-      }
-      
-      async function checkServerRestore() {
+
+      // Whether the JCU answers, asking for a static file of its own: fetching the page
+      // itself would open a JCU session every time. On this page's own site (behind
+      // Caddy) a 5xx is Caddy with nothing behind it, and a redirect is Authelia asking
+      // for a new sign-in after the reboot, so the JCU is up. On another port (the JCU
+      // opened on 9091) only whether anything answers can be seen.
+      async function jcuIsUp(jcuUrl) {
+          const url = new URL("favicon.ico", jcuUrl).href;
+          const sameOrigin = new URL(url).origin === window.location.origin;
           try {
-              await fetch(`http://${serverIP}:9091`, { method: "HEAD", mode: "no-cors" });
-              window.location.href = `http://${serverIP}:9091`;
-          } catch (error) {
-              setTimeout(checkServerRestore, checkInterval);
+              if (sameOrigin) {
+                  const r = await fetch(url, { cache: "no-store", redirect: "manual" });
+                  return r.type === "opaqueredirect" || r.status < 500;
+              }
+              await fetch(url, { cache: "no-store", mode: "no-cors" });
+              return true;
+          } catch (e) {
+              return false;
           }
       }
-      
-      window.onload = checkServer;
+
+      async function watch() {
+          const target = returnUrl();
+          const started = Date.now();
+          let wentDown = false;
+          document.getElementById("return").href = target;
+          while (true) {
+              const up = await jcuIsUp(target);
+              const elapsed = Math.round((Date.now() - started) / 1000);
+              if (!up)
+                  wentDown = true;
+              if (up && wentDown) {
+                  setStatus("The hub is back. Returning to the JCU...");
+                  window.location.href = target;
+                  return;
+              }
+              if (wentDown)
+                  setStatus(`Waiting for the hub to finish rebooting (${elapsed} s)...`);
+              else
+                  setStatus(`Waiting for the hub to reboot (${elapsed} s). This can take several minutes...`);
+              document.getElementById("stuck").hidden = wentDown || elapsed < giveUpAfterS;
+              await new Promise(resolve => setTimeout(resolve, checkIntervalMs));
+          }
+      }
+
+      function setStatus(text) {
+          document.getElementById("status").innerText = text;
+      }
+
+      window.onload = watch;
     </script>
   </head>
   <body>
@@ -61,6 +84,7 @@
         <h2>Hub Reboot Status</h2>
         <div class="status-box">
           <p id="status">Please wait...</p>
+          <p id="stuck" hidden>The hub has not rebooted yet. If the playbook did not reach its reboot, <a id="return" href="/jcu/">return to the JCU</a>.</p>
         </div>
       </div>
     </div>

@@ -8,3 +8,5 @@
     
   tasks:
     - include_tasks: tasks/install-jaiabot.yml
+
+    - include_tasks: tasks/reboot-after-playbook.yml

@@ -1,4 +1,4 @@
-<virtualhost *:80>
+<virtualhost *:$jcc_port>
     ServerName hub
 
     Alias /updates /var/www/html/updates

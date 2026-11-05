@@ -400,7 +400,7 @@ void jaiabot::LiaisonUpgrade::process_ansible_json_result(nlohmann::json root_js
         set_style(result_table->elementAt(row, column), true);
     }
 
-    bool hub_success = false;
+    bool this_hub_success = false;
     for (const auto& result_p : results)
     {
         column = 0;
@@ -420,8 +420,8 @@ void jaiabot::LiaisonUpgrade::process_ansible_json_result(nlohmann::json root_js
         {
             case jaiabot::LiaisonUpgrade::Result::SUCCESS:
                 cell->addWidget(std::make_unique<Wt::WText>("Success"));
-                if (result_p.first.find("hub") != std::string::npos)
-                    hub_success = true;
+                if (result_p.first == cfg_.this_hub())
+                    this_hub_success = true;
                 break;
             case jaiabot::LiaisonUpgrade::Result::FAILURE:
                 cell->addWidget(std::make_unique<Wt::WText>("Failure"));
@@ -444,12 +444,17 @@ void jaiabot::LiaisonUpgrade::process_ansible_json_result(nlohmann::json root_js
         }
     }
 
-    if (hub_success && playbook.pb_playbook.causes_hub_reboot())
+    if (this_hub_success && playbook.pb_playbook.causes_hub_reboot())
     {
-        std::string hostname = wApp->environment().hostName();
-        if (auto pos = hostname.find(':'))
-            hostname = hostname.substr(0, pos);
-        wApp->redirect("http://" + hostname + "/reboot-check/index.html");
+        // Only the browser knows the address it reached the JCU by (behind Caddy, the
+        // CloudHub's https://run.<base>/jcu/); Apache serves the reboot page on that site,
+        // or on port 80 when the JCU was opened on its own port
+        wApp->doJavaScript(
+            "(function() {"
+            "  var l = window.location;"
+            "  var site = l.port === '9091' ? 'http://' + l.hostname : l.origin;"
+            "  l.href = site + '/reboot-check/index.html?return=' + encodeURIComponent(l.href);"
+            "})();");
     }
 
     playbook.result_text->setText("");

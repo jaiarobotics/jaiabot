@@ -1,0 +1,7 @@
+# The JCU running this playbook is on one of these hosts, and needs the playbook's
+# result before its host goes down: that is what sends the browser to the reboot page.
+# Hence waiting for ansible-playbook to exit (for at most two minutes) rather than a
+# fixed delay, and not the reboot module, which would wait for this host to come back.
+- name: Reboot once this playbook has ended
+  shell: |
+    nohup /bin/bash -c 'for i in $(seq 120); do pgrep -f "[a]nsible-playbook" > /dev/null || break; sleep 1; done; sleep 5; systemctl reboot' > /dev/null 2>&1 &
