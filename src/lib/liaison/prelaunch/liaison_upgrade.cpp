@@ -1,3 +1,4 @@
+#include <Wt/WApplication.h>
 #include <Wt/WComboBox.h>
 #include <Wt/WContainerWidget.h>
 #include <Wt/WDialog.h>
@@ -5,18 +6,15 @@
 #include <Wt/WGroupBox.h>
 #include <Wt/WPanel.h>
 #include <Wt/WPushButton.h>
+#include <Wt/WServer.h>
 #include <Wt/WTable.h>
 #include <Wt/WText.h>
 #include <chrono>
+#include <ctime>
+#include <iomanip>
 #include <sstream>
 
 #include "liaison_upgrade.h"
-
-#if __has_include(<boost/process/v1.hpp>)
-namespace bp = boost::process::v1;
-#else
-namespace bp = boost::process;
-#endif
 
 using namespace goby::util::logger;
 using goby::glog;
@@ -26,21 +24,6 @@ using namespace std::chrono;
 
 constexpr int default_padding{10};
 
-const std::vector<std::string> jaiabot::LiaisonUpgrade::running_({
-    "Running",
-    "Running .",
-    "Running ..",
-    "Running ...",
-    "Running ....",
-    "Running .....",
-    "Running ......",
-    "Running .......",
-    "Running ........",
-    "Running .........",
-    "Running ..........",
-    "Running ...........",
-});
-
 const WColor jaiabot::LiaisonUpgrade::color_success_{"green"};
 const WColor jaiabot::LiaisonUpgrade::color_failure_{"red"};
 
@@ -48,7 +31,8 @@ const std::string stdout_button_show_text{"Show Log"};
 const std::string stdout_button_hide_text{"Hide Log"};
 
 jaiabot::LiaisonUpgrade::LiaisonUpgrade(const goby::apps::zeromq::protobuf::LiaisonConfig& cfg)
-    : cfg_(cfg.GetExtension(protobuf::jaiabot_upgrade_config))
+    : cfg_(cfg.GetExtension(protobuf::jaiabot_upgrade_config)),
+      runner_(PlaybookRunner::instance(cfg_))
 {
     boost::filesystem::create_directories(cfg_.ansible_log_dir());
 
@@ -86,12 +70,10 @@ jaiabot::LiaisonUpgrade::LiaisonUpgrade(const goby::apps::zeromq::protobuf::Liai
     }
 
     set_name("Fleet Upgrade");
-    const auto update_freq = cfg_.check_freq();
-    timer_.setInterval(std::chrono::milliseconds(static_cast<long>(1.0 / update_freq * 1.0e3)));
-    timer_.timeout().connect(this, &LiaisonUpgrade::loop);
 
-    for (const auto& playbook : cfg_.ansible_playbook())
+    for (int cfg_index = 0; cfg_index < cfg_.ansible_playbook_size(); ++cfg_index)
     {
+        const auto& playbook = cfg_.ansible_playbook(cfg_index);
         if (role_ < playbook.role())
             continue;
 
@@ -108,16 +90,42 @@ jaiabot::LiaisonUpgrade::LiaisonUpgrade(const goby::apps::zeromq::protobuf::Liai
         }
 
         std::size_t playbook_index = playbooks_.size();
-        playbooks_.emplace_back(playbook, sections[playbook.section()].div, this, playbook_index);
+        playbooks_.emplace_back(playbook, cfg_index, sections[playbook.section()].div, this,
+                                playbook_index);
     }
+
+    // The runner pushes its changes, so nothing builds up in the browser while the server
+    // is out of reach, and a page opened mid-run picks up where the run is
+    wApp->enableUpdates(true);
+    const std::string session_id = wApp->sessionId();
+    std::weak_ptr<int> alive = alive_;
+    subscription_ = runner_.subscribe(
+        [this, session_id, alive]()
+        {
+            Wt::WServer::instance()->post(session_id,
+                                          [this, alive]()
+                                          {
+                                              if (!alive.lock())
+                                                  return;
+                                              sync(false);
+                                              wApp->triggerUpdate();
+                                          });
+        });
+    sync(true);
+}
+
+jaiabot::LiaisonUpgrade::~LiaisonUpgrade()
+{
+    runner_.unsubscribe(subscription_);
+    alive_.reset();
+    if (wApp)
+        wApp->enableUpdates(false);
 }
 
 jaiabot::LiaisonUpgrade::AnsiblePlaybookConfig::AnsiblePlaybookConfig(
-    const jaiabot::protobuf::UpgradeConfig::AnsiblePlaybook& playbook, Wt::WContainerWidget* parent,
-    LiaisonUpgrade* upgrade, std::size_t playbook_index)
-    : file(playbook.file()),
-      run_text_it(jaiabot::LiaisonUpgrade::running_.begin()),
-      pb_playbook(playbook)
+    const jaiabot::protobuf::UpgradeConfig::AnsiblePlaybook& playbook, int cfg_index,
+    Wt::WContainerWidget* parent, LiaisonUpgrade* upgrade, std::size_t playbook_index)
+    : cfg_index(cfg_index), pb_playbook(playbook)
 {
     auto group_box = parent->addNew<WGroupBox>(playbook.name());
     auto group_div = group_box->addNew<WContainerWidget>();
@@ -208,39 +216,12 @@ void jaiabot::LiaisonUpgrade::run_ansible_playbook(std::size_t playbook_index)
             return;
     }
 
-    glog.is_debug1() && glog << "Running playbook: " << playbook.file << std::endl;
-    for (auto& playbook : playbooks_)
-    {
-        playbook.result_table->clear();
-        playbook.hide_stdout();
-    }
-
-    try
-    {
-        playbook.stdout_div->clear();
-
-        boost::filesystem::path playbook_path(playbook.file);
-        playbook.stdout_file =
-            cfg_.ansible_log_dir() + "/" + playbook_path.stem().native() + "_stdout.txt";
-        playbook.json_file =
-            cfg_.ansible_log_dir() + "/" + playbook_path.stem().native() + "_result.json";
-
-        // for some reason boost process won't overwrite this file unless it's removed first
-        boost::filesystem::remove(playbook.stdout_file);
-
-        std::string input_vars;
-        for (const auto& p : playbook.input_var) input_vars += p.first + "=" + p.second + " ";
-        playbook.pdata.reset(new AnsiblePlaybookConfig::ProcessData(
-            cfg_, playbook.file, playbook.pb_playbook, input_vars, playbook.stdout_file,
-            playbook.json_file));
-    }
-    catch (const std::exception& e)
-    {
-        glog.is_warn() && glog << "Failed to run ansible-playbook: " << e.what() << std::endl;
-    }
-
-    for (auto& playbook : playbooks_) playbook.run_button->disable();
-    playbook.log_button->disable();
+    std::string error;
+    bool started = runner_.start(playbook.cfg_index, playbook.input_var, error);
+    // catches up first, or a run started while the confirmation was open would clear the error
+    sync(false);
+    if (!started)
+        playbook.result_text->setText(error);
 }
 
 void jaiabot::LiaisonUpgrade::toggle_stdout(std::size_t playbook_index)
@@ -261,76 +242,97 @@ void jaiabot::LiaisonUpgrade::set_input_var(int selection_index, Wt::WComboBox* 
     playbook.input_var[name] = value;
 }
 
-void jaiabot::LiaisonUpgrade::loop()
+jaiabot::LiaisonUpgrade::AnsiblePlaybookConfig* jaiabot::LiaisonUpgrade::playbook_for(int cfg_index)
 {
     for (auto& playbook : playbooks_)
-    {
-        if (playbook.pdata)
+        if (playbook.cfg_index == cfg_index)
+            return &playbook;
+    // hidden from this user's role
+    return nullptr;
+}
+
+void jaiabot::LiaisonUpgrade::sync(bool initial)
+{
+    runner_.read(
+        [&](const PlaybookRunner::State& state)
         {
-            if (playbook.pdata->process.running())
+            if (state.run_id != run_id_seen_)
             {
-                ++playbook.run_text_it;
-                if (playbook.run_text_it == running_.end())
-                    playbook.run_text_it = running_.begin();
-                playbook.result_text->setText(*playbook.run_text_it);
-
-                std::string line;
-                while (std::getline(playbook.pdata->stdout, line))
-                    playbook.stdout_div->addText(Wt::WString(line));
-
-                if (playbook.pdata->stdout.eof())
-                    playbook.pdata->stdout.clear();
-
-                playbook.pdata->stdout.seekg(0, std::ios::cur);
+                // a run started since this page last looked, as pressing Run did here
+                run_id_seen_ = state.run_id;
+                lines_shown_ = 0;
+                for (auto& playbook : playbooks_)
+                {
+                    playbook.result_table->clear();
+                    playbook.result_text->setText("");
+                    playbook.hide_stdout();
+                    playbook.stdout_div->clear();
+                }
             }
-            else
+
+            AnsiblePlaybookConfig* current = playbook_for(state.playbook);
+            if (current && state.lines.size() > lines_shown_)
             {
-                std::ifstream json_log(playbook.json_file, std::ios::in);
-                playbook.last_log.clear();
+                current->stdout_div->addLines(state.lines.begin() + lines_shown_,
+                                              state.lines.end());
+                lines_shown_ = state.lines.size();
+            }
+
+            for (auto& playbook : playbooks_)
+            {
+                if (state.running)
+                    playbook.run_button->disable();
+                else
+                    playbook.run_button->enable();
+            }
+
+            if (state.running)
+            {
+                run_id_watched_ = state.run_id;
+                if (current)
                 {
-                    std::string line;
-                    while (std::getline(json_log, line)) playbook.last_log += line + "\n";
+                    std::time_t started = std::chrono::system_clock::to_time_t(state.started);
+                    std::stringstream text;
+                    text << "Running since " << std::put_time(std::gmtime(&started), "%H:%M:%S")
+                         << " UTC";
+                    for (const auto& v : state.input_vars)
+                        text << ", " << v.first << "=" << v.second;
+                    current->result_text->setText(text.str());
+                    current->log_button->disable();
+                    if (initial)
+                        current->show_stdout();
                 }
+            }
 
-                nlohmann::json j_stdout_stderr;
-                j_stdout_stderr["__stderr"] = playbook.pdata->stderr.get();
-                playbook.pdata->stdout.seekg(0, std::ios::beg);
-                j_stdout_stderr["__stdout"] = nlohmann::json::array();
-
-                {
-                    std::string line;
-                    while (std::getline(playbook.pdata->stdout, line))
-                        j_stdout_stderr["__stdout"].push_back(line);
-                }
-
-                playbook.log_resource->set_last_log(playbook.last_log + "\n" +
-                                                    j_stdout_stderr.dump(2));
-
+            for (const auto& finished_p : state.finished)
+            {
+                AnsiblePlaybookConfig* playbook = playbook_for(finished_p.first);
+                const auto& finished = finished_p.second;
+                if (!playbook || playbook->result_run_id == finished.run_id)
+                    continue;
+                playbook->result_run_id = finished.run_id;
+                playbook->result_text->setText("");
+                playbook->result_table->clear();
+                playbook->log_resource->set_last_log(finished.download_log);
+                playbook->log_button->enable();
                 try
                 {
-                    auto j = nlohmann::json::parse(playbook.last_log);
-                    process_ansible_json_result(j, playbook);
-                    j.update(j_stdout_stderr);
-                    // if parsed, succesfully, use this as the log
-                    playbook.log_resource->set_last_log(j.dump(2));
+                    process_ansible_json_result(nlohmann::json::parse(finished.json), *playbook,
+                                                !initial && finished.run_id == run_id_watched_);
                 }
                 catch (const std::exception& e)
                 {
                     glog.is_warn() && glog << "Failed to parse output: " << e.what() << std::endl;
-                    playbook.result_text->setText(
+                    playbook->result_text->setText(
                         "Failed to parse log file. Please download log to see result.");
                 }
-
-                playbook.pdata.reset();
-                for (auto& playbook : playbooks_) playbook.run_button->enable();
-                playbook.log_button->enable();
             }
-        }
-    }
+        });
 }
 
 void jaiabot::LiaisonUpgrade::process_ansible_json_result(nlohmann::json root_json,
-                                                          AnsiblePlaybookConfig& playbook)
+                                                          AnsiblePlaybookConfig& playbook,
+                                                          bool redirect)
 {
     // host -> result
     std::map<std::string, Result> results;
@@ -444,7 +446,7 @@ void jaiabot::LiaisonUpgrade::process_ansible_json_result(nlohmann::json root_js
         }
     }
 
-    if (this_hub_success && playbook.pb_playbook.causes_hub_reboot())
+    if (redirect && this_hub_success && playbook.pb_playbook.causes_hub_reboot())
     {
         // Only the browser knows the address it reached the JCU by (behind Caddy, the
         // CloudHub's https://run.<base>/jcu/); Apache serves the reboot page on that site,
@@ -456,34 +458,7 @@ void jaiabot::LiaisonUpgrade::process_ansible_json_result(nlohmann::json root_js
             "  l.href = site + '/reboot-check/index.html?return=' + encodeURIComponent(l.href);"
             "})();");
     }
-
-    playbook.result_text->setText("");
 }
-
-//
-// ProcessData
-//
-jaiabot::LiaisonUpgrade::AnsiblePlaybookConfig::ProcessData::ProcessData(
-    const protobuf::UpgradeConfig& cfg, const std::string& playbook_file,
-    const jaiabot::protobuf::UpgradeConfig::AnsiblePlaybook& pb_playbook,
-    const std::string& input_vars, const std::string& ansible_stdout_file,
-    const std::string& ansible_json_file)
-
-    : process(cfg.has_ansible_playbook_full_path()
-                  ? boost::filesystem::path(cfg.ansible_playbook_full_path())
-                  : bp::search_path("ansible-playbook"),
-              "-i", pb_playbook.has_inventory() ? pb_playbook.inventory() : cfg.ansible_inventory(),
-              playbook_file, "-e", input_vars, bp::std_in.close(), "-l",
-              pb_playbook.has_limit() ? pb_playbook.limit() : std::string("bots:" + cfg.this_hub()),
-              bp::std_out > ansible_stdout_file, bp::std_err > stderr, io,
-              bp::env["ANSIBLE_CONFIG"] = cfg.ansible_config(),
-              bp::env["ANSIBLE_JSON_FILE"] = ansible_json_file),
-      io_thread([this]() { io.run(); }),
-      stdout(ansible_stdout_file, std::ios::in)
-{
-}
-
-jaiabot::LiaisonUpgrade::AnsiblePlaybookConfig::ProcessData::~ProcessData() { io_thread.join(); }
 
 void jaiabot::LiaisonUpgrade::AnsiblePlaybookConfig::show_stdout()
 {
