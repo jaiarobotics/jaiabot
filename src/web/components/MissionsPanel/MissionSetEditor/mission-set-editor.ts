@@ -38,14 +38,18 @@ export function getMaxWaypointsPerOutputMission(
 
     let maxWaypoints = 0;
     for (let i = 0; i < missionCount; i++) {
-        let missionWaypointCount = 0;
+        let visible = 0;
+        let original = 0;
         for (const name of names) {
             const missionSetSnapshot = missionSetSnapshotCache.get(name);
             if (!missionSetSnapshot || missionSetSnapshot.missions.length === 0) continue;
             const missions = missionSetSnapshot.missions.map(([_, m]) => m);
-            missionWaypointCount += missions[i % missions.length].getWaypoints().length;
+            const mission = missions[i % missions.length];
+            visible += mission.getWaypoints().length;
+            original += mission.getOriginalWaypoints().length;
         }
-        maxWaypoints = Math.max(maxWaypoints, missionWaypointCount);
+        // The combined mission's count against the limit, as Mission.getLimitedWaypointCount
+        maxWaypoints = Math.max(maxWaypoints, visible, original);
     }
     return maxWaypoints;
 }

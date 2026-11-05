@@ -114,6 +114,29 @@ describe("getMaxWaypointsPerOutputMission", () => {
         expect(getMaxWaypointsPerOutputMission(["A"], cache)).toBe(5);
     });
 
+    test("counts suppressed waypoints, which Restore brings back", () => {
+        const rerouted = makeMission(3);
+        rerouted.reroute([
+            { suppress: true, detoursAfter: [] },
+            { suppress: false, detoursAfter: [] },
+            { suppress: false, detoursAfter: [] },
+        ]);
+        const cache = makeCache([["A", [rerouted]]]);
+
+        expect(getMaxWaypointsPerOutputMission(["A"], cache)).toBe(3);
+    });
+
+    test("counts detours, which are sent", () => {
+        const rerouted = makeMission(2);
+        rerouted.reroute([
+            { suppress: false, detoursAfter: [locationA, locationA] },
+            { suppress: false, detoursAfter: [] },
+        ]);
+        const cache = makeCache([["A", [rerouted]]]);
+
+        expect(getMaxWaypointsPerOutputMission(["A"], cache)).toBe(4);
+    });
+
     test("two sets with one mission each — sums their waypoints in one mission", () => {
         const cache = makeCache([
             ["A", [makeMission(2)]],

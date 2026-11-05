@@ -170,6 +170,17 @@ export default class Mission {
         return { restored, detoursRemoved };
     }
 
+    /**
+     * The waypoints counted against the limit: the visible ones, detours included, or the
+     * original ones, suppressed included, whichever is more.
+     *
+     * @returns {number} The waypoint count
+     */
+    getLimitedWaypointCount(): number {
+        // Restore brings suppressed waypoints back, so they count as well as detours
+        return Math.max(this.visibleWaypoints().length, this.originalWaypoints().length);
+    }
+
     /** Has detours or suppressed waypoints, so restoring the original waypoints would change it. */
     isRerouted(): boolean {
         return this.waypoints.some(
@@ -302,9 +313,9 @@ export default class Mission {
     /**
      * Deletes a waypoint. A segment or lane start it carried moves to the next original
      * waypoint, unless that one already starts a segment, in which case the deleted one is
-     * dropped. Markers never go on detours, which reroute and restore discard. Detours left
-     * with no kept waypoint after them lead nowhere, so they are removed too; otherwise the
-     * mission would end at a detour point.
+     * dropped. Markers never go on detours, which reroute and restore discard. Detours before
+     * the first kept waypoint or after the last no longer join two kept waypoints, so they are
+     * removed too; otherwise the mission would start or end at a detour point.
      *
      * @param {number} waypointNum 1-based visible waypoint number
      * @returns {void}
@@ -322,11 +333,12 @@ export default class Mission {
                 next.setIsLaneStart(true);
             }
         }
-        const lastKept = this.waypoints.findLastIndex(
-            (waypoint) => !waypoint.getIsDetour() && !waypoint.getIsSuppressed(),
-        );
+        const isKept = (waypoint: MissionWaypoint) =>
+            !waypoint.getIsDetour() && !waypoint.getIsSuppressed();
+        const firstKept = this.waypoints.findIndex(isKept);
+        const lastKept = this.waypoints.findLastIndex(isKept);
         this.waypoints = this.waypoints.filter(
-            (waypoint, i) => i < lastKept || !waypoint.getIsDetour(),
+            (waypoint, i) => !waypoint.getIsDetour() || (i > firstKept && i < lastKept),
         );
         this.promoteFirstMarker();
     }

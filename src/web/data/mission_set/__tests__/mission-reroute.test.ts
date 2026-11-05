@@ -205,6 +205,26 @@ describe("deleting the waypoint a detour leads to", () => {
         expect(lats(mission.getOriginalWaypoints())).toEqual([1, 2, 3]);
     });
 
+    test("removes the detours left at the start of the mission", () => {
+        const mission = missionOf(3);
+        mission.reroute([keep(1.5), keep(), keep()]);
+
+        mission.deleteWaypoint(1);
+
+        expect(lats(mission.getWaypoints())).toEqual([2, 3]);
+    });
+
+    test("removes them when only suppressed waypoints come before", () => {
+        const mission = missionOf(3);
+        mission.reroute([suppress, keep(2.5), keep()]);
+        expect(lats(mission.getWaypoints())).toEqual([2, 2.5, 3]);
+
+        mission.deleteWaypoint(1);
+
+        expect(lats(mission.getWaypoints())).toEqual([3]);
+        expect(lats(mission.getOriginalWaypoints())).toEqual([1, 3]);
+    });
+
     test("keeps detours that still lead to a kept waypoint", () => {
         const mission = missionOf(3);
         mission.reroute([keep(), keep(2.5), keep()]);

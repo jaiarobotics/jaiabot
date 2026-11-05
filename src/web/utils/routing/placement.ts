@@ -50,11 +50,12 @@ export function checkPlacement(
 }
 
 /**
- * Reports whether a mission already has as many waypoints as a bot can run.
+ * Reports whether a mission's waypoints, counted as `Mission.getLimitedWaypointCount` counts
+ * them, have reached the limit.
  *
  * @param {Mission} mission Mission to check
  * @returns {boolean} True if no waypoint can be appended
  */
 export function isAtWaypointLimit(mission: Mission): boolean {
-    return mission.getWaypoints().length >= MAX_WAYPOINTS;
+    return mission.getLimitedWaypointCount() >= MAX_WAYPOINTS;
 }

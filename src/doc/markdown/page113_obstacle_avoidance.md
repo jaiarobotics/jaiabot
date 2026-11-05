@@ -17,8 +17,8 @@ zone where there is room, and up to its edge where there isn't. A bot can run ab
 turn, plus GPS error. Draw each zone with the margin the site needs built in.
 
 - **Editing never reroutes.** Adding, moving or deleting waypoints, and drawing, editing or
-  loading zones, never run the router or add detours, and no dialog opens. Deleting the last
-  waypoint also removes the detours that led to it.
+  loading zones, never run the router or add detours, and no dialog opens. Deleting the first
+  or last waypoint also removes the detours left at that end.
 - **Status is shown, not stored.** Each mission header has a routing-status icon: red when the
   route crosses a zone, amber when suppressed waypoints are clear again so a reroute would bring
   them back, white otherwise. The "Mission Set" title has one for the whole set. On the map, a
@@ -40,7 +40,8 @@ turn, plus GPS error. Draw each zone with the margin the site needs built in.
   that could not be rerouted; a mission's own Reroute says why.
 - **Placing a point inside a zone asks first.** Adding or moving a waypoint, a rally point or a
   survey corner inside a zone asks the operator to confirm; Cancel dispatches nothing. Appending
-  past the waypoint limit is refused.
+  past the waypoint limit is refused. The limit counts detours, which are sent, and suppressed
+  waypoints, which Restore brings back.
 - **Run and Run all warn, and never block,** when a route crosses a zone, when the bot's straight
   path to its first waypoint crosses one, or when the bot is inside one.
 

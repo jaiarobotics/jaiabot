@@ -76,7 +76,7 @@ describe("checkPlacement", () => {
         );
     });
 
-    test("does not count suppressed waypoints toward the limit", () => {
+    test("counts suppressed waypoints toward the limit, since Restore brings them back", () => {
         const mission = Mission.fromJSON({
             waypoints: Array.from({ length: MAX_WAYPOINTS }, (_, i) => ({
                 location: CLEAR,
@@ -84,6 +84,17 @@ describe("checkPlacement", () => {
             })),
         } as any);
 
-        expect(checkPlacement(CLEAR, ZONES, "waypoint", mission)).toEqual(ALLOWED);
+        expect(checkPlacement(CLEAR, ZONES, "waypoint", mission)).toEqual(refused(/maximum/));
+    });
+
+    test("counts detours toward the limit", () => {
+        const mission = Mission.fromJSON({
+            waypoints: Array.from({ length: MAX_WAYPOINTS }, (_, i) => ({
+                location: CLEAR,
+                isDetour: i % 2 === 1,
+            })),
+        } as any);
+
+        expect(checkPlacement(CLEAR, ZONES, "waypoint", mission)).toEqual(refused(/maximum/));
     });
 });
