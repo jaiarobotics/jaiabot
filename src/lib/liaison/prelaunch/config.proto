@@ -49,6 +49,7 @@ message UpgradeConfig
 
     optional string ansible_log_dir = 7 [default = "/tmp/jaiabot-ansible"];
     
+    // Unused: the Fleet Upgrade page is updated by server push
     optional double check_freq = 10 [default = 10];
 
 }
