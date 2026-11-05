@@ -25,8 +25,6 @@
         sudo -u jaia rsync -aP ${ip}:/etc/jaiabot/inventory.yml /tmp/inventory.yml
         mv /tmp/inventory.yml /etc/jaiabot/inventory.yml
  
-    - name: Reboot hub to allow new inventory to take effect
-      # since we're running this on the hub, we will reboot the machine running ansible
-      # this precludes using the reboot builtin
-      shell: "nohup /bin/bash -c 'sleep 5 && systemctl reboot &' > /dev/null"
+    # For the new inventory to take effect
+    - include_tasks: tasks/reboot-after-playbook.yml
 
