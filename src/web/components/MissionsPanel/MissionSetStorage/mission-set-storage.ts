@@ -56,7 +56,6 @@ export async function saveSnapshotToHub(name: string, snapshot: MissionSetSnapsh
  * @returns {void}
  */
 export async function saveToHub(name: string): Promise<void> {
-    missionSet.setName(name);
     await saveSnapshotToHub(name, missionSet.captureSnapshot());
 }
 

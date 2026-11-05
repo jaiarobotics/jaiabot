@@ -146,7 +146,6 @@ describe("Exercise functions to save and load missions from the hub", () => {
         // Verify we got what we expected
         expect(names.length).toEqual(1);
         expect(names[0]).toEqual("Test-Mission-Set-A");
-        expect(missionSet.getName()).toEqual("Test-Mission-Set-A");
 
         // Create another mission set and save it
         missionSet.deleteAllMissions();
@@ -194,6 +193,26 @@ describe("Exercise functions to save and load missions from the hub", () => {
         // Try to retrieve a mission set that is not saved
         const missingResult = await loadSnapshotFromHub("Test-Mission-Set");
         expect(missingResult.snapshot).toBeNull();
+    });
+
+    test("saveToHub stores the set under the given name without renaming it", async () => {
+        missionSet.addMission(missionA);
+        missionSet.setName("old-name");
+
+        await saveToHub("new-name");
+
+        expect(fakeHubStorage["new-name"].name).toBe("new-name");
+        expect(missionSet.getName()).toBe("old-name");
+    });
+
+    test("saveToHub leaves the name as it was when the save fails", async () => {
+        missionSet.addMission(missionA);
+        missionSet.setName("old-name");
+        mockRequest.mockRejectedValue(new Error("hub unreachable"));
+
+        await expect(saveToHub("new-name")).rejects.toThrow("hub unreachable");
+
+        expect(missionSet.getName()).toBe("old-name");
     });
 
     test("Migrate 2.0 hub: bottomDepthSafetyParams moves into segments[0]", async () => {

@@ -91,4 +91,12 @@ describe("ExportMissionSetButton", () => {
         expect(exportedFile).toBeDefined();
         expect(dispatch).not.toHaveBeenCalled();
     });
+
+    test("asks for a name instead of exporting under a blank one", async () => {
+        const { dispatch } = await exportAs("   ");
+
+        expect(screen.getByText("Please name the mission set before exporting.")).toBeVisible();
+        expect(exportedFile).toBeUndefined();
+        expect(dispatch).not.toHaveBeenCalled();
+    });
 });

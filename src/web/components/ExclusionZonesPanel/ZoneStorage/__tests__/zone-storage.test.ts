@@ -69,7 +69,16 @@ describe("Zone hub storage", () => {
         const query = mockRequest.mock.calls[0][0].record_query;
         expect(query.save_name).toBe("new-name");
         expect(JSON.parse(query.save_content).name).toBe("new-name");
-        expect(exclusionZoneSet.getName()).toBe("new-name");
+        expect(exclusionZoneSet.getName()).toBe("old-name");
+    });
+
+    test("saveToHub leaves the name as it was when the save fails", async () => {
+        exclusionZoneSet.setName("old-name");
+        mockRequest.mockRejectedValue(new Error("hub unreachable"));
+
+        await expect(saveToHub("new-name")).rejects.toThrow("hub unreachable");
+
+        expect(exclusionZoneSet.getName()).toBe("old-name");
     });
 
     test("loadSnapshotFromHub falls back to the requested name for an entry saved without one", async () => {

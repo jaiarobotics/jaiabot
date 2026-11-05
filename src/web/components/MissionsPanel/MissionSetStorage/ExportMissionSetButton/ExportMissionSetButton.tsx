@@ -26,7 +26,7 @@ export default function ExportMissionSetButton(props: Props) {
      */
     const getDisabledCode = () => {
         if (missionSet.getMissions().size === 0) return DisabledCodes.NO_MISSIONS;
-        if (props.saveName === "") return DisabledCodes.NO_NAME;
+        if (!props.saveName.trim()) return DisabledCodes.NO_NAME;
         return DisabledCodes.NONE;
     };
 

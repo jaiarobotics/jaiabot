@@ -52,7 +52,6 @@ export async function listSavedZoneSetsFromHub(): Promise<string[]> {
  * @returns {Promise<void>}
  */
 export async function saveToHub(name: string): Promise<void> {
-    exclusionZoneSet.setName(name);
     await jaia_rest_api.request({
         target: {
             all: true,
@@ -62,6 +61,7 @@ export async function saveToHub(name: string): Promise<void> {
             save_name: name,
             save_content: JSON.stringify({
                 ...exclusionZoneSet.captureSnapshot(),
+                name,
                 version: EXCLUSION_ZONE_SET_VERSION,
             }),
         },
