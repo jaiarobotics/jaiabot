@@ -248,8 +248,6 @@ filter-template-debian-builds: &filter-template-debian-builds
     branches:
       only:
         - "3.y"
-        - "bug/3.y/jcu-cloudhub-minor-upgrade/SW-2726"
-        - "bug/3.y/jcu-resume-playbook-runs/SW-2726"
 
 # which branches to run the normal source build
 filter-template-normal-builds: &filter-template-normal-builds
