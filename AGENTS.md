@@ -21,7 +21,8 @@ Subdirectories can have their own `AGENTS.md`. Before changing files, also read 
 
 ## JIRA issue status
 
-- Keep the JIRA issue's status in step with the work, if it doesn't move on its own: `In Progress` when you create the branch, `In Review` when you open the PR, and `Done` when the PR is merged.
+- Keep the JIRA issue's status in step with the work, if it doesn't move on its own: `In Review` when you open the PR, and `Done` when the PR is merged.
+- Don't move an issue to `In Progress` by hand: pushing a branch whose name carries its JIRA key moves it there.
 - An issue still in `To Do` hasn't been approved for work. Ask before moving it on rather than approving it yourself.
 - If you can't reach JIRA, tell the user which status to set the issue to, and when.
 
