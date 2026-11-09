@@ -2,7 +2,7 @@ export enum DisabledCodes {
     NONE = 1,
     NO_NAME = 2,
     FILE_NOT_FOUND = 3,
-    OLD_FORMAT = 3,
+    OLD_FORMAT = 4,
 }
 
 export const messages: ReadonlyMap<DisabledCodes, string> = new Map([
