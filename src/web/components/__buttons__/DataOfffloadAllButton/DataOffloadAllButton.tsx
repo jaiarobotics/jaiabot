@@ -12,7 +12,7 @@ import Bot from "../../../data/bots/bot";
 
 import { MDI_BUTTON_SIZE } from "../../../utils/constants";
 import { isCommandAvailable, isControllingClient, sendBotCommand } from "../../../utils/commands";
-import { Command, CommandType } from "../../../types/protobuf-types";
+import { Command, CommandType, MissionState } from "../../../types/protobuf-types";
 import { DialogActions } from "../../../types/context-types";
 
 interface Props {
@@ -99,9 +99,13 @@ export default function DataOffloadAllButton(props: Props) {
 
         if (dialogAction === DialogActions.CONFIRMED) {
             for (const botID of botReadyStates.get(DisabledCodes.NONE)) {
+                const missionState = props.bots.get(botID)?.getMissionStatus().missionState;
                 const dataOffloadCommand: Command = {
                     bot_id: botID,
-                    type: CommandType.RECOVERED,
+                    type:
+                        missionState === MissionState.POST_DEPLOYMENT__FAILED
+                            ? CommandType.RETRY_DATA_OFFLOAD
+                            : CommandType.RECOVERED,
                 };
                 sendBotCommand(dataOffloadCommand);
             }
