@@ -22,7 +22,8 @@ import {
     Speeds,
 } from "../../../types/protobuf-types";
 import { ButtonNames, ButtonTypes } from "../../../types/context-types";
-import { MDI_BUTTON_SIZE } from "../../../utils/constants";
+import { DEFAULT_SPEED, MDI_BUTTON_SIZE } from "../../../utils/constants";
+import { clampSpeed } from "../../../utils/input";
 import { isCommandAvailable, isControllingClient, sendBotCommand } from "../../../utils/commands";
 import { isCritiallyLowBattery } from "../button-utils";
 
@@ -135,7 +136,12 @@ export default function GoToRallyButton(props: Props) {
                 recovery: {
                     recover_at_final_goal: true,
                 },
-                speeds: props.missionSpeeds,
+                speeds: {
+                    transit: clampSpeed(props.missionSpeeds.transit ?? DEFAULT_SPEED),
+                    stationkeep_outer: clampSpeed(
+                        props.missionSpeeds.stationkeep_outer ?? DEFAULT_SPEED,
+                    ),
+                },
             },
         };
         return rallyCommand;

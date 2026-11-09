@@ -1,5 +1,5 @@
 // React
-import { useContext, useEffect } from "react";
+import { useContext, useEffect, useState } from "react";
 
 // Jaia
 import { JaiaContext, JaiaDispatchContext } from "../../../context/JaiaContext";
@@ -68,25 +68,6 @@ export default function MissionsList() {
     };
 
     /**
-     * Dispatches action to update the number of repeats for a mission
-     *
-     * @param {string} repeats Desired number of mission repeats
-     * @param {number} missionID Identifies which mission to update
-     * @returns {void}
-     */
-    const handleRepeatsChange = (repeats: string, missionID: number) => {
-        let numOfRepeats = Number(repeats);
-        if (isNaN(numOfRepeats)) {
-            numOfRepeats = 1;
-        }
-        jaiaDispatch({
-            type: JaiaActions.CHANGE_MISSION_REPEATS,
-            missionRepeats: numOfRepeats,
-            missionID: missionID,
-        });
-    };
-
-    /**
      * Triggered when the operator clicks the duplicate mission button
      *
      * @param {number} missionID ID of the mission to be duplicated
@@ -137,19 +118,7 @@ export default function MissionsList() {
                             <AccordionDetails className="mission-accordion-details">
                                 <div className="mission-accordion-row">
                                     <MissionAssignMenu missionID={mission.getMissionID()} />
-                                    <TextField
-                                        label="Repeats"
-                                        size="small"
-                                        className="mission-repeats"
-                                        autoComplete="off"
-                                        value={mission.getRepeats()}
-                                        onChange={(event) =>
-                                            handleRepeatsChange(
-                                                event.target.value,
-                                                mission.getMissionID(),
-                                            )
-                                        }
-                                    />
+                                    <MissionRepeatsInput missionID={mission.getMissionID()} />
                                 </div>
                                 <div className="mission-accordion-row">
                                     <Button
@@ -189,6 +158,47 @@ export default function MissionsList() {
                 );
             })}
         </div>
+    );
+}
+
+/**
+ * Repeats input for a mission. The field can be emptied to type a new count, while the
+ * mission keeps its last count until one is entered.
+ */
+function MissionRepeatsInput(props: Props) {
+    const jaiaContext = useContext(JaiaContext);
+    const jaiaDispatch = useContext(JaiaDispatchContext);
+    const [isEmpty, setIsEmpty] = useState(false);
+
+    /**
+     * Dispatches action to update the number of repeats for the mission
+     *
+     * @param {string} repeats Desired number of mission repeats
+     * @returns {void}
+     */
+    const handleRepeatsChange = (repeats: string) => {
+        const isRepeatsEmpty = repeats.trim() === "";
+        setIsEmpty(isRepeatsEmpty);
+        if (isRepeatsEmpty) {
+            return;
+        }
+        jaiaDispatch({
+            type: JaiaActions.CHANGE_MISSION_REPEATS,
+            missionRepeats: Number(repeats),
+            missionID: props.missionID,
+        });
+    };
+
+    return (
+        <TextField
+            label="Repeats"
+            size="small"
+            className="mission-repeats"
+            autoComplete="off"
+            value={isEmpty ? "" : jaiaContext.missionSet.getMission(props.missionID).getRepeats()}
+            onChange={(event) => handleRepeatsChange(event.target.value)}
+            onBlur={() => setIsEmpty(false)}
+        />
     );
 }
 
