@@ -36,4 +36,5 @@ echo "Extra files to exclude: ${additional_exclude_files}"
 set -u
 
 # Move files matching desired offload settings to staging dir
-find "$log_dir" -type f ! -name '*.txt*' ! -name '*latest.goby' ! -name '*.error' ! -name "${additional_exclude_files}" -exec mv {} "$staging_dir/" \;
+# storm_outbox holds TaskPackets not yet acknowledged over Iridium, so it stays on the bot
+find "$log_dir" -path '*/storm_outbox' -prune -o -type f ! -name '*.txt*' ! -name '*latest.goby' ! -name '*.error' ! -name "${additional_exclude_files}" -exec mv {} "$staging_dir/" \;

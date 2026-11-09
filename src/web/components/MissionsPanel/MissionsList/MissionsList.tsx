@@ -35,9 +35,7 @@ export default function MissionsList() {
     const jaiaContext = useContext(JaiaContext);
     const jaiaDispatch = useContext(JaiaDispatchContext);
 
-    useEffect(() => {
-        addDropdownListener("mission-accordion", "missions-list");
-    });
+    useEffect(() => addDropdownListener("mission-accordion", "missions-list"));
 
     /**
      * Triggered when the expand/collapse state is changed on the Accordion component
