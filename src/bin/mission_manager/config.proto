@@ -279,4 +279,9 @@ message MissionManager
     // again, leaving the bot stuck in SELF_TEST. 0 disables.
     optional double self_test_delegate_retry_interval = 101
         [default = 10, (dccl.field).units = { base_dimensions: "T" }];
+
+    // Consecutive failed health reports before the self test fails. An app busy with
+    // its own startup can miss a single coroner request and be reported as died, which
+    // is not grounds for failing a bot that has to be activated again to clear.
+    optional uint32 self_test_failed_health_reports = 102 [default = 2];
 }
