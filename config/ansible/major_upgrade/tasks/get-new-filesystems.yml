@@ -1,7 +1,7 @@
 - name: Set download URL
   set_fact:
-    upgrade_rootfs_url: 'http://{{ hub_ip }}/updates/major_upgrade/{{ major_upgrade_rootfs_version }}.rootfs.tar.gz'
-    upgrade_boot_url: 'http://{{ hub_ip }}/updates/major_upgrade/{{ major_upgrade_rootfs_version }}.boot.tar.gz'
+    upgrade_rootfs_url: '{{ updates_base_url }}/{{ major_upgrade_rootfs_version }}.rootfs.tar.gz'
+    upgrade_boot_url: '{{ updates_base_url }}/{{ major_upgrade_rootfs_version }}.boot.tar.gz'
     upgrade_limit_rate_flag: "{{ ('--limit-rate ' ~ limit_rate) if limit_rate not in ['', '0'] else '' }}"
   vars:
     # VirtualBox fleets and VirtualFleets run in simulation mode and have no radio link to spare

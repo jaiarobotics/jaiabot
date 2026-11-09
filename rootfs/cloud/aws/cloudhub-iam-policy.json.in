@@ -78,6 +78,23 @@
 				"{{ARN_PREFIX}}:s3:::{{CLOUDHUB_DATA_BUCKET}}",
 				"{{ARN_PREFIX}}:s3:::{{CLOUDHUB_DATA_BUCKET}}/*"
 			]
+		},
+		{
+			"Sid": "SMTPCredentials",
+			"Effect": "Allow",
+			"Action": "ssm:GetParameter",
+			"Resource": "{{SMTP_CREDENTIALS_PARAMETER_ARN}}"
+		},
+		{
+			"Sid": "SMTPCredentialsDecrypt",
+			"Effect": "Allow",
+			"Action": "kms:Decrypt",
+			"Resource": "*",
+			"Condition": {
+				"StringLike": {
+					"kms:ViaService": "ssm.*.amazonaws.com"
+				}
+			}
 		}
 	]
 }

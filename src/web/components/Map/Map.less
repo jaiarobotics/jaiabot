@@ -54,6 +54,11 @@
     left: @map-left-margin;
 }
 
+// Make room for the CloudHub navigation pill (injected by Caddy, see src/web/cloud)
+body:has(#jaia-nav) .ol-attribution {
+    left: calc(@map-left-margin + 230px);
+}
+
 .ol-attribution ul {
     margin: 0;
     padding: 0;

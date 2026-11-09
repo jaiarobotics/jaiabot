@@ -41,3 +41,8 @@
         overlayroot-chroot /bin/bash -c "apt-get update && apt-get -y install linux-image-virtual"
         umount /media/root-ro/dev
       when: ansible_architecture == "x86_64"
+
+    - name: Reboot to get services back up
+      # since we're running this on the hub, we will reboot the machine running ansible
+      # this precludes using the reboot builtin
+      shell: "nohup /bin/bash -c 'sleep 5 && systemctl reboot &' > /dev/null"

@@ -70,6 +70,10 @@ file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/server DESTINATION ${project_SHARE_DIR}/ja
 # Copy the REST API server
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/rest_api DESTINATION ${project_SHARE_DIR}/jaiabot/web)
 
+# Copy the CloudHub landing page and shared navigation (static, served by Caddy)
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/cloud DESTINATION ${project_SHARE_DIR}/jaiabot/web)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/jcc/public/favicon.png ${project_SHARE_DIR}/jaiabot/web/cloud/authelia/logo.png COPYONLY)
+
 ###############################################################################
 
 install(DIRECTORY ${project_SHARE_DIR}/jaiabot/web DESTINATION share/jaiabot USE_SOURCE_PERMISSIONS)

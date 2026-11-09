@@ -246,6 +246,7 @@ set(scripts_to_install
   system/jaia_update_ufw_rules.sh
   system/jaia_update_network.sh
   system/jaia_iridium_tunnel.sh
+  system/jaia_configure_authelia.sh
   # Fleet config
   fleet/jaia-create-fleet-config.sh
   fleet/jaia-generate-first-boot.py
@@ -255,6 +256,9 @@ set(scripts_to_install
   # First boot (also used by VirtualFleet creation)
   init/jaia-create-ansible-inventory.sh
   )
+
+# Sourced at runtime for the versions of third-party packages
+install(FILES ${CMAKE_SOURCE_DIR}/scripts/common-versions.env DESTINATION share/jaiabot)
 
 # Iterate over each script to install and copy
 foreach(script ${scripts_to_install})
