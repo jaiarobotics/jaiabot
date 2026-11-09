@@ -57,14 +57,14 @@ export default function TaskPacketPanel(props: Props) {
     /**
      * Coverts the timestamp to a human readable date string
      *
-     * @param {number} timestamp Timestamp in miliseconds
+     * @param {number} timestamp Timestamp in microseconds
      * @returns {string} Date in the format: hh::mm MM/DD/YYYY
      */
     const formatDate = (timestamp: number) => {
         const date = new Date(timestamp / 1_000);
         const minutes = date.getMinutes();
         const minutesFormated = minutes < 10 ? `0${minutes}` : minutes;
-        return `${date.getHours()}:${minutesFormated} ${date.getMonth()}/${date.getDay()}/${date.getFullYear()}`;
+        return `${date.getHours()}:${minutesFormated} ${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`;
     };
 
     /**
