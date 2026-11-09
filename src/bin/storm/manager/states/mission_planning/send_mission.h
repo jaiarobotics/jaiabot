@@ -96,7 +96,14 @@ struct SendMission : boost::statechart::state<SendMission, MissionPlanning>,
 
         const bool skip_dive = this->skip_dive();
         auto& task = *goal.mutable_task();
-        if (skip_dive)
+        if (skip_dive && this->machine().mission().dive().max_depth() <= 0)
+        {
+            // diving disabled (e.g. tethered test): still drift so a TaskPacket is offloaded
+            task.set_type(protobuf::MissionTask::SURFACE_DRIFT);
+            task.mutable_surface_drift()->set_drift_time(
+                this->machine().mission().surface_drift_time());
+        }
+        else if (skip_dive)
         {
             task.set_type(protobuf::MissionTask::NONE);
         }
