@@ -52,8 +52,6 @@ Core/Src/controls.c \
 Core/Src/serial.c \
 Core/Src/stm32l4xx_it.c \
 Core/Src/stm32l4xx_hal_msp.c \
-FATFS/Target/user_diskio.c \
-FATFS/App/fatfs.c \
 USB_DEVICE/App/usb_device.c \
 USB_DEVICE/App/usbd_desc.c \
 USB_DEVICE/App/usbd_cdc_if.c \
@@ -90,14 +88,10 @@ USB_DEVICE/Target/usbd_conf.c \
 ../Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_tim.c \
 ../Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_tim_ex.c \
 Core/Src/system_stm32l4xx.c \
-Middlewares/Third_Party/FatFs/src/diskio.c \
-Middlewares/Third_Party/FatFs/src/ff.c \
-Middlewares/Third_Party/FatFs/src/ff_gen_drv.c \
-Middlewares/Third_Party/FatFs/src/option/syscall.c \
-Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_core.c \
-Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_ctlreq.c \
-Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_ioreq.c \
-Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Src/usbd_cdc.c \
+../Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_core.c \
+../Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_ctlreq.c \
+../Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_ioreq.c \
+../Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Src/usbd_cdc.c \
 Core/Src/sysmem.c \
 Core/Src/syscalls.c \
 $(NANOPB_RUNTIME_DIR)/pb_common.c \
@@ -109,7 +103,7 @@ $(NANOPB_SENSOR_GEN_DIR)/control_surfaces.pb.c \
 
 # ASM sources
 ASM_SOURCES =  \
-startup_stm32l433xx.s
+Core/Startup/startup_stm32l433vctx.s
 
 # ASMM sources
 ASMM_SOURCES = 
@@ -166,16 +160,13 @@ AS_INCLUDES =
 
 # C includes
 C_INCLUDES =  \
--IFATFS/Target \
--IFATFS/App \
 -IUSB_DEVICE/App \
 -IUSB_DEVICE/Target \
 -ICore/Inc \
 -I../Drivers/STM32L4xx_HAL_Driver/Inc \
 -I../Drivers/STM32L4xx_HAL_Driver/Inc/Legacy \
--IMiddlewares/Third_Party/FatFs/src \
--IMiddlewares/ST/STM32_USB_Device_Library/Core/Inc \
--IMiddlewares/ST/STM32_USB_Device_Library/Class/CDC/Inc \
+-I../Middlewares/ST/STM32_USB_Device_Library/Core/Inc \
+-I../Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Inc \
 -I../Drivers/CMSIS/Device/ST/STM32L4xx/Include \
 -I../Drivers/CMSIS/Include \
 $(if $(NANOPB_INC),-I$(NANOPB_INC)) \

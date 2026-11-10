@@ -18,7 +18,6 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-#include "fatfs.h"
 #include "usb_device.h"
 
 /* Private includes ----------------------------------------------------------*/
@@ -376,7 +375,7 @@ static void power_board_enable_external_power(void)
 // init reduces current draw in REED_WAIT_STATE. Also re-run on each wake.
 static void power_board_init_runtime_peripherals(void)
 {
-    // RTC and FatFs only need initializing once; neither is torn down for sleep.
+    // RTC only needs initializing once; it is not torn down for sleep.
     static bool did_one_time_init = false;
 
     MX_ADC1_Init();
@@ -397,7 +396,6 @@ static void power_board_init_runtime_peripherals(void)
     {
         did_one_time_init = true;
         MX_RTC_Init();
-        MX_FATFS_Init();
     }
     MX_USB_DEVICE_Init();
 

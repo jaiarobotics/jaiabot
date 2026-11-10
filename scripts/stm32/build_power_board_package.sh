@@ -62,7 +62,7 @@ if [ "$FORCE" = false ] && [ "$CLEAN" = false ]; then
     fi
 fi
 
-# --- Fetch Drivers (HAL/CMSIS) if not present ---
+# --- Fetch Drivers (HAL/CMSIS) and USB middleware if not present ---
 FETCH_FLAGS=""
 if [ "$REGEN" = true ]; then
     FETCH_FLAGS="--force"
