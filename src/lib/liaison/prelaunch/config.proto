@@ -35,6 +35,7 @@ message UpgradeConfig
         optional string inventory = 8; // overrides ansible_inventory at parent scope
         optional string section = 9 [default = "General"];
         optional bool causes_hub_reboot = 10 [default = false];
+        optional string description = 11; // shown under the name
     }
     repeated AnsiblePlaybook ansible_playbook = 2;
     required string ansible_inventory = 3;

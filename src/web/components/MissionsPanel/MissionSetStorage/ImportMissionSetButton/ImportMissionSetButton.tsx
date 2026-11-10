@@ -52,6 +52,9 @@ export default function ImportMissionSetButton(props: Props) {
         setIsDialogVisible(false);
         if (dialogAction === DialogActions.CONFIRMED) {
             const loadResults = await loadSnapshotFromFile();
+            if (!loadResults) {
+                return;
+            }
             if (loadResults.snapshot) {
                 jaiaDispatch({
                     type: JaiaActions.LOAD_MISSION_SET,

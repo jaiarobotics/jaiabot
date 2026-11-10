@@ -1,7 +1,32 @@
 - name: Prepare new boot fs
+  args:
+    executable: /bin/bash
   shell: |
+    # so a generator that refused to write a preseed fails the task rather than being
+    # hidden behind the status of whatever ran after it
+    set -e -o pipefail
     mkdir -p {{ upgrade_boot_dir }}
     tar -xz -f {{ upgrade_dir }}/{{ major_upgrade_rootfs_version }}.boot.tar.gz -C {{ upgrade_boot_dir }}
     # the tool from the release being installed, so this works whatever release this node runs today
-    python3 {{ upgrade_boot_dir }}/jaiabot/init/fleet_config/jaia-fleet-config.py generate --mode {{ jaiabot_embedded_mode | default('runtime') }} --bootdir {{ upgrade_boot_dir }} {{ upgrade_dir }}/fleet{{ jaiabot_embedded_fleet_id }}.cfg {{ jaiabot_embedded_type }} {{ jaiabot_embedded_hub_id if jaiabot_embedded_type == 'hub' else jaiabot_embedded_bot_id }}
-    rm -f {{ upgrade_boot_dir }}/jaiabot/init/id_vpn_tmp*
+    python3 {{ upgrade_boot_dir }}/jaiabot/init/fleet_config/jaia-fleet-config.py generate --mode {{ jaiabot_embedded_mode | default('runtime') }} --bootdir {{ upgrade_boot_dir }} {{ upgrade_dir }}/fleet{{ jaiabot_embedded_fleet_id }}.cfg {{ jaiabot_embedded_type }} {{ jaiabot_embedded_hub_id if jaiabot_embedded_type == 'hub' else jaiabot_embedded_bot_id }} {{ '--action hub_ssh_keys --action vpn_key --action first_boot --action store_fleet_cfg --action write_cloudhub_env' if is_cloudhub | default(false) | bool else '' }}
+    {% if jaiabot_embedded_type == 'hub' %}
+    # The private key of a CloudHub is in no fleet config, only on the CloudHub, so it comes across from there
+    hub_key=hub{{ jaiabot_embedded_hub_id }}_fleet{{ jaiabot_embedded_fleet_id }}
+    if [ ! -e {{ upgrade_boot_dir }}/jaiabot/init/${hub_key} ] && [ -e /home/jaia/.ssh/${hub_key} ]; then
+      cp /home/jaia/.ssh/${hub_key} /home/jaia/.ssh/${hub_key}.pub {{ upgrade_boot_dir }}/jaiabot/init/
+    fi
+    {% endif %}
+
+# Nothing after this point reports a boot filesystem that was never written, and by then
+# the rootfs has been swapped: the node reboots into the new release with no preseed to
+# configure it from, reachable only over a serial console.
+- name: Check the new boot fs carries a first boot preseed
+  stat:
+    path: "{{ upgrade_boot_dir }}/jaiabot/init/first-boot.preseed.yml"
+  register: upgrade_preseed
+
+- name: Handle a missing first boot preseed
+  include_tasks: handle_failure.yml
+  vars:
+    error_message: "No first boot preseed was generated at {{ upgrade_boot_dir }}/jaiabot/init/first-boot.preseed.yml. The upgrade has not touched this node's filesystems; do not re-run until this is understood."
+  when: not upgrade_preseed.stat.exists or upgrade_preseed.stat.size == 0
