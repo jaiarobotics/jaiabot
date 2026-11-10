@@ -31,15 +31,15 @@
 using goby::glog;
 namespace si = boost::units::si;
 
-jaiabot::apps::TSYS01Driver::TSYS01Driver(
-    const jaiabot::config::TSYS01ThreadConfig& config)
+jaiabot::apps::TSYS01Driver::TSYS01Driver(const jaiabot::config::TSYS01ThreadConfig& config)
     : goby::middleware::SimpleThread<jaiabot::config::TSYS01ThreadConfig>(config)
 
 {
     glog.add_group("tsys01", goby::util::Colors::blue);
 
     interthread().subscribe<jaiabot::groups::mcu_pb_data_in>(
-        [this](const sensor::protobuf::SensorData& sensor_data) {
+        [this](const sensor::protobuf::SensorData& sensor_data)
+        {
             if (sensor_data.has_tsys01())
                 receive_data(sensor_data.tsys01());
         });
@@ -55,8 +55,7 @@ jaiabot::apps::TSYS01Driver::TSYS01Driver(
     send_cfg();
 }
 
-void jaiabot::apps::TSYS01Driver::receive_data(
-    const sensor::protobuf::TSYS01& tsys01_data)
+void jaiabot::apps::TSYS01Driver::receive_data(const sensor::protobuf::TSYS01& tsys01_data)
 {
     glog.is_debug1() && glog << group("tsys01")
                              << "Received tsys01_data: " << tsys01_data.ShortDebugString()
@@ -87,8 +86,7 @@ void jaiabot::apps::TSYS01Driver::send_cfg()
     interprocess().publish<jaiabot::groups::mcu_pb_data_out>(request);
 }
 
-void jaiabot::apps::TSYS01Driver::health(
-    goby::middleware::protobuf::ThreadHealth& health)
+void jaiabot::apps::TSYS01Driver::health(goby::middleware::protobuf::ThreadHealth& health)
 {
     auto health_state = goby::middleware::protobuf::HEALTH__OK;
 

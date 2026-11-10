@@ -124,24 +124,45 @@ class TaskPacketDatabase:
         """
 
         processed_path = self.database_path + '/processed/'
-        os.makedirs(processed_path, exist_ok=True)
+        unreadable_path = self.database_path + '/unreadable/'
 
         for taskpacket_fullpath in glob.glob(self.taskpacket_files_path + '*.taskpacket'):
             l.info(f'Loading modified taskpacket file: {taskpacket_fullpath}')
-            for line in open(taskpacket_fullpath):
+            try:
+                with open(taskpacket_fullpath, encoding='utf-8') as taskpacket_file:
+                    lines = taskpacket_file.readlines()
+            except Exception as e:
+                l.warning(f'Moving unreadable taskpacket file {taskpacket_fullpath} to {unreadable_path}: {e}')
+                self._move_taskpacket_file(taskpacket_fullpath, unreadable_path)
+                continue
+
+            for line in lines:
                 try:
                     taskPacket: Dict = json.loads(line)
                     self._add_task_packet(taskPacket)
-                except json.JSONDecodeError as e:
-                    l.warning(f"Error decoding JSON line: {line} because {e}")
+                except Exception as e:
+                    l.warning(f"Skipping line in taskpacket file {taskpacket_fullpath}: {line.rstrip()} because {e!r}")
 
             # Move file to prevent us from finding it again next time (speeds things up significantly)
-            taskpacket_filename = os.path.basename(taskpacket_fullpath)
-            shutil.move(taskpacket_fullpath, processed_path + taskpacket_filename)
+            self._move_taskpacket_file(taskpacket_fullpath, processed_path)
             self.task_packets_version += 1
         
         self.db.commit()
     
+
+    def _move_taskpacket_file(self, taskpacket_fullpath: str, destination_path: str):
+        """Moves a taskpacket file out of the offload directory.  THREAD UNSAFE.
+
+        Args:
+            taskpacket_fullpath (str): The taskpacket file to move.
+            destination_path (str): The directory to move it into.
+        """
+        try:
+            os.makedirs(destination_path, exist_ok=True)
+            shutil.move(taskpacket_fullpath, destination_path + os.path.basename(taskpacket_fullpath))
+        except OSError as e:
+            l.warning(f'Failed to move taskpacket file {taskpacket_fullpath} to {destination_path}: {e}')
+
 
     def add_mission_command(self, mission_name: str, bot_id: int, mission_command_time: int):
         """Adds a mission command to the database.  Thread safe.
@@ -229,7 +250,9 @@ class TaskPacketDatabase:
 
             conditionals = []
             parameters = []
-            from_clause = ' from task_packets'
+            # Offloaded task packets have no mission_name and replace the live copy's json_string, so
+            #   the name is taken from the mission_name table.
+            from_clause = ' from task_packets left join mission_name using (id)'
 
             bot_ids = list(bot_ids) if bot_ids is not None else []
             if len(bot_ids) > 0:
@@ -247,7 +270,7 @@ class TaskPacketDatabase:
             if included is not None:
                 conditionals.append(f'included = ?')
                 parameters.append(1 if included else 0)
-                from_clause += ' natural join included'
+                from_clause += ' join included using (id)'
 
             if mission_names is not None:
                 mission_names = list(mission_names)
@@ -256,9 +279,8 @@ class TaskPacketDatabase:
 
                 conditionals.append(f'mission_name in {sql_set_placeholders(mission_names)}')
                 parameters.extend(mission_names)
-                from_clause += ' natural join mission_name'
 
-            query_string = f'select json_string {from_clause}'
+            query_string = f'select json_string, mission_name {from_clause}'
             if len(conditionals) > 0:
                 query_string = query_string + " where " + " and ".join(conditionals)
 
@@ -266,8 +288,12 @@ class TaskPacketDatabase:
 
             l.debug(f"Executing query: {query_string} with parameters {parameters}")
 
-            results_json = self.db.execute(query_string, parameters)
-            results: List[Dict] = [json.loads(row[0]) for row in results_json]
+            results: List[Dict] = []
+            for json_string, mission_name in self.db.execute(query_string, parameters):
+                task_packet = json.loads(json_string)
+                if mission_name is not None and 'mission_name' not in task_packet:
+                    task_packet['mission_name'] = mission_name
+                results.append(task_packet)
             return results
 
 

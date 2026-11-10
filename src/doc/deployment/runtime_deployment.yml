@@ -10,6 +10,7 @@ platforms:
       - jaiabot_web_portal_interface.yml
       - @GOBY_INTERFACES_DIR@/goby_coroner_interface.yml
       - jaiabot_health_interface.yml
+      - jaiabot_comms_manager_interface.yml
   - name: BOT
     interfaces:
       - application: goby_moos_gateway
@@ -29,3 +30,5 @@ platforms:
       - jaiabot_health_interface.yml
       - jaiabot_driver_camera_interface.yml
       - jaiabot_driver_arduino_interface.yml
+      - jaiabot_comms_manager_interface.yml
+      - jaiabot_udp_gateway_interface.yml

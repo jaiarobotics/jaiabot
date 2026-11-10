@@ -20,11 +20,10 @@
 // You should have received a copy of the GNU General Public License
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
-#include <random>
+#include <boost/units/io.hpp>
 
 #include <goby/middleware/marshalling/protobuf.h>
 // this space intentionally left blank
-#include "simulator_thread.h"
 #include <goby/middleware/frontseat/groups.h>
 #include <goby/middleware/io/udp_point_to_point.h>
 #include <goby/middleware/navigation/navigation.h>
@@ -33,27 +32,31 @@
 #include <goby/time/convert.h>
 #include <goby/time/steady_clock.h>
 #include <goby/time/types.h>
-#include <goby/util/linebasedcomms/gps_sentence.h>
 #include <goby/util/sci.h>
-#include <goby/util/seawater.h>
-
 #include <goby/zeromq/application/multi_thread.h>
 
-#include "config.pb.h"
 #include "jaiabot/groups.h"
 #include "jaiabot/messages/arduino.pb.h"
 #include "jaiabot/messages/control_surfaces.pb.h"
 #include "jaiabot/messages/engineering.pb.h"
 #include "jaiabot/messages/high_control.pb.h"
-#include "jaiabot/messages/imu.pb.h"
 #include "jaiabot/messages/jaia_dccl.pb.h"
 #include "jaiabot/messages/low_control.pb.h"
-#include "jaiabot/messages/sensor/pressure_temperature.pb.h"
-#include "jaiabot/messages/sensor/salinity.pb.h"
 #include "jaiabot/messages/simulator.pb.h"
-#include "jaiabot/messages/udp_gateway.pb.h"
-#include <goby/middleware/gpsd/groups.h>
-#include <goby/middleware/protobuf/gpsd.pb.h>
+
+#include "arduino_sim_thread.h"
+#include "bar30_sim_thread.h"
+#include "config.pb.h"
+#include "dive_sim_thread.h"
+#include "ezo_ec_sim_thread.h"
+#include "gps_sim_thread.h"
+#include "hub_sim_thread.h"
+#include "imu_sim_thread.h"
+#include "oceanographic_sim_thread.h"
+#include "simulator_thread.h"
+#include "storm_sim_thread.h"
+
+#include <goby/middleware/io/cobs/pty.h>
 
 using goby::glog;
 namespace si = boost::units::si;
@@ -68,11 +71,6 @@ namespace jaiabot
 {
 namespace apps
 {
-constexpr goby::middleware::Group gps_udp_in{"gps_udp_in"};
-constexpr goby::middleware::Group gps_udp_out{"gps_udp_out"};
-
-constexpr goby::middleware::Group gateway_udp_in{"gateway_udp_in"};
-constexpr goby::middleware::Group gateway_udp_out{"gateway_udp_out"};
 
 class SimulatorTranslation : public goby::moos::Translator
 {
@@ -84,31 +82,29 @@ class SimulatorTranslation : public goby::moos::Translator
     void process_nav(const CMOOSMsg& msg);
     void process_desired_setpoints(const protobuf::DesiredSetpoints& desired_setpoints);
     void process_control_surfaces(const protobuf::ControlSurfaces& control_surfaces);
-    void sim_hub_status();
-    quantity<si::length> egg_box_function(const quantity<si::length> mean_value,
-                                          const quantity<si::length> amplitude,
-                                          const quantity<si::length> wavelength,
-                                          const quantity<si::length> x,
-                                          const quantity<si::length> y);
+
+    template <const goby::middleware::Group& in_nav> void subscribe_to_add_latlon_to_nav()
+    {
+        goby().interthread().subscribe<in_nav>(
+            [this](std::shared_ptr<const SimNav> dv_nav)
+            {
+                auto nav = std::make_shared<SimNav>(*dv_nav);
+
+                nav->latlon = geodesy_->convert({dv_nav->x, dv_nav->y});
+
+                glog.is_debug1() && glog << group("translation")
+                                         << std::setprecision(std::numeric_limits<double>::digits10)
+                                         << "[sim nav] lat: " << nav->latlon.lat
+                                         << ", lon: " << nav->latlon.lon << std::endl;
+
+                goby().interthread().publish<sim_nav>(nav);
+            });
+    }
 
   private:
     const config::Simulator& sim_cfg_;
     std::unique_ptr<goby::util::UTMGeodesy> geodesy_;
-    protobuf::DesiredSetpoints last_setpoints_;
 
-    quantity<si::length> dive_x_, dive_y_, dive_depth_;
-    goby::time::SteadyClock::time_point last_nav_process_time_;
-
-    std::map<quantity<si::length>, double> temperature_degC_profile_;
-    std::map<quantity<si::length>, double> salinity_profile_;
-
-    std::default_random_engine generator_;
-    std::normal_distribution<double> temperature_distribution_;
-    std::normal_distribution<double> salinity_distribution_;
-    goby::time::SteadyClock::time_point sky_last_updated_{std::chrono::seconds(0)};
-    int time_out_sky_{200};
-
-    goby::time::SteadyClock::time_point gps_dropout_end_{std::chrono::seconds(0)};
     goby::time::SteadyClock::time_point stop_forward_progress_end_{std::chrono::seconds(0)};
 
     bool making_forward_progress_{false};
@@ -132,26 +128,59 @@ int main(int argc, char* argv[])
 // Main thread
 jaiabot::apps::Simulator::Simulator()
 {
-    glog.add_group("main", goby::util::Colors::yellow);
-
-    if (cfg().is_bot_sim())
+    if (cfg().node_type() == jaiabot::protobuf::BOT)
     {
+        // gps
         using GPSUDPThread = goby::middleware::io::UDPPointToPointThread<gps_udp_in, gps_udp_out>;
-        if (cfg().enable_gps())
-            launch_thread<GPSUDPThread>(cfg().gps_udp_config());
+        if (cfg().gps_config().enable_gps())
+        {
+            launch_thread<GPSUDPThread>(cfg().gps_config().udp_config());
+            launch_thread<GPSSimThread>(cfg().gps_config());
+        }
 
+        switch (cfg().bot_type())
+        {
+            case protobuf::STORM:
+                using MCUPtyThread = goby::middleware::io::PTYThreadCOBS<
+                    groups::storm_mcu_serial_in, groups::storm_mcu_serial_out,
+                    goby::middleware::io::PubSubLayer::INTERTHREAD,
+                    goby::middleware::io::PubSubLayer::INTERTHREAD>;
+                launch_thread<MCUPtyThread>(cfg().storm_config().mcu_pty());
+                launch_thread<StormSimThread>(cfg().storm_config());
+                break;
+
+            default: break;
+        }
+
+        // imu
+        launch_thread<IMUSimThread>(cfg().imu_config());
+
+        // dive sim
+        launch_thread<DiveSimThread>(cfg().dive_config());
+
+        // oceanographic sensors
         using GatewayUDPThread =
             goby::middleware::io::UDPPointToPointThread<gateway_udp_in, gateway_udp_out>;
         launch_thread<GatewayUDPThread>(cfg().udp_gateway_config());
+        launch_thread<OceanographicSimThread>(cfg().oceanographic_config());
+        launch_thread<Bar30SimThread>(cfg().bar30_config());
+        launch_thread<EzoECSimThread>(cfg().ezo_ec_config());
 
+        // arduino
         launch_thread<ArduinoSimThread>(cfg().arduino_config());
-    }
 
-    goby::apps::moos::protobuf::GobyMOOSGatewayConfig sim_cfg;
-    *sim_cfg.mutable_app() = cfg().app();
-    *sim_cfg.mutable_interprocess() = cfg().interprocess();
-    *sim_cfg.mutable_moos() = cfg().moos();
-    launch_thread<jaiabot::apps::SimulatorTranslation>(std::make_pair(sim_cfg, cfg()));
+        goby::apps::moos::protobuf::GobyMOOSGatewayConfig sim_cfg;
+        *sim_cfg.mutable_app() = cfg().app();
+        *sim_cfg.mutable_interprocess() = cfg().interprocess();
+        *sim_cfg.mutable_moos() = cfg().moos();
+        // moos sim translation
+        launch_thread<jaiabot::apps::SimulatorTranslation>(std::make_pair(sim_cfg, cfg()));
+    }
+    else if (cfg().node_type() == jaiabot::protobuf::HUB)
+    {
+        // hub position
+        launch_thread<HubSimThread>(cfg());
+    }
 }
 
 // Translation thread
@@ -159,13 +188,22 @@ jaiabot::apps::SimulatorTranslation::SimulatorTranslation(
     const std::pair<goby::apps::moos::protobuf::GobyMOOSGatewayConfig, config::Simulator>& cfg)
     : goby::moos::Translator(cfg.first),
       sim_cfg_(cfg.second),
-      geodesy_(new goby::util::UTMGeodesy({sim_cfg_.start_location().lat_with_units(),
-                                           sim_cfg_.start_location().lon_with_units()})),
-      temperature_distribution_(0, sim_cfg_.temperature_stdev()),
-      salinity_distribution_(0, sim_cfg_.salinity_stdev())
+      geodesy_(new goby::util::UTMGeodesy(
+          {sim_cfg_.start_location().lat_with_units(), sim_cfg_.start_location().lon_with_units()}))
 
 {
-    if (sim_cfg_.is_bot_sim())
+    glog.add_group("translation", goby::util::Colors::yellow);
+
+    goby().interthread().subscribe<to_moos>([this](const std::pair<std::string, std::string>& pub)
+                                            { moos().comms().Notify(pub.first, pub.second); });
+
+    switch (sim_cfg_.bot_type())
+    {
+        case protobuf::STORM: subscribe_to_add_latlon_to_nav<storm_nav>(); break;
+        default: subscribe_to_add_latlon_to_nav<dive_nav>(); break;
+    }
+
+    if (sim_cfg_.node_type() == jaiabot::protobuf::BOT)
     {
         interprocess().subscribe<goby::middleware::groups::datum_update>(
             [this](const goby::middleware::protobuf::DatumUpdate& datum_update)
@@ -194,7 +232,8 @@ jaiabot::apps::SimulatorTranslation::SimulatorTranslation(
         // Subscribe to engineering commands for:
         // * bounds config changes, so we can bounce the new config back to jaiabot_engineering
         interprocess().subscribe<jaiabot::groups::engineering_command>(
-            [this](const jaiabot::protobuf::Engineering& engineering) {
+            [this](const jaiabot::protobuf::Engineering& engineering)
+            {
                 if (engineering.has_bounds())
                 {
                     auto bounds = engineering.bounds();
@@ -208,14 +247,6 @@ jaiabot::apps::SimulatorTranslation::SimulatorTranslation(
             {
                 switch (command.command_case())
                 {
-                    case jaiabot::protobuf::SimulatorCommand::kGpsDropout:
-                        gps_dropout_end_ =
-                            goby::time::SteadyClock::now() +
-                            goby::time::convert_duration<goby::time::SteadyClock::duration>(
-                                command.gps_dropout().dropout_duration_with_units());
-
-                        break;
-
                     case jaiabot::protobuf::SimulatorCommand::kStopForwardProgress:
                         stop_forward_progress_end_ =
                             goby::time::SteadyClock::now() +
@@ -223,70 +254,20 @@ jaiabot::apps::SimulatorTranslation::SimulatorTranslation(
                                 command.stop_forward_progress().duration_with_units());
                         break;
 
-                    case jaiabot::protobuf::SimulatorCommand::COMMAND_NOT_SET:
-                        // no command, do nothing
+                    default:
+                        // handled in another thread
                         break;
                 }
             });
 
-        for (const auto& sample : sim_cfg_.sample())
-        {
-            temperature_degC_profile_[sample.depth_with_units()] = sample.temperature();
-            salinity_profile_[sample.depth_with_units()] = sample.salinity();
-        }
-
         // Seed once
         std::srand(unsigned(std::time(NULL)));
     }
-    else
-    {
-        sim_hub_status();
-
-        // Subscribe to engineering commands for:
-        // * hub_location
-        interprocess().subscribe<jaiabot::groups::hub_command_full>(
-            [this](const jaiabot::protobuf::CommandForHub& hub_command) {
-                glog.is_warn() && glog << "Received hub_command: " << hub_command.ShortDebugString()
-                                       << std::endl;
-
-                if (hub_command.has_hub_location())
-                {
-                    auto location = hub_command.hub_location();
-
-                    // Re-publish hub at new coordinates
-                    goby::middleware::protobuf::gpsd::TimePositionVelocity tpv;
-                    tpv.mutable_location()->set_lat_with_units(location.lat_with_units());
-                    tpv.mutable_location()->set_lon_with_units(location.lon_with_units());
-                    tpv.set_device(sim_cfg_.hub_gpsd_device());
-                    interprocess().publish<goby::middleware::groups::gpsd::tpv>(tpv);
-
-                    // Publish a datum change
-                    goby::middleware::protobuf::DatumUpdate update;
-                    update.mutable_datum()->set_lat_with_units(location.lat_with_units());
-                    update.mutable_datum()->set_lon_with_units(location.lon_with_units());
-                    this->interprocess().template publish<goby::middleware::groups::datum_update>(
-                        update);
-                }
-            });
-    }
-}
-
-void jaiabot::apps::SimulatorTranslation::sim_hub_status()
-{
-    goby::middleware::protobuf::gpsd::TimePositionVelocity tpv;
-    tpv.mutable_location()->set_lat(sim_cfg_.start_location().lat());
-    tpv.mutable_location()->set_lon(sim_cfg_.start_location().lon());
-    tpv.set_device(sim_cfg_.hub_gpsd_device());
-
-    interprocess().publish<goby::middleware::groups::gpsd::tpv>(tpv);
 }
 
 void jaiabot::apps::SimulatorTranslation::process_nav(const CMOOSMsg& msg)
 {
     auto now = goby::time::SteadyClock::now();
-    auto dt = std::chrono::duration_cast<std::chrono::microseconds>(now - last_nav_process_time_)
-                  .count() *
-              si::micro * si::seconds;
 
     if (!geodesy_)
         return;
@@ -297,165 +278,28 @@ void jaiabot::apps::SimulatorTranslation::process_nav(const CMOOSMsg& msg)
     auto y = moos_buffer["NAV_Y"].GetDouble() * si::meters;
     auto depth = moos_buffer["NAV_DEPTH"].GetDouble() * si::meters;
 
-    // very simple vertical depth simulation assuming perfect controller
-    if (last_setpoints_.type() == protobuf::SETPOINT_DIVE)
-    {
-        x = dive_x_;
-        y = dive_y_;
-
-        dive_depth_ += sim_cfg_.vertical_dive_rate_with_units() * quantity<si::time>(dt);
-        if (dive_depth_ > last_setpoints_.dive_depth_with_units())
-            dive_depth_ = last_setpoints_.dive_depth_with_units();
-
-        const auto seafloor_depth = egg_box_function(
-            sim_cfg_.seafloor_depth_with_units(), sim_cfg_.seafloor_amplitude_with_units(),
-            sim_cfg_.seafloor_wavelength_with_units(), x, y);
-
-        if (dive_depth_ > seafloor_depth)
-            dive_depth_ = seafloor_depth;
-
-        depth = dive_depth_;
-
-        std::stringstream reset_ss;
-        reset_ss << "x=" << x.value() << ",y=" << y.value() << ",depth=" << depth.value()
-                 << ",speed=0,heading=0";
-        moos().comms().Notify("USM_RESET", reset_ss.str());
-    }
-    else
-    {
-        // keep updating these until we dive
-        dive_x_ = x;
-        dive_y_ = y;
-        dive_depth_ = depth;
-    }
-
-    goby::util::gps::RMC rmc;
-    goby::util::gps::HDT hdt;
-
-    rmc.status = goby::util::gps::RMC::DataValid;
-
-    auto latlon = geodesy_->convert({x, y});
-
-    rmc.latitude = latlon.lat;
-    rmc.longitude = latlon.lon;
-
-    rmc.speed_over_ground =
+    auto speed_over_ground =
         quantity<si::velocity>(moos_buffer["NAV_SPEED"].GetDouble() * si::meter_per_second);
+    auto course_over_ground = moos_buffer["NAV_HEADING_OVER_GROUND"].GetDouble() * degree::degree;
 
-    rmc.course_over_ground = moos_buffer["NAV_HEADING_OVER_GROUND"].GetDouble() * degree::degree;
+    auto heading = moos_buffer["NAV_HEADING"].GetDouble() * degree::degrees;
+    auto pitch = moos_buffer["NAV_PITCH"].GetDouble() * si::radians;
+    if (!making_forward_progress_)
+        pitch = sim_cfg_.pitch_at_rest_with_units<decltype(pitch)>();
 
-    double heading_error = 0;
+    auto roll = moos_buffer["NAV_ROLL"].GetDouble() * si::radians;
+    auto nav = std::make_shared<SimNav>(
+        SimNav({x, y, speed_over_ground, course_over_ground, depth, heading, pitch, roll}));
 
-    if (sim_cfg_.heading_rand_max() > 0)
-    {
-        heading_error = static_cast<double>(std::rand()) / (RAND_MAX)*sim_cfg_.heading_rand_max();
-    }
+    glog.is_debug1() && glog << group("translation") << "[moos_nav] x: " << nav->x
+                             << ", y: " << nav->y << ", depth: " << nav->depth << std::endl;
 
-    glog.is_verbose() && glog << "Heading Error: " << heading_error << std::endl;
-
-    hdt.true_heading = (moos_buffer["NAV_HEADING"].GetDouble() + heading_error) * degree::degrees;
-    {
-        auto io_data = std::make_shared<goby::middleware::protobuf::IOData>();
-        io_data->set_data(rmc.serialize().message_cr_nl());
-        interthread().publish<gps_udp_out>(io_data);
-    }
-
-    {
-        auto io_data = std::make_shared<goby::middleware::protobuf::IOData>();
-        io_data->set_data(hdt.serialize().message_cr_nl());
-        interthread().publish<gps_udp_out>(io_data);
-    }
-
-    // publish gps sky data
-    if (sky_last_updated_ + std::chrono::milliseconds(time_out_sky_) < now)
-    {
-        goby::middleware::protobuf::gpsd::SkyView sky;
-
-        bool is_dropout = goby::time::SteadyClock::now() <= gps_dropout_end_;
-
-        double hdop =
-            is_dropout ? sim_cfg_.gps_hdop_dropout()
-                       : static_cast<double>(std::rand()) / (RAND_MAX)*sim_cfg_.gps_hdop_rand_max();
-        double pdop =
-            is_dropout ? sim_cfg_.gps_pdop_dropout()
-                       : static_cast<double>(std::rand()) / (RAND_MAX)*sim_cfg_.gps_pdop_rand_max();
-
-        sky.set_hdop(hdop);
-        sky.set_pdop(pdop);
-        interprocess().publish<goby::middleware::groups::gpsd::sky>(sky);
-        sky_last_updated_ = goby::time::SteadyClock::now();
-    }
-
-    // publish pressure as UDP message for bar30 driver
-    {
-        auto pressure = goby::util::seawater::pressure(depth, latlon.lat);
-
-        // interpolate temperature value from table
-        double temperature = goby::util::linear_interpolate(depth, temperature_degC_profile_);
-        // randomize temperature
-        temperature += temperature_distribution_(generator_);
-
-        using goby::util::seawater::bar;
-
-        // convert pressure from decibars to millibars to mimic output of BARXX sensor
-        auto envelope = jaiabot::protobuf::UDPGatewayEnvelope();
-        auto pressure_temperature_data = envelope.mutable_pressure_temperature_data();
-        pressure_temperature_data->set_pressure_raw(
-            quantity<decltype(si::milli * bar)>(pressure).value());
-        pressure_temperature_data->set_temperature_with_units(temperature * boost::units::absolute<boost::units::celsius::temperature>()); // I tried, but could not get boost.units to work with Celsius here.
-        pressure_temperature_data->set_sensor_type(jaiabot::protobuf::PressureSensorType::BAR30);
-
-        auto io_data = std::make_shared<goby::middleware::protobuf::IOData>();
-        io_data->set_data(envelope.SerializeAsString());
-        interthread().publish<gateway_udp_out>(io_data);
-    }
-
-    // publish salinity as UDP message for atlas scientific ezo-ec driver
-    {
-        std::stringstream ss;
-        // interpolate salinity value from table
-        double salinity = goby::util::linear_interpolate(depth, salinity_profile_);
-        // randomize salinity
-        salinity += salinity_distribution_(generator_);
-
-        auto envelope = jaiabot::protobuf::UDPGatewayEnvelope();
-        auto salinity_data = envelope.mutable_salinity_data();
-        // We only set the raw values here, because the derived values are calculated elsewhere, after the data comes in from the sensor.
-        salinity_data->set_conductivity_raw(45000.0);
-        salinity_data->set_salinity_raw(salinity);
-        salinity_data->set_total_dissolved_solids(0.0);
-
-        auto io_data = std::make_shared<goby::middleware::protobuf::IOData>();
-        io_data->set_data(envelope.SerializeAsString());
-        interthread().publish<gateway_udp_out>(io_data);
-    }
-
-    // publish IMUData
-    {
-        jaiabot::protobuf::IMUData imu_data;
-        auto pitch = moos_buffer["NAV_PITCH"].GetDouble() * si::radians;
-        if (!making_forward_progress_)
-            pitch = sim_cfg_.pitch_at_rest_with_units<decltype(pitch)>();
-
-        imu_data.mutable_euler_angles()->set_pitch_with_units(pitch);
-        imu_data.mutable_euler_angles()->set_roll_with_units(moos_buffer["NAV_ROLL"].GetDouble() *
-                                                             si::radians);
-
-        auto accuracies = imu_data.mutable_accuracies();
-        accuracies->set_accelerometer(3);
-        accuracies->set_gyroscope(3);
-        accuracies->set_magnetometer(3);
-        interprocess().publish<groups::imu>(imu_data);
-    }
-
-    last_nav_process_time_ = now;
+    interthread().publish<moos_nav>(nav);
 }
 
 void jaiabot::apps::SimulatorTranslation::process_desired_setpoints(
     const protobuf::DesiredSetpoints& desired_setpoints)
 {
-    last_setpoints_ = desired_setpoints;
-
     switch (desired_setpoints.type())
     {
         // all of these can be handled by uSimMarine directly
@@ -467,7 +311,7 @@ void jaiabot::apps::SimulatorTranslation::process_desired_setpoints(
             moos().comms().Notify("MOOS_MANUAL_OVERRIDE", "false");
             break;
 
-            // handled by depth loop by resetting uSimMarine
+            // handled by depth thread by resetting uSimMarine
         case protobuf::SETPOINT_DIVE: moos().comms().Notify("MOOS_MANUAL_OVERRIDE", "true"); break;
     }
 }
@@ -496,27 +340,4 @@ void jaiabot::apps::SimulatorTranslation::process_control_surfaces(
         "DESIRED_ELEVATOR",
         elevator_normalization *
             (control_surfaces.port_elevator() + control_surfaces.stbd_elevator()) / 2);
-}
-
-/**
- * Generates a seafloor depth value for a given coordinate based on an egg box function.
- *
- * An egg box function is a periodic function z(x, y), which is a periodic and sine-function along both
- * axes. See https://mathcurve.com/surfaces.gb/boiteaoeufs/boiteaoeufs.shtml. It's a useful function for 
- * testing the generated contour maps of the ocean floor, in simulation.
- *
- * @param mean_value Mean value of the returned function
- * @param amplitude Maximum amplitude of the generated wave crests
- * @param wavelength Wavelength of the generated waves
- * @param x x coordinate of the location to sample the function
- * @param y y coordinate of the location to sample the function
- * @return Value of the specified egg box function at the point (x, y)
- */
-quantity<si::length> jaiabot::apps::SimulatorTranslation::egg_box_function(
-    const quantity<si::length> mean_value, const quantity<si::length> amplitude,
-    const quantity<si::length> wavelength, const quantity<si::length> x,
-    const quantity<si::length> y)
-{
-    const auto k = 2 * PI / wavelength;
-    return mean_value + amplitude * sin(k * x) * sin(k * y);
 }

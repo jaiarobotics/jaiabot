@@ -247,6 +247,7 @@ set(scripts_to_install
   system/jaia_update_network.sh
   system/jaia_iridium_tunnel.sh
   system/jaia_enable_i2c0.sh
+  system/jaia_configure_authelia.sh
   # Fleet config
   fleet/jaia-create-fleet-config.sh
   fleet/jaia-generate-first-boot.py
@@ -256,6 +257,9 @@ set(scripts_to_install
   # First boot (also used by VirtualFleet creation)
   init/jaia-create-ansible-inventory.sh
   )
+
+# Sourced at runtime for the versions of third-party packages
+install(FILES ${CMAKE_SOURCE_DIR}/scripts/common-versions.env DESTINATION share/jaiabot)
 
 # Iterate over each script to install and copy
 foreach(script ${scripts_to_install})
@@ -279,7 +283,7 @@ endforeach()
 
 if(export_goby_interfaces)
   # remove splines= when https://gitlab.com/graphviz/graphviz/-/issues/1408 fix is available (3.y)?
-  set(INTERFACE_COMMON_PARAMS "--splines=line;--omit-group-regex=jaiabot::state_change;--omit-node-regex='.*statechart::Notify.*'")
+  set(INTERFACE_COMMON_PARAMS "--omit-group-regex=jaiabot::state_change;--omit-node-regex='.*statechart::Notify.*'")
   generate_interfaces_figure(${project_SRC_DIR}/doc/deployment/simulation_deployment.yml ${YML_OUT_DIR} simulation_interfaces.svg "--no-disconnected;${INTERFACE_COMMON_PARAMS}")
   generate_interfaces_figure(${project_SRC_DIR}/doc/deployment/simulation_deployment.yml ${YML_OUT_DIR} simulation_interfaces_no_interthread.svg "--omit-interthread;--no-disconnected;${INTERFACE_COMMON_PARAMS}")
   generate_interfaces_figure(${project_SRC_DIR}/doc/deployment/simulation_deployment.yml ${YML_OUT_DIR} simulation_interfaces_inc_unused.svg "${INTERFACE_COMMON_PARAMS}")

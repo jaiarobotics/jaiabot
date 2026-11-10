@@ -35,10 +35,11 @@
 
 // Jaiabot
 #include "jaiabot/intervehicle.h"
-#include "jaiabot/utils/mission_manager_utils.h"
 #include "jaiabot/messages/dive_debug.pb.h"
-#include "jaiabot/messages/imu.pb.h"
 #include "jaiabot/messages/echo.pb.h"
+#include "jaiabot/messages/imu.pb.h"
+#include "jaiabot/utils/downsample.h"
+#include "jaiabot/utils/mission_manager_utils.h"
 using namespace jaiabot::protobuf;
 
 // Mission Manager app
@@ -48,12 +49,11 @@ using namespace jaiabot::protobuf;
 #include "ivp_behavior_update.h"
 
 // States
-#include "states/states_fwd.h"
 
-namespace jaiabot::statechart {
+// forward declaration
+#define JAIABOT_MISSION_MANAGER_FWD_DECL
+#include "states/root.h"
+#undef JAIABOT_MISSION_MANAGER_FWD_DECL
 
-    #include "states/predeployment.h"
-    #include "states/inmission.h"
-    #include "states/postdeployment.h"
-
-}
+// actual definition
+#include "states/root.h"

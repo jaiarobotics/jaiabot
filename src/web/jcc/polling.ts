@@ -2,6 +2,8 @@ import { bots } from "../data/bots/bots";
 import { hubs } from "../data/hubs/hubs";
 import { jaiaGlobal } from "../data/jaia_global/jaia-global";
 import { taskPackets } from "../data/task_packets/task-packets";
+import { taskPacketFilter } from "../data/task_packets/task-packet-filter";
+import { getHTMLDateString, getHTMLTimeString, convertHTMLStrDateToISO } from "../shared/Utilities";
 import { PortalBotStatus, PortalHubStatus } from "../shared/PortalStatus";
 import { botLayer } from "../openlayers/layers/vector/bot-layer";
 import { hubLayer } from "../openlayers/layers/vector/hub-layer";
@@ -31,7 +33,29 @@ let statusRequestInFlight = false;
 let taskPacketRequestInFlight = false;
 let metadataRequestInFlight = false;
 
+// Date window last fetched; lets the poll force a refetch when the filter window changes
+let lastFetchedWindowKey = "";
+
+// Increments per task packet fetch so a slower, superseded response
+// can't overwrite newer task packets in the data model.
+let latestTaskPacketRequest = 0;
+
 let statusRequestStartTime = new Date().getTime();
+
+/**
+ * Fetches from the Hub's API, reloading the page if the request was redirected
+ * to sign in (CloudHub), so the operator is taken to the sign-in page and back
+ *
+ * @param {string} url API endpoint
+ * @returns {Promise<Response>} Response from the API
+ */
+async function fetchApi(url: string) {
+    const response = await fetch(url, { redirect: "manual" });
+    if (response.type === "opaqueredirect") {
+        location.reload();
+    }
+    return response;
+}
 
 /**
  * Hits the status endpoint and updates the data model and openlayers
@@ -51,7 +75,7 @@ export async function pollStatus() {
     try {
         statusRequestInFlight = true;
         statusRequestStartTime = new Date().getTime();
-        const response = await fetch(STATUS_URL);
+        const response = await fetchApi(STATUS_URL);
         if (!response.ok) {
             console.error(`Response status: ${response.status}`);
         } else {
@@ -92,17 +116,18 @@ export async function pollTaskPackets() {
     }
     try {
         taskPacketRequestInFlight = true;
-        const versionRes = await fetch(TASK_PACKET_VERSION_URL);
+        const versionRes = await fetchApi(TASK_PACKET_VERSION_URL);
         if (!versionRes.ok) {
             console.error(`Task packet response status: ${versionRes.status}`);
         } else {
             const version = await versionRes.json();
-            if (version !== taskPackets.getVersion()) {
-                const taskPacketRes = await fetch(TASK_PACKET_URL);
-                const json = await taskPacketRes.json();
-                taskPackets.setIncludedTaskPackets(json.result.included);
-                taskPackets.setExcludedTaskPackets(json.result.excluded);
-                updateTaskLayers();
+            // Refetch when the filter window changes, even if the server version is unchanged.
+            const forceFetch = getTaskPacketWindowKey() !== lastFetchedWindowKey;
+            // A superseded fetch records nothing, so the next poll fetches again.
+            if (
+                (forceFetch || version !== taskPackets.getVersion()) &&
+                (await refreshTaskPacketsForWindow())
+            ) {
                 taskPackets.setVersion(version);
             }
         }
@@ -110,6 +135,66 @@ export async function pollTaskPackets() {
         console.error(error);
     }
     taskPacketRequestInFlight = false;
+}
+
+/**
+ * Formats a Date as the "yyyy-mm-dd hh:mm" string that convertHTMLStrDateToISO expects
+ *
+ * @param {Date} date Date to format
+ * @returns {string} Query string in the form "yyyy-mm-dd hh:mm"
+ */
+function toTaskPacketQueryString(date: Date) {
+    return `${getHTMLDateString(date)} ${getHTMLTimeString(date)}`;
+}
+
+/**
+ * Returns a key identifying the requested task packet window.
+ *
+ * @returns {string} Window identity key
+ */
+function getTaskPacketWindowKey() {
+    return `${taskPacketFilter.getStartDate().getTime()}|${taskPacketFilter.getEndDate().getTime()}`;
+}
+
+/**
+ * Fetches task packets for the current window and loads them into the data model, unless a newer
+ * fetch or filter search has started since. Every refetch of the task packets goes through here.
+ * Records the window it applied so the poll doesn't fetch the same window again.
+ *
+ * @returns {Promise<boolean>} True if the response was applied, false if it was superseded
+ */
+export async function refreshTaskPacketsForWindow() {
+    const requestID = ++latestTaskPacketRequest;
+    // Taken before the fetch reads the filter, so the key matches the window fetched.
+    const windowKey = getTaskPacketWindowKey();
+    const json = await fetchTaskPacketsForWindow();
+    if (requestID !== latestTaskPacketRequest) {
+        return false;
+    }
+    taskPackets.setIncludedTaskPackets(json.result.included);
+    taskPackets.setExcludedTaskPackets(json.result.excluded);
+    lastFetchedWindowKey = windowKey;
+    updateTaskLayers();
+    return true;
+}
+
+/**
+ * Fetches task packets for the filter's window.
+ *
+ * @returns {Promise<{ result: { included: TaskPacket[]; excluded: TaskPacket[] } }>} Response
+ *
+ * @notes
+ * JCC always sends the window rather than relying on the server's default.
+ */
+async function fetchTaskPacketsForWindow() {
+    const startDateISO = convertHTMLStrDateToISO(
+        toTaskPacketQueryString(taskPacketFilter.getStartDate()),
+    );
+    const endDateISO = convertHTMLStrDateToISO(
+        toTaskPacketQueryString(taskPacketFilter.getEndDate()),
+    );
+    const res = await fetchApi(`${TASK_PACKET_URL}?startDate=${startDateISO}&endDate=${endDateISO}`);
+    return res.json();
 }
 
 /**
@@ -124,7 +209,7 @@ export async function pollMetadata() {
     }
     try {
         metadataRequestInFlight = true;
-        const res = await fetch(METADATA_URL);
+        const res = await fetchApi(METADATA_URL);
         if (!res.ok) {
             console.error(`Metadata response status: ${res.status}`);
         } else {

@@ -401,6 +401,10 @@ def get_deth_contours():
     end_date = parseDate(request.args.get('endDate', ''))
     return JSONResponse(jaia_interface.get_depth_contours(start_date, end_date))
 
+@app.route('/jaia/v0/depth-contours', methods=['POST'])
+def post_depth_contours():
+    return JSONResponse(jaia_interface.get_depth_contours_for_task_packets(request.json))
+
 ######## Drift map
 
 @app.route('/jaia/v0/drift-map', methods=['GET'])
@@ -525,7 +529,13 @@ def get_ctd_profiles():
     """Provides access to CTD files on the Hub
     """
     dir = Path("/var/log/jaiabot/bot_offload")
-    files = list(dir.glob("*.unb")) if dir.exists() else []
+    downloaded_dir = Path("/var/log/jaiabot/ctd_downloaded")
+    downloaded_dir.mkdir(parents=True, exist_ok=True)
+    files = [
+        path
+        for path in dir.glob("*.unb")
+        if not (downloaded_dir / path.name).exists()
+    ] if dir.exists() else []
 
     if len(files) == 0:
         return Response(status=HTTPStatus.NO_CONTENT)
@@ -541,7 +551,16 @@ def get_ctd_profiles():
     ctd_archive = dir / "ctd_archive"
     ctd_archive.mkdir(parents=True, exist_ok=True)
     for ctd_file in files:
-        shutil.move(str(ctd_file), ctd_archive / ctd_file.name);
+        archived_file = ctd_archive / ctd_file.name
+        try:
+            shutil.move(str(ctd_file), archived_file)
+        except PermissionError:
+            if not archived_file.exists():
+                raise
+            logging.warning(
+                f"CTD profile archived but source could not be removed: {ctd_file}"
+            )
+        (downloaded_dir / ctd_file.name).touch()
     
     return send_file(
         zip_file,

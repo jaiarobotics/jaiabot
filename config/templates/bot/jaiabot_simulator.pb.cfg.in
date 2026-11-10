@@ -6,12 +6,23 @@ moos {
   port: $moos_port
 }
 
-enable_gps: true
-gps_udp_config { 
-    bind_port: 0
-    remote_address: "127.0.0.1"
-    remote_port: $gpsd_simulator_udp_port
+# GPS
+gps_config
+{
+    enable_gps: true
+    udp_config { 
+        bind_port: 0
+        remote_address: "127.0.0.1"
+        remote_port: $gpsd_simulator_udp_port
+    }
+    hdop_rand_max: 1.30 # (optional) (default=1.3)
+    pdop_rand_max: 2.20 # (optional) (default=2.2)
+    heading_rand_max: 0 # (optional) (default=0)
 }
+
+node_type: BOT
+bot_type: $bot_type
+
 start_location {
     lat: 41.662680
     lon: -71.273018
@@ -24,28 +35,7 @@ udp_gateway_config {
 }
 
 
-# m/s
-vertical_dive_rate: 0.5 
 
-# made up temperature/salinity profile
-sample { depth: 0 temperature: 15 salinity: 20 }
-sample { depth: 10 temperature: 14.5 salinity: 20 }
-sample { depth: 20 temperature: 8 salinity: 25 }
-sample { depth: 40 temperature: 7 salinity: 26 }
-sample { depth: 50 temperature: 6 salinity: 26 }
-
-# seafloor depth
-seafloor_depth: 7
-seafloor_wavelength: 250
-seafloor_amplitude: 2
-
-temperature_stdev: 0.05
-salinity_stdev: 0.05
-
-# GPS
-gps_hdop_rand_max: 1.30 # (optional) (default=1.3)
-gps_pdop_rand_max: 2.20 # (optional) (default=2.2)
-heading_rand_max: 0 # (optional) (default=0)
 
 # Voltage
 arduino_config {
@@ -57,3 +47,62 @@ arduino_config {
 
 minimum_thrust: 1  #  normalized 0-100
 pitch_at_rest: 85  #  degrees
+
+oceanographic_config
+{
+    # made up temperature/salinity profile
+    sample { depth: 0 temperature: 15 salinity: 20}
+    sample { depth: 10 temperature: 14.5 salinity: 20}
+    sample { depth: 20 temperature: 8 salinity: 25}
+    sample { depth: 40 temperature: 7 salinity: 26}
+    sample { depth: 50 temperature: 6 salinity: 26}
+    
+    temperature_stdev: 0.05
+
+    salinity_stdev: 0.05
+
+}
+bar30_config
+{
+}
+
+ezo_ec_config
+{
+}
+
+dive_config
+{
+    # m/s
+    vertical_dive_rate: 0.5 
+    
+    # seafloor depth
+    seafloor_depth: 7
+    seafloor_wavelength: 250
+    seafloor_amplitude: 2
+}
+
+storm_config {
+    #   launch_altitude: 3000 # m
+  launch_altitude: 3000 # m
+  air_descent_rate: 30 # m/s
+  pitch_during_air_descent: 89 # deg 
+  delay {  
+    parachute_detachment: 0 # seconds
+    tube_release: 0  # seconds
+  }
+  in_tube_sink_rates {  
+    with_parachute: 0.3 # m/s
+    without_parachute: 1 # m/s
+  }
+#  failures {  #  (repeated)
+#    type:   #  (STUCK_IN_TUBE_UNRESOLVABLE, 
+#            # PARACHUTE_NOT_DETACHED_UNRESOLVABLE)
+#    probability: 1  #  0-1 for 0-100% chance of failure happening
+  #  }
+
+  mcu_pty {
+      port: "/tmp/tty_storm_mcu"
+      baud: 19200
+  }
+  air_data_sample_rate: 2  # Hz (optional) (default=1)
+}
