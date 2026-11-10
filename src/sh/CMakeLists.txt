@@ -45,6 +45,7 @@ set(scripts_to_install
   system/jaia-update-ufw-rules.sh
   system/jaia-update-network.sh
   system/jaia-update-dns.sh
+  system/jaia-enable-i2c0.sh
   system/jaia-iridium-tunnel.sh
   system/jaia-iridium-enroll.sh
   system/jaia_configure_authelia.sh

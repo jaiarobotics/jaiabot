@@ -92,6 +92,9 @@ if [ "${jaia_type}" != "bot" ]; then
     sudo a2ensite jcc
 fi
 
+echo "🟢 Enabling I2C bus 0"
+sudo ${jaia_dir}/${build_dir}/bin/jaia-enable-i2c0.sh
+
 sudo cp ${jaia_dir}/src/sh/system/75-jaiabot-status /etc/update-motd.d/
 # use symlink so this gets updated if the user re-installs the packaged version
 sudo ln -s -f /etc/update-motd.d/75-jaiabot-status /usr/local/bin/jaiabot-status

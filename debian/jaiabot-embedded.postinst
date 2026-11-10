@@ -103,6 +103,10 @@ echo ">>>>> Updating hub0 address ... "
 sed -i "s/.*hub0/${HUB0_WLAN_IP} hub0/" /etc/hosts
 echo "<<<<< Updating hub0 address complete!"
 
+echo ">>>>> Enabling I2C bus 0 ... "
+/usr/bin/jaia-enable-i2c0.sh
+echo "<<<<< Enabling I2C bus 0 complete!"
+
 echo ">>>>> Updating fleet DNS configuration ... "
 
 /usr/bin/jaia-update-dns.sh -t ${JAIA_TYPE} -i ${BOT_OR_HUB_INDEX} \
