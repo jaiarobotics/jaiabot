@@ -2,6 +2,7 @@ import { useContext, useState } from "react";
 import { FormControl, MenuItem, Select, SelectChangeEvent } from "@mui/material";
 import { JaiaContext } from "../../../context/JaiaContext";
 import { jaia_rest_api } from "../../../utils/jaia-rest-api";
+import { sendEngineeringCommand } from "../../../utils/commands";
 import { error, success } from "../../../utils/notifications";
 import {
     BotStatusRate,
@@ -64,18 +65,13 @@ export default function Engineering() {
     const handleQuerySelectedStatusClick = async (botID: number) => {
         try {
             await jaia_rest_api.takeControl(); // Will throw if request fails
-            await jaia_rest_api.request({
-                target: {
-                    bots: [botID],
-                },
-                engineering_command: {
-                    bot_id: botID,
-                    query_engineering_status: true,
-                },
-            });
-            success(`Querying status for Bot ${botID}`);
         } catch (e) {
             error(`Could not query status for Bot ${botID}: ${(e as Error)?.message ?? e}`);
+            return;
+        }
+        const res = await sendEngineeringCommand({ bot_id: botID, query_engineering_status: true });
+        if (!res.error) {
+            success(`Querying status for Bot ${botID}`);
         }
     };
 
@@ -128,15 +124,13 @@ export default function Engineering() {
 
         try {
             await jaia_rest_api.takeControl(); // Will throw if request fails
-            const commandRes = await jaia_rest_api.request({
-                target: {
-                    bots: [botID],
-                },
-                engineering_command: engineeringUpdate,
-            });
-            success(`Submitted update for Bot ${botID}`);
         } catch (e) {
             error(`Could not update Bot ${botID}: ${(e as Error)?.message ?? e}`);
+            return;
+        }
+        const res = await sendEngineeringCommand(engineeringUpdate);
+        if (!res.error) {
+            success(`Submitted update for Bot ${botID}`);
         }
     };
 

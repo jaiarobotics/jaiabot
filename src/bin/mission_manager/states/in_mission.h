@@ -176,6 +176,13 @@ struct InMission
 
     void set_mission_complete() { mission_complete_ = true; }
 
+    // On a replan, InMission is entered before the new plan is stored
+    void apply_first_segment_params()
+    {
+        active_seg_index_ = 0;
+        apply_segment_params();
+    }
+
     void set_use_heading_constant_pid(const bool& use_heading_constant_pid)
     {
         use_heading_constant_pid_ = use_heading_constant_pid;

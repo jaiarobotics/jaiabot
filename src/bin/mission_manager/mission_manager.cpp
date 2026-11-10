@@ -1238,7 +1238,8 @@ void jaiabot::apps::MissionManager::set_hub_id(int hub_id)
 bool jaiabot::apps::MissionManager::health_considered_ok(
     const goby::middleware::protobuf::VehicleHealth& vehicle_health)
 {
-    if (vehicle_health.state() != goby::middleware::protobuf::HEALTH__FAILED)
+    if (jaiabot::health::vehicle_health_state(vehicle_health) !=
+        goby::middleware::protobuf::HEALTH__FAILED)
     {
         return true;
     }

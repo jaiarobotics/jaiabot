@@ -3,7 +3,7 @@ import { handleMapModeChange } from "../../openlayers/maps/map";
 import { JaiaAction, JaiaContextType } from "../../types/context-types";
 import { MapModes } from "../../types/openlayers-types";
 import { CommandForHub, CommandForHub_HubCommandType } from "@proto/jaiabot/messages/jaia_dccl";
-import { jaia_rest_api } from "../../utils/jaia-rest-api";
+import { sendHubCommand } from "../../utils/commands";
 
 /**
  * Changes the map mode to update the toggle state
@@ -34,12 +34,7 @@ export function handleMoveHub(mutableState: JaiaContextType, action: JaiaAction)
         hub_location: action.location,
     };
 
-    jaia_rest_api.request({
-        target: {
-            hubs: [hubCommand.hub_id ?? 1],
-        },
-        command_for_hub: hubCommand,
-    });
+    sendHubCommand(hubCommand);
 
     return mutableState;
 }

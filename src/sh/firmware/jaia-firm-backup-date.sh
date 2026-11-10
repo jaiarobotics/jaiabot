@@ -92,25 +92,12 @@ while true; do
       # Normal mode: require mode 2/3 and EPT <= 0.5
       if [[ $has_good_mode -eq 1 && $has_good_ept -eq 1 && -n "$gps_time_fmt" ]]; then
         echo "Got good GPS time (mode 2/3, EPT=$ept): $gps_time_fmt"
-        
-        # Set system clock from GPS if not already set
-        if [[ $gps_time_set -eq 0 && $ntp_time_set -eq 0 ]]; then
-          echo "Setting system clock from GPS..."
-          timedatectl set-time "$gps_time_fmt"
-          gps_time_set=1
-        fi
-        
+        # chrony takes its time from this GPS, so wait for it to sync rather than setting the clock here
+        echo "Waiting for chrony to synchronize from GPS"
+
         # Save GPS time to backup file
         echo "$gps_time_fmt" > "$timekeeper_file"
         echo "Saved GPS time to $timekeeper_file"
-        
-        if [[ $ready_flag_created -eq 0 ]]; then
-          echo "Ready Flag Created"
-          touch "$ready_flag"
-          ready_flag_created=1
-        fi
-        sleep 60
-        continue
       else
         if [[ $has_good_mode -eq 0 ]]; then
           echo "GPS mode not 2 or 3"
@@ -141,9 +128,11 @@ while true; do
       echo "Got degraded GPS time (EPT=$ept): $gps_time_fmt"
       
       if [[ $gps_time_set -eq 0 && $ntp_time_set -eq 0 ]]; then
-        echo "Setting system clock from degraded GPS..."
-        timedatectl set-time "$gps_time_fmt"
-        gps_time_set=1
+        echo "Chrony not synchronized; setting system clock from GPS..."
+        # timedatectl set-time is refused while chrony is the NTP service
+        if date -s "$gps_time_fmt"; then
+          gps_time_set=1
+        fi
       fi
       
       # Save to backup file

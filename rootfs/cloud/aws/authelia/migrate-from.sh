@@ -30,8 +30,14 @@ work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
 
 echo ">>>>>> Exporting from $old"
-ssh $SSH_OPTS "jaia@$old" "sudo python3 - $final" > "$work/export.tar.gz" <<'EOF'
-import io, json, shlex, shutil, sqlite3, subprocess, sys, tarfile, tempfile, yaml
+ssh $SSH_OPTS "jaia@$old" "sudo python3 - $final $AUTH_BASE_DOMAIN" > "$work/export.tar.gz" <<'EOF'
+import io, json, os, shlex, shutil, sqlite3, subprocess, sys, tarfile, tempfile, yaml
+
+base = sys.argv[2]
+# Caddy's Let's Encrypt certificates for this server's names, so the new server serves them
+# before the names move to it
+acme = "/var/lib/caddy/.local/share/caddy/certificates/acme-v02.api.letsencrypt.org-directory"
+sites = ["%s.%s" % (s, base) for s in ("auth", "lldap", "cc", "sandbox.cc", "launchpad", "data")]
 
 if sys.argv[1] == "true":
     subprocess.run(["systemctl", "stop", "authelia", "lldap"], check=True)
@@ -69,11 +75,14 @@ try:
         "totp": a.execute("select count(*) from totp_configurations").fetchone()[0],
         "webauthn": a.execute("select count(*) from webauthn_credentials").fetchone()[0],
         "preferences": a.execute("select count(*) from user_preferences").fetchone()[0],
+        "certificates": [s for s in sites if os.path.isdir(os.path.join(acme, s))],
     }
 
     with tarfile.open(fileobj=sys.stdout.buffer, mode="w|gz") as tar:
         for name in ("authelia.sqlite3", "users.db"):
             tar.add(out + "/" + name, arcname=name)
+        for site in counts["certificates"]:
+            tar.add(os.path.join(acme, site), arcname="certificates/" + site)
         for name, text in (("secrets", "".join("%s=%s\n" % (k, shlex.quote(v)) for k, v in secrets.items())),
                            ("counts.json", json.dumps(counts))):
             data = text.encode()
@@ -108,6 +117,14 @@ while IFS= read -r line; do
     sudo sed -i "/^${line%%=*}=/d" /var/lib/jaia-auth-server/secrets
     echo "$line" | sudo tee -a /var/lib/jaia-auth-server/secrets > /dev/null
 done < "$tmp/secrets"
+if [ -d "$tmp/certificates" ]; then
+    acme=/var/lib/caddy/.local/share/caddy/certificates/acme-v02.api.letsencrypt.org-directory
+    sudo mkdir -p "$acme"
+    sudo cp -r "$tmp/certificates/." "$acme/"
+    sudo chown -R caddy:caddy /var/lib/caddy/.local
+    # Caddy reads its storage when it starts, not on a reload
+    sudo systemctl restart caddy
+fi
 # stdout carries only the counts back
 sudo /usr/local/sbin/jaia-auth-server-configure >&2
 cat "$tmp/counts.json"
@@ -188,6 +205,23 @@ for key in ("users", "groups", "totp", "webauthn", "preferences"):
     print("%s %-11s %s" % ("OK  " if same else "FAIL", key, shown))
     if not same:
         failures.append("%s differ: %s here, %s expected" % (key, here[key], expected[key]))
+
+import ssl, socket
+for site in source.get("certificates", []):
+    context = ssl.create_default_context()
+    context.check_hostname, context.verify_mode = False, ssl.CERT_NONE
+    try:
+        with socket.create_connection(("127.0.0.1", 443), timeout=10) as raw:
+            with context.wrap_socket(raw, server_hostname=site) as tls:
+                der = tls.getpeercert(binary_form=True)
+        text = subprocess.run(["openssl", "x509", "-inform", "DER", "-noout", "-issuer", "-enddate"],
+                              input=der, capture_output=True).stdout.decode()
+        real = "Let's Encrypt" in text and "STAGING" not in text and "(STAGING)" not in text
+        print("%s certificate %s: %s" % ("OK  " if real else "FAIL", site, " ".join(text.split())))
+        if not real:
+            failures.append("%s is not served with the copied certificate" % site)
+    except OSError as e:
+        failures.append("%s: %s" % (site, e))
 
 if failures:
     sys.exit("\n".join("FAIL " + f for f in failures))

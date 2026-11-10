@@ -64,10 +64,9 @@ class JaiabotDriverTSYS01(SingleThreadApplication):
         from goby.middleware.protobuf import coroner_pb2
         from jaiabot.messages import health_pb2
 
-        if not self._responding:
-            health.state = coroner_pb2.HEALTH__FAILED
-        elif goby.time.now() - self._last_published > self.cfg.data_timeout_seconds:
-            # reading without error but publishing nothing looks healthy from the outside
+        # reading without error but publishing nothing looks healthy from the outside
+        stale = goby.time.now() - self._last_published > self.cfg.data_timeout_seconds
+        if not self._responding or stale:
             health.state = coroner_pb2.HEALTH__DEGRADED
             health.Extensions[health_pb2.jaiabot_thread].warning.append(
                 health_pb2.WARNING__NOT_RESPONDING__JAIABOT_TSYS01_TEMPERATURE_SENSOR_DRIVER)
