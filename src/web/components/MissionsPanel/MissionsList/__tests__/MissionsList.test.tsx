@@ -8,7 +8,12 @@ import {
     JaiaContextProvider,
     JaiaDispatchContext,
 } from "../../../../context/JaiaContext";
+import { JaiaActions } from "../../../../context/jaia-actions";
 import { handleChangeMissionRepeats } from "../../../../context/handlers/mission-handlers";
+import {
+    makeMutableState,
+    resetHandlerSingletons,
+} from "../../../../context/handlers/__tests__/handler-test-utils";
 
 import { missionSet } from "../../../../data/mission_set/mission-set";
 import Mission from "../../../../data/mission_set/mission";
@@ -17,6 +22,7 @@ import { locationA } from "../../../../data/tests/__mocks__/waypoint-mock";
 import Task from "../../../../data/tasks/task";
 import { JaiaAction, JaiaContextType } from "../../../../types/context-types";
 import { MissionTask_TaskType } from "@proto/jaiabot/messages/mission";
+import { RoutingLevel } from "../../../../utils/routing/routing-status";
 
 test.skip("Exercise Duplicate Mission Button", async () => {
     // Pre-seed data model with original mission
@@ -24,16 +30,15 @@ test.skip("Exercise Duplicate Mission Button", async () => {
     const originalID = missionSet.addMission(originalMission);
     originalMission.addWaypoint(locationA);
 
-    let waypoint1 = originalMission.getWaypoint(1);
     let task1 = new Task();
     task1.setType(MissionTask_TaskType.DIVE);
-    waypoint1.setTask(task1);
+    originalMission.setWaypointTask(1, task1);
 
     // Render the missions list
     await act(async () => {
         render(
             <JaiaContextProvider>
-                <MissionsList />
+                <MissionsList routingLevels={new Map()} />
             </JaiaContextProvider>,
         );
     });
@@ -91,7 +96,7 @@ describe("Mission repeats input", () => {
             return (
                 <JaiaContext.Provider value={jaiaContext}>
                     <JaiaDispatchContext.Provider value={jaiaDispatch}>
-                        <MissionsList />
+                        <MissionsList routingLevels={new Map()} />
                     </JaiaDispatchContext.Provider>
                 </JaiaContext.Provider>
             );
@@ -153,4 +158,29 @@ describe("Mission repeats input", () => {
         expect(mission.getRepeats()).toBe(3);
         expect(repeatsInput.value).toBe("3");
     });
+});
+
+test("tapping a mission's routing status does not expand or collapse its accordion", async () => {
+    resetHandlerSingletons();
+    const mission = new Mission();
+    mission.addWaypoint(locationA);
+    const missionID = missionSet.addMission(mission);
+    const dispatch = jest.fn();
+    render(
+        <JaiaContext.Provider value={makeMutableState()}>
+            <JaiaDispatchContext.Provider value={dispatch}>
+                <MissionsList routingLevels={new Map([[missionID, RoutingLevel.CLEAR]])} />
+            </JaiaDispatchContext.Provider>
+        </JaiaContext.Provider>,
+    );
+    const isAccordionAction = () =>
+        dispatch.mock.calls.some(
+            ([action]) => action.type === JaiaActions.CLICKED_MISSION_ACCORDION,
+        );
+
+    await userEvent.click(screen.getByRole("button", { name: /^Routing status/ }));
+    expect(isAccordionAction()).toBe(false);
+
+    await userEvent.click(screen.getByText(`Mission-${missionID}`));
+    expect(isAccordionAction()).toBe(true);
 });
