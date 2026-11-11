@@ -4,7 +4,12 @@ import Icon from "@mdi/react";
 import { mdiArrowRight, mdiArrowUp, mdiArrowDown, mdiDelete } from "@mdi/js";
 import { Button } from "@mui/material";
 
-import { JCC_CONTAINER, MAX_SEGMENTS, MAX_WAYPOINTS } from "../../../utils/constants";
+import {
+    JCC_CONTAINER,
+    MAX_MISSION_SET_NAME_LENGTH,
+    MAX_SEGMENTS,
+    MAX_WAYPOINTS,
+} from "../../../utils/constants";
 import {
     listSavedMissionSetsFromHub,
     loadSnapshotFromHub,
@@ -201,6 +206,7 @@ export function MissionSetEditorDialog(props: DialogProps) {
                         <input
                             type="text"
                             placeholder="Required"
+                            maxLength={MAX_MISSION_SET_NAME_LENGTH}
                             value={editorName}
                             onChange={(evt) => setEditorName(evt.target.value)}
                         />

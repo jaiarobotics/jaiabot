@@ -41,6 +41,7 @@
 #include <filesystem>
 #include <fstream>
 #include <iomanip>
+#include <optional>
 
 #include "config.pb.h"
 #include "jaiabot/comms/comms.h"
@@ -132,6 +133,9 @@ class HubManager : public ApplicationBase
     void load_active_mission_plans();
     void update_active_mission_plans(const jaiabot::protobuf::Command& command);
     void publish_active_mission_plans();
+    void publish_active_missions_to_other_hubs();
+    void
+    handle_hub2hub_active_mission(const jaiabot::protobuf::Hub2HubActiveMission& active_mission);
     void handle_hub2hub_data(const jaiabot::protobuf::Hub2HubData& hub2hub_data);
 
     void set_mission_name_for_bot_command_time(const BotID bot_id,
@@ -236,6 +240,10 @@ class HubManager : public ApplicationBase
     static constexpr goby::time::SteadyClock::duration active_mission_plans_republish_interval_{
         std::chrono::seconds(10)};
     goby::time::SteadyClock::time_point next_active_mission_plans_publish_time_{};
+    // one catch-up for all hubs, however many resubscribe within this interval
+    static constexpr goby::time::SteadyClock::duration hub2hub_active_missions_min_interval_{
+        std::chrono::seconds(30)};
+    std::optional<goby::time::SteadyClock::time_point> last_hub2hub_active_missions_time_;
 
     std::set<jaiabot::protobuf::Warning> hub_warnings_;
     std::set<jaiabot::protobuf::Error> hub_errors_;
@@ -490,6 +498,13 @@ void jaiabot::apps::HubManager::handle_subscription_report(
                 interprocess().publish<jaiabot::groups::bot_status>(status);
             }
         }
+        else if (sub_report.changed().dccl_id() == jaiabot::protobuf::Hub2HubActiveMission::DCCL_ID)
+        {
+            if (sub_report.changed().group() == jaiabot::INTERVEHICLE_API_VERSION &&
+                sub_report.changed().action() ==
+                    goby::middleware::intervehicle::protobuf::Subscription::SUBSCRIBE)
+                publish_active_missions_to_other_hubs();
+        }
         else if (sub_report.changed().dccl_id() == hub2hub_dccl_id)
         {
             auto other_hub_modem_id = sub_report.changed().header().src();
@@ -740,6 +755,45 @@ void jaiabot::apps::HubManager::hub2hub_subscribe(int other_hub_id)
             }
         },
         subscriber);
+
+    goby::middleware::protobuf::TransporterConfig active_mission_subscriber_cfg;
+    *active_mission_subscriber_cfg.mutable_intervehicle()->mutable_buffer() =
+        cfg().hub2hub_active_mission_buffer();
+    active_mission_subscriber_cfg.mutable_intervehicle()->add_publisher_id(publisher_modem_id);
+
+    goby::middleware::Subscriber<jaiabot::protobuf::Hub2HubActiveMission> active_mission_subscriber(
+        active_mission_subscriber_cfg,
+        intervehicle::default_subscriber_group_func<jaiabot::protobuf::Hub2HubActiveMission>);
+
+    intervehicle()
+        .subscribe<jaiabot::groups::hub2hub_active_mission,
+                   jaiabot::protobuf::Hub2HubActiveMission>(
+            [this](const jaiabot::protobuf::Hub2HubActiveMission& active_mission)
+            {
+                if (!hub2hub_api_mismatch())
+                    handle_hub2hub_active_mission(active_mission);
+            },
+            active_mission_subscriber);
+}
+
+void jaiabot::apps::HubManager::handle_hub2hub_active_mission(
+    const jaiabot::protobuf::Hub2HubActiveMission& active_mission)
+{
+    if (active_mission.hub_id() == cfg().hub_id())
+        return;
+
+    glog.is_debug2() && glog << group("hub2hub") << "Received Hub2HubActiveMission: "
+                             << active_mission.ShortDebugString() << std::endl;
+
+    auto command = active_mission.command();
+    if (active_mission.has_mission_name())
+    {
+        command.mutable_plan()->set_mission_name(active_mission.mission_name());
+        set_mission_name_for_bot_command_time(command.bot_id(), command.time(),
+                                              active_mission.mission_name());
+    }
+
+    update_active_mission_plans(command);
 }
 
 void jaiabot::apps::HubManager::handle_hub2hub_data(
@@ -775,9 +829,12 @@ void jaiabot::apps::HubManager::handle_hub2hub_data(
         }
         case jaiabot::protobuf::Hub2HubData::kCommandForBot:
         {
-            handle_command(hub2hub_data.command_for_bot(), true);
-
             auto remote_command = hub2hub_data.command_for_bot();
+            if (hub2hub_data.has_mission_name() && remote_command.has_plan())
+                remote_command.mutable_plan()->set_mission_name(hub2hub_data.mission_name());
+
+            handle_command(remote_command, true);
+
             remote_command.set_from_hub_id(hub2hub_data.hub_id());
             interprocess().publish<jaiabot::groups::remote_hub_command>(remote_command);
 
@@ -1277,6 +1334,8 @@ void jaiabot::apps::HubManager::handle_command(const jaiabot::protobuf::Command&
     {
         jaiabot::protobuf::Hub2HubData hub2hub_data;
         *hub2hub_data.mutable_command_for_bot() = input_command;
+        if (input_command.plan().has_mission_name())
+            hub2hub_data.set_mission_name(input_command.plan().mission_name());
         publish_hub2hub_data(&hub2hub_data);
     }
 
@@ -1648,6 +1707,12 @@ void jaiabot::apps::HubManager::load_active_mission_plans()
     try
     {
         active_mission_plans_.load(active_mission_plans_path_);
+        for (const auto& command : active_mission_plans_.to_message().command())
+        {
+            if (command.plan().has_mission_name())
+                set_mission_name_for_bot_command_time(command.bot_id(), command.time(),
+                                                      command.plan().mission_name());
+        }
     }
     catch (const std::exception& exception)
     {
@@ -1674,6 +1739,41 @@ void jaiabot::apps::HubManager::update_active_mission_plans(
         glog.is_warn() && glog << group("main")
                                << "Failed to save active mission plans: " << exception.what()
                                << std::endl;
+    }
+}
+
+void jaiabot::apps::HubManager::publish_active_missions_to_other_hubs()
+{
+    const auto now = goby::time::SteadyClock::now();
+    if (hub2hub_api_mismatch() ||
+        (last_hub2hub_active_missions_time_ &&
+         now - *last_hub2hub_active_missions_time_ < hub2hub_active_missions_min_interval_))
+        return;
+    last_hub2hub_active_missions_time_ = now;
+
+    for (const auto& command : active_mission_plans_.to_message().command())
+    {
+        if (command.plan().goal_size() > jaiabot::protobuf::MissionPlan::descriptor()
+                                             ->FindFieldByName("goal")
+                                             ->options()
+                                             .GetExtension(dccl::field)
+                                             .max_repeat())
+        {
+            glog.is_debug1() && glog << group("hub2hub") << "Not sharing bot " << command.bot_id()
+                                     << "'s active mission: " << command.plan().goal_size()
+                                     << " goals don't fit in one Command" << std::endl;
+            continue;
+        }
+
+        jaiabot::protobuf::Hub2HubActiveMission active_mission;
+        active_mission.set_hub_id(cfg().hub_id());
+        *active_mission.mutable_command() = command;
+        if (command.plan().has_mission_name())
+            active_mission.set_mission_name(command.plan().mission_name());
+
+        intervehicle().publish<jaiabot::groups::hub2hub_active_mission>(
+            active_mission,
+            intervehicle::default_publisher<jaiabot::protobuf::Hub2HubActiveMission>);
     }
 }
 

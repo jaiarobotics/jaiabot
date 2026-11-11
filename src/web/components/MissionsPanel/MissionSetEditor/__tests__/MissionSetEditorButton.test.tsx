@@ -2,7 +2,11 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 
 import MissionSetEditorButton from "../MissionSetEditorButton";
-import { JCC_CONTAINER, UNASSIGNED_ID } from "../../../../utils/constants";
+import {
+    JCC_CONTAINER,
+    MAX_MISSION_SET_NAME_LENGTH,
+    UNASSIGNED_ID,
+} from "../../../../utils/constants";
 import {
     listSavedMissionSetsFromHub,
     loadSnapshotFromHub,
@@ -80,6 +84,16 @@ test("reopening the editor clears the mission set name", async () => {
     await openEditor(user);
 
     expect(nameInput()).toHaveValue("");
+});
+
+test("the mission set name stops at the length hubs can share", async () => {
+    const user = userEvent.setup();
+    render(<MissionSetEditorButton />);
+    await openEditor(user);
+
+    await user.type(nameInput(), "n".repeat(MAX_MISSION_SET_NAME_LENGTH + 5));
+
+    expect(nameInput()).toHaveValue("n".repeat(MAX_MISSION_SET_NAME_LENGTH));
 });
 
 test("adding a set after reopening the editor loads it from the hub again", async () => {

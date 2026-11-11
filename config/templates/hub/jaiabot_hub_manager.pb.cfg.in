@@ -63,6 +63,19 @@ hub2hub_buffer
     value_base: 1
 }
 
+# Catch-up copies of each bot's active mission. Half the priority of
+# hub2hub_buffer (value_base / ttl), and a copy that can't go out within a
+# minute expires before the next catch-up replaces it.
+hub2hub_active_mission_buffer
+{
+    ack_required: true
+    blackout_time: 0
+    max_queue: 64
+    newest_first: false
+    ttl: 60
+    value_base: 0.05
+}
+
 expected_hubs {
     $expected_hubs
 }

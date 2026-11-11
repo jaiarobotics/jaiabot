@@ -11,6 +11,7 @@ import { MissionTask_TaskType, Speeds } from "@proto/jaiabot/messages/mission";
 import { LegacyMissionInterface, LegacyRunInterface } from "../../../types/legacy-types";
 import {
     DEFAULT_SPEED,
+    MAX_MISSION_SET_NAME_LENGTH,
     TASK_MAX_SPEED_CONSTRAINT,
     TASK_MIN_SPEED_CONSTRAINT,
     UNASSIGNED_ID,
@@ -105,7 +106,7 @@ export async function loadSnapshotFromHub(saveName: string): Promise<LoadSnapsho
         missions: missions,
         nextMissionID: migrated.nextMissionID ?? 0,
         missionIDInEditMode: migrated.missionIDInEditMode ?? UNASSIGNED_ID,
-        name: migrated.name ?? "",
+        name: fitMissionSetName(migrated.name),
         speeds: normalizeSpeeds(migrated.speeds),
     };
 
@@ -339,6 +340,16 @@ function normalizeSpeeds(speeds: any): Speeds {
 }
 
 /**
+ * Cuts a mission set name to the length hubs can share with each other
+ *
+ * @param {string | undefined} name Mission set name
+ * @returns {string} The name, at most MAX_MISSION_SET_NAME_LENGTH characters long
+ */
+function fitMissionSetName(name: string | undefined) {
+    return (name ?? "").slice(0, MAX_MISSION_SET_NAME_LENGTH);
+}
+
+/**
  * Extracts a mission set from a raw snapshot data
  *
  * @param {any} rawMissionSet Raw mission set data parsed from file
@@ -366,7 +377,7 @@ function extractMissionSetSnapshot(rawMissionSet: any, version: string = MISSION
         missions: missionsArray,
         nextMissionID: migrated.nextMissionID ?? 1,
         missionIDInEditMode: migrated.missionIDInEditMode ?? UNASSIGNED_ID,
-        name: migrated.name ?? "",
+        name: fitMissionSetName(migrated.name),
         speeds: normalizeSpeeds(migrated.speeds),
     };
 

@@ -771,6 +771,10 @@ message Hub2HubData
     optional Link bot_link = 3;  // which link did this originally come over
                                  // from the bot (for BotStatus/TaskPacket)?
 
+    // MissionPlan.mission_name of command_for_bot, which DCCL omits from the
+    // plan itself
+    optional string mission_name = 4 [(dccl.field).max_length = 64];
+
     oneof contents
     {
         BotStatus bot_status = 10;
@@ -779,6 +783,23 @@ message Hub2HubData
         CommandCommsResult command_comms_result = 13;
         HubStatus hub_status = 14;
     }
+}
+
+// A bot's active mission plan, sent to hubs that subscribe so they catch up on
+// missions sent before they were listening
+message Hub2HubActiveMission
+{
+    option (dccl.msg) = {
+        id: 0x5004
+        max_bytes: 400
+        codec_version: 5
+        unit_system: "si"
+    };
+
+    required uint32 hub_id = 1 [(dccl.field) = { min: 0 max: 30 }];
+    required Command command = 2;
+    // MissionPlan.mission_name, which DCCL omits from the plan itself
+    optional string mission_name = 3 [(dccl.field).max_length = 64];
 }
 
 message CommandCommsResult
