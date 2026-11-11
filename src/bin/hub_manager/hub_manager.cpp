@@ -46,6 +46,7 @@
 #include "jaiabot/comms/comms.h"
 #include "jaiabot/groups.h"
 #include "jaiabot/health/health.h"
+#include "jaiabot/hub/active_mission_plans.h"
 #include "jaiabot/intervehicle.h"
 #include "jaiabot/messages/comms.pb.h"
 #include "jaiabot/messages/engineering.pb.h"
@@ -128,6 +129,9 @@ class HubManager : public ApplicationBase
     void start_dataoffload(int bot_id);
 
     void publish_hub2hub_data(jaiabot::protobuf::Hub2HubData* hub2hub_data);
+    void load_active_mission_plans();
+    void update_active_mission_plans(const jaiabot::protobuf::Command& command);
+    void publish_active_mission_plans();
     void handle_hub2hub_data(const jaiabot::protobuf::Hub2HubData& hub2hub_data);
 
     void set_mission_name_for_bot_command_time(const BotID bot_id,
@@ -225,6 +229,13 @@ class HubManager : public ApplicationBase
     std::set<jaiabot::protobuf::Link>
         active_links_; // which links have we subscribe on at some point?
     std::map<MissionCommandTime, CommandPending> commands_pending_result_;
+
+    jaiabot::hub::ActiveMissionPlans active_mission_plans_;
+    std::filesystem::path active_mission_plans_path_;
+    // republished so a web_portal that restarts catches up
+    static constexpr goby::time::SteadyClock::duration active_mission_plans_republish_interval_{
+        std::chrono::seconds(10)};
+    goby::time::SteadyClock::time_point next_active_mission_plans_publish_time_{};
 
     std::set<jaiabot::protobuf::Warning> hub_warnings_;
     std::set<jaiabot::protobuf::Error> hub_errors_;
@@ -410,6 +421,8 @@ jaiabot::apps::HubManager::HubManager()
                 for (int other_hub_id : other_hub_ids_) hub2hub_subscribe(other_hub_id);
             }
         });
+
+    load_active_mission_plans();
 
     if (is_virtualhub_)
         update_vfleet_shutdown_time();
@@ -789,6 +802,9 @@ void jaiabot::apps::HubManager::handle_hub2hub_data(
 
 void jaiabot::apps::HubManager::loop()
 {
+    if (goby::time::SteadyClock::now() >= next_active_mission_plans_publish_time_)
+        publish_active_mission_plans();
+
     latest_hub_status_.set_time_with_units(goby::time::SystemClock::now<goby::time::MicroTime>());
 
     // Start the next offload before reporting, so the queue isn't missing from a status between bots
@@ -1295,6 +1311,8 @@ void jaiabot::apps::HubManager::handle_command(const jaiabot::protobuf::Command&
     }
     last_command_timestamp_ = command.time_with_units<goby::time::MicroTime>();
 
+    update_active_mission_plans(command);
+
     if (command.has_plan())
     {
         set_mission_name_for_bot_command_time(command.bot_id(), command.time(),
@@ -1620,6 +1638,51 @@ void jaiabot::apps::HubManager::start_dataoffload(int bot_id)
     };
 
     offload_thread_.reset(new std::thread(offload_func));
+}
+
+void jaiabot::apps::HubManager::load_active_mission_plans()
+{
+    const char* log_dir = std::getenv("jaia_log_dir");
+    active_mission_plans_path_ = std::filesystem::path(log_dir ? log_dir : "/var/log/jaiabot") /
+                                 "hub" / std::to_string(cfg().hub_id()) / "active_mission_plans.pb";
+    try
+    {
+        active_mission_plans_.load(active_mission_plans_path_);
+    }
+    catch (const std::exception& exception)
+    {
+        glog.is_warn() && glog << group("main")
+                               << "Failed to load active mission plans: " << exception.what()
+                               << std::endl;
+    }
+}
+
+void jaiabot::apps::HubManager::update_active_mission_plans(
+    const jaiabot::protobuf::Command& command)
+{
+    if (!active_mission_plans_.update(command))
+        return;
+
+    publish_active_mission_plans();
+
+    try
+    {
+        active_mission_plans_.save(active_mission_plans_path_);
+    }
+    catch (const std::exception& exception)
+    {
+        glog.is_warn() && glog << group("main")
+                               << "Failed to save active mission plans: " << exception.what()
+                               << std::endl;
+    }
+}
+
+void jaiabot::apps::HubManager::publish_active_mission_plans()
+{
+    interprocess().publish<jaiabot::groups::active_mission_plans>(
+        active_mission_plans_.to_message());
+    next_active_mission_plans_publish_time_ =
+        goby::time::SteadyClock::now() + active_mission_plans_republish_interval_;
 }
 
 void jaiabot::apps::HubManager::publish_hub2hub_data(jaiabot::protobuf::Hub2HubData* hub2hub_data)
