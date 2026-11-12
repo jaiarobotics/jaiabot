@@ -6,9 +6,12 @@ VPNs number hubs differently, and joins a release 3 fleet by enrolling with the
 fleet's bootstrap key while Fleet Pairing is open."""
 
 import os
+import shutil
+import socket
 import stat
 import subprocess
 import tempfile
+import time
 import unittest
 
 from test_vpn_gen import SOURCE_DIR
@@ -16,6 +19,8 @@ from test_vpn_gen import SOURCE_DIR
 TUNNEL = SOURCE_DIR / "src" / "sh" / "system" / "jaia-iridium-tunnel.sh"
 ENROLL = SOURCE_DIR / "src" / "sh" / "system" / "jaia-iridium-enroll.sh"
 STAGE = SOURCE_DIR / "rootfs" / "cloud" / "aws" / "iridium" / "stage_migration.sh"
+
+REAL_SOCAT = shutil.which("socat")
 
 SECRET_KEY = "SXJpZGl1bSBzZXJ2ZXIgcHJpdmF0ZSBrZXkgZm9yIDc="
 PUBLIC_KEY = "SXJpZGl1bSBzZXJ2ZXIgcHVibGljIGtleSBmb3IgNyE="
@@ -80,9 +85,9 @@ class TunnelTest(unittest.TestCase):
         result = self.tunnel(8, "fd0f:77ac:4fdf:8::1:19")
         self.assertEqual(result.returncode, 0, result.stderr)
         calls = self.box.recorded()
-        self.assertIn("TCP-LISTEN:11808,reuseaddr,fork TCP:[fd0f:77ac:4fdf:8::1:1e]:11800", calls)
-        self.assertIn("TCP-LISTEN:12808,reuseaddr,fork TCP:[fd0f:77ac:4fdf:8::1:1e]:12800", calls)
-        self.assertIn("TCP-LISTEN:10808,reuseaddr,fork TCP:directip.sbd.iridium.com:10800", calls)
+        self.assertIn("TCP6-LISTEN:11808,ipv6only=0,reuseaddr,fork TCP:[fd0f:77ac:4fdf:8::1:1e]:11800", calls)
+        self.assertIn("TCP6-LISTEN:12808,ipv6only=0,reuseaddr,fork TCP:[fd0f:77ac:4fdf:8::1:1e]:12800", calls)
+        self.assertIn("TCP6-LISTEN:10808,ipv6only=0,reuseaddr,fork TCP:directip.sbd.iridium.com:10800", calls)
 
     def test_a_release_2_fleet_reaches_its_cloudhub_at_1e(self):
         result = self.tunnel(36, "fd0f:77ac:4fdf:24::19")
@@ -97,6 +102,32 @@ class TunnelTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(result.stdout, "fd0f:77ac:4fdf:8::1:1e\n")
         self.assertEqual(self.box.recorded(), "")
+
+    @unittest.skipUnless(REAL_SOCAT, "socat is not installed")
+    def test_each_relay_takes_ipv6_from_a_cloudhub_and_ipv4_from_iridium(self):
+        """A CloudHub sends MT over its IPv6 VPN and Iridium sends MO over IPv4; socat's
+        plain TCP-LISTEN took IPv4 only on Ubuntu 26.04 and every CloudHub was refused."""
+        self.assertEqual(self.tunnel(8, "fd0f:77ac:4fdf:8::1:19").returncode, 0)
+        listens = [line.split()[1] for line in self.box.recorded().splitlines()]
+        self.assertEqual(len(listens), 3)
+        for listen in listens:
+            with socket.socket() as s:
+                s.bind(("127.0.0.1", 0))
+                port = s.getsockname()[1]
+            relay = subprocess.Popen([REAL_SOCAT, listen.replace(listen.split(":")[1].split(",")[0], str(port), 1),
+                                      "SYSTEM:cat"], stderr=subprocess.DEVNULL)
+            self.addCleanup(relay.wait)
+            self.addCleanup(relay.terminate)
+            for family, host in ((socket.AF_INET6, "::1"), (socket.AF_INET, "127.0.0.1")):
+                for attempt in range(50):
+                    try:
+                        with socket.create_connection((host, port), timeout=2) as conn:
+                            conn.sendall(b"ping\n")
+                            self.assertEqual(conn.recv(16), b"ping\n", (listen, host))
+                        break
+                    except ConnectionRefusedError:
+                        self.assertLess(attempt, 49, "{} refused {}".format(listen, host))
+                        time.sleep(0.1)
 
     def test_a_tunnel_that_is_not_hub_25_starts_nothing(self):
         result = self.tunnel(8, "fd0f:77ac:4fdf:8::1:1")
@@ -288,6 +319,8 @@ exec bash -c "${args[1]}"
 
     def test_a_new_server_without_the_release_3_scripts_is_refused(self):
         os.remove(os.path.join(self.box.bin, "jaia-iridium-enroll.sh"))
+        # a developer's own build of the script may be on PATH
+        self.box.env["PATH"] = self.box.bin + ":/usr/bin:/bin"
         result = self.stage("new.example.org")
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("release 3 iridium scripts", result.stderr)
