@@ -483,6 +483,7 @@ common_macros['exec_start_pre'] = ''
 common_macros['extra_service'] = ''
 common_macros['extra_unit'] = ''
 common_macros['extra_flags'] = ''
+common_macros['terminate_flags'] = ''
 common_macros['bhv_file'] = '/tmp/jaiabot_${jaia_bot_id}.bhv'
 common_macros['moos_file'] = '/tmp/jaiabot_${jaia_bot_id}.moos'
 common_macros['moos_sim_file'] = '/tmp/jaiabot_sim_${jaia_bot_id}.moos'
@@ -534,7 +535,9 @@ jaiabot_apps = [
      'description': 'Goby Intervehicle Portal',
      'template': 'goby-app.service.in',
      'error_on_fail': 'ERROR__FAILED__GOBY_INTERVEHICLE_PORTAL',
-     'extra_service': 'Environment=GOBY_MODEMDRIVER_PLUGINS=libjaiabot_xbee.so.1:libjaiabot_wifi.so.1',
+     # on exit the Iridium driver waits for an SBD session in progress (up to 90 s)
+     'terminate_flags': '--response_timeout 100',
+     'extra_service': 'Environment=GOBY_MODEMDRIVER_PLUGINS=libjaiabot_xbee.so.1:libjaiabot_wifi.so.1\nTimeoutStopSec=120',
      'runs_on': [Type.BOTH],
      'wanted_by': 'jaiabot_health.service'},
     {'exe': 'goby_liaison',
