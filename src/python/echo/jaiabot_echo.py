@@ -3,22 +3,22 @@ import argparse
 import socket
 import traceback
 import logging
-from echo import *
-from math import *
+
+from echo import EchoCommon, EchoSimulator, EpEcho, LegacyEcho, PamStackType, PAM_DETECT_TIMEOUT_SEC, detect_pam_stack_type
 from threading import Thread
+
 from jaiabot.messages.echo_pb2 import EchoData, EchoCommand
 from jaiabot.messages.udp_gateway_pb2 import UDPGatewayEnvelope
 
-
 parser = argparse.ArgumentParser(description='Echo sensor, and publish them over UDP port')
 parser.add_argument('-p', '--port', type=int, default=20000, help='UDP Gateway port to send Echo data to (default: 20000)')
-parser.add_argument('-d', '--device', type=str, default='/dev/ttyAMA5', help='Serial device to use for Echo (default: /dev/ttyAMA5)')
+parser.add_argument('-d', '--connection_type', type=str, choices=['uart', 'usb'], default='uart', help='How the PAM stack is connected (default: uart)')
 parser.add_argument('-l', dest='logging_level', default='WARNING', type=str, help='Logging level (CRITICAL, ERROR, WARNING (default), INFO, DEBUG)')
 parser.add_argument('-s', '--simulator', action='store_true', help='Use simulator instead of real device')
 
 class Args:
     port: int
-    device: str
+    connection_type: str
     logging_level: str
     simulator: bool
 
@@ -29,14 +29,10 @@ logging.warning(args)
 logging.basicConfig(format='%(asctime)s %(levelname)10s %(message)s')
 log = logging.getLogger('jaiabot_echo')
 log.setLevel(args.logging_level)
+logging.getLogger('echo').setLevel(args.logging_level)
 
 
-def do_port_loop(echo: Echo):
-    serial_dev = args.device
-    if serial_dev is None:
-        log.error(f'Must specify serial device to use for Echo')
-        exit(1)
-
+def do_port_loop(echo: EchoCommon):
     # Create socket
     port = args.port
     if port is None:
@@ -89,8 +85,21 @@ def do_port_loop(echo: Echo):
 
 
 if __name__ == '__main__':
-    # Setup the sensor
-    echo = Echo(args.device) if not args.simulator else EchoSimulator()
+    # Setup the sensor, determining the PAM stack type once at startup
+    if args.simulator:
+        echo = EchoSimulator()
+    else:
+        log.info(f'Waiting up to {PAM_DETECT_TIMEOUT_SEC}s to detect the PAM stack type')
+        pam_stack_type = detect_pam_stack_type(args.connection_type)
+        if pam_stack_type is None:
+            log.error('No PAM recorder enumerated over USB')
+            exit(1)
+
+        log.info(f'Detected {pam_stack_type.value} PAM stack')
+        if pam_stack_type == PamStackType.EP:
+            echo = EpEcho()
+        else:
+            echo = LegacyEcho(args.connection_type)
 
     # Start the thread that responds to EchoCommands over the port
     portThread = Thread(target=do_port_loop, name='portThread', daemon=True, args=[echo])

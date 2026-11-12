@@ -86,7 +86,7 @@ struct Dive : boost::statechart::state<Dive, Task, dive::DivePrep>, AppMethodsAc
                                             .max_repeat();
         if (dive_packet().measurement_size() > max_measurement_size)
         {
-            std::vector<jaiabot::utils::Point> measurements;
+            std::vector<jaiabot::utils::DownsamplePoint> measurements;
             measurements.reserve(dive_packet().measurement_size());
             for (int measurement_index = 0; measurement_index < dive_packet().measurement_size();
                  ++measurement_index)
@@ -98,7 +98,7 @@ struct Dive : boost::statechart::state<Dive, Task, dive::DivePrep>, AppMethodsAc
             }
 
             const auto selected_indices =
-                jaiabot::utils::downsampleIndices(measurements, max_measurement_size);
+                jaiabot::utils::select_downsample_indices(measurements, max_measurement_size);
             std::vector<protobuf::DivePacket::Measurements> selected_measurements;
             selected_measurements.reserve(selected_indices.size());
             for (const auto selected_index : selected_indices)
