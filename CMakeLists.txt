@@ -35,7 +35,7 @@ include_directories("${DCCL_INCLUDE_DIR}")
 find_package(MOOS 10 REQUIRED)
 
 # find Goby3
-find_package(GOBY 3.0 REQUIRED zeromq moos)
+find_package(GOBY 3.7 REQUIRED zeromq moos)
 
 include_directories("${GOBY_INCLUDE_DIR}")
 
