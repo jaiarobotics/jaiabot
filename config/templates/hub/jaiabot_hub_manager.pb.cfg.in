@@ -57,7 +57,7 @@ hub2hub_buffer
 {
     ack_required: true
     blackout_time: 0
-    max_queue: 10
+    max_queue: 40
     newest_first: false
     ttl: 600
     value_base: 1
