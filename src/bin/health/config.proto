@@ -121,6 +121,13 @@ message SensorWatchdogConfig
     optional int32 pam_trigger_issue_timeout_seconds = 53 [default = 20];
 }
 
+message IridiumStatusConfig
+{
+    required uint32 link_modem_id = 1;
+    // goby_intervehicle_portal publishes a modem_report every modem_report_interval (10 s)
+    optional int32 report_timeout_seconds = 2 [default = 35];
+}
+
 message Health
 {
     option (dccl.msg) = {
@@ -148,4 +155,5 @@ message Health
     optional MotorStatusConfig motor = 42;
     optional ArduinoRecoveryConfig arduino_recovery = 43;
     optional SensorWatchdogConfig sensor_watchdog = 44;
+    optional IridiumStatusConfig iridium = 45;
 }
