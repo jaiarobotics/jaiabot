@@ -1,6 +1,8 @@
 #define BOOST_TEST_MODULE jaiabot_test_comms_hub2hub_messages
 #include <boost/test/included/unit_test.hpp>
 
+#include <chrono>
+
 #include <dccl/codec.h>
 
 #include "jaiabot/messages/jaia_dccl.pb.h"
@@ -9,7 +11,11 @@ namespace jaiabot
 {
 namespace protobuf
 {
-constexpr std::uint64_t command_time = 1794410386000000;
+// DCCL's time codec decodes to the day nearest the current time
+const std::uint64_t command_time = std::chrono::duration_cast<std::chrono::seconds>(
+                                       std::chrono::system_clock::now().time_since_epoch())
+                                       .count() *
+                                   1000000;
 
 Command make_mission_plan()
 {
