@@ -9,10 +9,12 @@ from jaiabot.messages.udp_gateway_pb2 import UDPGatewayEnvelope
 parser = argparse.ArgumentParser(description='Read temperature from TSYS01 temperature sensor and publish it over UDP')
 parser.add_argument('-p', '--port', dest='port', default=20000, type=int, help='The UDP Gateway port to send TSYS01 data to (default: 20000)')
 parser.add_argument('-t', dest='device_type', choices=['sim', 'tsys01'], default='tsys01', help='Device type')
+parser.add_argument('-b', '--bus', dest='bus', default=1, type=int, help='The I2C bus which the TSYS01 sensor is connected to.')
 
 class Args:
     port: int
     device_type: str
+    bus: int
 
 args = parser.parse_args()
 
@@ -46,7 +48,7 @@ match args.device_type:
         sensor = SensorSimulator()
     case 'tsys01':
         import tsys01
-        sensor = tsys01.TSYS01()
+        sensor = tsys01.TSYS01(bus=args.bus)
 
 
 if not sensor.init():

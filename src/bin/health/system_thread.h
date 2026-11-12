@@ -16,8 +16,8 @@
 #include <goby/zeromq/application/multi_thread.h>
 #include <sqlite3.h>
 
-#include "jaiabot/messages/health.pb.h"
 #include "jaiabot/messages/arduino.pb.h"
+#include "jaiabot/messages/health.pb.h"
 
 #include "jaiabot/messages/power_board/power_board.pb.h"
 
@@ -143,7 +143,8 @@ class MotorStatusThread : public HealthMonitorThread<jaiabot::config::MotorStatu
     jaiabot::protobuf::Motor status_;
     goby::time::SteadyClock::time_point last_motor_rpm_report_time_{std::chrono::seconds(0)};
     goby::time::SteadyClock::time_point last_motor_thermistor_report_time_{std::chrono::seconds(0)};
-    goby::time::SteadyClock::time_point next_motor_usage_report_time_{goby::time::SteadyClock::now()};
+    goby::time::SteadyClock::time_point next_motor_usage_report_time_{
+        goby::time::SteadyClock::now()};
     double rpm_value_{0};
     // set once the power board reports RPM, after which the Pi GPIO tach is ignored
     bool use_power_board_rpm_{false};
