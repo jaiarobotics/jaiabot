@@ -3,7 +3,6 @@ import { MissionState } from "@proto/jaiabot/messages/mission";
 import { MissionStatus } from "../../types/jaia-system-types";
 import { convertMicrosecondsToSeconds } from "../../shared/Utilities";
 
-import { missionSet } from "../../data/mission_set/mission-set";
 import Hub from "../../data/hubs/hub";
 import GPS from "../../data/sensors/gps";
 
@@ -122,18 +121,4 @@ export function getDistToWaypoint(missionStatus: MissionStatus) {
         return missionStatus.distanceToTargetWaypoint + " m";
     }
     return "Distance To Goal > 1000";
-}
-
-/**
- * Loops through the ghost missions to check if a Bot is carrying out a mission
- *
- * @param {number} botID Bot of interest
- * @returns {Mission} Mission the Bot is currently running even if deleted from user interface
- */
-export function searchGhostMissions(botID: number) {
-    for (const ghostMission of missionSet.getGhostMissions().values()) {
-        if (ghostMission.getGhostParameters().botID === botID) {
-            return ghostMission;
-        }
-    }
 }

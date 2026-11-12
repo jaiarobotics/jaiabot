@@ -6,7 +6,6 @@ import { JaiaContextType, JaiaAction } from "../../types/context-types";
 import { Command, Command_CommandType } from "@proto/jaiabot/messages/jaia_dccl";
 import { MissionPlan_MovementType } from "@proto/jaiabot/messages/mission";
 import { UNASSIGNED_ID } from "../../utils/constants";
-import { ghostMissionLayer } from "../../openlayers/layers/vector/mission-layer";
 
 /**
  * Sets the mode of the Bot based on the command sent
@@ -52,40 +51,32 @@ function handleSentMissionPlanCommand(mutableState: JaiaContextType, command: Co
         missionSet.setMissionIDInEditMode(UNASSIGNED_ID);
     }
 
-    manageGhostLayer(command.bot_id, missionID);
+    markMissionAsRunning(command.bot_id, missionID);
 }
 
 /**
- * Loops through the missions to update the ghost parameters
+ * Marks the mission as the one the bot is running, so it highlights the bot's target waypoint,
+ * and clears that mark from any other mission for the same bot
  *
- * @param {number} botID Used to reset ghost mission params
- * @param {number} missionID Used to delete the ghost mission
+ * @param {number} botID Bot the mission was sent to
+ * @param {number} missionID Mission sent to the bot
  * @returns {void}
  */
-function manageGhostLayer(botID: number, missionID: number) {
-    if (!missionSet.getMission(missionID)) {
+function markMissionAsRunning(botID: number, missionID: number) {
+    const sentMission = missionSet.getMission(missionID);
+    if (!sentMission) {
         return;
     }
 
     for (const mission of missionSet.getMissions().values()) {
-        // Reset ghost parameters on previously assigned mission
         if (mission.getGhostParameters().botID === botID) {
             mission.resetGhostParameters();
         }
     }
 
-    for (const mission of missionSet.getGhostMissions().values()) {
-        // Bot started new mission, remove ghost mission
-        if (mission.getGhostParameters().botID === botID) {
-            missionSet.deleteGhostMission(mission.getMissionID());
-        }
-    }
-
-    missionSet.getMission(missionID).setGhostParameters({
+    sentMission.setGhostParameters({
         hasStarted: true,
         botID: botID,
-        repeats: missionSet.getMission(missionID).getRepeats(),
+        repeats: sentMission.getRepeats(),
     });
-    missionSet.addGhostMission(missionID);
-    ghostMissionLayer.updateFeatures();
 }

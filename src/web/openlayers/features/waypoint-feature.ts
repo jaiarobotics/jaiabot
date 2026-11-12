@@ -53,9 +53,12 @@ export function generateWaypointFeature(
     });
 
     const isBypass = mission.getWaypoint(waypointNum).getIsBypass();
-    feature.set("type", MapFeatureTypes.WAYPOINT);
+    // A click on a ghost waypoint falls through to whatever is below it
+    if (!mission.getGhostParameters().isGhost) {
+        feature.set("type", MapFeatureTypes.WAYPOINT);
+        feature.set("missionID", mission.getMissionID());
+    }
     feature.set("waypointNum", waypointNum);
-    feature.set("missionID", mission.getMissionID());
     feature.set("isBypass", isBypass);
     feature.setStyle(generateWaypointStyle(waypointNum, mission, isBypass));
     return feature;
@@ -221,7 +224,7 @@ function generateMissionFlagStyle(mission: Mission) {
             anchor: taskType === MissionTask_TaskType.NONE ? [0.21, 1.62] : [0.21, 1.92],
         }),
         text: new Text({
-            text: `M${mission.getMissionID()}`,
+            text: getMissionFlagLabel(mission),
             font: "12pt sans-serif",
             fill: new Fill({ color: "black" }),
             offsetY: taskType === MissionTask_TaskType.NONE ? -61.2175 : -76.75,
@@ -229,6 +232,17 @@ function generateMissionFlagStyle(mission: Mission) {
         }),
         zIndex: getWaypointZIndex(mission),
     });
+}
+
+/**
+ * Labels a mission's flag with its mission number, or a ghost's with its bot ID
+ *
+ * @param {Mission} mission Mission or ghost mission the flag belongs to
+ * @returns {string} Flag label, such as "M3" or "B3"
+ */
+function getMissionFlagLabel(mission: Mission) {
+    const ghostParameters = mission.getGhostParameters();
+    return ghostParameters.isGhost ? `B${ghostParameters.botID}` : `M${mission.getMissionID()}`;
 }
 
 /**
@@ -300,12 +314,13 @@ function getWaypointColor(mission: Mission, waypointNum?: number) {
 function getWaypointZIndex(mission: Mission, waypointNum?: number) {
     let waypointZIndex = 0;
     // Provide proper mission stacking
-    if (mission.getMissionID() === missionSet.getMissionIDInEditMode()) {
+    const isGhost = mission.getGhostParameters().isGhost;
+    if (!isGhost && mission.getMissionID() === missionSet.getMissionIDInEditMode()) {
         waypointZIndex = 1100;
     } else if (isAssignedToSelectedBot(mission)) {
         waypointZIndex = 1000;
     } else {
-        waypointZIndex = mission.getMissionID();
+        waypointZIndex = isGhost ? mission.getGhostParameters().botID : mission.getMissionID();
     }
     // Provide proper waypoint stacking
     if (waypointNum) {

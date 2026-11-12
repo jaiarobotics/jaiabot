@@ -140,6 +140,8 @@ export class Bots {
             bot.setEngineering(portalBotStatus.engineering);
         }
 
+        bot.setActiveMissionPlan(portalBotStatus.active_mission_plan);
+
         // MissionStatus
         let missionStatus: MissionStatus = {};
 

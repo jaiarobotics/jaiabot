@@ -30,3 +30,13 @@ test("Verify bots are sorted when adding", () => {
     expect(addedBots[1].getBotID()).toEqual(2);
     expect(addedBots[2].getBotID()).toEqual(5);
 });
+
+test("Each status update replaces the bot's active mission plan", () => {
+    const plan = { goal: [{ location: { lat: 41.66, lon: -71.27 } }] };
+
+    bots.setBot({ bot_status: { bot_id: 7 }, active_mission_plan: plan });
+    expect(bots.getBot(7).getActiveMissionPlan()).toEqual(plan);
+
+    bots.setBot({ bot_status: { bot_id: 7 } });
+    expect(bots.getBot(7).getActiveMissionPlan()).toBeUndefined();
+});
