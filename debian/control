@@ -7,9 +7,9 @@ Maintainer: Toby Schneider <toby@gobysoft.org>
 Build-Depends: debhelper-compat (= 13),
                cmake (>= 3.5.1~),
                clang (>= 1:3.8~),
-               libgoby3-dev,
-               libgoby3-moos-dev,
-               libgoby3-gui-dev,
+               libgoby3-dev (>= 3.7.0),
+               libgoby3-moos-dev (>= 3.7.0),
+               libgoby3-gui-dev (>= 3.7.0),
                protobuf-compiler,
                dccl5-compiler,
                libnanopb-dev,
@@ -166,7 +166,7 @@ Description: Interfaces definition files for the Jaiabot Project
 
 Package: jaiabot-embedded
 Depends: debconf, debconf-utils,
-         goby3-apps, goby3-moos, goby3-gui,
+         goby3-apps (>= 3.7.0), goby3-moos (>= 3.7.0), goby3-gui (>= 3.7.0),
          jaiabot-apps, jaiabot-python, jaiabot-config, jaiabot-arduino, jaiabot-stm32, jaiabot-web,
          moos-ivp-apps, moosdb10, libmoos-ivp,
          gpsd, chrony,
