@@ -790,6 +790,7 @@ void jaiabot::apps::HubManager::handle_hub2hub_active_mission(
                              << active_mission.ShortDebugString() << std::endl;
 
     auto command = active_mission.command();
+    command.set_time(active_mission.command_time());
     if (active_mission.has_mission_name())
         command.mutable_plan()->set_mission_name(active_mission.mission_name());
 
@@ -1667,6 +1668,7 @@ void jaiabot::apps::HubManager::publish_active_missions_to_other_hubs()
         jaiabot::protobuf::Hub2HubActiveMission active_mission;
         active_mission.set_hub_id(cfg().hub_id());
         *active_mission.mutable_command() = command;
+        active_mission.set_command_time(command.time());
         if (command.plan().has_mission_name())
             active_mission.set_mission_name(command.plan().mission_name());
 

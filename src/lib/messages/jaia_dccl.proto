@@ -800,6 +800,13 @@ message Hub2HubActiveMission
     required Command command = 2;
     // MissionPlan.mission_name, which DCCL omits from the plan itself
     optional string mission_name = 3 [(dccl.field).max_length = 64];
+    // command.time decodes only within 12 hours of the receiver's time
+    required uint64 command_time = 4 [(dccl.field) = {
+        codec: "dccl.time"
+        units { prefix: "micro" derived_dimensions: "time" }
+        precision: -6
+        num_days: 3650
+    }];
 }
 
 message CommandCommsResult

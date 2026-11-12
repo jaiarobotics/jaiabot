@@ -79,6 +79,7 @@ BOOST_AUTO_TEST_CASE(active_mission_carries_command_and_name)
     Hub2HubActiveMission active_mission;
     active_mission.set_hub_id(2);
     *active_mission.mutable_command() = make_mission_plan();
+    active_mission.set_command_time(command_time);
     active_mission.set_mission_name(longest_name);
 
     const auto received = round_trip(active_mission);
@@ -88,11 +89,26 @@ BOOST_AUTO_TEST_CASE(active_mission_carries_command_and_name)
     BOOST_CHECK_EQUAL(received.command().plan().goal_size(), 10);
 }
 
+BOOST_AUTO_TEST_CASE(active_mission_keeps_time_of_mission_days_old)
+{
+    const std::uint64_t days_old_time = command_time - 5ull * 24 * 60 * 60 * 1000000;
+    Hub2HubActiveMission active_mission;
+    active_mission.set_hub_id(2);
+    *active_mission.mutable_command() = make_mission_plan();
+    active_mission.mutable_command()->set_time(days_old_time);
+    active_mission.set_command_time(days_old_time);
+
+    const auto received = round_trip(active_mission);
+    BOOST_CHECK_NE(received.command().time(), days_old_time);
+    BOOST_CHECK_EQUAL(received.command_time(), days_old_time);
+}
+
 BOOST_AUTO_TEST_CASE(mission_name_longer_than_limit_is_rejected)
 {
     Hub2HubActiveMission active_mission;
     active_mission.set_hub_id(2);
     *active_mission.mutable_command() = make_mission_plan();
+    active_mission.set_command_time(command_time);
     active_mission.set_mission_name(longest_name + "n");
 
     std::string bytes;

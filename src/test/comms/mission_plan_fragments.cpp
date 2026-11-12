@@ -197,11 +197,14 @@ Command relay_as_active_mission(const Command& command, dccl::Codec& codec)
     protobuf::Hub2HubActiveMission active_mission;
     active_mission.set_hub_id(1);
     *active_mission.mutable_command() = command;
+    active_mission.set_command_time(command.time());
     if (command.plan().has_mission_name())
         active_mission.set_mission_name(command.plan().mission_name());
 
     const auto received = round_trip(active_mission, codec);
-    return with_mission_name(received.command(), received.mission_name());
+    auto received_command = with_mission_name(received.command(), received.mission_name());
+    received_command.set_time(received.command_time());
+    return received_command;
 }
 
 BOOST_AUTO_TEST_CASE(large_plan_relayed_as_fragments_arrives_complete)
