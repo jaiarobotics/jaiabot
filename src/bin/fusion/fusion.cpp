@@ -170,6 +170,8 @@ class Fusion : public ApplicationBase
     jaiabot::protobuf::SalinityData process_salinity_data(const jaiabot::protobuf::SalinityData& salinity_data);
 
     std::set<jaiabot::protobuf::Link> active_links_;
+
+    template <typename Response> void handle_battery_response(const Response& response);
 };
 } // namespace apps
 } // namespace jaiabot
@@ -472,29 +474,13 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
             }
         });
 
-    auto handle_battery_response = [this](const auto& response)
-    {
-        if (response.has_vccvoltage())
-        {
-            //TODO ADD FUNCTION / CODE TO REPORT BATTERY PERCENTAGE
-            std::map<float, float> voltage_to_battery_percent_{
-                {16.5, 0.0},   {19.5, 13.5}, {20.15, 20.0},
-                {23.49, 80.0}, {24.0, 95.0}, {24.5, 100.0}}; // map of voltage to battery %
-
-            float battery_percentage =
-                goby::util::linear_interpolate(response.vccvoltage(), voltage_to_battery_percent_);
-
-            latest_bot_status_.set_battery_percent(battery_percentage);
-        }
-    };
-
     // subscribe to both the power board and Arduino drivers; only one runs per bot
     interprocess().subscribe<jaiabot::groups::power_board_pb_data_in>(
-        [handle_battery_response](const jaiabot::protobuf::PowerBoardResponse& power_board_response)
+        [this](const jaiabot::protobuf::PowerBoardResponse& power_board_response)
         { handle_battery_response(power_board_response); });
 
     interprocess().subscribe<jaiabot::groups::arduino_to_pi>(
-        [handle_battery_response](const jaiabot::protobuf::ArduinoResponse& arduino_response)
+        [this](const jaiabot::protobuf::ArduinoResponse& arduino_response)
         { handle_battery_response(arduino_response); });
 
     interprocess().subscribe<jaiabot::groups::mission_report>(
@@ -1214,4 +1200,21 @@ jaiabot::apps::Fusion::process_salinity_data(const jaiabot::protobuf::SalinityDa
     // Up to here
 
     return processed_data;
+}
+
+template <typename Response>
+void jaiabot::apps::Fusion::handle_battery_response(const Response& response)
+{
+    if (response.has_vccvoltage())
+    {
+        //TODO ADD FUNCTION / CODE TO REPORT BATTERY PERCENTAGE
+        std::map<float, float> voltage_to_battery_percent_{
+            {16.5, 0.0},   {19.5, 13.5}, {20.15, 20.0},
+            {23.49, 80.0}, {24.0, 95.0}, {24.5, 100.0}}; // map of voltage to battery %
+
+        float battery_percentage =
+            goby::util::linear_interpolate(response.vccvoltage(), voltage_to_battery_percent_);
+
+        latest_bot_status_.set_battery_percent(battery_percentage);
+    }
 }

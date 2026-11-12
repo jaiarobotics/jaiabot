@@ -2,6 +2,7 @@
 //   JaiaRobotics LLC
 // File authors:
 //   Nick Marshall <nick.marshall@jaia.tech>
+//   Cam Brown <cam.brown@jaia.tech>
 //
 //
 // This file is part of the JaiaBot Project Binaries

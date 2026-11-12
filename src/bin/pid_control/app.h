@@ -116,6 +116,7 @@ class BotPidControl : public goby::zeromq::MultiThreadApplication<config::BotPid
     void handle_powered_ascent(const jaiabot::protobuf::DesiredSetpoints& command);
 
     void handle_engineering_command(const jaiabot::protobuf::PIDControl& pid_control);
+    template <typename Response> void handle_motor_response(const Response& response);
     void publish_engineering_status();
     void publish_low_control();
 

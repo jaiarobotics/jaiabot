@@ -277,26 +277,13 @@ jaiabot::apps::MissionManager::MissionManager()
             }
         });
 
-    auto handle_motor_response = [this](const auto& response, const char* source_name)
-    {
-        glog.is_debug2() && glog << "Received " << source_name << " Response "
-                                 << response.ShortDebugString() << std::endl;
-
-        if (response.has_motor())
-        {
-            statechart::EvMotorStopped ev;
-            ev.is_motor_stopped = response.motor() == 1500;
-            machine_->process_event(ev);
-        }
-    };
-
     // subscribe to both the power board and Arduino drivers; only one runs per bot
     interprocess().subscribe<jaiabot::groups::power_board_pb_data_in>(
-        [handle_motor_response](const jaiabot::protobuf::PowerBoardResponse& power_board_response)
+        [this](const jaiabot::protobuf::PowerBoardResponse& power_board_response)
         { handle_motor_response(power_board_response, "Power Board"); });
 
     interprocess().subscribe<jaiabot::groups::arduino_to_pi>(
-        [handle_motor_response](const jaiabot::protobuf::ArduinoResponse& arduino_response)
+        [this](const jaiabot::protobuf::ArduinoResponse& arduino_response)
         { handle_motor_response(arduino_response, "Arduino"); });
 
     interprocess().subscribe<jaiabot::groups::imu>(
@@ -1285,4 +1272,19 @@ bool jaiabot::apps::MissionManager::health_considered_ok(
         return true;
     }
     return false;
+}
+
+template <typename Response>
+void jaiabot::apps::MissionManager::handle_motor_response(const Response& response,
+                                                          const char* source_name)
+{
+    glog.is_debug2() && glog << "Received " << source_name << " Response "
+                             << response.ShortDebugString() << std::endl;
+
+    if (response.has_motor())
+    {
+        statechart::EvMotorStopped ev;
+        ev.is_motor_stopped = response.motor() == 1500;
+        machine_->process_event(ev);
+    }
 }

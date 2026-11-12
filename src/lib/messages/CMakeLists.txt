@@ -114,4 +114,5 @@ if(NOT CMAKE_CROSSCOMPILING)
   check_dccl_md5_hash("jaiabot.protobuf.Command" "0xce33195a3c0de5b2")
   check_dccl_md5_hash("jaiabot.protobuf.Engineering" "0x353435896a1ea1a0")
   check_dccl_md5_hash("jaiabot.protobuf.Hub2HubData" "0xb4af4f9b750d8731")
-endif()
+
+  endif()
