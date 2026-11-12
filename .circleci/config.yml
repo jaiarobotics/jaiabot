@@ -248,6 +248,7 @@ filter-template-debian-builds: &filter-template-debian-builds
     branches:
       only:
         - "3.y"
+        - "claude/hopeful-volta-gvizyh"
 
 # which branches to run the normal source build
 filter-template-normal-builds: &filter-template-normal-builds
