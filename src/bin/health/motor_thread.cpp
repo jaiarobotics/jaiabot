@@ -78,9 +78,6 @@ jaiabot::apps::MotorStatusThread::MotorStatusThread(const jaiabot::config::Motor
             glog.is_debug2() && glog << "Publishing Motor message: " << motor.ShortDebugString()
                                      << std::endl;
 
-            if (use_power_board_rpm_)
-                return;
-
             rpm_value_ = motor.rpm();
             last_motor_rpm_report_time_ = goby::time::SteadyClock::now();
         });
@@ -89,10 +86,8 @@ jaiabot::apps::MotorStatusThread::MotorStatusThread(const jaiabot::config::Motor
     interprocess().subscribe<jaiabot::groups::power_board_pb_data_in>(
         [this](const jaiabot::protobuf::PowerBoardResponse& power_board_response)
         {
-            // prefer the power board's tach RPM over the Pi GPIO tach
             if (power_board_response.has_motor_rpm())
             {
-                use_power_board_rpm_ = true;
                 rpm_value_ = power_board_response.motor_rpm();
                 last_motor_rpm_report_time_ = goby::time::SteadyClock::now();
             }

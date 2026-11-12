@@ -656,7 +656,8 @@ else:
     ]
     jaiabot_apps.extend(jaiabot_apps_imu)
 
-if jaia_motor_harness_type.value == 'RPM_AND_THERMISTOR':
+# the power board reads the tach itself, so the Pi GPIO tach is only used with an Arduino
+if jaia_motor_harness_type.value == 'RPM_AND_THERMISTOR' and jaia_arduino_type.value != 'none':
     jaiabot_apps_motor_harness_type = [
         {'exe': 'rpm.py',
         'description': 'JaiaBot Motor Python Driver',
