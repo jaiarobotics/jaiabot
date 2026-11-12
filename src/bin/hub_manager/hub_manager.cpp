@@ -45,6 +45,7 @@
 
 #include "config.pb.h"
 #include "jaiabot/comms/comms.h"
+#include "jaiabot/comms/mission_plan_fragments.h"
 #include "jaiabot/groups.h"
 #include "jaiabot/health/health.h"
 #include "jaiabot/hub/active_mission_plans.h"
@@ -244,6 +245,9 @@ class HubManager : public ApplicationBase
     static constexpr goby::time::SteadyClock::duration hub2hub_active_missions_min_interval_{
         std::chrono::seconds(30)};
     std::optional<goby::time::SteadyClock::time_point> last_hub2hub_active_missions_time_;
+
+    jaiabot::comms::MissionPlanAssembler remote_mission_plan_assembler_;
+    jaiabot::comms::MissionPlanAssembler hub2hub_active_mission_assembler_;
 
     std::set<jaiabot::protobuf::Warning> hub_warnings_;
     std::set<jaiabot::protobuf::Error> hub_errors_;
@@ -787,11 +791,19 @@ void jaiabot::apps::HubManager::handle_hub2hub_active_mission(
 
     auto command = active_mission.command();
     if (active_mission.has_mission_name())
-    {
         command.mutable_plan()->set_mission_name(active_mission.mission_name());
-        set_mission_name_for_bot_command_time(command.bot_id(), command.time(),
-                                              active_mission.mission_name());
+
+    if (command.type() == jaiabot::protobuf::Command::MISSION_PLAN_FRAGMENT)
+    {
+        auto mission_plan = hub2hub_active_mission_assembler_.add(command);
+        if (!mission_plan)
+            return;
+        command = *mission_plan;
     }
+
+    if (command.plan().has_mission_name())
+        set_mission_name_for_bot_command_time(command.bot_id(), command.time(),
+                                              command.plan().mission_name());
 
     update_active_mission_plans(command);
 }
@@ -832,6 +844,13 @@ void jaiabot::apps::HubManager::handle_hub2hub_data(
             auto remote_command = hub2hub_data.command_for_bot();
             if (hub2hub_data.has_mission_name() && remote_command.has_plan())
                 remote_command.mutable_plan()->set_mission_name(hub2hub_data.mission_name());
+            if (remote_command.type() == jaiabot::protobuf::Command::MISSION_PLAN_FRAGMENT)
+            {
+                auto mission_plan = remote_mission_plan_assembler_.add(remote_command);
+                if (!mission_plan)
+                    break;
+                remote_command = *mission_plan;
+            }
 
             handle_command(remote_command, true);
 
@@ -1330,15 +1349,6 @@ void jaiabot::apps::HubManager::handle_command(const jaiabot::protobuf::Command&
                              << "Received Full Command: " << input_command.ShortDebugString()
                              << std::endl;
 
-    if (!from_other_hub)
-    {
-        jaiabot::protobuf::Hub2HubData hub2hub_data;
-        *hub2hub_data.mutable_command_for_bot() = input_command;
-        if (input_command.plan().has_mission_name())
-            hub2hub_data.set_mission_name(input_command.plan().mission_name());
-        publish_hub2hub_data(&hub2hub_data);
-    }
-
     if (is_virtualhub_)
         update_vfleet_shutdown_time();
 
@@ -1357,8 +1367,9 @@ void jaiabot::apps::HubManager::handle_command(const jaiabot::protobuf::Command&
     const double div = std::pow(10, -command_time_precision);
     const double t1 = last_command_timestamp_.value(),
                  t2 = command.time_with_units<goby::time::MicroTime>().value();
-    if (static_cast<std::uint64_t>(std::round(t1 / div)) >=
-        static_cast<std::uint64_t>(std::round(t2 / div)))
+    // a relayed command keeps the originating hub's time so the bot drops whichever copy arrives second
+    if (!from_other_hub && static_cast<std::uint64_t>(std::round(t1 / div)) >=
+                               static_cast<std::uint64_t>(std::round(t2 / div)))
     {
         std::uint64_t t3 = t1 + div;
         glog.is_debug1() && glog << group("main") << "Command has the same or newer timestamp ("
@@ -1368,7 +1379,8 @@ void jaiabot::apps::HubManager::handle_command(const jaiabot::protobuf::Command&
                                  << std::endl;
         command.set_time_with_units(t3 * boost::units::si::micro * boost::units::si::seconds);
     }
-    last_command_timestamp_ = command.time_with_units<goby::time::MicroTime>();
+    last_command_timestamp_ =
+        std::max(last_command_timestamp_, command.time_with_units<goby::time::MicroTime>());
 
     update_active_mission_plans(command);
 
@@ -1378,134 +1390,33 @@ void jaiabot::apps::HubManager::handle_command(const jaiabot::protobuf::Command&
                                               command.plan().mission_name());
     }
 
-    std::vector<Command> command_fragments;
+    const std::vector<Command> command_fragments = jaiabot::comms::fragment_mission_plan(command);
 
-    //Get the max repeat size from dccl field
-    int goal_max_size = protobuf::MissionPlan::descriptor()
-                            ->FindFieldByName("goal")
-                            ->options()
-                            .GetExtension(dccl::field)
-                            .max_repeat();
-    int fragment_index = 0;
-    int goal_max_index = 0;
-    int goal_index = 0;
-
-    // Check message type if it is Mission Plan then check the goal size
-    // if the goal size is less than the max -> handle as usual
-    // Otherwise create command fragments
     std::set<std::uint32_t> unacked_fragments;
-    if (command.type() == Command::MISSION_PLAN && command.plan().goal_size() > goal_max_size)
+    for (const auto& command_fragment : command_fragments)
     {
-        double command_fragments_expected =
-            std::ceil((double)command.plan().goal_size() / (double)goal_max_size);
+        glog.is_debug2() && glog << group("main") << "fragment: " << command_fragment.DebugString()
+                                 << std::endl;
+        unacked_fragments.insert(command_fragment.plan().fragment_index());
+    }
 
-        glog.is_debug1() && glog << group("main") << "Expected: " << command_fragments_expected
-                                 << ", Size: " << command.plan().goal_size()
-                                 << ", Max Size: " << goal_max_size << std::endl;
-
-        for (fragment_index = 0; fragment_index < command_fragments_expected; fragment_index++)
+    if (!from_other_hub)
+    {
+        auto relay_to_other_hubs = [this](const Command& relayed_command)
         {
-            glog.is_debug1() && glog << group("main") << "Fragment Index: " << fragment_index
-                                     << ", Fragment Expected: " << command_fragments_expected
-                                     << std::endl;
-            Command command_fragment;
-            command_fragment.set_bot_id(command.bot_id());
-            command_fragment.set_time(command.time());
-            command_fragment.set_type(Command::MISSION_PLAN_FRAGMENT);
-            auto mutable_plan = command_fragment.mutable_plan();
+            jaiabot::protobuf::Hub2HubData hub2hub_data;
+            *hub2hub_data.mutable_command_for_bot() = relayed_command;
+            if (relayed_command.plan().has_mission_name())
+                hub2hub_data.set_mission_name(relayed_command.plan().mission_name());
+            publish_hub2hub_data(&hub2hub_data);
+        };
 
-            // The initial fragment is going to have more data
-            if (fragment_index == 0)
-            {
-                if (command.plan().has_start())
-                {
-                    mutable_plan->set_start(command.plan().start());
-                }
-                if (command.plan().has_movement())
-                {
-                    mutable_plan->set_movement(command.plan().movement());
-                }
-                if (command.plan().has_recovery())
-                {
-                    *mutable_plan->mutable_recovery() = command.plan().recovery();
-                }
-                if (command.plan().has_speeds())
-                {
-                    *mutable_plan->mutable_speeds() = command.plan().speeds();
-                }
-                if (command.plan().has_repeats())
-                {
-                    mutable_plan->set_repeats(command.plan().repeats());
-                }
-                if (command.plan().has_bottom_depth_safety_params())
-                {
-                    *mutable_plan->mutable_bottom_depth_safety_params() =
-                        command.plan().bottom_depth_safety_params();
-                }
-                if (command.plan().has_mission_name())
-                {
-                    mutable_plan->set_mission_name(command.plan().mission_name());
-                }
-                if (command.plan().segments_size() > 0)
-                {
-                    for (const auto& segment : command.plan().segments())
-                    {
-                        *mutable_plan->add_segments() = segment;
-                    }
-                }
-            }
-
-            mutable_plan->set_fragment_index(fragment_index);
-            unacked_fragments.insert(fragment_index);
-
-            mutable_plan->set_expected_fragments(command_fragments_expected);
-
-            goal_max_index = goal_max_index + goal_max_size;
-
-            glog.is_debug1() && glog << group("main") << "Goal Index: " << goal_max_index
-                                     << ", max size: " << goal_max_size
-                                     << ", Total goal size: " << command.plan().goal_size()
-                                     << ", Goal index: " << goal_index << std::endl;
-
-            // Loop through goals and add to fragment
-            for (; goal_index < command.plan().goal_size(); goal_index++)
-            {
-                if (goal_index < goal_max_index)
-                {
-                    glog.is_debug1() && glog << group("main") << "Goal max size: " << goal_max_size
-                                             << ", goal index: " << goal_index
-                                             << ", Total goal size: " << command.plan().goal_size()
-                                             << std::endl;
-
-                    protobuf::MissionPlan::Goal* goal = mutable_plan->add_goal();
-                    if (command.plan().goal(goal_index).has_name())
-                    {
-                        goal->set_name(command.plan().goal(goal_index).name());
-                    }
-                    if (command.plan().goal(goal_index).has_task())
-                    {
-                        *goal->mutable_task() = command.plan().goal(goal_index).task();
-                    }
-                    *goal->mutable_location() = command.plan().goal(goal_index).location();
-                }
-                else
-                {
-                    // Break loop if we reach our max goal index
-                    break;
-                }
-            }
-            // Set the next starting index for the next fragment
-            goal_index = goal_max_index;
-
-            // Save fragment in vector
-            command_fragments.push_back(command_fragment);
-        }
-
-        for (auto frag : command_fragments)
-        {
-            glog.is_debug2() && glog << group("main") << "fragment: " << frag.DebugString()
-                                     << std::endl;
-        }
+        // DCCL would silently drop the goals beyond one Command's limit, so relay the fragments
+        if (command_fragments.empty())
+            relay_to_other_hubs(command);
+        else
+            for (const auto& command_fragment : command_fragments)
+                relay_to_other_hubs(command_fragment);
     }
 
     // store this command and (if relevant, set of fragments)
@@ -1751,20 +1662,8 @@ void jaiabot::apps::HubManager::publish_active_missions_to_other_hubs()
         return;
     last_hub2hub_active_missions_time_ = now;
 
-    for (const auto& command : active_mission_plans_.to_message().command())
+    auto publish_to_other_hubs = [this](const jaiabot::protobuf::Command& command)
     {
-        if (command.plan().goal_size() > jaiabot::protobuf::MissionPlan::descriptor()
-                                             ->FindFieldByName("goal")
-                                             ->options()
-                                             .GetExtension(dccl::field)
-                                             .max_repeat())
-        {
-            glog.is_debug1() && glog << group("hub2hub") << "Not sharing bot " << command.bot_id()
-                                     << "'s active mission: " << command.plan().goal_size()
-                                     << " goals don't fit in one Command" << std::endl;
-            continue;
-        }
-
         jaiabot::protobuf::Hub2HubActiveMission active_mission;
         active_mission.set_hub_id(cfg().hub_id());
         *active_mission.mutable_command() = command;
@@ -1774,6 +1673,16 @@ void jaiabot::apps::HubManager::publish_active_missions_to_other_hubs()
         intervehicle().publish<jaiabot::groups::hub2hub_active_mission>(
             active_mission,
             intervehicle::default_publisher<jaiabot::protobuf::Hub2HubActiveMission>);
+    };
+
+    for (const auto& command : active_mission_plans_.to_message().command())
+    {
+        const auto command_fragments = jaiabot::comms::fragment_mission_plan(command);
+        if (command_fragments.empty())
+            publish_to_other_hubs(command);
+        else
+            for (const auto& command_fragment : command_fragments)
+                publish_to_other_hubs(command_fragment);
     }
 }
 
