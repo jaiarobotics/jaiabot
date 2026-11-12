@@ -258,6 +258,52 @@ class SeaTrialAgainstFakeHub(unittest.TestCase):
         names = [f['name'] for f in summary['tiers'][checks.CONTENT]['failures']]
         self.assertIn('bot 1 dives reached the commanded depth', names)
 
+    def test_a_bots_packets_count_on_whichever_hub_holds_them(self):
+        # In CI a bot's offload can land on hub 2 alone, so hub 1, the --hub-url one,
+        # never holds that bot's packets. The content tier must still find them on hub 2.
+        class MissesBot2(fake_hub.FakeHub):
+            def handle(self, path, payload, client_id=None):
+                if path == '/task_packets/b2':
+                    return {'task_packets': {'packets': []}}
+                return super().handle(path, payload, client_id)
+
+        hub = MissesBot2(bots=2, dives_to_run=10)
+        peers = [fake_hub.FakePeerHub(hub, 2), fake_hub.FakePeerHub(hub, 30)]
+        code, summary, _ = self.run_joined_trial(hub, peers, relay_only=[30])
+        self.assertEqual(summary['tiers'][checks.CONTENT]['failed'], 0, summary['tiers'])
+        self.assertEqual(code, 0)
+
+    def test_packets_a_hub_held_before_the_run_are_not_counted(self):
+        # Packet times can't separate this run from the last (warped clock, or a time of
+        # day only), so a bot that dived 3 times now and 10 times before still comes up short.
+        hub = fake_hub.FakeHub(bots=1, dives_to_run=3)
+        hub.bots[1].packets = [
+            {'bot_id': 1, 'type': 'DIVE', 'start_time': 1000 * i * 1_000_000}
+            for i in range(1, 11)]
+        code, summary, _ = self.run_trial(hub)
+        self.assertEqual(code, 1)
+        detail = summary['tiers'][checks.CONTENT]['failures'][0]['detail']
+        self.assertIn('3 packets', detail)
+
+    def test_copies_of_a_packet_count_once(self):
+        # The same dive as offloaded (warped date, sub-second time), as received over the
+        # radio (time of day only, so the hub's own date, rounded to the second), and as
+        # held by a second hub.
+        day = sea_trial.DAY_US
+        offloaded = {'bot_id': 1, 'start_time': 100_000 * day + 3_600_400_000}
+        radio = {'bot_id': 1, 'start_time': 20_000 * day + 3_601_000_000}
+        other_bot = {'bot_id': 2, 'start_time': offloaded['start_time']}
+        next_dive = {'bot_id': 1, 'start_time': offloaded['start_time'] + 180_000_000}
+        kept = sea_trial.distinct_packets(
+            [offloaded, radio, dict(offloaded), other_bot, next_dive])
+        self.assertEqual(kept, [offloaded, other_bot, next_dive])
+
+    def test_copies_either_side_of_midnight_count_once(self):
+        day = sea_trial.DAY_US
+        before = {'bot_id': 1, 'start_time': 5 * day - 500_000}
+        after = {'bot_id': 1, 'start_time': 9 * day + 500_000}
+        self.assertEqual(sea_trial.distinct_packets([before, after]), [before])
+
     def test_a_version_mismatch_fails_the_liveness_tier(self):
         code, summary, _ = self.run_trial(fake_hub.FakeHub(bots=1, dives_to_run=10),
                                           extra=['--expect-version', 'not-this-version'])
