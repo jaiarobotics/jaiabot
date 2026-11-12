@@ -134,7 +134,10 @@ class HubManager : public ApplicationBase
     void load_active_mission_plans();
     void update_active_mission_plans(const jaiabot::protobuf::Command& command);
     void publish_active_mission_plans();
-    void publish_active_missions_to_other_hubs();
+    void publish_active_mission_summary();
+    void publish_active_mission_to_other_hubs(const jaiabot::protobuf::Command& command);
+    void handle_hub2hub_active_mission_summary(
+        const jaiabot::protobuf::Hub2HubActiveMissionSummary& summary);
     void
     handle_hub2hub_active_mission(const jaiabot::protobuf::Hub2HubActiveMission& active_mission);
     void handle_hub2hub_data(const jaiabot::protobuf::Hub2HubData& hub2hub_data);
@@ -241,10 +244,10 @@ class HubManager : public ApplicationBase
     static constexpr goby::time::SteadyClock::duration active_mission_plans_republish_interval_{
         std::chrono::seconds(10)};
     goby::time::SteadyClock::time_point next_active_mission_plans_publish_time_{};
-    // one catch-up for all hubs, however many resubscribe within this interval
-    static constexpr goby::time::SteadyClock::duration hub2hub_active_missions_min_interval_{
+    // one summary for all hubs, however many resubscribe within this interval
+    static constexpr goby::time::SteadyClock::duration active_mission_summary_min_interval_{
         std::chrono::seconds(30)};
-    std::optional<goby::time::SteadyClock::time_point> last_hub2hub_active_missions_time_;
+    std::optional<goby::time::SteadyClock::time_point> last_active_mission_summary_time_;
 
     jaiabot::comms::MissionPlanAssembler remote_mission_plan_assembler_;
     jaiabot::comms::MissionPlanAssembler hub2hub_active_mission_assembler_;
@@ -502,12 +505,13 @@ void jaiabot::apps::HubManager::handle_subscription_report(
                 interprocess().publish<jaiabot::groups::bot_status>(status);
             }
         }
-        else if (sub_report.changed().dccl_id() == jaiabot::protobuf::Hub2HubActiveMission::DCCL_ID)
+        else if (sub_report.changed().dccl_id() ==
+                 jaiabot::protobuf::Hub2HubActiveMissionSummary::DCCL_ID)
         {
             if (sub_report.changed().group() == jaiabot::INTERVEHICLE_API_VERSION &&
                 sub_report.changed().action() ==
                     goby::middleware::intervehicle::protobuf::Subscription::SUBSCRIBE)
-                publish_active_missions_to_other_hubs();
+                publish_active_mission_summary();
         }
         else if (sub_report.changed().dccl_id() == hub2hub_dccl_id)
         {
@@ -778,6 +782,34 @@ void jaiabot::apps::HubManager::hub2hub_subscribe(int other_hub_id)
                     handle_hub2hub_active_mission(active_mission);
             },
             active_mission_subscriber);
+
+    goby::middleware::Subscriber<jaiabot::protobuf::Hub2HubActiveMissionSummary>
+        active_mission_summary_subscriber(active_mission_subscriber_cfg,
+                                          intervehicle::default_subscriber_group_func<
+                                              jaiabot::protobuf::Hub2HubActiveMissionSummary>);
+
+    intervehicle()
+        .subscribe<jaiabot::groups::hub2hub_active_mission_summary,
+                   jaiabot::protobuf::Hub2HubActiveMissionSummary>(
+            [this](const jaiabot::protobuf::Hub2HubActiveMissionSummary& summary)
+            {
+                if (!hub2hub_api_mismatch())
+                    handle_hub2hub_active_mission_summary(summary);
+            },
+            active_mission_summary_subscriber);
+}
+
+void jaiabot::apps::HubManager::handle_hub2hub_active_mission_summary(
+    const jaiabot::protobuf::Hub2HubActiveMissionSummary& summary)
+{
+    if (summary.hub_id() == cfg().hub_id())
+        return;
+
+    glog.is_debug2() && glog << group("hub2hub") << "Received Hub2HubActiveMissionSummary: "
+                             << summary.ShortDebugString() << std::endl;
+
+    for (const auto& command : active_mission_plans_.newer_than(summary))
+        publish_active_mission_to_other_hubs(command);
 }
 
 void jaiabot::apps::HubManager::handle_hub2hub_active_mission(
@@ -1654,16 +1686,24 @@ void jaiabot::apps::HubManager::update_active_mission_plans(
     }
 }
 
-void jaiabot::apps::HubManager::publish_active_missions_to_other_hubs()
+void jaiabot::apps::HubManager::publish_active_mission_summary()
 {
     const auto now = goby::time::SteadyClock::now();
     if (hub2hub_api_mismatch() ||
-        (last_hub2hub_active_missions_time_ &&
-         now - *last_hub2hub_active_missions_time_ < hub2hub_active_missions_min_interval_))
+        (last_active_mission_summary_time_ &&
+         now - *last_active_mission_summary_time_ < active_mission_summary_min_interval_))
         return;
-    last_hub2hub_active_missions_time_ = now;
+    last_active_mission_summary_time_ = now;
 
-    auto publish_to_other_hubs = [this](const jaiabot::protobuf::Command& command)
+    intervehicle().publish<jaiabot::groups::hub2hub_active_mission_summary>(
+        active_mission_plans_.summary(cfg().hub_id()),
+        intervehicle::default_publisher<jaiabot::protobuf::Hub2HubActiveMissionSummary>);
+}
+
+void jaiabot::apps::HubManager::publish_active_mission_to_other_hubs(
+    const jaiabot::protobuf::Command& command)
+{
+    auto publish = [this](const jaiabot::protobuf::Command& command)
     {
         jaiabot::protobuf::Hub2HubActiveMission active_mission;
         active_mission.set_hub_id(cfg().hub_id());
@@ -1677,15 +1717,11 @@ void jaiabot::apps::HubManager::publish_active_missions_to_other_hubs()
             intervehicle::default_publisher<jaiabot::protobuf::Hub2HubActiveMission>);
     };
 
-    for (const auto& command : active_mission_plans_.to_message().command())
-    {
-        const auto command_fragments = jaiabot::comms::fragment_mission_plan(command);
-        if (command_fragments.empty())
-            publish_to_other_hubs(command);
-        else
-            for (const auto& command_fragment : command_fragments)
-                publish_to_other_hubs(command_fragment);
-    }
+    const auto command_fragments = jaiabot::comms::fragment_mission_plan(command);
+    if (command_fragments.empty())
+        publish(command);
+    else
+        for (const auto& command_fragment : command_fragments) publish(command_fragment);
 }
 
 void jaiabot::apps::HubManager::publish_active_mission_plans()

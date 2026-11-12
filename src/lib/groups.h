@@ -120,6 +120,9 @@ constexpr goby::middleware::Group hub2hub_data{"jaiabot::hub2hub_data",
 constexpr goby::middleware::Group hub2hub_active_mission{"jaiabot::hub2hub_active_mission",
                                                          jaiabot::INTERVEHICLE_API_VERSION};
 
+constexpr goby::middleware::Group hub2hub_active_mission_summary{
+    "jaiabot::hub2hub_active_mission_summary", jaiabot::INTERVEHICLE_API_VERSION};
+
 // DCCL (interprocess)
 constexpr goby::middleware::Group hub_command_full{"jaiabot::hub_command_full"};
 constexpr goby::middleware::Group hub_command_result{

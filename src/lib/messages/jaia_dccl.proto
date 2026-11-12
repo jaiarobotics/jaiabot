@@ -809,6 +809,33 @@ message Hub2HubActiveMission
     }];
 }
 
+// The command time of each bot's active mission on one hub, so other hubs
+// send it only the missions it lacks or holds an older version of
+message Hub2HubActiveMissionSummary
+{
+    option (dccl.msg) = {
+        id: 0x5005
+        max_bytes: 1000
+        codec_version: 5
+        unit_system: "si"
+    };
+
+    message ActiveMission
+    {
+        required uint32 bot_id = 1 [(dccl.field) = { min: 0 max: 255 }];
+        required uint64 command_time = 2 [(dccl.field) = {
+            codec: "dccl.time"
+            units { prefix: "micro" derived_dimensions: "time" }
+            precision: -6
+            num_days: 3650
+        }];
+    }
+
+    required uint32 hub_id = 1 [(dccl.field) = { min: 0 max: 30 }];
+    // number_of_bots_max in config/gen/common/comms.py
+    repeated ActiveMission active_mission = 2 [(dccl.field).max_repeat = 151];
+}
+
 message CommandCommsResult
 {
     enum CommsResult

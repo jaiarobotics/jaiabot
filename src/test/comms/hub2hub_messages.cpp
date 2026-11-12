@@ -43,6 +43,7 @@ struct StrictCodec
         codec.set_strict(true);
         codec.load<Hub2HubData>();
         codec.load<Hub2HubActiveMission>();
+        codec.load<Hub2HubActiveMissionSummary>();
     }
 
     template <typename Message> Message round_trip(const Message& message)
@@ -101,6 +102,29 @@ BOOST_AUTO_TEST_CASE(active_mission_keeps_time_of_mission_days_old)
     const auto received = round_trip(active_mission);
     BOOST_CHECK_NE(received.command().time(), days_old_time);
     BOOST_CHECK_EQUAL(received.command_time(), days_old_time);
+}
+
+BOOST_AUTO_TEST_CASE(full_summary_keeps_times_of_missions_days_old)
+{
+    const std::uint64_t days_old_time = command_time - 5ull * 24 * 60 * 60 * 1000000;
+    const int max_active_missions = Hub2HubActiveMissionSummary::descriptor()
+                                        ->FindFieldByName("active_mission")
+                                        ->options()
+                                        .GetExtension(dccl::field)
+                                        .max_repeat();
+    Hub2HubActiveMissionSummary summary;
+    summary.set_hub_id(2);
+    for (int bot_id = 0; bot_id < max_active_missions; ++bot_id)
+    {
+        auto& active_mission = *summary.add_active_mission();
+        active_mission.set_bot_id(bot_id);
+        active_mission.set_command_time(days_old_time);
+    }
+
+    const auto received = round_trip(summary);
+    BOOST_REQUIRE_EQUAL(received.active_mission_size(), max_active_missions);
+    for (const auto& active_mission : received.active_mission())
+        BOOST_CHECK_EQUAL(active_mission.command_time(), days_old_time);
 }
 
 BOOST_AUTO_TEST_CASE(mission_name_longer_than_limit_is_rejected)

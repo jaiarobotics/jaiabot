@@ -4,6 +4,7 @@
 #include <filesystem>
 #include <fstream>
 #include <random>
+#include <set>
 
 #include "jaiabot/hub/active_mission_plans.h"
 
@@ -142,6 +143,68 @@ BOOST_AUTO_TEST_CASE(unreadable_file_throws_and_loads_no_plans)
     plans.update(make_mission_plan(1, command_time, "replaced by load"));
     BOOST_CHECK_THROW(plans.load(path), std::runtime_error);
     BOOST_CHECK(plans.to_message().command().empty());
+}
+
+BOOST_AUTO_TEST_SUITE_END()
+
+BOOST_AUTO_TEST_SUITE(summary_tests)
+
+std::set<std::uint32_t> bot_ids(const std::vector<Command>& commands)
+{
+    std::set<std::uint32_t> ids;
+    for (const auto& command : commands) ids.insert(command.bot_id());
+    return ids;
+}
+
+BOOST_AUTO_TEST_CASE(summary_lists_each_bots_command_time)
+{
+    ActiveMissionPlans plans;
+    plans.update(make_mission_plan(1, command_time, "a"));
+    plans.update(make_mission_plan(2, command_time + one_second, "b"));
+
+    const auto summary = plans.summary(3);
+    BOOST_CHECK_EQUAL(summary.hub_id(), 3);
+    BOOST_REQUIRE_EQUAL(summary.active_mission_size(), 2);
+    BOOST_CHECK_EQUAL(summary.active_mission(0).bot_id(), 1);
+    BOOST_CHECK_EQUAL(summary.active_mission(0).command_time(), command_time);
+    BOOST_CHECK_EQUAL(summary.active_mission(1).bot_id(), 2);
+    BOOST_CHECK_EQUAL(summary.active_mission(1).command_time(), command_time + one_second);
+}
+
+BOOST_AUTO_TEST_CASE(empty_summary_gets_every_plan)
+{
+    ActiveMissionPlans plans;
+    plans.update(make_mission_plan(1, command_time, "a"));
+    plans.update(make_mission_plan(2, command_time, "b"));
+
+    BOOST_CHECK((bot_ids(plans.newer_than(ActiveMissionPlans().summary(3))) ==
+                 std::set<std::uint32_t>{1, 2}));
+}
+
+BOOST_AUTO_TEST_CASE(matching_summary_gets_nothing)
+{
+    ActiveMissionPlans plans;
+    plans.update(make_mission_plan(1, command_time, "a"));
+
+    ActiveMissionPlans other_hub;
+    other_hub.update(make_mission_plan(1, command_time + one_second / 4, "a"));
+
+    BOOST_CHECK(plans.newer_than(other_hub.summary(3)).empty());
+}
+
+BOOST_AUTO_TEST_CASE(summary_gets_only_plans_it_lacks_or_holds_older)
+{
+    ActiveMissionPlans plans;
+    plans.update(make_mission_plan(1, command_time + one_second, "newer here"));
+    plans.update(make_mission_plan(2, command_time, "older here"));
+    plans.update(make_mission_plan(3, command_time, "only here"));
+
+    ActiveMissionPlans other_hub;
+    other_hub.update(make_mission_plan(1, command_time, "older there"));
+    other_hub.update(make_mission_plan(2, command_time + one_second, "newer there"));
+    other_hub.update(make_mission_plan(4, command_time, "only there"));
+
+    BOOST_CHECK((bot_ids(plans.newer_than(other_hub.summary(3))) == std::set<std::uint32_t>{1, 3}));
 }
 
 BOOST_AUTO_TEST_SUITE_END()

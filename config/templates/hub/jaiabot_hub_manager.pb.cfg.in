@@ -63,9 +63,9 @@ hub2hub_buffer
     value_base: 1
 }
 
-# Catch-up copies of each bot's active mission. Half the priority of
-# hub2hub_buffer (value_base / ttl), and a copy that can't go out within a
-# minute expires before the next catch-up replaces it.
+# Active mission summaries, and the missions another hub's summary shows it
+# lacks. Half the priority of hub2hub_buffer (value_base / ttl), and a copy
+# that can't go out within a minute expires before the next summary asks again.
 hub2hub_active_mission_buffer
 {
     ack_required: true
