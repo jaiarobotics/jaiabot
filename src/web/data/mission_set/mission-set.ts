@@ -1,6 +1,7 @@
 import cloneDeep from "lodash/cloneDeep";
 import Mission from "./mission";
 import { DEFAULT_MISSION_SET_NAME, DEFAULT_SPEED, UNASSIGNED_ID } from "../../utils/constants";
+import { fitMissionSetName } from "../../utils/input";
 import { Speeds } from "@proto/jaiabot/messages/mission";
 
 // This constant will be used to track versions of mission sets
@@ -50,7 +51,7 @@ export class MissionSet {
     }
 
     setName(name: string) {
-        this.name = name;
+        this.name = fitMissionSetName(name);
     }
 
     getName() {
