@@ -40,3 +40,11 @@ test("Each status update replaces the bot's active mission plan", () => {
     bots.setBot({ bot_status: { bot_id: 7 } });
     expect(bots.getBot(7).getActiveMissionPlan()).toBeUndefined();
 });
+
+test("A repeat index of 0 is the bot's first pass, not a missing one", () => {
+    bots.setBot({ bot_status: { bot_id: 8, repeat_index: 0 } });
+    expect(bots.getBot(8).getMissionStatus().repeatIndex).toBe(0);
+
+    bots.setBot({ bot_status: { bot_id: 8 } });
+    expect(bots.getBot(8).getMissionStatus().repeatIndex).toBeUndefined();
+});

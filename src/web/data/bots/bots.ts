@@ -157,7 +157,7 @@ export class Bots {
             missionStatus.distanceToTargetWaypoint = botStatus.distance_to_active_goal;
         }
 
-        if (botStatus.repeat_index) {
+        if (botStatus.repeat_index !== undefined) {
             missionStatus.repeatIndex = botStatus.repeat_index;
         }
 

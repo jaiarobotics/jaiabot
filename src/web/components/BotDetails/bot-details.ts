@@ -75,18 +75,15 @@ export function getBotOffloadPercent(botID: number, hubs: Iterable<Hub>) {
 /**
  * Formats repeat progress text
  *
- * @param {number} repeats Total number of times a mission will play itself back
+ * @param {number | undefined} repeats Total number of times the mission plays itself back
  * @param {MissionStatus} missionStatus Contains the in progress data of the mission from the Bot
- * @returns {string} "N/A" if repeats not set or "x of y" if mission includes repeats
+ * @returns {string} "x of y", or "N/A" when the bot reports no repeat or the repeats are unknown
  */
-export function getRepeatProgress(repeats: number, missionStatus: MissionStatus) {
-    let repeatProgress = "N/A";
-
-    if (missionStatus?.repeatIndex) {
-        repeatProgress = `${missionStatus.repeatIndex + 1} of ${repeats}`;
+export function getRepeatProgress(repeats: number | undefined, missionStatus: MissionStatus) {
+    if (missionStatus?.repeatIndex === undefined || repeats === undefined) {
+        return "N/A";
     }
-
-    return repeatProgress;
+    return `${missionStatus.repeatIndex + 1} of ${repeats}`;
 }
 
 /**
