@@ -55,8 +55,8 @@ function handleSentMissionPlanCommand(mutableState: JaiaContextType, command: Co
 }
 
 /**
- * Marks the mission as the one the bot is running, so it highlights the bot's target waypoint,
- * and clears that mark from any other mission for the same bot
+ * Marks the mission as the one the bot is running, and clears that mark from any other
+ * mission for the same bot
  *
  * @param {number} botID Bot the mission was sent to
  * @param {number} missionID Mission sent to the bot

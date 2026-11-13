@@ -6,6 +6,7 @@ import { Speeds } from "@proto/jaiabot/messages/mission";
 // This constant will be used to track versions of mission sets
 // exported to files, update whenever the class or supporting
 // classes are updated
+// At the next bump, also drop the unused GhostParameters.repeats from saved missions
 export const MISSION_SET_VERSION = "2.1";
 
 export interface MissionSetSnapshot {

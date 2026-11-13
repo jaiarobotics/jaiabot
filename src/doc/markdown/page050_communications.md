@@ -171,6 +171,9 @@ All Hub2HubData processing takes place in `jaiabot_hub_manager`. When it receive
 
 - **`bot_status`**: Calls `handle_bot_nav()` (with `from_other_hub=true`), which publishes the status on the interprocess `bot_status` group. `jaiabot_web_portal` receives it via its normal `bot_status` subscription and forwards it to JCC.
 - **`task_packet`**: Calls `handle_task_packet()` (with `from_other_hub=true`), which publishes the packet on the interprocess `task_packet` group. `jaiabot_web_portal` receives it via its normal `task_packet` subscription and forwards it to JCC.
+
+*This section written by Claude*
+
 - **`command_for_bot`**: Restores the mission name, and reassembles fragments into the full `MISSION_PLAN`. It then calls `handle_command()` (with `from_other_hub=true`), which relays the command to the bot if it is in range without changing its time, and publishes the command on the interprocess `remote_hub_command` group (with `from_hub_id` set). `jaiabot_web_portal` subscribes to `remote_hub_command` and notifies JCC clients via the `remote_command` field in `PortalToClientMessage`. The `from_other_hub=true` flag prevents the relayed command from being re-forwarded over Hub2HubData, avoiding message loops.
 - **`command_comms_result`**: Publishes the result on the interprocess `hub_command_result` group. `jaiabot_web_portal` receives it via its normal `hub_command_result` subscription and forwards it to JCC.
 - **`hub_status`**: Publishes the status on the interprocess `hub_status` group. `jaiabot_web_portal` receives it via its normal `hub_status` subscription and forwards it to JCC.
