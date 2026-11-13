@@ -62,7 +62,8 @@ class ActiveMissionPlans
     {
         std::map<std::uint32_t, std::uint64_t> summary_times;
         for (const auto& active_mission : summary.active_mission())
-            summary_times[active_mission.bot_id()] = comms::dccl_time2_round(active_mission.command_time());
+            summary_times[active_mission.bot_id()] =
+                comms::dccl_time2_round(active_mission.command_time());
 
         std::vector<protobuf::Command> newer;
         for (const auto& [bot_id, command] : commands_)
