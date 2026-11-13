@@ -236,7 +236,8 @@ class HubManager : public ApplicationBase
     };
     std::set<jaiabot::protobuf::Link>
         active_links_; // which links have we subscribe on at some point?
-    std::map<MissionCommandTime, CommandPending> commands_pending_result_;
+    // keyed by bot too: a relayed command keeps its originating hub's time, so times can repeat
+    std::map<std::pair<BotID, MissionCommandTime>, CommandPending> commands_pending_result_;
 
     jaiabot::hub::ActiveMissionPlans active_mission_plans_;
     std::filesystem::path active_mission_plans_path_;
@@ -1460,7 +1461,7 @@ void jaiabot::apps::HubManager::handle_command(const jaiabot::protobuf::Command&
     std::map<jaiabot::protobuf::Link, std::set<std::uint32_t>> unacked_fragments_by_link;
     for (auto link : active_links_) unacked_fragments_by_link[link] = unacked_fragments;
 
-    commands_pending_result_[command_time_dccl] =
+    commands_pending_result_[{command.bot_id(), command_time_dccl}] =
         CommandPending({command, unacked_fragments_by_link});
     glog.is_debug1() &&
         glog << group("comms")
@@ -1761,7 +1762,7 @@ void jaiabot::apps::HubManager::process_ack_or_expire(
                              << " for command time " << command_time_dccl << " on link "
                              << jaiabot::protobuf::Link_Name(link) << std::endl;
 
-    auto pending_it = commands_pending_result_.find(command_time_dccl);
+    auto pending_it = commands_pending_result_.find({orig_msg.bot_id(), command_time_dccl});
 
     auto publish_result = [this, &pending_it, &link, &result, &command_time_dccl]()
     {
