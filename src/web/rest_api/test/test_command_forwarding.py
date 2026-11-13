@@ -17,7 +17,7 @@ if importlib.util.find_spec('cmocean') is None:
 
 import common.shared_data
 from common.api_exception import APIException
-from v1.api import process_request
+from v1.api import MISSION_NAME_MAX_BYTES, process_request
 import jaiabot.messages.rest_api_pb2 as rest_api
 from jaiabot.messages.rest_api_pb2 import APIRequest
 from jaiabot.messages.jaia_dccl_pb2 import BotStatus, Command, CommandForHub
@@ -207,3 +207,28 @@ class PortalHearingSeveralHubsTest(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class MissionNameTest(unittest.TestCase):
+    def setUp(self):
+        forget_everything()
+        hear_hub()
+
+    def send_mission(self, mission_name):
+        request = APIRequest(target=APIRequest.Nodes(bots=[UNHEARD_BOT_ID]),
+                             command=Command(bot_id=0, time=0, type=Command.MISSION_PLAN))
+        request.command.plan.mission_name = mission_name
+        send(request)
+        return [m.command.plan.mission_name for m in sent_messages()]
+
+    def test_a_name_that_fits_is_sent_unchanged(self):
+        self.assertEqual(self.send_mission('Bay survey'), ['Bay survey'])
+
+    def test_a_long_name_is_cut_to_the_hub2hub_limit(self):
+        self.assertEqual(self.send_mission('n' * (MISSION_NAME_MAX_BYTES + 5)),
+                         ['n' * MISSION_NAME_MAX_BYTES])
+
+    def test_the_cut_never_splits_a_character(self):
+        # é is 2 UTF-8 bytes, so the last one would end one byte past the limit
+        name = 'n' * (MISSION_NAME_MAX_BYTES - 1) + 'é'
+        self.assertEqual(self.send_mission(name), ['n' * (MISSION_NAME_MAX_BYTES - 1)])
