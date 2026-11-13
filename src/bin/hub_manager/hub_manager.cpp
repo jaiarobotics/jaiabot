@@ -125,6 +125,7 @@ class HubManager : public ApplicationBase
     void publish_hub2hub_data(jaiabot::protobuf::Hub2HubData* hub2hub_data);
     void load_active_mission_plans();
     void update_active_mission_plans(const jaiabot::protobuf::Command& command);
+    void raise_last_command_timestamp(const jaiabot::protobuf::Command& command);
     void publish_active_mission_plans();
     void publish_active_mission_summary();
     void publish_active_mission_to_other_hubs(const jaiabot::protobuf::Command& command);
@@ -1408,8 +1409,7 @@ void jaiabot::apps::HubManager::handle_command(const jaiabot::protobuf::Command&
                                  << std::endl;
         command.set_time_with_units(t3 * boost::units::si::micro * boost::units::si::seconds);
     }
-    last_command_timestamp_ =
-        std::max(last_command_timestamp_, command.time_with_units<goby::time::MicroTime>());
+    raise_last_command_timestamp(command);
 
     update_active_mission_plans(command);
 
@@ -1649,6 +1649,7 @@ void jaiabot::apps::HubManager::load_active_mission_plans()
         active_mission_plans_.load(active_mission_plans_path_);
         for (const auto& command : active_mission_plans_.to_message().command())
         {
+            raise_last_command_timestamp(command);
             if (command.plan().has_mission_name())
                 set_mission_name_for_bot_command_time(command.bot_id(), command.time(),
                                                       command.plan().mission_name());
@@ -1662,12 +1663,21 @@ void jaiabot::apps::HubManager::load_active_mission_plans()
     }
 }
 
+void jaiabot::apps::HubManager::raise_last_command_timestamp(
+    const jaiabot::protobuf::Command& command)
+{
+    last_command_timestamp_ =
+        std::max(last_command_timestamp_, command.time_with_units<goby::time::MicroTime>());
+}
+
 void jaiabot::apps::HubManager::update_active_mission_plans(
     const jaiabot::protobuf::Command& command)
 {
     if (!active_mission_plans_.update(command))
         return;
 
+    // a later local command must outrank every stored one, even when another hub's clock runs ahead
+    raise_last_command_timestamp(command);
     publish_active_mission_plans();
 
     try
