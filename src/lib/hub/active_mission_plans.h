@@ -1,7 +1,6 @@
 #ifndef JAIABOT_SRC_LIB_HUB_ACTIVE_MISSION_PLANS_H
 #define JAIABOT_SRC_LIB_HUB_ACTIVE_MISSION_PLANS_H
 
-#include <cmath>
 #include <cstdint>
 #include <filesystem>
 #include <fstream>
@@ -9,8 +8,7 @@
 #include <stdexcept>
 #include <vector>
 
-#include <dccl/option_extensions.pb.h>
-
+#include "jaiabot/comms/dccl_time.h"
 #include "jaiabot/messages/jaia_dccl.pb.h"
 #include "jaiabot/messages/portal.pb.h"
 
@@ -29,8 +27,9 @@ class ActiveMissionPlans
             return false;
 
         auto it = commands_.find(command.bot_id());
+        // relayed copies arrive with their time rounded by DCCL
         if (it != commands_.end() &&
-            rounded_time(command.time()) <= rounded_time(it->second.time()))
+            comms::dccl_time2_round(command.time()) <= comms::dccl_time2_round(it->second.time()))
             return false;
 
         commands_[command.bot_id()] = command;
@@ -63,13 +62,13 @@ class ActiveMissionPlans
     {
         std::map<std::uint32_t, std::uint64_t> summary_times;
         for (const auto& active_mission : summary.active_mission())
-            summary_times[active_mission.bot_id()] = rounded_time(active_mission.command_time());
+            summary_times[active_mission.bot_id()] = comms::dccl_time2_round(active_mission.command_time());
 
         std::vector<protobuf::Command> newer;
         for (const auto& [bot_id, command] : commands_)
         {
             auto it = summary_times.find(bot_id);
-            if (it == summary_times.end() || rounded_time(command.time()) > it->second)
+            if (it == summary_times.end() || comms::dccl_time2_round(command.time()) > it->second)
                 newer.push_back(command);
         }
         return newer;
@@ -107,18 +106,6 @@ class ActiveMissionPlans
     }
 
   private:
-    // relayed commands arrive with their time rounded to the DCCL precision
-    static std::uint64_t rounded_time(std::uint64_t time)
-    {
-        static const auto resolution =
-            static_cast<std::uint64_t>(std::pow(10, -protobuf::Command::descriptor()
-                                                         ->FindFieldByName("time")
-                                                         ->options()
-                                                         .GetExtension(dccl::field)
-                                                         .precision()));
-        return (time + resolution / 2) / resolution;
-    }
-
     std::map<std::uint32_t, protobuf::Command> commands_;
 };
 

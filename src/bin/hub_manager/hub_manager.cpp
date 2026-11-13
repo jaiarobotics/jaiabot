@@ -45,6 +45,7 @@
 
 #include "config.pb.h"
 #include "jaiabot/comms/comms.h"
+#include "jaiabot/comms/dccl_time.h"
 #include "jaiabot/comms/mission_plan_fragments.h"
 #include "jaiabot/groups.h"
 #include "jaiabot/health/health.h"
@@ -74,17 +75,7 @@ constexpr goby::middleware::Group bot_gps_out{"bot_gps_out"};
 using BotID = uint32_t;
 using MissionCommandTime = uint64_t;
 
-/*
- * This function rounds a timestamp to the nearest DCCL time resolution (default 1 second).
- * This is so we can map the incoming mission_command_time, which will have made a round-trip
- * through the dccl.time codec to the mission_command_time stored on the Hub for matching
- * with the mission name.
- */
-std::uint64_t dccl_time2_round(std::uint64_t ts_micros,
-                               std::uint64_t resolution_micros = 1000000ULL)
-{
-    return ((ts_micros + resolution_micros / 2) / resolution_micros) * resolution_micros;
-}
+using jaiabot::comms::dccl_time2_round;
 
 class HubManager : public ApplicationBase
 {
