@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 
-import { JCC_CONTAINER, MAX_MISSION_SET_NAME_LENGTH } from "../../../utils/constants";
+import { JCC_CONTAINER } from "../../../utils/constants";
 import { listSavedMissionSetsFromHub } from "./mission-set-storage";
+import { fitMissionSetName } from "../../../utils/input";
 import SaveMissionSetButton from "./SaveMissionSetButton/SaveMissionSetButton";
 import LoadMissionSetButton from "./LoadMissionSetButton/LoadMissionSetButton";
 import DeleteMissionSetButton from "./DeleteMissionSetButton/DeleteMissionSetButton";
@@ -73,10 +74,9 @@ export function MissionSetStorageDialog(props: DialogProps) {
                         <label>Mission Set Name</label>
                         <input
                             type="text"
-                            maxLength={MAX_MISSION_SET_NAME_LENGTH}
                             value={saveName}
                             onChange={(evt) => {
-                                setSaveName(evt.target.value);
+                                setSaveName(fitMissionSetName(evt.target.value));
                             }}
                         />
                     </div>

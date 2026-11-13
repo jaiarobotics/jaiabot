@@ -11,13 +11,13 @@ import { MissionTask_TaskType, Speeds } from "@proto/jaiabot/messages/mission";
 import { LegacyMissionInterface, LegacyRunInterface } from "../../../types/legacy-types";
 import {
     DEFAULT_SPEED,
-    MAX_MISSION_SET_NAME_LENGTH,
     TASK_MAX_SPEED_CONSTRAINT,
     TASK_MIN_SPEED_CONSTRAINT,
     UNASSIGNED_ID,
 } from "../../../utils/constants";
 import { jaia_rest_api, nullIfRecordNotFound } from "../../../utils/jaia-rest-api";
 import { RecordQuery_RecordType } from "@proto/jaiabot/messages/rest_api";
+import { fitMissionSetName } from "../../../utils/input";
 
 export enum LoadResultType {
     CURRENT_FORMAT = "CURRENT_FORMAT",
@@ -337,16 +337,6 @@ function normalizeSpeeds(speeds: any): Speeds {
         transit: normalize(speeds?.transit),
         stationkeep_outer: normalize(speeds?.stationkeep_outer),
     };
-}
-
-/**
- * Cuts a mission set name to the length hubs can share with each other
- *
- * @param {string | undefined} name Mission set name
- * @returns {string} The name, at most MAX_MISSION_SET_NAME_LENGTH characters long
- */
-function fitMissionSetName(name: string | undefined) {
-    return (name ?? "").slice(0, MAX_MISSION_SET_NAME_LENGTH);
 }
 
 /**

@@ -18,7 +18,7 @@ import {
     LoadResultType,
     loadSnapshotFromFile,
 } from "../mission-set-storage";
-import { MAX_MISSION_SET_NAME_LENGTH, UNASSIGNED_ID } from "../../../../utils/constants";
+import { MAX_MISSION_SET_NAME_BYTES, UNASSIGNED_ID } from "../../../../utils/constants";
 
 jest.mock("../../../../utils/jaia-rest-api", () => ({
     ...jest.requireActual("../../../../utils/jaia-rest-api"),
@@ -295,7 +295,7 @@ describe("Exercise functions to save and load missions from the hub", () => {
     });
 
     test("A name longer than hubs can share is cut on load from the hub", async () => {
-        const longName = "n".repeat(MAX_MISSION_SET_NAME_LENGTH + 10);
+        const longName = "n".repeat(MAX_MISSION_SET_NAME_BYTES + 10);
         fakeHubStorage[longName] = {
             version: MISSION_SET_VERSION,
             name: longName,
@@ -305,11 +305,11 @@ describe("Exercise functions to save and load missions from the hub", () => {
         };
 
         const loadResult = await loadSnapshotFromHub(longName);
-        expect(loadResult.snapshot!.name).toBe("n".repeat(MAX_MISSION_SET_NAME_LENGTH));
+        expect(loadResult.snapshot!.name).toBe("n".repeat(MAX_MISSION_SET_NAME_BYTES));
     });
 
     test("A name longer than hubs can share is cut on import from a file", async () => {
-        const longName = "f".repeat(MAX_MISSION_SET_NAME_LENGTH + 10);
+        const longName = "f".repeat(MAX_MISSION_SET_NAME_BYTES + 10);
         const fileContent = JSON.stringify({
             version: MISSION_SET_VERSION,
             snapshot: {
@@ -330,7 +330,7 @@ describe("Exercise functions to save and load missions from the hub", () => {
         mockInput.dispatchEvent(new Event("change"));
 
         const result = await resultPromise;
-        expect(result.snapshot!.name).toBe("f".repeat(MAX_MISSION_SET_NAME_LENGTH));
+        expect(result.snapshot!.name).toBe("f".repeat(MAX_MISSION_SET_NAME_BYTES));
     });
 
     test("loadSnapshotFromFile returns CURRENT_FORMAT for current version file", async () => {

@@ -4,7 +4,7 @@ import { userEvent } from "@testing-library/user-event";
 import MissionSetEditorButton from "../MissionSetEditorButton";
 import {
     JCC_CONTAINER,
-    MAX_MISSION_SET_NAME_LENGTH,
+    MAX_MISSION_SET_NAME_BYTES,
     UNASSIGNED_ID,
 } from "../../../../utils/constants";
 import {
@@ -91,9 +91,19 @@ test("the mission set name stops at the length hubs can share", async () => {
     render(<MissionSetEditorButton />);
     await openEditor(user);
 
-    await user.type(nameInput(), "n".repeat(MAX_MISSION_SET_NAME_LENGTH + 5));
+    await user.type(nameInput(), "n".repeat(MAX_MISSION_SET_NAME_BYTES + 5));
 
-    expect(nameInput()).toHaveValue("n".repeat(MAX_MISSION_SET_NAME_LENGTH));
+    expect(nameInput()).toHaveValue("n".repeat(MAX_MISSION_SET_NAME_BYTES));
+});
+
+test("the mission set name limit counts bytes, not characters", async () => {
+    const user = userEvent.setup();
+    render(<MissionSetEditorButton />);
+    await openEditor(user);
+
+    await user.type(nameInput(), "é".repeat(MAX_MISSION_SET_NAME_BYTES));
+
+    expect(nameInput()).toHaveValue("é".repeat(MAX_MISSION_SET_NAME_BYTES / 2));
 });
 
 test("adding a set after reopening the editor loads it from the hub again", async () => {

@@ -49,6 +49,7 @@
 #include "jaiabot/groups.h"
 #include "jaiabot/health/health.h"
 #include "jaiabot/hub/active_mission_plans.h"
+#include "jaiabot/hub/mission_name.h"
 #include "jaiabot/intervehicle.h"
 #include "jaiabot/messages/comms.pb.h"
 #include "jaiabot/messages/engineering.pb.h"
@@ -1389,6 +1390,9 @@ void jaiabot::apps::HubManager::handle_command(const jaiabot::protobuf::Command&
     using protobuf::Command;
     auto command = input_command;
     command.set_from_hub_id(cfg().hub_id());
+    if (command.plan().has_mission_name())
+        command.mutable_plan()->set_mission_name(
+            jaiabot::hub::fit_mission_name(command.plan().mission_name()));
 
     // check that timestamp is unique within DCCL rounding and bump forward by a second
     // if necessary so that mission manager doesn't reject valid commands
