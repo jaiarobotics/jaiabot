@@ -8,6 +8,7 @@ import { Error, Warning } from "@proto/jaiabot/messages/health";
 import { BotStatus_ActiveLink } from "@proto/jaiabot/messages/jaia_dccl";
 import { BotType } from "@proto/jaiabot/messages/node";
 import { Link } from "@proto/jaiabot/messages/link";
+import { MissionPlan } from "@proto/jaiabot/messages/mission";
 import { IRIDIUM_NO_COMMS_STATUS_AGE, NO_COMMS_STATUS_AGE } from "../../utils/constants";
 import { microsecondsToSeconds } from "../../utils/conversions";
 import BotSensors from "./bot-sensors";
@@ -29,6 +30,7 @@ export default class Bot {
     private activeLinkStatusAges: LinkStatusAge[];
     private engineering: Engineering;
     private mode: BotModes;
+    private activeMissionPlan: MissionPlan | undefined;
 
     constructor() {
         // Init base sensors
@@ -74,6 +76,17 @@ export default class Bot {
 
     setWarnings(warnings: Warning[]) {
         this.warnings = warnings;
+    }
+
+    /**
+     * @returns {MissionPlan | undefined} Mission the bot was last sent, by any operator on any hub
+     */
+    getActiveMissionPlan() {
+        return this.activeMissionPlan;
+    }
+
+    setActiveMissionPlan(activeMissionPlan: MissionPlan | undefined) {
+        this.activeMissionPlan = activeMissionPlan;
     }
 
     getMissionStatus() {

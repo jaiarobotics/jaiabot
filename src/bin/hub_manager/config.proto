@@ -52,6 +52,8 @@ message HubManager
     required jaiabot.protobuf.LinkAwareBufferConfig engineering_status_buffer =
         13;
     required goby.acomms.protobuf.DynamicBufferConfig hub2hub_buffer = 19;
+    required goby.acomms.protobuf.DynamicBufferConfig
+        hub2hub_active_mission_buffer = 21;
 
     optional int32 hub_id = 14 [default = 0];
     optional int32 fleet_id = 15 [default = 0];

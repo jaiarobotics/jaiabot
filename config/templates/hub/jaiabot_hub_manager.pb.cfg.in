@@ -57,10 +57,23 @@ hub2hub_buffer
 {
     ack_required: true
     blackout_time: 0
-    max_queue: 10
+    max_queue: 40
     newest_first: false
     ttl: 600
     value_base: 1
+}
+
+# Active mission summaries, and the missions another hub's summary shows it
+# lacks. Half the priority of hub2hub_buffer (value_base / ttl), and a copy
+# that can't go out within a minute expires before the next summary asks again.
+hub2hub_active_mission_buffer
+{
+    ack_required: true
+    blackout_time: 0
+    max_queue: 64
+    newest_first: false
+    ttl: 60
+    value_base: 0.05
 }
 
 expected_hubs {

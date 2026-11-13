@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 
 import { JCC_CONTAINER } from "../../../utils/constants";
 import { listSavedMissionSetsFromHub } from "./mission-set-storage";
+import { fitMissionSetName } from "../../../utils/input";
 import SaveMissionSetButton from "./SaveMissionSetButton/SaveMissionSetButton";
 import LoadMissionSetButton from "./LoadMissionSetButton/LoadMissionSetButton";
 import DeleteMissionSetButton from "./DeleteMissionSetButton/DeleteMissionSetButton";
@@ -75,7 +76,7 @@ export function MissionSetStorageDialog(props: DialogProps) {
                             type="text"
                             value={saveName}
                             onChange={(evt) => {
-                                setSaveName(evt.target.value);
+                                setSaveName(fitMissionSetName(evt.target.value));
                             }}
                         />
                     </div>

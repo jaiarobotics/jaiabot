@@ -17,6 +17,7 @@ import {
 } from "../../../utils/constants";
 import { jaia_rest_api, nullIfRecordNotFound } from "../../../utils/jaia-rest-api";
 import { RecordQuery_RecordType } from "@proto/jaiabot/messages/rest_api";
+import { fitMissionSetName } from "../../../utils/input";
 
 export enum LoadResultType {
     CURRENT_FORMAT = "CURRENT_FORMAT",
@@ -105,7 +106,7 @@ export async function loadSnapshotFromHub(saveName: string): Promise<LoadSnapsho
         missions: missions,
         nextMissionID: migrated.nextMissionID ?? 0,
         missionIDInEditMode: migrated.missionIDInEditMode ?? UNASSIGNED_ID,
-        name: migrated.name ?? "",
+        name: fitMissionSetName(migrated.name),
         speeds: normalizeSpeeds(migrated.speeds),
     };
 
@@ -366,7 +367,7 @@ function extractMissionSetSnapshot(rawMissionSet: any, version: string = MISSION
         missions: missionsArray,
         nextMissionID: migrated.nextMissionID ?? 1,
         missionIDInEditMode: migrated.missionIDInEditMode ?? UNASSIGNED_ID,
-        name: migrated.name ?? "",
+        name: fitMissionSetName(migrated.name),
         speeds: normalizeSpeeds(migrated.speeds),
     };
 

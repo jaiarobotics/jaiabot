@@ -245,6 +245,14 @@ jaiabot::apps::WebPortal::WebPortal()
             send_message_to_client(message);
         });
 
+    interprocess().subscribe<jaiabot::groups::active_mission_plans>(
+        [this](const jaiabot::protobuf::ActiveMissionPlans& plans)
+        {
+            active_mission_plans.clear();
+            for (const auto& command : plans.command())
+                active_mission_plans[command.bot_id()] = command.plan();
+        });
+
     // Subscribe to Hub2HubData from other hubs (re-published on interprocess by hub_manager)
     interprocess().subscribe<jaiabot::groups::remote_hub_command>(
         [this](const jaiabot::protobuf::Command& remote_command)
@@ -357,11 +365,6 @@ void jaiabot::apps::WebPortal::handle_command(const jaiabot::protobuf::Command& 
                              << std::endl;
 
     interprocess().publish<jaiabot::groups::hub_command_full>(command);
-
-    if (command.has_plan())
-    {
-        active_mission_plans[command.bot_id()] = command.plan();
-    }
 }
 
 void jaiabot::apps::WebPortal::handle_command_for_hub(

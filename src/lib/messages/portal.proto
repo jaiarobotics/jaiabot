@@ -47,3 +47,9 @@ message PortalToClientMessage
 
     optional Command remote_command = 9;
 }
+
+// The latest MISSION_PLAN sent to each bot, from this hub or another
+message ActiveMissionPlans
+{
+    repeated Command command = 1;
+}

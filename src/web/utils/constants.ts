@@ -38,6 +38,7 @@ export const DEPTH_MAP_3D_NAME = "depth-map-3d";
 export const MAX_WAYPOINTS = 80;
 export const MAX_LANES_PER_BOT = 7; // lane_start_goal_indices max_repeat in mission.proto
 export const MAX_SEGMENTS = 5; // segments max_repeat in mission.proto
+export const MAX_MISSION_SET_NAME_BYTES = 64; // mission_name max_length (UTF-8 bytes) in jaia_dccl.proto
 export const TASK_ZERO_LOWER_BOUND = 0;
 export const TASK_MIN_SPEED_CONSTRAINT = MIN_SPEED;
 export const TASK_MAX_SPEED_CONSTRAINT = MAX_SPEED;

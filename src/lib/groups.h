@@ -117,6 +117,12 @@ constexpr goby::middleware::Group contact_update{"jaiabot::contact_update",
 constexpr goby::middleware::Group hub2hub_data{"jaiabot::hub2hub_data",
                                                jaiabot::INTERVEHICLE_API_VERSION};
 
+constexpr goby::middleware::Group hub2hub_active_mission{"jaiabot::hub2hub_active_mission",
+                                                         jaiabot::INTERVEHICLE_API_VERSION};
+
+constexpr goby::middleware::Group hub2hub_active_mission_summary{
+    "jaiabot::hub2hub_active_mission_summary", jaiabot::INTERVEHICLE_API_VERSION};
+
 // DCCL (interprocess)
 constexpr goby::middleware::Group hub_command_full{"jaiabot::hub_command_full"};
 constexpr goby::middleware::Group hub_command_result{
@@ -146,6 +152,7 @@ constexpr goby::middleware::Group simulator_command{"jaiabot::simulator_command"
 // web_portal
 constexpr goby::middleware::Group web_portal("jaiabot::web_portal");
 constexpr goby::middleware::Group remote_hub_command{"jaiabot::remote_hub_command"};
+constexpr goby::middleware::Group active_mission_plans{"jaiabot::active_mission_plans"};
 
 // Camera
 constexpr goby::middleware::Group camera{"jaiabot::camera"};

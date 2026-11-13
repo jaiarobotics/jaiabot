@@ -9,6 +9,7 @@ import {
     listSavedMissionSetsFromHub,
     loadSnapshotFromHub,
 } from "../MissionSetStorage/mission-set-storage";
+import { fitMissionSetName } from "../../../utils/input";
 import { MissionSetSnapshot } from "../../../data/mission_set/mission-set";
 import {
     getMaxSegmentsPerOutputMission,
@@ -202,7 +203,7 @@ export function MissionSetEditorDialog(props: DialogProps) {
                             type="text"
                             placeholder="Required"
                             value={editorName}
-                            onChange={(evt) => setEditorName(evt.target.value)}
+                            onChange={(evt) => setEditorName(fitMissionSetName(evt.target.value))}
                         />
                     </div>
                     <div className="editor-lists-section">

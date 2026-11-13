@@ -18,7 +18,7 @@ import {
     LoadResultType,
     loadSnapshotFromFile,
 } from "../mission-set-storage";
-import { UNASSIGNED_ID } from "../../../../utils/constants";
+import { MAX_MISSION_SET_NAME_BYTES, UNASSIGNED_ID } from "../../../../utils/constants";
 
 jest.mock("../../../../utils/jaia-rest-api", () => ({
     ...jest.requireActual("../../../../utils/jaia-rest-api"),
@@ -292,6 +292,45 @@ describe("Exercise functions to save and load missions from the hub", () => {
         expect(result.resultType).toBe(LoadResultType.OLD_FORMAT);
         expect(result.snapshot).not.toBeNull();
         expect(result.snapshot!.missions.length).toBe(1);
+    });
+
+    test("A name longer than hubs can share is cut on load from the hub", async () => {
+        const longName = "n".repeat(MAX_MISSION_SET_NAME_BYTES + 10);
+        fakeHubStorage[longName] = {
+            version: MISSION_SET_VERSION,
+            name: longName,
+            nextMissionID: 1,
+            missionIDInEditMode: UNASSIGNED_ID,
+            missions: [],
+        };
+
+        const loadResult = await loadSnapshotFromHub(longName);
+        expect(loadResult.snapshot!.name).toBe("n".repeat(MAX_MISSION_SET_NAME_BYTES));
+    });
+
+    test("A name longer than hubs can share is cut on import from a file", async () => {
+        const longName = "f".repeat(MAX_MISSION_SET_NAME_BYTES + 10);
+        const fileContent = JSON.stringify({
+            version: MISSION_SET_VERSION,
+            snapshot: {
+                name: longName,
+                nextMissionID: 1,
+                missionIDInEditMode: UNASSIGNED_ID,
+                missions: [],
+            },
+        });
+        const file = new File([fileContent], "long-name.json", { type: "application/json" });
+        (file as any).text = () => Promise.resolve(fileContent);
+
+        const mockInput = document.createElement("input");
+        jest.spyOn(document, "createElement").mockReturnValueOnce(mockInput);
+
+        const resultPromise = loadSnapshotFromFile();
+        Object.defineProperty(mockInput, "files", { value: [file] });
+        mockInput.dispatchEvent(new Event("change"));
+
+        const result = await resultPromise;
+        expect(result.snapshot!.name).toBe("f".repeat(MAX_MISSION_SET_NAME_BYTES));
     });
 
     test("loadSnapshotFromFile returns CURRENT_FORMAT for current version file", async () => {

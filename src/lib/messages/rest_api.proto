@@ -354,7 +354,7 @@ message APIResponse
         }
 
         repeated BotMissionPlan active_mission_plans = 4 [(jaia.field).rest_api = {
-            doc: "Mission plan currently active on each bot."
+            doc: "Last mission plan sent to each bot, from any hub. It stays until a newer one is sent."
         }];
         optional string controlling_client_id = 5 [(jaia.field).rest_api = {
             doc: "Client ID of the operator currently in control, or 'hubN' if an operator on another hub N sent the latest command."

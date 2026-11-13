@@ -28,7 +28,6 @@ import {
     getRepeatProgress,
     getDistToWaypoint,
     isBotLogging,
-    searchGhostMissions,
 } from "./bot-details";
 
 import { accordionTheme, addDropdownListener } from "../../utils/style";
@@ -63,11 +62,8 @@ export default function BotDetails() {
     }
 
     const missionID = missionsManager.getMissionID(botID);
-    let mission = jaiaContext.missionSet.getMission(missionID);
-    if (!mission) {
-        // Mission can still be undefined if ghost mission does not exist
-        mission = searchGhostMissions(botID);
-    }
+    const mission = jaiaContext.missionSet.getMission(missionID);
+    const activeMissionPlan = bot.getActiveMissionPlan();
 
     const missionStatus: MissionStatus = bot.getMissionStatus();
     const botSensors: BotSensors = bot.getBotSensors();
@@ -185,7 +181,9 @@ export default function BotDetails() {
                                             <td>Repeat Number</td>
                                             <td style={{ whiteSpace: "pre-line" }}>
                                                 {getRepeatProgress(
-                                                    mission?.getRepeats(),
+                                                    activeMissionPlan
+                                                        ? (activeMissionPlan.repeats ?? 1)
+                                                        : undefined,
                                                     missionStatus,
                                                 )}
                                             </td>

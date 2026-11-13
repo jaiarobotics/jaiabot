@@ -1,11 +1,13 @@
 import cloneDeep from "lodash/cloneDeep";
 import Mission from "./mission";
 import { DEFAULT_MISSION_SET_NAME, DEFAULT_SPEED, UNASSIGNED_ID } from "../../utils/constants";
+import { fitMissionSetName } from "../../utils/input";
 import { Speeds } from "@proto/jaiabot/messages/mission";
 
 // This constant will be used to track versions of mission sets
 // exported to files, update whenever the class or supporting
 // classes are updated
+// At the next bump, also drop the unused GhostParameters.repeats from saved missions
 export const MISSION_SET_VERSION = "2.1";
 
 export interface MissionSetSnapshot {
@@ -19,7 +21,6 @@ export interface MissionSetSnapshot {
 
 export class MissionSet {
     private missions: Map<number, Mission>;
-    private ghostMissions: Map<number, Mission>;
     private nextMissionID: number;
     private missionIDInEditMode: number;
     private name: string;
@@ -27,7 +28,6 @@ export class MissionSet {
 
     constructor() {
         this.missions = new Map<number, Mission>();
-        this.ghostMissions = new Map<number, Mission>();
         this.nextMissionID = 1;
         this.missionIDInEditMode = UNASSIGNED_ID;
         this.name = DEFAULT_MISSION_SET_NAME;
@@ -42,14 +42,6 @@ export class MissionSet {
         this.missions = missions;
     }
 
-    getGhostMissions() {
-        return this.ghostMissions;
-    }
-
-    setGhostMissions(missions: Map<number, Mission>) {
-        this.ghostMissions = missions;
-    }
-
     getNextMissionID() {
         return this.nextMissionID;
     }
@@ -59,7 +51,7 @@ export class MissionSet {
     }
 
     setName(name: string) {
-        this.name = name;
+        this.name = fitMissionSetName(name);
     }
 
     getName() {
@@ -120,20 +112,6 @@ export class MissionSet {
         this.setMissionIDInEditMode(UNASSIGNED_ID);
         this.setName(DEFAULT_MISSION_SET_NAME);
         this.setNextMissionID(1);
-    }
-
-    addGhostMission(missionID: number) {
-        const ghostMission = cloneDeep(this.missions.get(missionID));
-        ghostMission.getGhostParameters().isGhost = true;
-        this.ghostMissions.set(missionID, ghostMission);
-    }
-
-    deleteGhostMission(missionID: number) {
-        this.ghostMissions.delete(missionID);
-    }
-
-    deleteAllGhostMissions() {
-        this.ghostMissions.clear();
     }
 
     /**

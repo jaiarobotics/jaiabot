@@ -1,9 +1,11 @@
 import JaiaVectorLayer from "./jaia-vector-layer";
 import Mission from "../../../data/mission_set/mission";
+import { bots } from "../../../data/bots/bots";
 import { missionSet } from "../../../data/mission_set/mission-set";
 import { MissionTask_TaskType } from "@proto/jaiabot/messages/mission";
 import { LayerTitles, LineType } from "../../../types/openlayers-types";
 import { constantHeadingParamsToLocation } from "../../../utils/conversions";
+import { buildGhostMissions } from "../../../utils/ghost-missions";
 import { layersZIndexes } from "../zindex";
 import {
     generateWaypointFeature,
@@ -81,17 +83,10 @@ class MissionLayer extends JaiaVectorLayer {
 
         const layerTitle = this.getVectorLayer().getProperties()["title"];
 
-        if (
-            layerTitle === LayerTitles.GHOST_MISSION_LAYER &&
-            missionSet.getGhostMissions().size === 0
-        ) {
-            return;
-        }
-
-        let missions = missionSet.getMissions();
-        if (layerTitle === LayerTitles.GHOST_MISSION_LAYER) {
-            missions = missionSet.getGhostMissions();
-        }
+        const missions =
+            layerTitle === LayerTitles.GHOST_MISSION_LAYER
+                ? buildGhostMissions(bots.getBots())
+                : missionSet.getMissions();
 
         for (let [missionID, mission] of missions) {
             for (let [index, waypoint] of mission.getWaypoints().entries()) {

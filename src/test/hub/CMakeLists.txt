@@ -1,0 +1,7 @@
+add_executable(jaiabot_test_hub_active_mission_plans active_mission_plans.cpp)
+target_link_libraries(jaiabot_test_hub_active_mission_plans jaiabot_messages)
+add_test(NAME jaiabot_test_hub_active_mission_plans COMMAND jaiabot_test_hub_active_mission_plans)
+
+add_executable(jaiabot_test_hub_mission_name mission_name.cpp)
+target_link_libraries(jaiabot_test_hub_mission_name jaiabot_messages dccl)
+add_test(NAME jaiabot_test_hub_mission_name COMMAND jaiabot_test_hub_mission_name)
