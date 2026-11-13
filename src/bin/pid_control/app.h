@@ -100,8 +100,8 @@ class BotPidControl : public goby::zeromq::MultiThreadApplication<config::BotPid
 
     jaiabot::protobuf::Bounds bounds_;
 
-    // Arduino Response for motor in percent
-    int arduino_motor_throttle_{0};
+    // Power Board Response for motor in percent
+    int power_board_motor_throttle_{0};
 
     // if true, don't send low control (used by mission_repeater)
     bool suspended_{false};
@@ -116,6 +116,7 @@ class BotPidControl : public goby::zeromq::MultiThreadApplication<config::BotPid
     void handle_powered_ascent(const jaiabot::protobuf::DesiredSetpoints& command);
 
     void handle_engineering_command(const jaiabot::protobuf::PIDControl& pid_control);
+    template <typename Response> void handle_motor_response(const Response& response);
     void publish_engineering_status();
     void publish_low_control();
 

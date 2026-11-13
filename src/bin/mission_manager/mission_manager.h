@@ -74,6 +74,8 @@ class MissionManager : public goby::zeromq::MultiThreadApplication<config::Missi
 
     bool health_considered_ok(const goby::middleware::protobuf::VehicleHealth& vehicle_health);
     void handle_self_test_results(bool result); // TODO: replace with Protobuf message
+    template <typename Response>
+    void handle_motor_response(const Response& response, const char* source_name);
     void intervehicle_subscribe(const jaiabot::protobuf::IntervehicleSubscribeRequest& req);
 
     void check_forward_progress();

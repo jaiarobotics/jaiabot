@@ -520,13 +520,6 @@ jaiabot_apps = [
      'error_on_fail': 'ERROR__FAILED__JAIABOT_PID_CONTROL',
      'runs_on': [Type.BOT],
      'wanted_by': 'jaiabot_health.service'},
-    {'exe': 'jaiabot_driver_arduino',
-     'description': 'JaiaBot Driver Arduino',
-     'template': 'goby-app.service.in',
-     'error_on_fail': 'ERROR__FAILED__JAIABOT_DRIVER_ARDUINO',
-     'runs_on': [Type.BOT],
-     'runs_when': Mode.RUNTIME,
-     'wanted_by': 'jaiabot_health.service'},
     {'exe': 'jaiabot_engineering',
      'description': 'JaiaBot Engineering Support',
      'template': 'goby-app.service.in',
@@ -663,7 +656,8 @@ else:
     ]
     jaiabot_apps.extend(jaiabot_apps_imu)
 
-if jaia_motor_harness_type.value == 'RPM_AND_THERMISTOR':
+# the power board reads the tach itself, so the Pi GPIO tach is only used with an Arduino
+if jaia_motor_harness_type.value == 'RPM_AND_THERMISTOR' and jaia_arduino_type.value != 'none':
     jaiabot_apps_motor_harness_type = [
         {'exe': 'rpm.py',
         'description': 'JaiaBot Motor Python Driver',
@@ -679,6 +673,25 @@ if jaia_motor_harness_type.value == 'RPM_AND_THERMISTOR':
         'restart': 'on-failure'}
     ]
     jaiabot_apps.extend(jaiabot_apps_motor_harness_type)
+
+if jaia_arduino_type.value != 'none':
+    jaiabot_apps.append(
+        {'exe': 'jaiabot_driver_arduino',
+         'description': 'JaiaBot Driver Arduino',
+         'template': 'goby-app.service.in',
+         'error_on_fail': 'ERROR__FAILED__JAIABOT_DRIVER_ARDUINO',
+         'runs_on': [Type.BOT],
+         'runs_when': Mode.RUNTIME,
+         'wanted_by': 'jaiabot_health.service'})
+else:
+    jaiabot_apps.append(
+        {'exe': 'jaiabot_power_board',
+         'description': 'JaiaBot Power Board',
+         'template': 'goby-app.service.in',
+         'error_on_fail': 'ERROR__FAILED__JAIABOT_POWER_BOARD',
+         'runs_on': [Type.BOT],
+         'runs_when': Mode.RUNTIME,
+         'wanted_by': 'jaiabot_health.service'})
 
 if 'none' not in camera_positions_in_use:
     jaiabot_apps_camera = [

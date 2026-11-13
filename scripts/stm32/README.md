@@ -45,7 +45,7 @@ src/stm32/
 
 scripts/stm32/
 ├── build_bio_payload_package.sh   # standalone firmware build (fast dev loop)
-├── fetch_drivers.sh               # downloads pinned HAL/CMSIS into src/stm32/Drivers
+├── fetch_drivers.sh               # downloads pinned HAL/CMSIS/USB middleware into src/stm32
 ├── remote_deploy_bio_payload.sh   # build here, flash over SSH — the usual dev path
 ├── deploy_bio_payload.sh          # runs ON the bot; installed as .../uart/upload.sh
 └── stm32flash-0.7.tar.gz          # vendored flasher source, compiled on the bot
@@ -75,17 +75,18 @@ That installs everything the firmware build needs:
 * `nanopb` (provides `/usr/bin/nanopb_generator.py`) and `libnanopb-dev`, via `build-dep jaiabot`
 * and it calls `scripts/stm32/fetch_drivers.sh` for you
 
-`fetch_drivers.sh` downloads the pinned ST HAL/CMSIS trees into `src/stm32/Drivers/`, which is
-git-ignored:
+`fetch_drivers.sh` downloads the pinned ST HAL/CMSIS trees into `src/stm32/Drivers/` and the ST USB
+Device library (used by the power board) into `src/stm32/Middlewares/`; both are git-ignored:
 
 | Component | Pinned version |
 |---|---|
 | `stm32l4xx_hal_driver` | `v1.13.6` |
 | `cmsis_device_l4` | `v1.7.5` |
 | `cmsis_core` | `v5.4.0` |
+| `stm32_mw_usb_device` (Core + CDC) | `v2.11.5` |
 
 ```bash
-./scripts/stm32/fetch_drivers.sh            # no-op if Drivers/ looks complete
+./scripts/stm32/fetch_drivers.sh            # no-op for each component that looks complete
 ./scripts/stm32/fetch_drivers.sh --force    # re-download (after bumping a pinned version)
 ```
 
@@ -355,7 +356,7 @@ verbose), and that no driver reported a failed initialization.
 | File | Role |
 |---|---|
 | [build_bio_payload_package.sh](build_bio_payload_package.sh) | Standalone firmware build: toolchain check, change detection, nanopb generation, `make`, size report |
-| [fetch_drivers.sh](fetch_drivers.sh) | Downloads the pinned STM32L4 HAL + CMSIS trees into `src/stm32/Drivers/` |
+| [fetch_drivers.sh](fetch_drivers.sh) | Downloads the pinned STM32L4 HAL + CMSIS trees into `src/stm32/Drivers/` and the USB Device library into `src/stm32/Middlewares/` |
 | [remote_deploy_bio_payload.sh](remote_deploy_bio_payload.sh) | Build locally, flash one or more bots over SSH (Route A) |
 | [deploy_bio_payload.sh](deploy_bio_payload.sh) | Runs on the bot; installed/copied as `.../bio_payload/uart/upload.sh` (Route B) |
 | `stm32flash-0.7.tar.gz` | Vendored [stm32flash](https://sourceforge.net/projects/stm32flash/) source, compiled on the target |

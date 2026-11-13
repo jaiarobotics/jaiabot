@@ -19,6 +19,8 @@
 #include "jaiabot/messages/arduino.pb.h"
 #include "jaiabot/messages/health.pb.h"
 
+#include "jaiabot/messages/power_board/power_board.pb.h"
+
 #include "config.pb.h"
 
 namespace jaiabot
@@ -117,6 +119,15 @@ class HelmIVPStatusThread : public HealthMonitorThread<jaiabot::config::HelmIVPS
     goby::time::SteadyClock::time_point helm_ivp_data_last_updated_{std::chrono::seconds(0)};
 };
 
+// Motor thermistor voltage divider, as seen from the reported voltage
+struct ThermistorDivider
+{
+    double supply_voltage;
+    double fixed_ohms;
+    double adc_gain; // reported voltage / divider node voltage
+    bool thermistor_high_side;
+};
+
 class MotorStatusThread : public HealthMonitorThread<jaiabot::config::MotorStatusConfig>
 {
   public:
@@ -140,7 +151,9 @@ class MotorStatusThread : public HealthMonitorThread<jaiabot::config::MotorStatu
     void open_vehicle_database();
     void load_motor_usage_from_db();
     void log_motor(int32_t motor_micros, double usage_duration_seconds, float rpm);
-    void log_usage(const jaiabot::protobuf::ArduinoResponse& arduino_response);
+    template <typename Response>
+    void handle_motor_response(const Response& response, const ThermistorDivider& thermistor);
+    template <typename Response> void log_usage(const Response& response);
     void update_total_motor_usage();
     sqlite3* vehicle_db_;
     std::map<int32_t, jaiabot::protobuf::MotorUsageBin> motor_usage_cache_;
