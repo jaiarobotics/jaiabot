@@ -262,6 +262,10 @@ Two more environment variables set the simulated comms:
 - `--env JAIA_SIM_COMMS=wi`: the links to simulate, any of (x)bee, (w)ifi and (i)ridium (default `w`). See [Iridium simulation](page050_communications.md#simulation).
 - `--env JAIA_SIM_IRIDIUM_ARGS="--sbdix_failure_rate 0.2"`: extra arguments for each bot's Iridium modem simulator.
 
+*This section written by Claude*
+
+To simulate several hubs that hear each other over hub-to-hub, as a fleet's hubs and its CloudHub do, set `--env JAIA_SIM_HUBS=2` (default 1). Each hub runs its own REST API: hub 1 on port 9092, hub 2 on 9093, and so on, so add `-p 9093:9093` to reach the second. Hub-to-hub runs over the container's IPv6 loopback, so if the container has IPv6 turned off, also add `--sysctl net.ipv6.conf.all.disable_ipv6=0`.
+
 ### Stop the simulator
 
 The following command will shut down the simulator, stop the container and remove it.

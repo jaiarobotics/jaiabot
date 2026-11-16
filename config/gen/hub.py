@@ -355,6 +355,9 @@ elif common.app == 'jaiabot_web_portal':
                                      app_block=app_common,
                                      interprocess_block=interprocess_common,
                                      port=common.udp.web_portal_udp_port(hub_id)))
+elif common.app == 'jaiabot_rest_api':
+    # command line arguments: this hub's REST API port, streaming from this hub's own web_portal
+    print(f'-b {common.udp.rest_api_port(hub_id)} -e {hub_id}:localhost:{common.udp.web_portal_udp_port(hub_id)}')
 elif common.app == 'log_file':
     print(log_file_dir)
 else:
