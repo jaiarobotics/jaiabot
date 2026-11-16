@@ -72,6 +72,10 @@ class MapnikTileRenderer(TileRenderer):
 
 
     def render_tile(self, z: int, x: int, y: int) -> bytes | None:
+        # Validate tile coordinates
+        if z < 0 or z > 19 or x < 0 or y < 0 or x >= 1 << z or y >= 1 << z:
+            return None
+
         output = f"{self.tiles_path}/tile_{z}_{x}_{y}.png"
 
         with self._lock:
@@ -149,7 +153,7 @@ class TileServer:
         return flask.Response(tile_data, mimetype="image/png")
 
     def index(self) -> str:
-        return flask.send_file("index.html", mimetype="text/html")
+        return "<p>Tile URL: <code>/tiles/tile_{z}_{x}_{y}.png</code></p>"        
 
 
     def run(self, **kwargs) -> None:
