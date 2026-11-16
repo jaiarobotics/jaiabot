@@ -452,7 +452,7 @@ workflows:
             - amd64-docker-sim
       # two hubs that hear each other over hub-to-hub: each must hold every bot's mission,
       # 12 goals so they are relayed in fragments, and hub 2 must catch them up after
-      # losing them
+      # losing them; no dives, as the single-hub jobs cover those
       - docker-sim-e2e:
           name: docker-sim-e2e-hub2hub
           comms: w
@@ -462,7 +462,7 @@ workflows:
           trial-args: >-
             --peer-hub 2=http://localhost:9093
             --reset-hub-missions "2=docker exec -i jaia-sim bash -s 2 < scripts/test/e2e/sim-forget-active-missions.sh"
-            --drift-time 10 --hold-time 2
+            --task NONE
           <<: *filter-template-docker-sim-builds
           requires:
             - amd64-docker-sim
@@ -663,6 +663,10 @@ jobs:
               --format 'OOMKilled={{.State.OOMKilled}} ExitCode={{.State.ExitCode}}' || true
             free -m || true
             sudo dmesg 2>/dev/null | grep -iE 'killed process|out of memory' | tail -20 || true
+            # a starved machine slows the sim enough to miss the trial's timeouts
+            nproc || true
+            uptime || true
+            top -bn1 -o %CPU | head -25 || true
       - store_test_results:
           path: /tmp/sea-trial-sim
       - store_artifacts:
