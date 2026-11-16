@@ -114,7 +114,7 @@ class MapTileServer:
 
         geotiff.watch_directory_and_convert_to_tiles(self.geotiffs_directory, self.tiles_directory)
 
-        self.natural_earth_renderer = natural_earth_renderer or MapnikTileRenderer('/etc/jaiabot/10m.xml.template')
+        self.natural_earth_renderer = natural_earth_renderer or MapnikTileRenderer('/etc/jaiabot/offline_base_map/stylesheet.xml.template')
 
 
     def get_maps(self):

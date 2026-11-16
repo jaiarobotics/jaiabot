@@ -13,4 +13,5 @@ export const NaturalEarthLayer = new TileLayer({
         wrapX: false,
         maxZoom: NATURAL_EARTH_MAX_ZOOM,
     }),
+    visible: false,
 });
