@@ -1,4 +1,4 @@
-"""Dive missions for the sea trial."""
+"""Missions for the sea trial."""
 
 import copy
 import math
@@ -48,12 +48,14 @@ def dive_task(max_depth, depth_interval, hold_time, drift_time):
     }
 
 
-def dive_mission_plan(goals, task, mission_name, transit_speed=None,
-                      stationkeep_speed=None, start='START_IMMEDIATELY'):
+def mission_plan(goals, task, mission_name, transit_speed=None,
+                 stationkeep_speed=None, start='START_IMMEDIATELY'):
+    """A plan whose goals each carry a copy of `task`, or no task when it is None."""
     plan = {
         'start': start,
         'movement': 'TRANSIT',
-        'goal': [{'location': {'lat': lat, 'lon': lon}, 'task': copy.deepcopy(task)}
+        'goal': [{'location': {'lat': lat, 'lon': lon},
+                  **({'task': copy.deepcopy(task)} if task is not None else {})}
                  for lat, lon in goals],
         'recovery': {'recover_at_final_goal': True},
         'mission_name': mission_name,

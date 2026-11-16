@@ -45,9 +45,12 @@ class FakeBot:
     def state(self):
         return self.states[0] if self.states else self.last_state
 
-    def start_mission(self, goals, depth, drift_time):
+    def start_mission(self, goals, depth=None, drift_time=None):
+        """depth None runs the goals with no task, so no dives and no packets."""
         self.last_state = checks.RECOVERY_STOPPED
-        for _ in range(self.dives_to_run):
+        if depth is None:
+            self.underway.extend(['IN_MISSION__UNDERWAY__MOVEMENT__TRANSIT'] * len(goals))
+        for _ in range(self.dives_to_run if depth is not None else 0):
             self.underway.extend(['IN_MISSION__UNDERWAY__MOVEMENT__TRANSIT'])
             self.underway.extend(checks.DIVE_STATES)
             achieved = depth - self.depth_error
@@ -224,9 +227,12 @@ class FakeHub:
             self.store_mission(bot.bot_id, payload['plan'])
             goals = [(g['location']['lat'], g['location']['lon'])
                      for g in payload['plan']['goal']]
-            task = payload['plan']['goal'][0]['task']
-            bot.start_mission(goals, task['dive']['max_depth'],
-                              task['surface_drift']['drift_time'])
+            task = payload['plan']['goal'][0].get('task')
+            if task:
+                bot.start_mission(goals, task['dive']['max_depth'],
+                                  task['surface_drift']['drift_time'])
+            else:
+                bot.start_mission(goals)
         elif kind == 'RECOVERED':
             bot.states = list(POST_MISSION)
             for hub in [self, *self.peers]:

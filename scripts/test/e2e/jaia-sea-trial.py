@@ -22,6 +22,9 @@ from jaia_e2e import api, checks, junit, mission, wait
 ACTIVATABLE = ('PRE_DEPLOYMENT__IDLE', 'PRE_DEPLOYMENT__FAILED',
                'PRE_DEPLOYMENT__WAIT_FOR_MISSION_PLAN', 'PRE_DEPLOYMENT__READY')
 WAIT_FOR_PLAN = 'PRE_DEPLOYMENT__WAIT_FOR_MISSION_PLAN'
+DIVE = 'DIVE'
+# only the MissionTask.TaskType values this driver can build and check
+TASK_TYPES = ('NONE', DIVE)
 
 
 class TrialFailure(Exception):
@@ -371,17 +374,18 @@ class SeaTrial:
         starts = {bot_id: self.activate(bot_id) for bot_id in bots}
         first = starts[bots[0]]['location']
         reference = (first['lat'], first['lon'])
-        task = mission.dive_task(self.args.dive_depth, self.args.depth_interval,
-                                 self.args.hold_time, self.args.drift_time)
+        task = (mission.dive_task(self.args.dive_depth, self.args.depth_interval,
+                                  self.args.hold_time, self.args.drift_time)
+                if self.args.task == DIVE else None)
 
         for index, bot_id in enumerate(bots):
             origin = mission.offset_latlon(reference, -index * self.args.bot_separation,
                                            self.args.goal_spacing)
             goals = mission.lawnmower(origin, self.args.goals, self.args.goal_spacing)
             self.goals_by_bot[bot_id] = goals
-            log(f'bot {bot_id}: {len(goals)} dive goals from '
+            log(f'bot {bot_id}: {len(goals)} {self.args.task} goals from '
                 f'{goals[0][0]:.6f},{goals[0][1]:.6f}')
-            self.command(bot_id, mission.dive_mission_plan(
+            self.command(bot_id, mission.mission_plan(
                 goals, task, self.args.mission_name,
                 transit_speed=self.args.transit_speed,
                 stationkeep_speed=self.args.stationkeep_speed))
@@ -396,7 +400,8 @@ class SeaTrial:
     def mission_progress(self, bots):
         return '; '.join(
             f'bot {b} {(api.bot_status(self.last_status, b) or {}).get("mission_state", "?")}'
-            f' [{self.observations.dive_cycles(b)} dives]' for b in bots)
+            + (f' [{self.observations.dive_cycles(b)} dives]' if self.args.task == DIVE else '')
+            for b in bots)
 
     def run_mission(self, bots):
         def recovered():
@@ -547,9 +552,10 @@ class SeaTrial:
         for hub_id, observations in self.hub_observations.items():
             if hub_id != self.args.hub_id:
                 results += checks.offload_queue_checks(observations)
-        results += checks.content_checks(packets, bots, self.args.goals, self.args.dive_depth,
-                                         self.args.depth_tolerance, self.args.drift_time,
-                                         self.args.drift_tolerance)
+        if self.args.task == DIVE:
+            results += checks.content_checks(packets, bots, self.args.goals,
+                                             self.args.dive_depth, self.args.depth_tolerance,
+                                             self.args.drift_time, self.args.drift_tolerance)
         return results
 
 
@@ -600,7 +606,7 @@ def parse_args(argv):
                              'resubscriptions (default: %(default)s)')
     parser.add_argument('--bots', type=int, default=2, help='number of bots to command')
     parser.add_argument('--goals', type=int, default=10,
-                        help=f'dive goals per bot, at most {mission.MAX_GOALS}; over 10 the hub '
+                        help=f'goals per bot, at most {mission.MAX_GOALS}; over 10 the hub '
                              f'sends the plan in fragments (default: %(default)s)')
     parser.add_argument('--warp', type=float, default=1.0,
                         help='simulator warp, which every timeout below is divided by')
@@ -610,6 +616,10 @@ def parse_args(argv):
     parser.add_argument('--lon', type=float, default=-71.2821)
     parser.add_argument('--goal-spacing', type=float, default=100.0, metavar='M')
     parser.add_argument('--bot-separation', type=float, default=500.0, metavar='M')
+    parser.add_argument('--task', choices=TASK_TYPES, default=DIVE,
+                        help='the task at every goal, as MissionTask.TaskType names it; NONE '
+                             'leaves out the content tier, which judges the dives '
+                             '(default: %(default)s)')
     parser.add_argument('--dive-depth', type=float, default=8.0, metavar='M')
     parser.add_argument('--depth-interval', type=float, default=1.0, metavar='M')
     parser.add_argument('--hold-time', type=float, default=5.0, metavar='S')

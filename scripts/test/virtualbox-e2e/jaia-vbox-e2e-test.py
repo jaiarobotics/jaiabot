@@ -656,7 +656,7 @@ def activate_bot(args, hub, bot_id):
 def dive_mission_plan(args, waypoints):
     task = jaia_mission.dive_task(max_depth=args.dive_depth, depth_interval=args.dive_depth,
                                   hold_time=0, drift_time=0)
-    return jaia_mission.dive_mission_plan(waypoints, task, 'vbox-e2e-test')
+    return jaia_mission.mission_plan(waypoints, task, 'vbox-e2e-test')
 
 
 def mission_progress(args, mission, bot):

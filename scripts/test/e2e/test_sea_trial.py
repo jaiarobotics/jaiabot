@@ -440,6 +440,22 @@ class SeaTrialAgainstFakeHub(unittest.TestCase):
     def test_more_than_ten_goals_are_accepted(self):
         self.assertEqual(sea_trial.parse_args(['--goals', '12']).goals, 12)
 
+    def test_the_task_is_a_dive_unless_told_otherwise(self):
+        self.assertEqual(sea_trial.parse_args([]).task, 'DIVE')
+        self.assertEqual(sea_trial.parse_args(['--task', 'NONE']).task, 'NONE')
+        with self.assertRaises(SystemExit):
+            sea_trial.parse_args(['--task', 'STATION_KEEP'])
+
+    def test_a_run_without_tasks_sends_bare_goals_and_skips_the_content_tier(self):
+        hub = fake_hub.FakeHub(bots=2, dives_to_run=10)
+        code, summary, _ = self.run_trial(hub, ['--task', 'NONE'])
+        self.assertEqual(code, 0, summary['tiers'])
+        self.assertEqual(set(summary['tiers']),
+                         {checks.LIVENESS, checks.EXECUTION, checks.OFFLOAD})
+        plan = next(c for c in hub.commands if c.get('type') == 'MISSION_PLAN')['plan']
+        self.assertEqual(len(plan['goal']), 10)
+        self.assertFalse([goal for goal in plan['goal'] if 'task' in goal])
+
     # over ten, so the hub relays the missions in fragments
     TWELVE_GOALS = ['--goals', '12']
 
@@ -464,6 +480,19 @@ class SeaTrialAgainstFakeHub(unittest.TestCase):
                 self.assertIn(f"hub {hub_id} holds bot {bot_id}'s mission after the offload",
                               passed)
                 self.assertIn(f"hub {hub_id} names bot {bot_id}'s mission", passed)
+
+    def test_a_joined_run_without_tasks_holds_every_mission_over_ten_waypoints(self):
+        hub, second, cloudhub = self.ci_fleet()
+        code, summary, directory = self.run_joined_trial(
+            hub, [second, cloudhub], relay_only=[30],
+            extra=[*self.TWELVE_GOALS, '--task', 'NONE'])
+        self.assertEqual(code, 0, summary['tiers'])
+        self.assertNotIn(checks.CONTENT, summary['tiers'])
+        passed = self.passed_checks(directory)
+        for hub_id in (1, 2, 30):
+            for bot_id in (1, 2):
+                self.assertIn(f"hub {hub_id} holds bot {bot_id}'s mission after the offload",
+                              passed)
 
     def test_a_hub_that_truncates_relayed_missions_fails_hub2hub(self):
         hub, second, cloudhub = self.ci_fleet(dives=12)

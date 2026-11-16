@@ -29,6 +29,10 @@ the task packets back.
 mission in fragments, up to 8 (`MissionPlan.expected_fragments`), and relays them to the
 other hubs the same way. CI runs 12 goals so that path is exercised.
 
+`--task` sets the task at every goal, by its `MissionTask.TaskType` name: `DIVE` (the
+default) or `NONE`. With `NONE` the bots only transit their goals, and the `content`
+tier, which judges the dives, is left out.
+
 `--warp` divides the mission and offload timeouts, so the same invocation works at any
 warp without hand-tuning seconds.
 

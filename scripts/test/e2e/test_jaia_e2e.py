@@ -85,15 +85,20 @@ class MissionPlanTest(unittest.TestCase):
     def test_plan_shape(self):
         goals = mission.lawnmower((41.66, -71.27), 10, 100)
         task = mission.dive_task(8, 1, 5, 45)
-        plan = mission.dive_mission_plan(goals, task, 'unit-test')['plan']
+        plan = mission.mission_plan(goals, task, 'unit-test')['plan']
         self.assertEqual(len(plan['goal']), 10)
         self.assertTrue(plan['recovery']['recover_at_final_goal'])
         self.assertEqual(plan['goal'][0]['task']['dive']['max_depth'], 8)
         self.assertEqual(plan['goal'][0]['task']['surface_drift']['drift_time'], 45)
 
+    def test_a_plan_without_a_task_has_bare_goals(self):
+        goals = mission.lawnmower((41.66, -71.27), 3, 100)
+        plan = mission.mission_plan(goals, None, 'x')['plan']
+        self.assertEqual(plan['goal'][0], {'location': {'lat': goals[0][0], 'lon': goals[0][1]}})
+
     def test_each_goal_gets_its_own_task_copy(self):
         goals = mission.lawnmower((41.66, -71.27), 3, 100)
-        plan = mission.dive_mission_plan(goals, mission.dive_task(8, 1, 5, 45), 'x')['plan']
+        plan = mission.mission_plan(goals, mission.dive_task(8, 1, 5, 45), 'x')['plan']
         plan['goal'][0]['task']['dive']['max_depth'] = 99
         self.assertEqual(plan['goal'][1]['task']['dive']['max_depth'], 8)
 
