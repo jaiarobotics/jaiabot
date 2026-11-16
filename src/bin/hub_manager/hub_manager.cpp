@@ -236,10 +236,6 @@ class HubManager : public ApplicationBase
 
     jaiabot::hub::ActiveMissionPlans active_mission_plans_;
     std::filesystem::path active_mission_plans_path_;
-    // republished so a web_portal that restarts catches up
-    static constexpr goby::time::SteadyClock::duration active_mission_plans_republish_interval_{
-        std::chrono::seconds(10)};
-    goby::time::SteadyClock::time_point next_active_mission_plans_publish_time_{};
     // another hub's mission dated further ahead of this hub's clock is ignored, so a badly wrong
     // clock can't push this hub's command times beyond what a bot decodes (12 h)
     static constexpr std::chrono::hours max_command_time_ahead_{1};
@@ -437,6 +433,9 @@ jaiabot::apps::HubManager::HubManager()
         });
 
     load_active_mission_plans();
+    interprocess().subscribe<jaiabot::groups::active_mission_plans_query>(
+        [this](const jaiabot::protobuf::QueryActiveMissionPlans&)
+        { publish_active_mission_plans(); });
 
     if (is_virtualhub_)
         update_vfleet_shutdown_time();
@@ -920,9 +919,6 @@ void jaiabot::apps::HubManager::handle_hub2hub_data(
 
 void jaiabot::apps::HubManager::loop()
 {
-    if (goby::time::SteadyClock::now() >= next_active_mission_plans_publish_time_)
-        publish_active_mission_plans();
-
     latest_hub_status_.set_time_with_units(goby::time::SystemClock::now<goby::time::MicroTime>());
 
     // Start the next offload before reporting, so the queue isn't missing from a status between bots
@@ -1775,8 +1771,6 @@ void jaiabot::apps::HubManager::publish_active_mission_plans()
 {
     interprocess().publish<jaiabot::groups::active_mission_plans>(
         active_mission_plans_.to_message());
-    next_active_mission_plans_publish_time_ =
-        goby::time::SteadyClock::now() + active_mission_plans_republish_interval_;
 }
 
 void jaiabot::apps::HubManager::publish_hub2hub_data(jaiabot::protobuf::Hub2HubData* hub2hub_data)

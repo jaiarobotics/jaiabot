@@ -53,3 +53,8 @@ message ActiveMissionPlans
 {
     repeated Command command = 1;
 }
+
+// Asks hub_manager to publish its ActiveMissionPlans
+message QueryActiveMissionPlans
+{
+}

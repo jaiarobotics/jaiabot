@@ -89,6 +89,7 @@ class WebPortal : public zeromq::MultiThreadApplication<config::WebPortal>
     std::unordered_set<goby::middleware::protobuf::UDPEndPoint, UDPEndPointHash> client_endpoints;
 
     std::map<BotId, jaiabot::protobuf::MissionPlan> active_mission_plans;
+    bool has_active_mission_plans_{false};
 
     void loop() override;
 
@@ -251,6 +252,7 @@ jaiabot::apps::WebPortal::WebPortal()
             active_mission_plans.clear();
             for (const auto& command : plans.command())
                 active_mission_plans[command.bot_id()] = command.plan();
+            has_active_mission_plans_ = true;
         });
 
     // Subscribe to Hub2HubData from other hubs (re-published on interprocess by hub_manager)
@@ -328,6 +330,11 @@ void jaiabot::apps::WebPortal::loop()
         jaiabot::protobuf::QueryDeviceMetaData query_device_metadata;
         interprocess().publish<groups::metadata>(query_device_metadata);
     }
+
+    // hub_manager publishes its active missions only when they change
+    if (!has_active_mission_plans_)
+        interprocess().publish<groups::active_mission_plans_query>(
+            jaiabot::protobuf::QueryActiveMissionPlans());
 }
 
 void jaiabot::apps::WebPortal::send_message_to_client(

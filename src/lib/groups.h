@@ -153,6 +153,7 @@ constexpr goby::middleware::Group simulator_command{"jaiabot::simulator_command"
 constexpr goby::middleware::Group web_portal("jaiabot::web_portal");
 constexpr goby::middleware::Group remote_hub_command{"jaiabot::remote_hub_command"};
 constexpr goby::middleware::Group active_mission_plans{"jaiabot::active_mission_plans"};
+constexpr goby::middleware::Group active_mission_plans_query{"jaiabot::active_mission_plans_query"};
 
 // Camera
 constexpr goby::middleware::Group camera{"jaiabot::camera"};
