@@ -5,9 +5,9 @@ import math
 
 EARTH_RADIUS_M = 6371000.0
 
-# MissionPlan.goal carries (dccl.field).max_repeat = 10, so a plan holds ten goals and
-# no more; more dives per run means more bots, not more goals
-MAX_GOALS = 10
+# MissionPlan.goal carries (dccl.field).max_repeat = 10, and the hub splits a longer plan
+# into fragments, at most 8 (MissionPlan.expected_fragments), so a plan holds 80 goals
+MAX_GOALS = 80
 
 
 def offset_latlon(origin, north_m, east_m):

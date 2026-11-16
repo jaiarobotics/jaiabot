@@ -145,6 +145,88 @@ class SeaTrial:
                 self.hub2hub_results.append(checks.relayed_command_for_hub_check(
                     via_id, target_id, response, via.last_error_code, via.last_error))
 
+    def holds_sent_missions(self, hub_id):
+        plans = api.active_mission_plans(self.last_statuses.get(hub_id))
+        return all(checks.active_mission_mismatch(plans.get(bot_id), goals,
+                                                  self.args.mission_name) is None
+                   for bot_id, goals in self.goals_by_bot.items())
+
+    def names_sent_missions(self, hub_id):
+        status = self.last_statuses.get(hub_id)
+        return all((api.bot_status(status, bot_id) or {}).get('mission_name')
+                   == self.args.mission_name for bot_id in self.goals_by_bot)
+
+    def describe_missions(self, hub_ids):
+        def describe(hub_id, bot_id, goals):
+            plan = api.active_mission_plans(self.last_statuses.get(hub_id)).get(bot_id)
+            mismatch = checks.active_mission_mismatch(plan, goals, self.args.mission_name)
+            return f'hub {hub_id} bot {bot_id}: {mismatch or "held"}'
+
+        return '; '.join(describe(h, b, goals)
+                         for h in hub_ids for b, goals in sorted(self.goals_by_bot.items()))
+
+    def check_active_missions(self, when, while_underway=False):
+        """Every hub holds the mission sent to every bot, which each JCC on it draws as the
+        bot's ghost. While the bots are underway, each hub also names their missions."""
+        if not self.joined:
+            return
+        hub_ids = sorted(self.hubs)
+
+        def held():
+            for hub_id in hub_ids:
+                self.poll_hub(hub_id)
+            return all(self.holds_sent_missions(h)
+                       and (not while_underway or self.names_sent_missions(h))
+                       for h in hub_ids)
+
+        try:
+            wait_for(held, self.args.hub2hub_timeout,
+                     f"every hub to hold every bot's mission {when}", self.args.poll_interval,
+                     progress=lambda: self.describe_missions(hub_ids))
+        except TrialFailure:
+            pass
+        self.hub2hub_results += checks.active_mission_checks(
+            {h: self.last_statuses.get(h) for h in hub_ids}, self.goals_by_bot,
+            self.args.mission_name, when)
+
+    def check_catch_up(self):
+        """A hub that has lost its missions, as one restarted without its disk would, gets
+        them back from the others."""
+        for hub_id, command in self.args.reset_hub_missions:
+            name = f'hub {hub_id} forgets its missions when told'
+            if not self.joined or hub_id not in self.hubs:
+                self.hub2hub_results.append(checks.Check(
+                    checks.HUB2HUB, name, False, f'hub {hub_id} is not one this trial joined'))
+                continue
+            log(f'making hub {hub_id} forget its missions: {command}')
+            try:
+                result = subprocess.run(command, shell=True, capture_output=True, text=True,
+                                        timeout=self.args.api_timeout)
+                forgot, detail = result.returncode == 0, (
+                    'done' if result.returncode == 0
+                    else f'exit {result.returncode}: {(result.stderr or result.stdout)[-300:]}')
+            except subprocess.TimeoutExpired:
+                forgot, detail = False, f'still running after {self.args.api_timeout} s'
+            self.hub2hub_results.append(checks.Check(checks.HUB2HUB, name, forgot, detail))
+            if not forgot:
+                continue
+
+            def caught_up():
+                # the bots are still underway, so the trace keeps going while this waits
+                self.poll()
+                self.poll_hub(hub_id)
+                return self.holds_sent_missions(hub_id)
+
+            try:
+                wait_for(caught_up, self.args.catch_up_timeout,
+                         f"hub {hub_id} to catch up every bot's mission", self.args.poll_interval,
+                         progress=lambda: self.describe_missions([hub_id]))
+            except TrialFailure:
+                pass
+            self.hub2hub_results += checks.active_mission_checks(
+                {hub_id: self.last_statuses.get(hub_id)}, self.goals_by_bot,
+                self.args.mission_name, 'after losing its missions')
+
     def check_control(self):
         """An operator's command on one hub shows every client of the others that it is no
         longer in control, until one of them takes control back."""
@@ -451,6 +533,8 @@ class SeaTrial:
                 results.append(checks.Check(
                     checks.HUB2HUB, f'commands for {what} went through hub {hub_id}',
                     not error, error or 'every command sent'))
+            results += checks.mission_name_checks(self.hub_observations, bots,
+                                                  self.args.mission_name)
             for hub_id in self.args.relay_only_hub:
                 if hub_id in self.hub_observations:
                     results += checks.relay_only_offload_checks(self.hub_observations[hub_id],
@@ -476,6 +560,13 @@ def parse_peer_hub(value):
     return int(hub_id), url
 
 
+def parse_hub_command(value):
+    hub_id, _, command = value.partition('=')
+    if not hub_id.isdigit() or not command:
+        raise argparse.ArgumentTypeError(f'expected ID=COMMAND, got {value!r}')
+    return int(hub_id), command
+
+
 def parse_args(argv):
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -497,9 +588,20 @@ def parse_args(argv):
                         help='how long the two hubs have to start hearing each other')
     parser.add_argument('--control-timeout', type=float, default=60.0, metavar='S',
                         help='how long a command on one hub has to move control on the other')
+    parser.add_argument('--reset-hub-missions', action='append', type=parse_hub_command,
+                        default=[], metavar='ID=COMMAND',
+                        help='a shell command that makes hub ID lose its stored missions, '
+                             'for example by restarting its hub manager without its saved '
+                             'file; run once the bots are underway, after which the hub '
+                             'must catch up every bot\'s mission from the others')
+    parser.add_argument('--catch-up-timeout', type=float, default=300.0, metavar='S',
+                        help='how long a hub that lost its missions has to get them back; '
+                             'not divided by --warp, as catch-up runs on wall-clock '
+                             'resubscriptions (default: %(default)s)')
     parser.add_argument('--bots', type=int, default=2, help='number of bots to command')
-    parser.add_argument('--goals', type=int, default=mission.MAX_GOALS,
-                        help=f'dive goals per bot, at most {mission.MAX_GOALS} (default: %(default)s)')
+    parser.add_argument('--goals', type=int, default=10,
+                        help=f'dive goals per bot, at most {mission.MAX_GOALS}; over 10 the hub '
+                             f'sends the plan in fragments (default: %(default)s)')
     parser.add_argument('--warp', type=float, default=1.0,
                         help='simulator warp, which every timeout below is divided by')
     # the hub's position, which is where the simulator places the fleet and so where
@@ -568,9 +670,12 @@ def main(argv):
         trial.join_hubs(bots)
         trial.set_hub_location()
         trial.send_missions(bots)
+        trial.check_active_missions('once sent', while_underway=True)
+        trial.check_catch_up()
         trial.run_mission(bots)
         trial.offload(bots)
         trial.check_control()
+        trial.check_active_missions('after the offload')
         results = trial.evaluate(bots, trial.collect(bots))
         trial.export()
     except (TrialFailure, api.ApiError) as e:

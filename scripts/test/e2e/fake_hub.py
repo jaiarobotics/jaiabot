@@ -3,6 +3,7 @@
 Bots advance one mission state per status poll, so a whole trial runs in milliseconds.
 """
 
+import copy
 import json
 import http.server
 import os
@@ -96,6 +97,17 @@ class FakeHub:
         self.refuses_other_hubs = True
         self.advances_bots = True
         self.controlling_client_id = None
+        # the last mission sent to each bot, as hub_manager stores it, and how this hub
+        # takes the ones relayed to it from the other hubs
+        self.mission_plans = {}
+        self.truncates_relayed_missions = False
+        self.drops_mission_names = False
+        self.clears_missions_on_recovery = False
+        # a reset makes it forget them; it gets them back from the others after a few
+        # polls, as catch-up would, unless catch_up_after_polls is None
+        self.forget_missions_file = None
+        self.catch_up_after_polls = 2
+        self._polls_until_caught_up = None
 
     def bot_offload(self):
         return {'data_offload_percentage': 100}
@@ -107,13 +119,49 @@ class FakeHub:
             own['bot_offload'] = offload
         return [own] + [{'hub_id': hub_id} for hub_id in self.heard_hubs]
 
+    def store_mission(self, bot_id, plan, relayed=False):
+        plan = copy.deepcopy(plan)
+        if relayed and self.truncates_relayed_missions:
+            plan['goal'] = plan['goal'][:10]
+        if relayed and self.drops_mission_names:
+            plan.pop('mission_name', None)
+        self.mission_plans[bot_id] = plan
+        if not relayed:
+            for peer in self.peers:
+                peer.store_mission(bot_id, plan, relayed=True)
+
+    def _forget_or_catch_up(self):
+        if self.forget_missions_file and os.path.exists(self.forget_missions_file):
+            os.remove(self.forget_missions_file)
+            self.mission_plans = {}
+            self._polls_until_caught_up = self.catch_up_after_polls
+        if self._polls_until_caught_up is None:
+            return
+        if self._polls_until_caught_up > 0:
+            self._polls_until_caught_up -= 1
+            return
+        self._polls_until_caught_up = None
+        for peer in self.peers:
+            for bot_id, plan in peer.mission_plans.items():
+                self.store_mission(bot_id, plan, relayed=True)
+
+    def bot_status(self, bot):
+        status = bot.status()
+        name = self.mission_plans.get(bot.bot_id, {}).get('mission_name')
+        if name and status['mission_state'].startswith('IN_MISSION__'):
+            status['mission_name'] = name
+        return status
+
     def handle(self, path, payload, client_id=None):
         if path.startswith('/status/'):
-            statuses = [bot.status() for bot in self.bots.values()]
+            self._forget_or_catch_up()
+            statuses = [self.bot_status(bot) for bot in self.bots.values()]
             if self.advances_bots:
                 for bot in self.bots.values():
                     bot.advance()
-            status = {'bots': statuses, 'hubs': self.hub_statuses()}
+            status = {'bots': statuses, 'hubs': self.hub_statuses(),
+                      'active_mission_plans': [{'bot_id': bot_id, 'mission_plan': plan}
+                                               for bot_id, plan in self.mission_plans.items()]}
             if self.controlling_client_id:
                 status['controlling_client_id'] = self.controlling_client_id
             return {'status': status}
@@ -173,6 +221,7 @@ class FakeHub:
         if kind == 'ACTIVATE':
             bot.states = ['PRE_DEPLOYMENT__WAIT_FOR_MISSION_PLAN']
         elif kind == 'MISSION_PLAN':
+            self.store_mission(bot.bot_id, payload['plan'])
             goals = [(g['location']['lat'], g['location']['lon'])
                      for g in payload['plan']['goal']]
             task = payload['plan']['goal'][0]['task']
@@ -180,6 +229,9 @@ class FakeHub:
                               task['surface_drift']['drift_time'])
         elif kind == 'RECOVERED':
             bot.states = list(POST_MISSION)
+            for hub in [self, *self.peers]:
+                if hub.clears_missions_on_recovery:
+                    hub.mission_plans.pop(bot.bot_id, None)
             if self.offload_dir:
                 path = os.path.join(self.offload_dir,
                                     f'bot{bot.bot_id}_fleet9_20240101T000000.goby')

@@ -31,6 +31,8 @@ POST_IDLE = 'POST_DEPLOYMENT__IDLE'
 POST_FAILED = 'POST_DEPLOYMENT__FAILED'
 ABORT = 'IN_MISSION__UNDERWAY__ABORT'
 OFFLOAD_FAILED_WARNING = 'WARNING__MISSION__DATA_OFFLOAD_FAILED'
+# hub-to-hub carries a waypoint with DCCL's rounding, well within a metre
+WAYPOINT_MATCH_TOLERANCE_M = 2.0
 
 
 class Check:
@@ -67,6 +69,8 @@ class Observations:
         # waiting, which JCC shows as the queue emptying and filling again
         self.hub_offload_gaps = collections.defaultdict(int)
         self._last_bot_offload = {}
+        # the mission names the hub gave each bot's status
+        self.mission_names = collections.defaultdict(set)
 
     def ingest(self, status):
         for bot in api.bot_statuses(status):
@@ -84,6 +88,8 @@ class Observations:
                     self.recovery_location[bot_id] = self.last_location[bot_id]
             if bot.get('health_state'):
                 self.health[bot_id].add(bot['health_state'])
+            if bot.get('mission_name'):
+                self.mission_names[bot_id].add(bot['mission_name'])
             errors, warnings = api.bot_faults(bot)
             self.errors[bot_id].update(errors)
             self.warnings[bot_id].update(warnings)
@@ -252,6 +258,48 @@ def relayed_command_for_hub_check(via_id, target_id, response, error_code, error
         detail = f'sent, so it would run on hub {via_id}'
     return Check(HUB2HUB, f'hub {via_id} refuses a command for hub {target_id} as JSON',
                  refused, detail)
+
+
+def active_mission_mismatch(plan, goals, mission_name):
+    """How a hub's stored mission differs from the one sent, or None when it matches."""
+    if plan is None:
+        return 'holds no mission'
+    held = [(goal['location']['lat'], goal['location']['lon']) for goal in plan.get('goal', [])]
+    if len(held) != len(goals):
+        return f'holds {len(held)} waypoints, {len(goals)} were sent'
+    misplaced = [number for number, (a, b) in enumerate(zip(held, goals), 1)
+                 if mission.distance_m(a, b) > WAYPOINT_MATCH_TOLERANCE_M]
+    if misplaced:
+        return f'waypoints {misplaced} are not where they were sent'
+    if plan.get('mission_name', '') != mission_name:
+        return f'named {plan.get("mission_name", "")!r}, sent as {mission_name!r}'
+    return None
+
+
+def active_mission_checks(statuses, goals_by_bot, mission_name, when):
+    """Whether each hub holds the mission sent to each bot, which every JCC on it draws as
+    that bot's ghost. statuses maps each hub to the status its own REST API last reported."""
+    checks = []
+    for hub_id, status in sorted(statuses.items()):
+        plans = api.active_mission_plans(status)
+        for bot_id, goals in sorted(goals_by_bot.items()):
+            mismatch = active_mission_mismatch(plans.get(bot_id), goals, mission_name)
+            checks.append(Check(HUB2HUB, f"hub {hub_id} holds bot {bot_id}'s mission {when}",
+                                mismatch is None,
+                                mismatch or f'{len(goals)} waypoints, named {mission_name!r}'))
+    return checks
+
+
+def mission_name_checks(observations_by_hub, expected_bots, mission_name):
+    """Whether each hub named each bot's status after the mission it was sent."""
+    checks = []
+    for hub_id, observations in sorted(observations_by_hub.items()):
+        for bot_id in expected_bots:
+            names = sorted(observations.mission_names[bot_id])
+            checks.append(Check(HUB2HUB, f"hub {hub_id} names bot {bot_id}'s mission",
+                                mission_name in names,
+                                f'named {names}' if names else 'never named it'))
+    return checks
 
 
 def relay_only_offload_checks(observations, hub_id):

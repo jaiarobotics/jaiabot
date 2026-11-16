@@ -245,6 +245,58 @@ class Hub2HubCheckTest(unittest.TestCase):
         self.assertTrue(checks.relay_only_offload_checks(checks.Observations(), 30)[0].passed)
 
 
+class ActiveMissionCheckTest(unittest.TestCase):
+    GOALS = [(41.66, -71.27), (41.661, -71.27)]
+
+    def plan(self, goals=None, name='sea-trial'):
+        return {'goal': [{'location': {'lat': lat, 'lon': lon}}
+                         for lat, lon in (goals or self.GOALS)],
+                'mission_name': name}
+
+    def test_a_matching_mission_is_held(self):
+        self.assertIsNone(checks.active_mission_mismatch(self.plan(), self.GOALS, 'sea-trial'))
+
+    def test_dccl_rounding_of_a_waypoint_still_matches(self):
+        rounded = [(41.66000001, -71.27000001), (41.661, -71.27)]
+        self.assertIsNone(
+            checks.active_mission_mismatch(self.plan(rounded), self.GOALS, 'sea-trial'))
+
+    def test_no_mission_is_a_mismatch(self):
+        self.assertEqual(checks.active_mission_mismatch(None, self.GOALS, 'sea-trial'),
+                         'holds no mission')
+
+    def test_missing_waypoints_are_a_mismatch(self):
+        self.assertEqual(checks.active_mission_mismatch(self.plan(self.GOALS[:1]), self.GOALS,
+                                                        'sea-trial'),
+                         'holds 1 waypoints, 2 were sent')
+
+    def test_a_moved_waypoint_is_a_mismatch(self):
+        moved = [(41.66, -71.27), (41.662, -71.27)]
+        self.assertEqual(checks.active_mission_mismatch(self.plan(moved), self.GOALS, 'sea-trial'),
+                         'waypoints [2] are not where they were sent')
+
+    def test_another_name_is_a_mismatch(self):
+        self.assertIn("named 'other'", checks.active_mission_mismatch(
+            self.plan(name='other'), self.GOALS, 'sea-trial'))
+
+    def test_each_hub_and_bot_gets_a_check(self):
+        status = {'active_mission_plans': [{'bot_id': 1, 'mission_plan': self.plan()}]}
+        results = checks.active_mission_checks({1: status, 30: {}}, {1: self.GOALS},
+                                               'sea-trial', 'once sent')
+        self.assertEqual([(c.name, c.passed) for c in results],
+                         [("hub 1 holds bot 1's mission once sent", True),
+                          ("hub 30 holds bot 1's mission once sent", False)])
+
+    def test_a_hub_that_never_named_a_bots_mission_fails(self):
+        named, unnamed = checks.Observations(), checks.Observations()
+        named.ingest({'bots': [{'bot_id': 1, 'mission_name': 'sea-trial'}]})
+        unnamed.ingest({'bots': [{'bot_id': 1}]})
+        results = checks.mission_name_checks({1: named, 2: unnamed}, [1], 'sea-trial')
+        self.assertEqual([(c.name, c.passed) for c in results],
+                         [("hub 1 names bot 1's mission", True),
+                          ("hub 2 names bot 1's mission", False)])
+
+
 class CheckTest(unittest.TestCase):
     def test_offload_flags_a_bot_still_warning_of_a_failed_offload(self):
         observations = checks.Observations()
