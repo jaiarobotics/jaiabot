@@ -243,6 +243,8 @@ class HubManager : public ApplicationBase
     static constexpr goby::time::SteadyClock::duration active_mission_summary_min_interval_{
         std::chrono::seconds(30)};
     std::optional<goby::time::SteadyClock::time_point> last_active_mission_summary_time_;
+    // a web_portal that outlived a restart of this app still holds what it had before
+    bool active_mission_plans_published_{false};
 
     jaiabot::comms::MissionPlanAssembler remote_mission_plan_assembler_;
     jaiabot::comms::MissionPlanAssembler hub2hub_active_mission_assembler_;
@@ -919,6 +921,9 @@ void jaiabot::apps::HubManager::handle_hub2hub_data(
 
 void jaiabot::apps::HubManager::loop()
 {
+    if (!active_mission_plans_published_)
+        publish_active_mission_plans();
+
     latest_hub_status_.set_time_with_units(goby::time::SystemClock::now<goby::time::MicroTime>());
 
     // Start the next offload before reporting, so the queue isn't missing from a status between bots
@@ -1771,6 +1776,7 @@ void jaiabot::apps::HubManager::publish_active_mission_plans()
 {
     interprocess().publish<jaiabot::groups::active_mission_plans>(
         active_mission_plans_.to_message());
+    active_mission_plans_published_ = true;
 }
 
 void jaiabot::apps::HubManager::publish_hub2hub_data(jaiabot::protobuf::Hub2HubData* hub2hub_data)
