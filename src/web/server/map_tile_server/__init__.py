@@ -138,7 +138,7 @@ class MapTileServer:
         return maps_directory.json()
 
 
-    def get_tile(self, map_name: str, z: int, x: int, y: int):
+    def get_tile(self, map_name: str, z: int, x: int, y: int) -> bytes | None:
         """Get an offline map layer tile.
 
         Args:
@@ -151,16 +151,14 @@ class MapTileServer:
             bytes or None: Binary image data in png format, if the image exists.
         """
         if map_name == 'natural-earth':
-            tile_path = self.natural_earth_renderer.render_tile(z, x, y)
-            if tile_path is None:
-                return None
+            return self.natural_earth_renderer.render_tile(z, x, y)
         else:
             tile_path = f'{self.tiles_directory}/{map_name}/{z}/{x}/{y}.png'
 
-        if not os.path.isfile(tile_path):
-            return None
-        else:
-            return open(tile_path, 'rb').read()
+            try:
+                return open(tile_path, 'rb').read()
+            except FileNotFoundError:
+                return None
 
 
     def tile_exists(self, map_name:str, z: int, x: int, y: int):

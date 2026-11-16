@@ -7,6 +7,7 @@ import mapnik
 import flask
 from string import Template
 import logging
+from threading import Lock
 
 
 l = logging.getLogger(__name__)
@@ -21,8 +22,8 @@ class TileRenderer(Protocol):
     def __init__(self, map_name: str):
         ...
 
-    def render_tile(self, z: int, x: int, y: int) -> str | None:
-        """Renders a tile if necessary, and returns the path to the tile.
+    def render_tile(self, z: int, x: int, y: int) -> bytes | None:
+        """Renders a tile if necessary, and returns the tile data.
 
         Args:
             z (int): Web mercator zoom level.
@@ -30,7 +31,7 @@ class TileRenderer(Protocol):
             y (int): Web mercator tile y coordinate.
 
         Returns:
-            str | None: Path to the rendered tile.  Returns None if the tile could not be rendered.
+            bytes | None: Binary image data in png format.  Returns None if the tile could not be rendered.
         """
         ...
 
@@ -48,7 +49,10 @@ class MapnikTileRenderer(TileRenderer):
     _cached_tile_count: int = 0
     max_cached_tiles: int = 2000
 
+    _lock: Lock
+
     def __init__(self, xml_template: str, max_cached_tiles: int = 2000):
+        self._lock = Lock()
         self.map_name = os.path.splitext(os.path.basename(xml_template))[0]
 
         cache_dir = '/var/log/jaiabot/cache/mapnik_tiles'
@@ -67,52 +71,53 @@ class MapnikTileRenderer(TileRenderer):
             self.stylesheet_template = None
 
 
-    def render_tile(self, z: int, x: int, y: int) -> str | None:
+    def render_tile(self, z: int, x: int, y: int) -> bytes | None:
         output = f"{self.tiles_path}/tile_{z}_{x}_{y}.png"
 
-        if os.path.exists(output):
-            return output
+        with self._lock:
+            if os.path.exists(output):
+                return open(output, 'rb').read()
 
-        if self.stylesheet_template is None:
-            return None
+            if self.stylesheet_template is None:
+                return None
 
-        m = mapnik.Map(256, 256)
+            m = mapnik.Map(256, 256)
 
-        # True makes relative paths resolve from the XML file's directory.
-        mapnik.load_map_from_string(m, self.stylesheet_template.substitute(z=z), False, self.base_path)
+            # True makes relative paths resolve from the XML file's directory.
+            mapnik.load_map_from_string(m, self.stylesheet_template.substitute(z=z), False, self.base_path)
 
-        tile_side = WEB_MERCATOR_SIZE / (2 ** z)
+            tile_side = WEB_MERCATOR_SIZE / (2 ** z)
 
-        tile_bbox = mapnik.Box2d(
-            WEB_MERCATOR_MIN + tile_side * x,
-            WEB_MERCATOR_MAX - tile_side * y,
-            WEB_MERCATOR_MIN + tile_side * (x + 1),
-            WEB_MERCATOR_MAX - tile_side * (y + 1),
-        )
-
-        m.zoom_to_box(tile_bbox)
-        mapnik.render_to_file(m, output, "png", 2.0)
-
-        self._cached_tile_count += 1
-
-        # Remove the oldest (earliest access time) half of the tile cache if we have too many cached tiles.
-        if self._cached_tile_count > self.max_cached_tiles:
-            tiles = sorted(
-                os.scandir(self.tiles_path), key=lambda entry: entry.stat().st_atime
+            tile_bbox = mapnik.Box2d(
+                WEB_MERCATOR_MIN + tile_side * x,
+                WEB_MERCATOR_MAX - tile_side * y,
+                WEB_MERCATOR_MIN + tile_side * (x + 1),
+                WEB_MERCATOR_MAX - tile_side * (y + 1),
             )
 
-            tiles_to_remove = len(tiles) // 2
+            m.zoom_to_box(tile_bbox)
+            mapnik.render_to_file(m, output, "png", 2.0)
 
-            for tile_index, tile in enumerate(tiles):
-                if tile_index >= tiles_to_remove:
-                    break
+            self._cached_tile_count += 1
 
-                os.remove(tile.path)
-                self._cached_tile_count -= 1
+            # Remove the oldest (earliest access time) half of the tile cache if we have too many cached tiles.
+            if self._cached_tile_count > self.max_cached_tiles:
+                tiles = sorted(
+                    os.scandir(self.tiles_path), key=lambda entry: entry.stat().st_atime
+                )
 
-            self._cached_tile_count = len(tiles) - tiles_to_remove
+                tiles_to_remove = len(tiles) // 2
 
-        return output
+                for tile_index, tile in enumerate(tiles):
+                    if tile_index >= tiles_to_remove:
+                        break
+
+                    os.remove(tile.path)
+                    self._cached_tile_count -= 1
+
+                self._cached_tile_count = len(tiles) - tiles_to_remove
+
+            return open(output, 'rb').read()
 
 
     def clear_cache(self) -> None:
@@ -136,11 +141,11 @@ class TileServer:
         self.app.add_url_rule("/", view_func=self.index)
 
     def serve_tile(self, z: int, x: int, y: int) -> flask.Response:
-        tile_path = self.renderer.render_tile(z, x, y)
-        if tile_path is None:
+        tile_data = self.renderer.render_tile(z, x, y)
+        if tile_data is None:
             return flask.Response("Tile could not be rendered", status=404)
         
-        return flask.send_file(tile_path, mimetype="image/png")
+        return flask.Response(tile_data, mimetype="image/png")
 
     def index(self) -> str:
         return flask.send_file("index.html", mimetype="text/html")
