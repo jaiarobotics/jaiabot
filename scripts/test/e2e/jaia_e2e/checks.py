@@ -65,10 +65,13 @@ class Observations:
         # bots each hub was seen offloading, from the hub's own status: a hub heard over
         # hub-to-hub never carries bot_offload, as it is not in that link's encoding
         self.hub_offloaded_bots = collections.defaultdict(set)
-        # polls on which a hub's queue went missing although its last one still had bots
-        # waiting, which JCC shows as the queue emptying and filling again
+        # times a hub's queue went missing while bots still waited and then came back,
+        # which JCC shows as the queue emptying and filling again
         self.hub_offload_gaps = collections.defaultdict(int)
         self._last_bot_offload = {}
+        # a queue that drains between two polls also goes missing with bots waiting, so
+        # a dropout is only a gap once the queue comes back
+        self._hubs_with_dropped_queue = set()
         # the mission names the hub gave each bot's status
         self.mission_names = collections.defaultdict(set)
 
@@ -104,8 +107,11 @@ class Observations:
                 self.hub_offload_percentage[hub_id] = percentage
             if bot_offload and 'bot_id' in bot_offload:
                 self.hub_offloaded_bots[hub_id].add(bot_offload['bot_id'])
-            if not bot_offload and (self._last_bot_offload.get(hub_id) or {}).get('bots_pending'):
+            if bot_offload and hub_id in self._hubs_with_dropped_queue:
+                self._hubs_with_dropped_queue.discard(hub_id)
                 self.hub_offload_gaps[hub_id] += 1
+            elif not bot_offload and (self._last_bot_offload.get(hub_id) or {}).get('bots_pending'):
+                self._hubs_with_dropped_queue.add(hub_id)
             self._last_bot_offload[hub_id] = bot_offload
 
     def saw(self, bot_id, state):
@@ -221,7 +227,8 @@ def offload_queue_checks(observations):
         gaps = observations.hub_offload_gaps[hub_id]
         checks.append(Check(OFFLOAD, f'hub {hub_id} kept its offload queue between bots',
                             not gaps,
-                            f'the queue went missing on {gaps} poll(s) with bots still waiting'
+                            f'the queue went missing with bots still waiting and came back '
+                            f'{gaps} time(s)'
                             if gaps else 'never missing while bots waited'))
     return checks
 

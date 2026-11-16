@@ -211,6 +211,10 @@ class OffloadQueueTest(unittest.TestCase):
         self.assertEqual(observations.hub_offload_gaps[1], 1)
         self.assertEqual(observations.hub_offloaded_bots[1], {1, 2})
 
+    def test_a_queue_that_drains_between_polls_is_not_a_gap(self):
+        observations = self.queue({'bot_id': 1, 'bots_pending': [2]}, None, None)
+        self.assertEqual(observations.hub_offload_gaps[1], 0)
+
     def test_a_queue_that_empties_after_its_last_bot_is_not_a_gap(self):
         observations = self.queue({'bot_id': 1, 'bots_pending': [2]}, {'bot_id': 2}, None)
         self.assertEqual(observations.hub_offload_gaps[1], 0)
