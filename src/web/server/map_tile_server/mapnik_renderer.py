@@ -122,9 +122,10 @@ class MapnikTileRenderer(TileRenderer):
 
     def clear_cache(self) -> None:
         """Clears the tile cache."""
-        for tile in os.scandir(self.tiles_path):
-            os.remove(tile.path)
-        self._cached_tile_count = 0
+        with self._lock:
+            for tile in os.scandir(self.tiles_path):
+                os.remove(tile.path)
+            self._cached_tile_count = 0
 
 
 class TileServer:
