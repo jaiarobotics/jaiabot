@@ -205,10 +205,6 @@ class PortalHearingSeveralHubsTest(unittest.TestCase):
         self.assertEqual([m.command_for_hub.hub_id for m in sent_messages()], [self.OWN_HUB_ID])
 
 
-if __name__ == '__main__':
-    unittest.main()
-
-
 class MissionNameTest(unittest.TestCase):
     def setUp(self):
         forget_everything()
@@ -232,3 +228,7 @@ class MissionNameTest(unittest.TestCase):
         # é is 2 UTF-8 bytes, so the last one would end one byte past the limit
         name = 'n' * (MISSION_NAME_MAX_BYTES - 1) + 'é'
         self.assertEqual(self.send_mission(name), ['n' * (MISSION_NAME_MAX_BYTES - 1)])
+
+
+if __name__ == '__main__':
+    unittest.main()
