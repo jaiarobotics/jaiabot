@@ -97,11 +97,12 @@ class MapTileServer:
     geotiffs_directory: str
     natural_earth_renderer: TileRenderer
 
-    def __init__(self, maps_directory: str, natural_earth_renderer: TileRenderer=MapnikTileRenderer('/etc/jaiabot/10m.xml.template')):
-        """Create a MapTileServer
+    def __init__(self, maps_directory: str, natural_earth_renderer: TileRenderer=None):
+        """Create a MapTileServer instance.
 
         Args:
             maps_directory (str): Location of the directory where the tilesets, uploaded GeoTIFF files, etc. will be placed.
+            natural_earth_renderer (TileRenderer, optional): Renderer for the natural earth map layer. Defaults to None.
         """
         self.maps_directory = os.path.expanduser(maps_directory)
 
@@ -113,7 +114,7 @@ class MapTileServer:
 
         geotiff.watch_directory_and_convert_to_tiles(self.geotiffs_directory, self.tiles_directory)
 
-        self.natural_earth_renderer = natural_earth_renderer
+        self.natural_earth_renderer = natural_earth_renderer or MapnikTileRenderer('/etc/jaiabot/10m.xml.template')
 
 
     def get_maps(self):
@@ -151,6 +152,8 @@ class MapTileServer:
         """
         if map_name == 'natural-earth':
             tile_path = self.natural_earth_renderer.render_tile(z, x, y)
+            if tile_path is None:
+                return None
         else:
             tile_path = f'{self.tiles_directory}/{map_name}/{z}/{x}/{y}.png'
 

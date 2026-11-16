@@ -6,6 +6,10 @@ from typing import Protocol
 import mapnik
 import flask
 from string import Template
+import logging
+
+
+l = logging.getLogger(__name__)
 
 
 WEB_MERCATOR_MIN = -20037508.34
@@ -17,7 +21,7 @@ class TileRenderer(Protocol):
     def __init__(self, map_name: str):
         ...
 
-    def render_tile(self, z: int, x: int, y: int) -> str:
+    def render_tile(self, z: int, x: int, y: int) -> str | None:
         """Renders a tile if necessary, and returns the path to the tile.
 
         Args:
@@ -26,7 +30,7 @@ class TileRenderer(Protocol):
             y (int): Web mercator tile y coordinate.
 
         Returns:
-            str: Path to the rendered tile.
+            str | None: Path to the rendered tile.  Returns None if the tile could not be rendered.
         """
         ...
 
@@ -52,15 +56,25 @@ class MapnikTileRenderer(TileRenderer):
         os.makedirs(self.tiles_path, exist_ok=True)
 
         self._cached_tile_count = sum(1 for _ in os.scandir(self.tiles_path))
-        self.stylesheet_template = Template(open(xml_template).read())
         self.base_path = os.path.dirname(xml_template)
         self.max_cached_tiles = max_cached_tiles
 
-    def render_tile(self, z: int, x: int, y: int) -> str:
+        try:
+            self.stylesheet_template = Template(open(xml_template).read())
+        except FileNotFoundError as e:
+            l.warning(f"Failed to load map stylesheet XML template at {xml_template}")
+            l.warning(e)
+            self.stylesheet_template = None
+
+
+    def render_tile(self, z: int, x: int, y: int) -> str | None:
         output = f"{self.tiles_path}/tile_{z}_{x}_{y}.png"
 
         if os.path.exists(output):
             return output
+
+        if self.stylesheet_template is None:
+            return None
 
         m = mapnik.Map(256, 256)
 
@@ -123,6 +137,9 @@ class TileServer:
 
     def serve_tile(self, z: int, x: int, y: int) -> flask.Response:
         tile_path = self.renderer.render_tile(z, x, y)
+        if tile_path is None:
+            return flask.Response("Tile could not be rendered", status=404)
+        
         return flask.send_file(tile_path, mimetype="image/png")
 
     def index(self) -> str:
