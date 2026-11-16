@@ -91,7 +91,12 @@ class MapnikTileRenderer(TileRenderer):
         )
 
         m.zoom_to_box(tile_bbox)
-        mapnik.render_to_file(m, output, "png", 2.0)
+        import tempfile
+
+        with tempfile.TemporaryDirectory(dir=os.path.dirname(self.tiles_path)) as staging_dir:
+            staging_path = os.path.join(staging_dir, "tile.png")
+            mapnik.render_to_file(m, staging_path, "png", 2.0)
+            os.replace(staging_path, output)
 
         self._cached_tile_count += 1
 
