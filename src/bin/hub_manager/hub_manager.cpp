@@ -126,6 +126,8 @@ class HubManager : public ApplicationBase
     void load_active_mission_plans();
     void update_active_mission_plans(const jaiabot::protobuf::Command& command);
     void raise_last_command_timestamp(const jaiabot::protobuf::Command& command);
+    std::uint64_t latest_accepted_command_time() const;
+    bool is_too_far_ahead(const jaiabot::protobuf::Command& command) const;
     void publish_active_mission_plans();
     void publish_active_mission_summary();
     void publish_active_mission_to_other_hubs(const jaiabot::protobuf::Command& command);
@@ -238,6 +240,9 @@ class HubManager : public ApplicationBase
     static constexpr goby::time::SteadyClock::duration active_mission_plans_republish_interval_{
         std::chrono::seconds(10)};
     goby::time::SteadyClock::time_point next_active_mission_plans_publish_time_{};
+    // another hub's mission dated further ahead of this hub's clock is ignored, so a badly wrong
+    // clock can't push this hub's command times beyond what a bot decodes (12 h)
+    static constexpr std::chrono::hours max_command_time_ahead_{1};
     // one summary for all hubs, however many resubscribe within this interval
     static constexpr goby::time::SteadyClock::duration active_mission_summary_min_interval_{
         std::chrono::seconds(30)};
@@ -828,6 +833,16 @@ void jaiabot::apps::HubManager::handle_hub2hub_active_mission(
         command = *mission_plan;
     }
 
+    if (is_too_far_ahead(command))
+    {
+        glog.is_warn() && glog << group("hub2hub") << "Ignoring hub " << active_mission.hub_id()
+                               << "'s active mission for bot " << command.bot_id()
+                               << ": its command time is more than "
+                               << max_command_time_ahead_.count() << " h ahead of this hub's clock"
+                               << std::endl;
+        return;
+    }
+
     if (command.plan().has_mission_name())
         set_mission_name_for_bot_command_time(command.bot_id(), command.time(),
                                               command.plan().mission_name());
@@ -1409,9 +1424,18 @@ void jaiabot::apps::HubManager::handle_command(const jaiabot::protobuf::Command&
                                  << std::endl;
         command.set_time_with_units(t3 * boost::units::si::micro * boost::units::si::seconds);
     }
-    raise_last_command_timestamp(command);
-
-    update_active_mission_plans(command);
+    if (from_other_hub && is_too_far_ahead(command))
+    {
+        glog.is_warn() &&
+            glog << group("main") << "Not storing the relayed command for bot " << command.bot_id()
+                 << " as its active mission: its time is more than "
+                 << max_command_time_ahead_.count() << " h ahead of this hub's clock" << std::endl;
+    }
+    else
+    {
+        raise_last_command_timestamp(command);
+        update_active_mission_plans(command);
+    }
 
     if (command.has_plan())
     {
@@ -1647,6 +1671,12 @@ void jaiabot::apps::HubManager::load_active_mission_plans()
     try
     {
         active_mission_plans_.load(active_mission_plans_path_);
+        for (const auto& command :
+             active_mission_plans_.forget_after(latest_accepted_command_time()))
+            glog.is_warn() && glog << group("main") << "Dropped the saved active mission for bot "
+                                   << command.bot_id() << ": its command time is more than "
+                                   << max_command_time_ahead_.count()
+                                   << " h ahead of this hub's clock" << std::endl;
         for (const auto& command : active_mission_plans_.to_message().command())
         {
             raise_last_command_timestamp(command);
@@ -1668,6 +1698,17 @@ void jaiabot::apps::HubManager::raise_last_command_timestamp(
 {
     last_command_timestamp_ =
         std::max(last_command_timestamp_, command.time_with_units<goby::time::MicroTime>());
+}
+
+std::uint64_t jaiabot::apps::HubManager::latest_accepted_command_time() const
+{
+    return goby::time::SystemClock::now<goby::time::MicroTime>().value() +
+           std::chrono::microseconds(max_command_time_ahead_).count();
+}
+
+bool jaiabot::apps::HubManager::is_too_far_ahead(const jaiabot::protobuf::Command& command) const
+{
+    return command.time() > latest_accepted_command_time();
 }
 
 void jaiabot::apps::HubManager::update_active_mission_plans(

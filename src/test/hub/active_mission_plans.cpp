@@ -147,6 +147,32 @@ BOOST_AUTO_TEST_CASE(unreadable_file_throws_and_loads_no_plans)
 
 BOOST_AUTO_TEST_SUITE_END()
 
+BOOST_AUTO_TEST_SUITE(forget_after_tests)
+
+BOOST_AUTO_TEST_CASE(plans_after_the_time_are_dropped_and_returned)
+{
+    ActiveMissionPlans plans;
+    plans.update(make_mission_plan(1, command_time, "on time"));
+    plans.update(make_mission_plan(2, command_time + 2 * one_second, "far ahead"));
+
+    const auto dropped = plans.forget_after(command_time + one_second);
+
+    BOOST_REQUIRE_EQUAL(dropped.size(), 1);
+    BOOST_CHECK_EQUAL(dropped[0].bot_id(), 2);
+    BOOST_CHECK((mission_names(plans) == std::map<std::uint32_t, std::string>{{1, "on time"}}));
+}
+
+BOOST_AUTO_TEST_CASE(plans_at_the_time_are_kept)
+{
+    ActiveMissionPlans plans;
+    plans.update(make_mission_plan(1, command_time, "on time"));
+
+    BOOST_CHECK(plans.forget_after(command_time).empty());
+    BOOST_CHECK_EQUAL(plans.to_message().command_size(), 1);
+}
+
+BOOST_AUTO_TEST_SUITE_END()
+
 BOOST_AUTO_TEST_SUITE(summary_tests)
 
 std::set<std::uint32_t> bot_ids(const std::vector<Command>& commands)

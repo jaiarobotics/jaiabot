@@ -75,6 +75,26 @@ class ActiveMissionPlans
         return newer;
     }
 
+    /// \brief Drops the plans whose command time is after latest_time
+    /// \return the dropped plans
+    std::vector<protobuf::Command> forget_after(std::uint64_t latest_time)
+    {
+        std::vector<protobuf::Command> dropped;
+        for (auto it = commands_.begin(); it != commands_.end();)
+        {
+            if (it->second.time() > latest_time)
+            {
+                dropped.push_back(it->second);
+                it = commands_.erase(it);
+            }
+            else
+            {
+                ++it;
+            }
+        }
+        return dropped;
+    }
+
     /// \brief Writes the plans to path, replacing the file only once the write has succeeded
     void save(const std::filesystem::path& path) const
     {
