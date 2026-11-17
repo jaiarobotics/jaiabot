@@ -187,7 +187,7 @@ The REST API treats a `remote_command` as another hub's operator taking control.
 
 *This section written by Claude*
 
-Every hub keeps the last `MISSION_PLAN` sent to each bot, whether a client on this hub sent it or it arrived from another hub. A newer command time replaces an older one, so a late or repeated copy can't bring back an old mission. `jaiabot_hub_manager` saves the missions to `$jaia_log_dir/hub/<id>/active_mission_plans.pb`, so they survive a restart, and publishes them to `jaiabot_web_portal` on the interprocess `active_mission_plans` group whenever they change. A `jaiabot_web_portal` that starts after `jaiabot_hub_manager` asks for them with a `QueryActiveMissionPlans` on `active_mission_plans_query`. The REST API returns them as `active_mission_plans`, and JCC draws each one as the bot's ghost mission.
+Every hub keeps the last `MISSION_PLAN` sent to each bot, whether a client on this hub sent it or it arrived from another hub. A newer command time replaces an older one, so a late or repeated copy can't bring back an old mission. `jaiabot_hub_manager` keeps the missions in memory only: a restarted hub starts with none and gets them back from the other hubs that are running. It publishes them to `jaiabot_web_portal` on the interprocess `active_mission_plans` group whenever they change. A `jaiabot_web_portal` that starts after `jaiabot_hub_manager` asks for them with a `QueryActiveMissionPlans` on `active_mission_plans_query`. The REST API returns them as `active_mission_plans`, and JCC draws each one as the bot's ghost mission.
 
 Live changes reach other hubs with the `command_for_bot` relay. A hub that starts later, restarts or missed a relay catches up like this:
 1. When another hub subscribes, a hub sends a `Hub2HubActiveMissionSummary`: the bot ID and command time of each mission it holds. It sends at most one summary every 30 s, however many hubs subscribe.
@@ -196,7 +196,7 @@ Live changes reach other hubs with the `command_for_bot` relay. A hub that start
 
 Both messages carry the command time in their own field. `Command.time` decodes correctly only within 12 hours of the receiver's clock, and a stored mission can be days old.
 
-A hub ignores another hub's mission, and drops a saved one, whose command time is more than an hour ahead of its own clock. Hub clocks are assumed to be roughly in sync: a hub keeps its own command times later than every mission it has stored, so a hub whose clock runs ahead, by up to an hour, pushes the other hubs' command times forward with it.
+A hub ignores another hub's mission whose command time is more than an hour ahead of its own clock. Hub clocks are assumed to be roughly in sync: a hub keeps its own command times later than every mission it has stored, so a hub whose clock runs ahead, by up to an hour, pushes the other hubs' command times forward with it.
 
 ## Iridium
 

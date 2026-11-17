@@ -123,7 +123,6 @@ class HubManager : public ApplicationBase
     void start_dataoffload(int bot_id);
 
     void publish_hub2hub_data(jaiabot::protobuf::Hub2HubData* hub2hub_data);
-    void load_active_mission_plans();
     void update_active_mission_plans(const jaiabot::protobuf::Command& command);
     void raise_last_command_timestamp(const jaiabot::protobuf::Command& command);
     std::uint64_t latest_accepted_command_time() const;
@@ -235,7 +234,6 @@ class HubManager : public ApplicationBase
     std::map<std::pair<BotID, MissionCommandTime>, CommandPending> commands_pending_result_;
 
     jaiabot::hub::ActiveMissionPlans active_mission_plans_;
-    std::filesystem::path active_mission_plans_path_;
     // another hub's mission dated further ahead of this hub's clock is ignored, so a badly wrong
     // clock can't push this hub's command times beyond what a bot decodes (12 h)
     static constexpr std::chrono::hours max_command_time_ahead_{1};
@@ -434,7 +432,6 @@ jaiabot::apps::HubManager::HubManager()
             }
         });
 
-    load_active_mission_plans();
     interprocess().subscribe<jaiabot::groups::active_mission_plans_query>(
         [this](const jaiabot::protobuf::QueryActiveMissionPlans&)
         { publish_active_mission_plans(); });
@@ -1664,36 +1661,6 @@ void jaiabot::apps::HubManager::start_dataoffload(int bot_id)
     offload_thread_.reset(new std::thread(offload_func));
 }
 
-void jaiabot::apps::HubManager::load_active_mission_plans()
-{
-    const char* log_dir = std::getenv("jaia_log_dir");
-    active_mission_plans_path_ = std::filesystem::path(log_dir ? log_dir : "/var/log/jaiabot") /
-                                 "hub" / std::to_string(cfg().hub_id()) / "active_mission_plans.pb";
-    try
-    {
-        active_mission_plans_.load(active_mission_plans_path_);
-        for (const auto& command :
-             active_mission_plans_.forget_after(latest_accepted_command_time()))
-            glog.is_warn() && glog << group("main") << "Dropped the saved active mission for bot "
-                                   << command.bot_id() << ": its command time is more than "
-                                   << max_command_time_ahead_.count()
-                                   << " h ahead of this hub's clock" << std::endl;
-        for (const auto& command : active_mission_plans_.to_message().command())
-        {
-            raise_last_command_timestamp(command);
-            if (command.plan().has_mission_name())
-                set_mission_name_for_bot_command_time(command.bot_id(), command.time(),
-                                                      command.plan().mission_name());
-        }
-    }
-    catch (const std::exception& exception)
-    {
-        glog.is_warn() && glog << group("main")
-                               << "Failed to load active mission plans: " << exception.what()
-                               << std::endl;
-    }
-}
-
 void jaiabot::apps::HubManager::raise_last_command_timestamp(
     const jaiabot::protobuf::Command& command)
 {
@@ -1721,17 +1688,6 @@ void jaiabot::apps::HubManager::update_active_mission_plans(
     // a later local command must outrank every stored one, even when another hub's clock runs ahead
     raise_last_command_timestamp(command);
     publish_active_mission_plans();
-
-    try
-    {
-        active_mission_plans_.save(active_mission_plans_path_);
-    }
-    catch (const std::exception& exception)
-    {
-        glog.is_warn() && glog << group("main")
-                               << "Failed to save active mission plans: " << exception.what()
-                               << std::endl;
-    }
 }
 
 void jaiabot::apps::HubManager::publish_active_mission_summary()

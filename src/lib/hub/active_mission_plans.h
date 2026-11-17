@@ -2,10 +2,7 @@
 #define JAIABOT_SRC_LIB_HUB_ACTIVE_MISSION_PLANS_H
 
 #include <cstdint>
-#include <filesystem>
-#include <fstream>
 #include <map>
-#include <stdexcept>
 #include <vector>
 
 #include "jaiabot/comms/dccl_time.h"
@@ -73,57 +70,6 @@ class ActiveMissionPlans
                 newer.push_back(command);
         }
         return newer;
-    }
-
-    /// \brief Drops the plans whose command time is after latest_time
-    /// \return the dropped plans
-    std::vector<protobuf::Command> forget_after(std::uint64_t latest_time)
-    {
-        std::vector<protobuf::Command> dropped;
-        for (auto it = commands_.begin(); it != commands_.end();)
-        {
-            if (it->second.time() > latest_time)
-            {
-                dropped.push_back(it->second);
-                it = commands_.erase(it);
-            }
-            else
-            {
-                ++it;
-            }
-        }
-        return dropped;
-    }
-
-    /// \brief Writes the plans to path, replacing the file only once the write has succeeded
-    void save(const std::filesystem::path& path) const
-    {
-        std::filesystem::create_directories(path.parent_path());
-        const auto temporary_path = path.string() + ".tmp";
-
-        std::ofstream file(temporary_path, std::ios::binary | std::ios::trunc);
-        if (!file || !to_message().SerializeToOstream(&file))
-            throw std::runtime_error("failed to write " + temporary_path);
-        file.close();
-        if (!file)
-            throw std::runtime_error("failed to write " + temporary_path);
-
-        std::filesystem::rename(temporary_path, path);
-    }
-
-    /// \brief Replaces the plans with those saved at path; no file means no plans
-    void load(const std::filesystem::path& path)
-    {
-        commands_.clear();
-        if (!std::filesystem::exists(path))
-            return;
-
-        std::ifstream file(path, std::ios::binary);
-        protobuf::ActiveMissionPlans message;
-        if (!file || !message.ParseFromIstream(&file))
-            throw std::runtime_error("failed to read " + path.string());
-
-        for (const auto& command : message.command()) update(command);
     }
 
   private:

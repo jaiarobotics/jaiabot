@@ -1,9 +1,6 @@
 #define BOOST_TEST_MODULE jaiabot_test_hub_active_mission_plans
 #include <boost/test/included/unit_test.hpp>
 
-#include <filesystem>
-#include <fstream>
-#include <random>
 #include <set>
 
 #include "jaiabot/hub/active_mission_plans.h"
@@ -37,19 +34,6 @@ std::map<std::uint32_t, std::string> mission_names(const ActiveMissionPlans& pla
         names[command.bot_id()] = command.plan().mission_name();
     return names;
 }
-
-struct TemporaryDirectory
-{
-    TemporaryDirectory()
-        : path(std::filesystem::temp_directory_path() /
-               ("jaiabot_test_active_mission_plans_" + std::to_string(std::random_device()())))
-    {
-        std::filesystem::create_directories(path);
-    }
-    ~TemporaryDirectory() { std::filesystem::remove_all(path); }
-
-    std::filesystem::path path;
-};
 
 BOOST_AUTO_TEST_SUITE(update_tests)
 
@@ -100,75 +84,6 @@ BOOST_AUTO_TEST_CASE(each_bot_keeps_its_own_plan)
     plans.update(make_mission_plan(1, command_time, "bot 1"));
     BOOST_CHECK(mission_names(plans) ==
                 (std::map<std::uint32_t, std::string>{{1, "bot 1"}, {2, "bot 2"}}));
-}
-
-BOOST_AUTO_TEST_SUITE_END()
-
-BOOST_AUTO_TEST_SUITE(persistence_tests)
-
-BOOST_AUTO_TEST_CASE(saved_plans_load_back)
-{
-    TemporaryDirectory directory;
-    const auto path = directory.path / "hub" / "1" / "active_mission_plans.pb";
-
-    ActiveMissionPlans saved;
-    saved.update(make_mission_plan(1, command_time, "bot 1"));
-    saved.update(make_mission_plan(2, command_time, "bot 2"));
-    saved.save(path);
-
-    BOOST_CHECK(!std::filesystem::exists(path.string() + ".tmp"));
-
-    ActiveMissionPlans loaded;
-    loaded.update(make_mission_plan(3, command_time, "replaced by load"));
-    loaded.load(path);
-    BOOST_CHECK(mission_names(loaded) == mission_names(saved));
-}
-
-BOOST_AUTO_TEST_CASE(missing_file_loads_no_plans)
-{
-    TemporaryDirectory directory;
-    ActiveMissionPlans plans;
-    plans.update(make_mission_plan(1, command_time, "replaced by load"));
-    plans.load(directory.path / "active_mission_plans.pb");
-    BOOST_CHECK(plans.to_message().command().empty());
-}
-
-BOOST_AUTO_TEST_CASE(unreadable_file_throws_and_loads_no_plans)
-{
-    TemporaryDirectory directory;
-    const auto path = directory.path / "active_mission_plans.pb";
-    std::ofstream(path) << "not a protobuf message";
-
-    ActiveMissionPlans plans;
-    plans.update(make_mission_plan(1, command_time, "replaced by load"));
-    BOOST_CHECK_THROW(plans.load(path), std::runtime_error);
-    BOOST_CHECK(plans.to_message().command().empty());
-}
-
-BOOST_AUTO_TEST_SUITE_END()
-
-BOOST_AUTO_TEST_SUITE(forget_after_tests)
-
-BOOST_AUTO_TEST_CASE(plans_after_the_time_are_dropped_and_returned)
-{
-    ActiveMissionPlans plans;
-    plans.update(make_mission_plan(1, command_time, "on time"));
-    plans.update(make_mission_plan(2, command_time + 2 * one_second, "far ahead"));
-
-    const auto dropped = plans.forget_after(command_time + one_second);
-
-    BOOST_REQUIRE_EQUAL(dropped.size(), 1);
-    BOOST_CHECK_EQUAL(dropped[0].bot_id(), 2);
-    BOOST_CHECK((mission_names(plans) == std::map<std::uint32_t, std::string>{{1, "on time"}}));
-}
-
-BOOST_AUTO_TEST_CASE(plans_at_the_time_are_kept)
-{
-    ActiveMissionPlans plans;
-    plans.update(make_mission_plan(1, command_time, "on time"));
-
-    BOOST_CHECK(plans.forget_after(command_time).empty());
-    BOOST_CHECK_EQUAL(plans.to_message().command_size(), 1);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
