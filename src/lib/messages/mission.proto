@@ -72,10 +72,10 @@ enum MissionState
     IN_MISSION__PAUSE__MANUAL = 162 [(jaia.ev).rest_api.presence = GUARANTEED];
     IN_MISSION__PAUSE__RESOLVE_NO_FORWARD_PROGRESS = 163;
 
-    IN_MISSION__BATTERY__LOW = 170 [(jaia.ev).rest_api.presence = GUARANTEED];
-    IN_MISSION__BATTERY__CRITICAL = 171 [(jaia.ev).rest_api.presence = GUARANTEED];
-    IN_MISSION__BATTERY__STATION_KEEP = 172 [(jaia.ev).rest_api.presence = GUARANTEED];
-    IN_MISSION__BATTERY__STOP_AND_BROADCAST = 173 [(jaia.ev).rest_api.presence = GUARANTEED];
+    IN_MISSION__BATTERY__LOW = 180 [(jaia.ev).rest_api.presence = GUARANTEED];
+    IN_MISSION__BATTERY__CRITICAL = 181 [(jaia.ev).rest_api.presence = GUARANTEED];
+    IN_MISSION__BATTERY__STATION_KEEP = 182 [(jaia.ev).rest_api.presence = GUARANTEED];
+    IN_MISSION__BATTERY__STOP_AND_BROADCAST = 183 [(jaia.ev).rest_api.presence = GUARANTEED];
 
     POST_DEPLOYMENT__RECOVERED = 200 [(jaia.ev).rest_api.presence = GUARANTEED];
     POST_DEPLOYMENT__DATA_OFFLOAD = 202
@@ -506,10 +506,10 @@ message MissionPlan
         //     [(jaia.field).rest_api.presence = GUARANTEED];
     }
 
-    optional BatteryProtocol very_low_battery_protocol = 12
+    optional BatteryProtocol very_low_battery_protocol = 13
         [(jaia.field).rest_api.presence = GUARANTEED];
 
-    optional BatteryProtocol critically_low_battery_protocol = 13
+    optional BatteryProtocol critically_low_battery_protocol = 14
         [(jaia.field).rest_api.presence = GUARANTEED];
 
 }
