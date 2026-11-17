@@ -1,6 +1,12 @@
+# Only the CloudHub carries anything: its /etc/wireguard is the VPN server's key and
+# peers, which nothing but its creation makes. Every other node starts afresh and is
+# paired again after the upgrade, as a new node would be.
 - name: Fetch files to reuse on new image
   shell: |
+    # Made whatever the node: the swap script restores from it under set -e
     mkdir -p {{ upgrade_reuse_dir }}
+    {% if is_cloudhub | default(false) | bool %}
     for file in /etc/wireguard/*; do
       rsync -aPR $file {{ upgrade_reuse_dir }}
     done
+    {% endif %}

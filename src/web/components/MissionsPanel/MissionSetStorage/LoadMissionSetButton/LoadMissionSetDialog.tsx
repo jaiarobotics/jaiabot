@@ -94,6 +94,7 @@ function ButtonRow(props: ButtonRowProps) {
                 </div>
             );
         }
+        case DisabledCodes.NO_NAME:
         case DisabledCodes.FILE_NOT_FOUND:
         case DisabledCodes.OLD_FORMAT: {
             return (

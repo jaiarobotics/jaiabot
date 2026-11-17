@@ -44,5 +44,7 @@ if [[ "${bot_ip}" == "127.0.0.1" ]]; then
     nice -n 10 rsync -aP --info=progress2 --no-inc-recursive --timeout=15 ${staging_dir}/ ${offload_dir}
 else
     userat="jaia@"
-    nice -n 10 rsync -aP --info=progress2 --no-inc-recursive --timeout=15 ${userat}${bot_ip}:${staging_dir}/ ${offload_dir}
+    nice -n 10 rsync -aP --info=progress2 --no-inc-recursive --timeout=15 \
+        -e "ssh -o ServerAliveInterval=5 -o ServerAliveCountMax=3 -o ConnectTimeout=10" \
+        ${userat}${bot_ip}:${staging_dir}/ ${offload_dir}
 fi

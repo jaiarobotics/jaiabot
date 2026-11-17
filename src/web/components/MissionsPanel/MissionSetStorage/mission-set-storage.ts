@@ -6,9 +6,14 @@ import {
 } from "../../../data/mission_set/mission-set";
 import Waypoint from "../../../data/waypoints/waypoint";
 import Task from "../../../data/tasks/task";
-import { TaskType } from "../../../types/protobuf-types";
+import { Speeds, TaskType } from "../../../types/protobuf-types";
 import { LegacyMissionInterface, LegacyRunInterface } from "../../../types/legacy-types";
-import { DEFAULT_SPEED, UNASSIGNED_ID } from "../../../utils/constants";
+import {
+    DEFAULT_SPEED,
+    TASK_MAX_SPEED_CONSTRAINT,
+    TASK_MIN_SPEED_CONSTRAINT,
+    UNASSIGNED_ID,
+} from "../../../utils/constants";
 import { jaiaAPI } from "../../../utils/jaia-api";
 
 export enum LoadResultType {
@@ -77,10 +82,7 @@ export async function loadSnapshotFromHub(saveName: string): Promise<LoadSnapsho
         nextMissionID: migrated.nextMissionID ?? 0,
         missionIDInEditMode: migrated.missionIDInEditMode ?? UNASSIGNED_ID,
         name: migrated.name ?? "",
-        speeds: migrated.speeds ?? {
-            transit: DEFAULT_SPEED,
-            stationkeep_outer: DEFAULT_SPEED,
-        },
+        speeds: normalizeSpeeds(migrated.speeds),
     };
 
     return {
@@ -146,13 +148,12 @@ export function exportMissionSetToFile(name: string) {
  * Prompts user to open a file with a serialized mission set
  * and returns a MissionSetSnapshot if succesful
  *
- * @returns Promise of {MissionSetSnapshot | null} Snapshot of mission set if the selected
- * file can be parsed correctly otherwise returns null
+ * @returns Promise of {LoadSnapshotResult | null} The load result, or null if no file was selected
  *
  * @notes
  * Called by UI code, snapshot is sent to the reducer/action handler
  */
-export async function loadSnapshotFromFile(): Promise<LoadSnapshotResult> {
+export async function loadSnapshotFromFile(): Promise<LoadSnapshotResult | null> {
     return new Promise((resolve) => {
         const input = document.createElement("input");
         input.type = "file";
@@ -174,8 +175,7 @@ export async function loadSnapshotFromFile(): Promise<LoadSnapshotResult> {
             try {
                 const parsed = JSON.parse(await file.text());
                 if (!parsed) {
-                    // File could not be parsed
-                    resolve(null);
+                    resolve(loadSnapshotResult);
                     return;
                 }
 
@@ -235,9 +235,10 @@ function isLegacyMissionFile(value: any): boolean {
 // Migrates a raw snapshot from 2.0 to 2.1.
 // Per-mission changes are handled here as internal details.
 function migrateSnapshot_2_0(rawSnapshot: any): any {
-    if (!Array.isArray(rawSnapshot.missions)) return rawSnapshot;
+    const migrated = { ...rawSnapshot, speeds: rawSnapshot.speeds ?? rawSnapshot.missionSpeeds };
+    if (!Array.isArray(rawSnapshot.missions)) return migrated;
     return {
-        ...rawSnapshot,
+        ...migrated,
         missions: rawSnapshot.missions.map(([id, mission]: [any, any]) => {
             // bottomDepthSafetyParams moves from mission-level into segments
             if (mission.bottomDepthSafetyParams) {
@@ -275,6 +276,22 @@ function migrateSnapshot(rawSnapshot: any, fromVersion: string): any {
     return snapshot;
 }
 
+// The bot takes whole-number speeds; sets saved before that may hold half steps
+function normalizeSpeeds(speeds: any): Speeds {
+    const normalize = (speed: any) => {
+        const value = Number(speed);
+        if (!Number.isFinite(value)) return DEFAULT_SPEED;
+        return Math.min(
+            TASK_MAX_SPEED_CONSTRAINT,
+            Math.max(TASK_MIN_SPEED_CONSTRAINT, Math.round(value)),
+        );
+    };
+    return {
+        transit: normalize(speeds?.transit),
+        stationkeep_outer: normalize(speeds?.stationkeep_outer),
+    };
+}
+
 /**
  * Extracts a mission set from a raw snapshot data
  *
@@ -304,10 +321,7 @@ function extractMissionSetSnapshot(rawMissionSet: any, version: string = MISSION
         nextMissionID: migrated.nextMissionID ?? 1,
         missionIDInEditMode: migrated.missionIDInEditMode ?? UNASSIGNED_ID,
         name: migrated.name ?? "",
-        speeds: migrated.speeds ?? {
-            transit: DEFAULT_SPEED,
-            stationkeep_outer: DEFAULT_SPEED,
-        },
+        speeds: normalizeSpeeds(migrated.speeds),
     };
 
     return snapshot;
@@ -343,17 +357,22 @@ function extractLegacyMissionData(rawMission: LegacyMissionInterface) {
             const originalTask = goal.task?.type ?? TaskType.NONE;
             task.setType(originalTask);
             switch (task.getType()) {
-                case TaskType.DIVE:
+                case TaskType.DIVE: {
+                    // setIsBottomDive resets the dive parameters, so the file's values go on after it
+                    const dive = goal.task.dive;
+                    task.setIsBottomDive(dive?.bottom_dive ?? false);
+                    const defaults = task.getDiveParameters();
                     task.setDiveParameters({
-                        max_depth: goal.task.dive?.max_depth,
-                        depth_interval: goal.task.dive?.depth_interval,
-                        hold_time: goal.task.dive?.hold_time,
+                        ...defaults,
+                        max_depth: dive?.max_depth ?? defaults.max_depth,
+                        depth_interval: dive?.depth_interval ?? defaults.depth_interval,
+                        hold_time: dive?.hold_time ?? defaults.hold_time,
                     });
-                    task.setIsBottomDive(goal.task.dive.bottom_dive);
                     task.setDriftParameters({
                         drift_time: goal.task.surface_drift?.drift_time,
                     });
                     break;
+                }
                 case TaskType.SURFACE_DRIFT:
                     task.setDriftParameters({
                         drift_time: goal.task.surface_drift?.drift_time,

@@ -21,6 +21,8 @@ This fleet configuration must then be embedded in the upgrade image (see the nex
 
 If the fleet was generated using a fleet configuration file, a valid file on the hub should already exist at `/etc/jaiabot/fleetN.cfg`. In this case that fleet configuration will be reused and no further action is required.
 
+The hub's copy is not updated when a bot is added with "Pair new Bot", so before reusing it the upgrade compares the hubs and bots it lists with the hub's inventory (`/etc/jaiabot/inventory.yml`). If they differ, the upgrade stops on the hub, before any node is touched, and asks for the fleet's current configuration to be embedded in the upgrade image (see the next step). A configuration embedded in the image is used as it is.
+
 From release 3 onwards, fleet configurations carry a version and the upgrade image carries the fleet config tool of the new release. When upgrading to such an image, the hub migrates and validates the fleet configuration with that tool before any bot is touched, and stops with a message if the file cannot be used with the new release (in which case regenerate it with the new release's `jaia admin fleet create` and embed it in the ISO as described below).
 
 Major upgrades go one release at a time (1.y to 2.y to 3.y): the upgrade refuses to skip a release.
@@ -59,14 +61,25 @@ Use Ansible to run the major upgrade, either on the command line or via the JCU 
 ```
 # in /usr/share or local git clone
 cd jaiabot/config/ansible/major_upgrade
-ansible-playbook -i /etc/jaiabot/inventory.yml major-upgrade.yml -e hub_id=1 -e do_backup=yes
+ansible-playbook -i /etc/jaiabot/inventory.yml major-upgrade.yml -e hub_id=1 -e do_backup=yes -e has_cloudhub=no
 ```
 
-where `hub_id` is the hub in use (the one with the upgrade USB flash key or CD connected) and `do_backup` is a boolean set to whether the existing (old) rootfs and overlay should be backed up to the `/var/log/jaiabot/major_upgrade/vX_codename` directory prior to the upgrade.
+where `hub_id` is the hub in use (the one with the upgrade USB flash key or CD connected) and `do_backup` is a boolean set to whether the existing (old) rootfs and overlay should be backed up to the `/var/log/jaiabot/major_upgrade/vX_codename` directory prior to the upgrade. `has_cloudhub` (default `yes`) says whether the fleet has a CloudHub after this upgrade, including one added as part of it; the upgrade stops before touching any node if the fleet configuration disagrees.
 
 Each node downloads the new images from the hub one at a time, capped at 1.5 MB/s so the upgrade does not saturate the fleet's radio link. Fleets in simulation mode (VirtualBox fleets and VirtualFleets) download uncapped. Pass `-e major_upgrade_download_limit_rate=<rate>` (a curl `--limit-rate` value such as `500K`, or `0` for no cap) to override either.
 
 Run this once, from the hub with the USB flash key or CD connected: it upgrades every bot and every hub in the fleet. Only that hub stages the upgrade (mounts the updates disk and checks the fleet configuration and its SSH key); the other hubs skip staging and download the new images from it like the bots do.
+
+### Upgrading a CloudHub
+
+A fleet with a CloudHub upgrades the CloudHub first, then the rest of the fleet as above. The CloudHub has no USB port, so it downloads the update image itself (from the `jaia-disk-images` S3 bucket; the next major release from the repository its packages come from (`test`, `beta`, `release`, ...) by default, or `-e major_upgrade_iso_version=N.y` and `-e major_upgrade_iso_repo=<repo>`) and upgrades only itself. Run "Major Upgrade" from the CloudHub's own JCU, which limits it to the CloudHub and proposes no backup (a CloudHub's disk is usually too small for one), or on the CloudHub:
+
+```
+cd /usr/share/jaiabot/config/ansible/major_upgrade
+ansible-playbook -i /etc/jaiabot/inventory.yml major-upgrade.yml -l hub30-fleetN -e hub_id=30 -e do_backup=no -e has_cloudhub=yes
+```
+
+The CloudHub keeps its VPN server keys (`/etc/wireguard`), and its users and sign-in data on the data partition; any VirtualFleet is deleted (`-e delete_virtualfleet=no` to keep it). It also records the fleet's bootstrap key and is marked as handed over, so that the new release's "Open Fleet Pairing" can admit nodes. Before pairing, give the CloudHub's AWS role the new release's permissions from a workstation with the new release's tools: `jaia admin fleet cloudhub refresh_permissions fleetN.cfg --region <region>`.
 
 ## Major upgrade design
 
@@ -103,7 +116,7 @@ A backup of the old rootfs and overlayfs is copied and compressed to `/var/log/j
 
 The Wireguard files are copied into the staging directory to be reused to avoid having to reconfigure the service VPN on the new image.
 
-The new boot filesystem is prepared using `jaia admin fleet generate` using the fleet configuration file. The VPN keys (id_vpn_tmp) are removed to avoid regenerated the service VPN.
+The new boot filesystem is prepared from the fleet configuration file by the new release's `jaia-fleet-config.py`, taken from its boot tarball. The CloudHub bootstrap key (id_vpn_tmp) is kept, so each node can pair with the fleet's CloudHub after the upgrade.
 
 Finally the `do-major-upgrade.sh` is configured to `/var/log/jaiabot/major_upgrade/v{X}_{ubuntucode}` and run.
 
