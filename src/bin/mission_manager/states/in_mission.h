@@ -268,9 +268,9 @@ struct InMission
                                          << std::endl;
                 return discard_event();
             case protobuf::MissionPlan::BatteryProtocol::STATION_KEEP:
-                return transit<jaiabot::statechart::inmission::battery::StationKeep>();
+                return transit<jaiabot::statechart::in_mission::battery::StationKeep>();
             case protobuf::MissionPlan::BatteryProtocol::STOP_AND_BROADCAST:
-                return transit<jaiabot::statechart::inmission::battery::StopAndBroadcast>();
+                return transit<jaiabot::statechart::in_mission::battery::StopAndBroadcast>();
             default:
                 glog.is_debug1() && glog << "Received unknown battery protocol action" << std::endl;
                 return discard_event();

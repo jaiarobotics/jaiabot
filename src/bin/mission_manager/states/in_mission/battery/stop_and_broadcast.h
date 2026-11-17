@@ -21,6 +21,10 @@
 // You should have received a copy of the GNU General Public License
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
+#ifdef JAIABOT_MISSION_MANAGER_FWD_DECL
+struct StopAndBroadcast;
+#else
+
 struct StopAndBroadcast
     : boost::statechart::state<StopAndBroadcast, Battery>,
       Notify<StopAndBroadcast, protobuf::IN_MISSION__BATTERY__STOP_AND_BROADCAST>
@@ -49,3 +53,5 @@ struct StopAndBroadcast
         goby::glog.is_debug1() && goby::glog << "battery::~StopAndBroadcast" << std::endl;
     }
 };
+
+#endif

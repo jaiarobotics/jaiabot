@@ -21,6 +21,10 @@
 // You should have received a copy of the GNU General Public License
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
+#ifdef JAIABOT_MISSION_MANAGER_FWD_DECL
+struct StationKeep;
+#else
+
 struct StationKeep : boost::statechart::state<StationKeep, Battery>,
                      Notify<StationKeep, protobuf::IN_MISSION__BATTERY__STATION_KEEP>
 {
@@ -58,3 +62,5 @@ struct StationKeep : boost::statechart::state<StationKeep, Battery>,
 
     ~StationKeep() { glog.is_debug1() && glog << "battery::~StationKeep" << std::endl; }
 };
+
+#endif

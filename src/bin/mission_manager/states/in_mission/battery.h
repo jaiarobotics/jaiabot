@@ -21,6 +21,10 @@
 // You should have received a copy of the GNU General Public License
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
+#ifdef JAIABOT_MISSION_MANAGER_FWD_DECL
+struct Battery;
+#else
+
 struct Battery : boost::statechart::state<Battery, InMission, battery::StationKeep>,
                  AppMethodsAccess<Battery>
 {
@@ -57,12 +61,15 @@ struct Battery : boost::statechart::state<Battery, InMission, battery::StationKe
         boost::statechart::in_state_reaction<EvBatteryLevel, Battery,
                                              &Battery::battery_level_reaction>,
         boost::statechart::transition<
-            EvStop, inmission::underway::recovery::Stopped> // Allow user to stop the vehicle
+            EvStop, in_mission::underway::recovery::Stopped> // Allow user to stop the vehicle
         >;
 };
+
+#endif // JAIABOT_MISSION_MANAGER_FWD_DECL
 
 namespace battery
 {
 #include "battery/station_keep.h"
 #include "battery/stop_and_broadcast.h"
+
 } // namespace battery
