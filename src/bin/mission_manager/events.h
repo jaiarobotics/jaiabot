@@ -110,6 +110,31 @@ STATECHART_EVENT(EvIMURestartCompleted)
 STATECHART_EVENT(EvBottomDepthAbort)
 STATECHART_EVENT(EvSleep)
 
+// Battery start protocol events
+enum BatteryLevel
+{
+    CRITICAL = 0,
+    VERY_LOW = 1,
+    NORMAL = 2
+};
+
+struct EvBatteryLevel : boost::statechart::event<EvBatteryLevel>
+{
+    EvBatteryLevel(BatteryLevel level) : battery_level(level) {}
+    BatteryLevel battery_level;
+};
+
+struct EvStartBatteryProtocol : boost::statechart::event<EvStartBatteryProtocol>
+{
+    EvStartBatteryProtocol(jaiabot::protobuf::MissionPlan::BatteryProtocol protocol,
+                           BatteryLevel battery_level)
+        : protocol(protocol), battery_level(battery_level)
+    {
+    }
+    jaiabot::protobuf::MissionPlan::BatteryProtocol protocol;
+    BatteryLevel battery_level;
+};
+
 STATECHART_EVENT(EvLoop)
 struct EvVehicleDepth : boost::statechart::event<EvVehicleDepth>
 {

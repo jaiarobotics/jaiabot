@@ -37,6 +37,7 @@ namespace middleware = goby::middleware;
 // Jaiabot
 #include "jaiabot/comms/comms.h"
 #include "jaiabot/health/health.h"
+using namespace jaiabot::health;
 #include "jaiabot/intervehicle.h"
 #include "jaiabot/messages/arduino.pb.h"
 #include "jaiabot/messages/engineering.pb.h"
@@ -226,6 +227,10 @@ jaiabot::apps::MissionManager::MissionManager()
     interprocess().subscribe<goby::middleware::groups::health_report>(
         [this](const goby::middleware::protobuf::VehicleHealth& vehicle_health)
         {
+            const auto errors = VehicleHealth_get_all_errors(vehicle_health);
+
+            this->handle_battery_protocol(errors);
+
             if (health_considered_ok(vehicle_health))
             {
                 consecutive_failed_health_reports_ = 0;
@@ -1265,7 +1270,7 @@ bool jaiabot::apps::MissionManager::health_considered_ok(
     {
         jaiabot::protobuf::BotStatus status;
         // check if we would be OK if the ignored errors didn't exist
-        jaiabot::health::populate_status_from_health(status, vehicle_health, false);
+        populate_status_from_health(status, vehicle_health, false);
 
         for (auto e : status.error())
         {
@@ -1282,4 +1287,22 @@ bool jaiabot::apps::MissionManager::health_considered_ok(
         return true;
     }
     return false;
+}
+
+void jaiabot::apps::MissionManager::handle_battery_protocol(
+    const std::set<jaiabot::protobuf::Error>& errors)
+{
+    // Battery events
+    if (errors.contains(protobuf::ERROR__VEHICLE__CRITICALLY_LOW_BATTERY))
+    {
+        machine_->process_event(statechart::EvBatteryLevel(statechart::BatteryLevel::CRITICAL));
+    }
+    else if (errors.contains(protobuf::ERROR__VEHICLE__VERY_LOW_BATTERY))
+    {
+        machine_->process_event(statechart::EvBatteryLevel(statechart::BatteryLevel::VERY_LOW));
+    }
+    else
+    {
+        return;
+    }
 }

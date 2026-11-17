@@ -1340,42 +1340,11 @@ void jaiabot::apps::HubManager::handle_command(const jaiabot::protobuf::Command&
             // The initial fragment is going to have more data
             if (fragment_index == 0)
             {
-                if (command.plan().has_start())
-                {
-                    mutable_plan->set_start(command.plan().start());
-                }
-                if (command.plan().has_movement())
-                {
-                    mutable_plan->set_movement(command.plan().movement());
-                }
-                if (command.plan().has_recovery())
-                {
-                    *mutable_plan->mutable_recovery() = command.plan().recovery();
-                }
-                if (command.plan().has_speeds())
-                {
-                    *mutable_plan->mutable_speeds() = command.plan().speeds();
-                }
-                if (command.plan().has_repeats())
-                {
-                    mutable_plan->set_repeats(command.plan().repeats());
-                }
-                if (command.plan().has_bottom_depth_safety_params())
-                {
-                    *mutable_plan->mutable_bottom_depth_safety_params() =
-                        command.plan().bottom_depth_safety_params();
-                }
-                if (command.plan().has_mission_name())
-                {
-                    mutable_plan->set_mission_name(command.plan().mission_name());
-                }
-                if (command.plan().segments_size() > 0)
-                {
-                    for (const auto& segment : command.plan().segments())
-                    {
-                        *mutable_plan->add_segments() = segment;
-                    }
-                }
+                // Get all the non-goal fields from the original command plan and set in the fragment plan
+                mutable_plan->CopyFrom(command.plan());
+
+                // Clear the goals from the initial fragment plan since we will be adding them in below and we want to make sure we don't exceed the max repeat size
+                mutable_plan->clear_goal();
             }
 
             mutable_plan->set_fragment_index(fragment_index);
