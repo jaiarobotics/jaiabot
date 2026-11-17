@@ -543,6 +543,18 @@ class SeaTrialAgainstFakeHub(unittest.TestCase):
             ["hub 30 holds bot 1's mission after losing its missions",
              "hub 30 holds bot 2's mission after losing its missions"])
 
+    def test_a_hub_that_keeps_its_missions_when_reset_fails_hub2hub(self):
+        hub, second, cloudhub = self.ci_fleet(dives=12)
+        cloudhub.forgets_missions_when_reset = False
+        code, summary, _ = self.run_joined_trial(
+            hub, [second, cloudhub], relay_only=[30],
+            extra=[*self.TWELVE_GOALS, '--reset-hub-missions', self.forget_command(cloudhub),
+                   '--catch-up-timeout', '1'])
+        self.assertEqual(code, 1)
+        failures = summary['tiers'][checks.HUB2HUB]['failures']
+        self.assertEqual([f['name'] for f in failures], ['hub 30 forgets its missions when told'])
+        self.assertIn("waiting for hub 30 to lose every bot's mission", failures[0]['detail'])
+
     def test_a_reset_command_that_fails_fails_hub2hub(self):
         hub, second, cloudhub = self.ci_fleet(dives=12)
         code, summary, _ = self.run_joined_trial(

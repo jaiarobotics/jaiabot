@@ -109,6 +109,7 @@ class FakeHub:
         # a reset makes it forget them; it gets them back from the others after a few
         # polls, as catch-up would, unless catch_up_after_polls is None
         self.forget_missions_file = None
+        self.forgets_missions_when_reset = True
         self.catch_up_after_polls = 2
         self._polls_until_caught_up = None
 
@@ -136,6 +137,8 @@ class FakeHub:
     def _forget_or_catch_up(self):
         if self.forget_missions_file and os.path.exists(self.forget_missions_file):
             os.remove(self.forget_missions_file)
+            if not self.forgets_missions_when_reset:
+                return
             self.mission_plans = {}
             self._polls_until_caught_up = self.catch_up_after_polls
         if self._polls_until_caught_up is None:

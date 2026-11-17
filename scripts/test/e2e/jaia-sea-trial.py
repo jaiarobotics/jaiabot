@@ -25,6 +25,8 @@ WAIT_FOR_PLAN = 'PRE_DEPLOYMENT__WAIT_FOR_MISSION_PLAN'
 DIVE = 'DIVE'
 # only the MissionTask.TaskType values this driver can build and check
 TASK_TYPES = ('NONE', DIVE)
+# a reset hub can catch up within seconds, so the check looks for its empty store this often
+RESET_POLL_INTERVAL = 1.0
 
 
 class TrialFailure(Exception):
@@ -148,11 +150,14 @@ class SeaTrial:
                 self.hub2hub_results.append(checks.relayed_command_for_hub_check(
                     via_id, target_id, response, via.last_error_code, via.last_error))
 
-    def holds_sent_missions(self, hub_id):
+    def bots_with_sent_missions(self, hub_id):
         plans = api.active_mission_plans(self.last_statuses.get(hub_id))
-        return all(checks.active_mission_mismatch(plans.get(bot_id), goals,
-                                                  self.args.mission_name) is None
-                   for bot_id, goals in self.goals_by_bot.items())
+        return {bot_id for bot_id, goals in self.goals_by_bot.items()
+                if checks.active_mission_mismatch(plans.get(bot_id), goals,
+                                                  self.args.mission_name) is None}
+
+    def holds_sent_missions(self, hub_id):
+        return self.bots_with_sent_missions(hub_id) == set(self.goals_by_bot)
 
     def names_sent_missions(self, hub_id):
         status = self.last_statuses.get(hub_id)
@@ -205,19 +210,36 @@ class SeaTrial:
             try:
                 result = subprocess.run(command, shell=True, capture_output=True, text=True,
                                         timeout=self.args.api_timeout)
-                forgot, detail = result.returncode == 0, (
-                    'done' if result.returncode == 0
-                    else f'exit {result.returncode}: {(result.stderr or result.stdout)[-300:]}')
+                forgot = result.returncode == 0
+                detail = f'exit {result.returncode}: {(result.stderr or result.stdout)[-300:]}'
             except subprocess.TimeoutExpired:
                 forgot, detail = False, f'still running after {self.args.api_timeout} s'
+
+            def poll_reset_hub():
+                # the bots are still underway, so the trace keeps going while this waits
+                self.poll()
+                self.poll_hub(hub_id)
+
+            def lost():
+                poll_reset_hub()
+                return not self.bots_with_sent_missions(hub_id)
+
+            # the REST API keeps serving the missions until the restarted hub manager publishes
+            if forgot:
+                try:
+                    wait_for(lost, self.args.catch_up_timeout,
+                             f"hub {hub_id} to lose every bot's mission", RESET_POLL_INTERVAL,
+                             report_every=self.args.poll_interval,
+                             progress=lambda: self.describe_missions([hub_id]))
+                    detail = 'held none of the sent missions'
+                except TrialFailure as e:
+                    forgot, detail = False, str(e)
             self.hub2hub_results.append(checks.Check(checks.HUB2HUB, name, forgot, detail))
             if not forgot:
                 continue
 
             def caught_up():
-                # the bots are still underway, so the trace keeps going while this waits
-                self.poll()
-                self.poll_hub(hub_id)
+                poll_reset_hub()
                 return self.holds_sent_missions(hub_id)
 
             try:
@@ -601,8 +623,8 @@ def parse_args(argv):
                              'are underway, after which the hub must catch up every bot\'s '
                              'mission from the others')
     parser.add_argument('--catch-up-timeout', type=float, default=300.0, metavar='S',
-                        help='how long a hub that lost its missions has to get them back; '
-                             'not divided by --warp, as catch-up runs on wall-clock '
+                        help='how long a reset hub has to lose its missions, and then to get '
+                             'them back; not divided by --warp, as catch-up runs on wall-clock '
                              'resubscriptions (default: %(default)s)')
     parser.add_argument('--bots', type=int, default=2, help='number of bots to command')
     parser.add_argument('--goals', type=int, default=10,

@@ -42,7 +42,3 @@ env -i "${environment[@]}" setsid bash -c \
     'exec jaiabot_hub_manager <(../../gen/hub.py jaiabot_hub_manager)' \
     > "/tmp/jaiabot_hub_manager_hub${hub_id}_restarted.log" 2>&1 < /dev/null &
 echo "restarted hub ${hub_id}'s jaiabot_hub_manager (pid $!)"
-
-# Until the restarted hub_manager first publishes, its web_portal still serves the
-# missions from before, so a check made in that gap would see them
-sleep 5
