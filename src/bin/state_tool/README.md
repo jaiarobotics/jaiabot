@@ -80,16 +80,16 @@ states:
       - type: transition
         event: jaiabot::statechart::EvShutdown
         target: jaiabot::statechart::postdeployment::ShuttingDown
-  - name: jaiabot::statechart::inmission::underway::movement::MovementSelection
+  - name: jaiabot::statechart::in_mission::underway::movement::MovementSelection
     type: choice
-    parent: jaiabot::statechart::inmission::underway::Movement
+    parent: jaiabot::statechart::in_mission::underway::Movement
     choices:
       - condition: jaiabot::protobuf::MissionPlan::TRANSIT
-        target: jaiabot::statechart::inmission::underway::movement::Transit
+        target: jaiabot::statechart::in_mission::underway::movement::Transit
       - condition: jaiabot::protobuf::MissionPlan::REMOTE_CONTROL
-        target: jaiabot::statechart::inmission::underway::movement::RemoteControl
+        target: jaiabot::statechart::in_mission::underway::movement::RemoteControl
       - condition: jaiabot::protobuf::MissionPlan::TRAIL
-        target: jaiabot::statechart::inmission::underway::movement::Trail
+        target: jaiabot::statechart::in_mission::underway::movement::Trail
 ```
 
 Fields:
