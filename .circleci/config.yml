@@ -967,8 +967,7 @@ jobs:
       - checkout
       - run: &run-install-apt-vbox
           name: Install apt dependencies
-          # virtualbox-source stands in for virtualbox-dkms, which may not build for the CI kernel; no VM is started here
-          command: sudo apt-get update && sudo apt-get -y install dosfstools gcc-aarch64-linux-gnu git kpartx live-build sudo wget virtualbox virtualbox-source
+          command: sudo apt-get update && sudo apt-get -y install dosfstools gcc-aarch64-linux-gnu git kpartx live-build sudo wget virtualbox
       - run: *run-set-deb-rep-and-version
       - run: *run-create-image
       - run:
