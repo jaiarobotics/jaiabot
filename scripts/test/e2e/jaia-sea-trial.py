@@ -193,8 +193,8 @@ class SeaTrial:
             self.args.mission_name, when)
 
     def check_catch_up(self):
-        """A hub that has lost its missions, as one restarted without its disk would, gets
-        them back from the others."""
+        """A hub that has lost its missions, as a restarted one has, gets them back from the
+        others."""
         for hub_id, command in self.args.reset_hub_missions:
             name = f'hub {hub_id} forgets its missions when told'
             if not self.joined or hub_id not in self.hubs:
@@ -597,9 +597,9 @@ def parse_args(argv):
     parser.add_argument('--reset-hub-missions', action='append', type=parse_hub_command,
                         default=[], metavar='ID=COMMAND',
                         help='a shell command that makes hub ID lose its stored missions, '
-                             'for example by restarting its hub manager without its saved '
-                             'file; run once the bots are underway, after which the hub '
-                             'must catch up every bot\'s mission from the others')
+                             'for example by restarting its hub manager; run once the bots '
+                             'are underway, after which the hub must catch up every bot\'s '
+                             'mission from the others')
     parser.add_argument('--catch-up-timeout', type=float, default=300.0, metavar='S',
                         help='how long a hub that lost its missions has to get them back; '
                              'not divided by --warp, as catch-up runs on wall-clock '

@@ -1,7 +1,6 @@
 #!/bin/bash
-# Makes a hub in the simulator lose its active missions, as a hub that restarts without
-# its saved file would: stops its jaiabot_hub_manager, deletes the saved missions, then
-# starts it again with the environment and working directory it had.
+# Makes a hub in the simulator lose its active missions: stops its jaiabot_hub_manager,
+# then starts it again with the environment and working directory it had.
 #
 # Usage: sim-forget-active-missions.sh <hub_id>
 # Run it where the simulator runs; for the Docker sim, pipe it in:
@@ -26,8 +25,6 @@ fi
 
 mapfile -d '' environment < "/proc/${pid}/environ"
 directory=$(readlink "/proc/${pid}/cwd")
-log_dir=$(tr '\0' '\n' < "/proc/${pid}/environ" | sed -n 's/^jaia_log_dir=//p')
-saved="${log_dir:-/var/log/jaiabot}/hub/${hub_id}/active_mission_plans.pb"
 
 kill "${pid}"
 for _ in $(seq 1 100); do
@@ -39,9 +36,6 @@ if kill -0 "${pid}" 2> /dev/null; then
     exit 1
 fi
 
-rm -f "${saved}"
-echo "removed ${saved}"
-
 cd "${directory}"
 # its own session, so it outlives a docker exec that ends with this script
 env -i "${environment[@]}" setsid bash -c \
@@ -49,6 +43,6 @@ env -i "${environment[@]}" setsid bash -c \
     > "/tmp/jaiabot_hub_manager_hub${hub_id}_restarted.log" 2>&1 < /dev/null &
 echo "restarted hub ${hub_id}'s jaiabot_hub_manager (pid $!)"
 
-# Until the restarted hub_manager publishes the missions it starts with, its web_portal
-# still serves the ones from before, so a check made in that gap would see them
+# Until the restarted hub_manager first publishes, its web_portal still serves the
+# missions from before, so a check made in that gap would see them
 sleep 5

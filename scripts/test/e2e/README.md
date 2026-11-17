@@ -129,7 +129,7 @@ The tier also checks:
   statuses.
 - **A hub that loses its missions catches up.** `--reset-hub-missions ID=COMMAND` runs a
   shell command once the bots are underway that makes hub ID lose its stored missions,
-  for example by restarting its hub manager without its saved file. Within
+  for example by restarting its hub manager. Within
   `--catch-up-timeout` (300 s by default, wall clock rather than warped) the hub must hold
   every bot's mission again, which it can only get from the other hubs.
 

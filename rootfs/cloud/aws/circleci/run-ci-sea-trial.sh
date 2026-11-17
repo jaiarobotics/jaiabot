@@ -68,11 +68,9 @@ for (( hub_id = 2; hub_id <= HUBS; hub_id++ )); do
     PEERS+=" --peer-hub ${hub_id}=http://hub${hub_id}-virtualfleet${FLEET}"
 done
 
-# Mid-trial the CloudHub loses its active missions, as one restarted without its disk
-# would, and must catch them up from the VirtualHubs
-RESET_CLOUDHUB="sudo systemctl stop jaiabot_hub_manager \
-&& sudo rm -f /var/log/jaiabot/hub/${CLOUDHUB_ID}/active_mission_plans.pb \
-&& sudo systemctl start jaiabot_hub_manager"
+# Mid-trial the CloudHub's hub manager restarts, losing its active missions, and must
+# catch them up from the VirtualHubs
+RESET_CLOUDHUB="sudo systemctl restart jaiabot_hub_manager"
 
 ssh -o StrictHostKeyChecking=no "jaia@${CLOUDHUB}" \
     "python3 /tmp/e2e/jaia-sea-trial.py \
