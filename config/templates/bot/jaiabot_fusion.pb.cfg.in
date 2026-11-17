@@ -52,7 +52,7 @@ include_imu_detection_states: IN_MISSION__UNDERWAY__TASK__STATION_KEEP
 include_imu_detection_states: IN_MISSION__UNDERWAY__RECOVERY__TRANSIT
 include_imu_detection_states: IN_MISSION__UNDERWAY__RECOVERY__STATION_KEEP
 
-watch_battery_percentage: true # (default = true)
+watch_battery_percentage: false # (default = true)
 battery_percentage_low_level: 50 # (default = 50)
 battery_percentage_very_low_level: 20 # (default = 20)
 battery_percentage_critically_low_level: 10 # (default = 10)
