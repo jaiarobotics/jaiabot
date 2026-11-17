@@ -1393,6 +1393,16 @@ void jaiabot::apps::HubManager::handle_command(const jaiabot::protobuf::Command&
         update_vfleet_shutdown_time();
 
     using protobuf::Command;
+    if (input_command.type() == Command::MISSION_PLAN &&
+        input_command.plan().goal_size() > jaiabot::comms::max_mission_plan_goals())
+    {
+        glog.is_warn() &&
+            glog << group("main") << "Not sending the mission for bot " << input_command.bot_id()
+                 << ": it has " << input_command.plan().goal_size() << " waypoints, more than the "
+                 << jaiabot::comms::max_mission_plan_goals() << " a mission can carry" << std::endl;
+        return;
+    }
+
     auto command = input_command;
     command.set_from_hub_id(cfg().hub_id());
     if (command.plan().has_mission_name())

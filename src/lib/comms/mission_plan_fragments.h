@@ -24,6 +24,17 @@ inline int mission_plan_goals_per_fragment()
         .max_repeat();
 }
 
+/// \return the most goals a MISSION_PLAN can have, given how many fragments a plan can be split into
+inline int max_mission_plan_goals()
+{
+    const int max_fragments = protobuf::MissionPlan::descriptor()
+                                  ->FindFieldByName("expected_fragments")
+                                  ->options()
+                                  .GetExtension(dccl::field)
+                                  .max();
+    return mission_plan_goals_per_fragment() * max_fragments;
+}
+
 /// \brief Splits a MISSION_PLAN with more goals than one Command can carry into MISSION_PLAN_FRAGMENT commands
 /// \return the fragments in order, or an empty vector if the command doesn't need splitting
 inline std::vector<protobuf::Command> fragment_mission_plan(const protobuf::Command& command)

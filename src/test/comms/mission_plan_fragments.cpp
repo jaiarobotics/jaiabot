@@ -63,6 +63,11 @@ bool plans_match(const protobuf::MissionPlan& expected, const protobuf::MissionP
 
 BOOST_AUTO_TEST_SUITE(fragment_mission_plan_tests)
 
+BOOST_AUTO_TEST_CASE(max_goals_matches_the_jcc_waypoint_limit)
+{
+    BOOST_CHECK_EQUAL(max_mission_plan_goals(), 80);
+}
+
 BOOST_AUTO_TEST_CASE(plan_within_one_command_is_not_split)
 {
     BOOST_CHECK(
@@ -215,19 +220,12 @@ BOOST_AUTO_TEST_CASE(large_plan_relayed_as_fragments_arrives_complete)
     codec.load<protobuf::Hub2HubData>();
     codec.load<protobuf::Hub2HubActiveMission>();
 
-    const int max_fragments = protobuf::MissionPlan::descriptor()
-                                  ->FindFieldByName("expected_fragments")
-                                  ->options()
-                                  .GetExtension(dccl::field)
-                                  .max();
-    const int max_goals = mission_plan_goals_per_fragment() * max_fragments;
-
     const std::vector<std::pair<std::string, Command (*)(const Command&, dccl::Codec&)>> relays{
         {"Hub2HubData", relay_as_hub2hub_data}, {"Hub2HubActiveMission", relay_as_active_mission}};
 
     for (const auto& [message_name, relay] : relays)
     {
-        for (int number_of_goals : {11, 25, max_goals})
+        for (int number_of_goals : {11, 25, max_mission_plan_goals()})
         {
             BOOST_TEST_CONTEXT(message_name << ", goals: " << number_of_goals)
             {
@@ -240,6 +238,13 @@ BOOST_AUTO_TEST_CASE(large_plan_relayed_as_fragments_arrives_complete)
                 BOOST_REQUIRE(received);
                 BOOST_CHECK(plans_match(command.plan(), received->plan()));
             }
+        }
+
+        BOOST_TEST_CONTEXT(message_name << ", one goal over the limit")
+        {
+            const auto fragments =
+                fragment_mission_plan(make_mission_plan(max_mission_plan_goals() + 1));
+            BOOST_CHECK_THROW(relay(fragments.back(), codec), dccl::OutOfRangeException);
         }
     }
 }
