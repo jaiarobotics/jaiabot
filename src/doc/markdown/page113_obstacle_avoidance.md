@@ -335,6 +335,11 @@ for a handler to tell the reducer not to save history.
 waypoint inside the 2.5 m planning clearance may run along the zone at the waypoint's own
 distance, for as long as the detour needs, instead of stepping out to 2.5 m.
 
+**Missions routed around the same corner share detour points.** Their markers stack and only the
+top one's number shows: the edited mission's, then the selected bot's, then the highest mission
+ID's. A mission that passes the same point twice shows only the later number. Bots running those
+missions at the same time are sent to the same point.
+
 **Zones across ±180° longitude** project to a shape spanning the globe in their latitude band,
 so waypoints anywhere in that band count as blocked.
 

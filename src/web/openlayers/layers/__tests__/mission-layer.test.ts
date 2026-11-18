@@ -8,6 +8,7 @@ import { missionSet } from "../../../data/mission_set/mission-set";
 import { exclusionZoneSet } from "../../../data/exclusion_zones/exclusion-zone-set";
 import { OpenLayersColors } from "../../../style/openlayers/colors";
 import { MapFeatureTypes } from "../../../types/openlayers-types";
+import { jaiaGlobal } from "../../../data/jaia_global/jaia-global";
 import { UNASSIGNED_ID } from "../../../utils/constants";
 import {
     coord,
@@ -47,6 +48,28 @@ function markers(layer = missionLayer) {
 }
 
 const color = (name: OpenLayersColors) => asArray(name);
+
+/** A route of `count` waypoints heading north from the same start as every other one. */
+const route = (count: number) =>
+    Array.from({ length: count }, (_, i) => ({ location: coord(41.0 + i * 0.001, -72.01) }));
+
+/** Each waypoint's zIndex keyed "<missionID>:<waypointNum>", and every other feature's. */
+function zIndexes() {
+    const waypoints = new Map<string, number>();
+    const others: number[] = [];
+    for (const feature of missionLayer.getVectorLayer().getSource().getFeatures()) {
+        const styles = [feature.getStyle()].flat() as Style[];
+        if (feature.get("type") === MapFeatureTypes.WAYPOINT) {
+            waypoints.set(
+                `${feature.get("missionID")}:${feature.get("waypointNum")}`,
+                styles[0].getZIndex()!,
+            );
+        } else {
+            others.push(...styles.map((style) => style.getZIndex()!));
+        }
+    }
+    return { waypoints, others };
+}
 
 beforeEach(() => {
     resetHandlerSingletons();
@@ -123,5 +146,34 @@ describe("mission layer waypoint markers", () => {
         ghostMissionLayer.updateFeatures();
 
         expect(markers(ghostMissionLayer)[1].color).toEqual(color(OpenLayersColors.DEFAULT));
+    });
+
+    test("give every waypoint its own zIndex, above every line", () => {
+        addMission(route(10));
+        addMission(route(9));
+
+        missionLayer.updateFeatures();
+
+        const { waypoints, others } = zIndexes();
+        expect(waypoints.size).toBe(19);
+        expect(new Set(waypoints.values()).size).toBe(19);
+        expect(Math.min(...waypoints.values())).toBeGreaterThan(Math.max(...others));
+    });
+
+    test("stack the edited mission's selected waypoint, its other waypoints, then the rest", () => {
+        const edited = addMission(route(3));
+        addMission(route(3));
+        missionSet.setMissionIDInEditMode(edited.getMissionID());
+        jaiaGlobal.setSelectedWaypoint({
+            missionID: edited.getMissionID(),
+            waypointNum: 1,
+            isMoveable: true,
+        });
+
+        missionLayer.updateFeatures();
+
+        const { waypoints } = zIndexes();
+        expect(waypoints.get("1:1")).toBeGreaterThan(waypoints.get("1:3")!);
+        expect(waypoints.get("1:2")).toBeGreaterThan(waypoints.get("2:3")!);
     });
 });

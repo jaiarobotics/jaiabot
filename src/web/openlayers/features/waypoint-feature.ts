@@ -287,8 +287,14 @@ function getWaypointColor(mission: Mission, waypointNum?: number, isBlocked = fa
     return OpenLayersColors.DEFAULT;
 }
 
+const Z_INDEX_TIER = 1_000_000;
+const Z_INDEX_WAYPOINTS = 1000;
+
 /**
- * Supplies the zIndex for waypoints and lines based on edit mode
+ * Supplies the zIndex for waypoints and lines: the edited mission's selected waypoint on top,
+ * then the edited mission, the selected bot's mission and the rest. Waypoints sit above their
+ * tier's lines, and each has its own zIndex, since OpenLayers draws all of a zIndex's icons
+ * before its labels, so stacked waypoints sharing one would draw their numbers over each other.
  *
  * @param {Mission} mission Used to determine zIndex for waypoints and lines
  * @param {number} waypointNum Used to determine zIndex for waypoints, leave unassigned for lines
@@ -299,27 +305,22 @@ function getWaypointColor(mission: Mission, waypointNum?: number, isBlocked = fa
  * Less than 100 waypoints per mission
  */
 function getWaypointZIndex(mission: Mission, waypointNum?: number) {
-    let waypointZIndex = 0;
-    // Provide proper mission stacking
-    if (mission.getMissionID() === missionSet.getMissionIDInEditMode()) {
-        waypointZIndex = 1100;
+    const missionID = mission.getMissionID();
+    let tier = 0;
+    if (missionID === missionSet.getMissionIDInEditMode()) {
+        tier = 2;
     } else if (isAssignedToSelectedBot(mission)) {
-        waypointZIndex = 1000;
-    } else {
-        waypointZIndex = mission.getMissionID();
-    }
-    // Provide proper waypoint stacking
-    if (waypointNum) {
-        waypointZIndex = waypointZIndex + waypointNum;
-        if (
-            waypointNum === jaiaGlobal.getSelectedWaypoint().waypointNum &&
-            mission.getMissionID() === missionSet.getMissionIDInEditMode()
-        ) {
-            waypointZIndex = waypointZIndex + 100;
-        }
+        tier = 1;
     }
 
-    return waypointZIndex;
+    if (waypointNum === undefined) {
+        return tier * Z_INDEX_TIER + missionID;
+    }
+
+    if (tier === 2 && waypointNum === jaiaGlobal.getSelectedWaypoint().waypointNum) {
+        tier = 3;
+    }
+    return tier * Z_INDEX_TIER + Z_INDEX_WAYPOINTS + missionID * 100 + waypointNum;
 }
 
 /**
