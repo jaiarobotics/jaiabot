@@ -1,5 +1,5 @@
 add_jaiabot_library(TARGET jaiabot_liaison_prelaunch
-  SOURCES jaiabot_liaison_load.cpp liaison_upgrade.cpp
+  SOURCES jaiabot_liaison_load.cpp liaison_upgrade.cpp playbook_runner.cpp
   PRIVATE_PROTOS config.proto
   LINK_LIBRARIES goby ${Boost_LIBRARIES} jaiabot_messages Wt::Wt
   COMPILE_OPTIONS -Wno-return-type-c-linkage
