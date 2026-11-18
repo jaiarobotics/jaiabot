@@ -95,7 +95,7 @@ _Static_assert((LPTIM_MAX_CHUNK_MS * LPTIM_TICK_HZ) / 1000U <= 65536U,
 #define LOCKOUT_BKP_MAGIC 0x4C4F434BU
 
 // Keeps SWD usable in STOP2 for bench work; costs current, set to 0 before deploying.
-#define DEBUG_IN_STOP_MODE 1
+#define DEBUG_IN_STOP_MODE 0
 
 uint8_t bits_in_byte = 8;
 bool usb_tx_busy = false;
