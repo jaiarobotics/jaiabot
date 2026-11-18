@@ -130,10 +130,11 @@ The tier also checks:
 - **A hub that loses its missions catches up.** `--reset-hub-missions ID=COMMAND` runs a
   shell command once the bots are underway that makes hub ID lose its stored missions,
   for example by restarting its hub manager. Within `--catch-up-timeout` (300 s by
-  default, wall clock rather than warped) the hub must first hold none of the sent
-  missions, since its REST API keeps serving them until the restarted hub manager
-  publishes, and then hold every bot's mission again, which it can only get from the
-  other hubs.
+  default, wall clock rather than warped) the hub must first be seen without each bot's
+  mission, though not necessarily all in one poll, since its REST API keeps serving them
+  until the restarted hub manager publishes, and then hold every bot's mission again,
+  which it can only get from the other hubs. A poll the hub doesn't answer counts as
+  neither.
 
 Each hub is sent a `clientId` header, `sea-trial-hub<N>`, as JCC sends its own.
 

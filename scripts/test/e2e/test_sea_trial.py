@@ -555,6 +555,25 @@ class SeaTrialAgainstFakeHub(unittest.TestCase):
         self.assertEqual([f['name'] for f in failures], ['hub 30 forgets its missions when told'])
         self.assertIn("waiting for hub 30 to lose every bot's mission", failures[0]['detail'])
 
+    def test_a_hub_that_loses_and_recovers_one_bot_at_a_time_catches_up(self):
+        hub, second, cloudhub = self.ci_fleet(dives=12)
+        cloudhub.forgets_bots_in_turn = True
+        code, summary, directory = self.run_joined_trial(
+            hub, [second, cloudhub], relay_only=[30],
+            extra=[*self.TWELVE_GOALS, '--reset-hub-missions', self.forget_command(cloudhub)])
+        self.assertEqual(code, 0, summary['tiers'])
+        self.assertIn('hub 30 forgets its missions when told', self.passed_checks(directory))
+
+    def test_a_failed_poll_after_the_reset_is_not_a_hub_without_missions(self):
+        hub, second, cloudhub = self.ci_fleet(dives=12)
+        cloudhub.forgets_missions_when_reset = False
+        cloudhub.failed_polls_after_reset = 1
+        _, summary, _ = self.run_joined_trial(
+            hub, [second, cloudhub], relay_only=[30],
+            extra=[*self.TWELVE_GOALS, '--reset-hub-missions', self.forget_command(cloudhub),
+                   '--catch-up-timeout', '1'])
+        self.assertIn('hub 30 forgets its missions when told', self.hub2hub_failures(summary))
+
     def test_a_reset_command_that_fails_fails_hub2hub(self):
         hub, second, cloudhub = self.ci_fleet(dives=12)
         code, summary, _ = self.run_joined_trial(

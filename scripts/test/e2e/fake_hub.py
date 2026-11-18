@@ -112,6 +112,12 @@ class FakeHub:
         self.forgets_missions_when_reset = True
         self.catch_up_after_polls = 2
         self._polls_until_caught_up = None
+        # each poll after a reset forgets the next bot's mission and gets the previous one's
+        # back, so no one poll shows them all gone
+        self.forgets_bots_in_turn = False
+        self._reset_steps = []
+        self.failed_polls_after_reset = 0
+        self._polls_to_fail = 0
 
     def bot_offload(self):
         return {'data_offload_percentage': 100}
@@ -137,10 +143,20 @@ class FakeHub:
     def _forget_or_catch_up(self):
         if self.forget_missions_file and os.path.exists(self.forget_missions_file):
             os.remove(self.forget_missions_file)
+            self._polls_to_fail = self.failed_polls_after_reset
             if not self.forgets_missions_when_reset:
                 return
-            self.mission_plans = {}
-            self._polls_until_caught_up = self.catch_up_after_polls
+            if self.forgets_bots_in_turn:
+                bot_ids = sorted(self.mission_plans)
+                self._reset_steps = list(zip(bot_ids + [None], [None] + bot_ids))
+            else:
+                self.mission_plans = {}
+                self._polls_until_caught_up = self.catch_up_after_polls
+        if self._reset_steps:
+            forget, catch_up = self._reset_steps.pop(0)
+            self.mission_plans.pop(forget, None)
+            if catch_up is not None:
+                self._catch_up(catch_up)
         if self._polls_until_caught_up is None:
             return
         if self._polls_until_caught_up > 0:
@@ -148,8 +164,13 @@ class FakeHub:
             return
         self._polls_until_caught_up = None
         for peer in self.peers:
-            for bot_id, plan in peer.mission_plans.items():
-                self.store_mission(bot_id, plan, relayed=True)
+            for bot_id in list(peer.mission_plans):
+                self._catch_up(bot_id)
+
+    def _catch_up(self, bot_id):
+        for peer in self.peers:
+            if bot_id in peer.mission_plans:
+                self.store_mission(bot_id, peer.mission_plans[bot_id], relayed=True)
 
     def bot_status(self, bot):
         status = bot.status()
@@ -161,6 +182,9 @@ class FakeHub:
     def handle(self, path, payload, client_id=None):
         if path.startswith('/status/'):
             self._forget_or_catch_up()
+            if self._polls_to_fail > 0:
+                self._polls_to_fail -= 1
+                return {'error': {'code': 'API_ERROR__UNKNOWN', 'details': 'failed poll'}}
             statuses = [self.bot_status(bot) for bot in self.bots.values()]
             if self.advances_bots:
                 for bot in self.bots.values():

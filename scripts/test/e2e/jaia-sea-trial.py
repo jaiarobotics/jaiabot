@@ -218,11 +218,17 @@ class SeaTrial:
             def poll_reset_hub():
                 # the bots are still underway, so the trace keeps going while this waits
                 self.poll()
-                self.poll_hub(hub_id)
+                return self.poll_hub(hub_id)
+
+            # a bot's mission can come back before another's goes, so no one poll may show all gone
+            bots_seen_without_missions = set()
 
             def lost():
-                poll_reset_hub()
-                return not self.bots_with_sent_missions(hub_id)
+                if poll_reset_hub() is None:
+                    return False
+                bots_seen_without_missions.update(
+                    set(self.goals_by_bot) - self.bots_with_sent_missions(hub_id))
+                return bots_seen_without_missions == set(self.goals_by_bot)
 
             # the REST API keeps serving the missions until the restarted hub manager publishes
             if forgot:
