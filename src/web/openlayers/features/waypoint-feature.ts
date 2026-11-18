@@ -36,12 +36,14 @@ import missionFlagIcon from "../../style/icons/mission-flag.svg";
  * @param {GeographicCoordinate} location Lat/lon of waypoint
  * @param {number} waypointNum Positon of waypoint in mission sequence (to be displayed on icon)
  * @param {Mission} mission Used to determine color of waypoint
+ * @param {boolean} [isBlocked] The waypoint is inside an exclusion zone
  * @returns {Feature} Waypoint icon to display on map
  */
 export function generateWaypointFeature(
     location: GeographicCoordinate,
     waypointNum: number,
     mission: Mission,
+    isBlocked = false,
 ) {
     if (!location) {
         return new Feature();
@@ -52,15 +54,15 @@ export function generateWaypointFeature(
         geometry: new Point(fromLonLat(coordinate, view.getProjection())),
     });
 
-    const isBypass = mission.getWaypoint(waypointNum).getIsBypass();
+    const isDetour = mission.getWaypoint(waypointNum).getIsDetour();
     // A click on a ghost waypoint falls through to whatever is below it
     if (!mission.getGhostParameters().isGhost) {
         feature.set("type", MapFeatureTypes.WAYPOINT);
         feature.set("missionID", mission.getMissionID());
     }
     feature.set("waypointNum", waypointNum);
-    feature.set("isBypass", isBypass);
-    feature.setStyle(generateWaypointStyle(waypointNum, mission, isBypass));
+    feature.set("isDetour", isDetour);
+    feature.setStyle(generateWaypointStyle(waypointNum, mission, isBlocked));
     return feature;
 }
 
@@ -69,27 +71,17 @@ export function generateWaypointFeature(
  *
  * @param {number} waypointNum Positon of waypoint in mission sequence (to be displayed on icon)
  * @param {Mission} mission Used to determine color of waypoint
+ * @param {boolean} isBlocked The waypoint is inside an exclusion zone
  * @returns {Style} Style to be applied to a waypoint feature
  */
-function generateWaypointStyle(waypointNum: number, mission: Mission, isBypass = false) {
-    if (isBypass) {
-        return new Style({
-            image: new Icon({
-                src: waypointIcon,
-                anchor: [0.5, 1],
-                color: OpenLayersColors.BYPASS,
-            }),
-            zIndex: getWaypointZIndex(mission, waypointNum),
-        });
-    }
-
+function generateWaypointStyle(waypointNum: number, mission: Mission, isBlocked: boolean) {
     const task = mission.getWaypoint(waypointNum).getTask();
 
     return new Style({
         image: new Icon({
             src: getWaypointSrc(task),
             anchor: [0.5, 1],
-            color: getWaypointColor(mission, waypointNum),
+            color: getWaypointColor(mission, waypointNum, isBlocked),
         }),
         stroke: new Stroke({
             color: OpenLayersColors.OUTLINE,
@@ -277,13 +269,18 @@ export function getWaypointSrc(task: Task) {
  *
  * @param {Mission} mission Used to determine color of the line segment
  * @param {number} waypointNum Makes color change for target waypoint
+ * @param {boolean} [isBlocked] The waypoint is inside an exclusion zone
  * @returns {OpenLayersColors} Color to be applied to waypoint
  */
-function getWaypointColor(mission: Mission, waypointNum?: number) {
+function getWaypointColor(mission: Mission, waypointNum?: number, isBlocked = false) {
     if (mission.getGhostParameters().hasStarted) {
         if (waypointNum && shouldColorTargetWaypoint(mission, waypointNum)) {
             return OpenLayersColors.TARGET;
         }
+    }
+
+    if (isBlocked) {
+        return OpenLayersColors.BLOCKED;
     }
 
     if (
@@ -297,11 +294,21 @@ function getWaypointColor(mission: Mission, waypointNum?: number) {
         return OpenLayersColors.SELECT;
     }
 
+    if (waypointNum && mission.getWaypoint(waypointNum).getIsDetour()) {
+        return OpenLayersColors.DETOUR;
+    }
+
     return OpenLayersColors.DEFAULT;
 }
 
+const Z_INDEX_TIER = 1_000_000;
+const Z_INDEX_WAYPOINTS = 1000;
+
 /**
- * Supplies the zIndex for waypoints and lines based on edit mode
+ * Supplies the zIndex for waypoints and lines: the edited mission's selected waypoint on top,
+ * then the edited mission, the selected bot's mission and the rest. Waypoints sit above their
+ * tier's lines, and each has its own zIndex, since OpenLayers draws all of a zIndex's icons
+ * before its labels, so stacked waypoints sharing one would draw their numbers over each other.
  *
  * @param {Mission} mission Used to determine zIndex for waypoints and lines
  * @param {number} waypointNum Used to determine zIndex for waypoints, leave unassigned for lines
@@ -312,28 +319,24 @@ function getWaypointColor(mission: Mission, waypointNum?: number) {
  * Less than 100 waypoints per mission
  */
 function getWaypointZIndex(mission: Mission, waypointNum?: number) {
-    let waypointZIndex = 0;
-    // Provide proper mission stacking
-    const isGhost = mission.getGhostParameters().isGhost;
-    if (!isGhost && mission.getMissionID() === missionSet.getMissionIDInEditMode()) {
-        waypointZIndex = 1100;
+    const ghostParameters = mission.getGhostParameters();
+    // A ghost has no mission ID, so it stacks by its bot ID
+    const stackID = ghostParameters.isGhost ? ghostParameters.botID : mission.getMissionID();
+    let tier = 0;
+    if (!ghostParameters.isGhost && stackID === missionSet.getMissionIDInEditMode()) {
+        tier = 2;
     } else if (isAssignedToSelectedBot(mission)) {
-        waypointZIndex = 1000;
-    } else {
-        waypointZIndex = isGhost ? mission.getGhostParameters().botID : mission.getMissionID();
-    }
-    // Provide proper waypoint stacking
-    if (waypointNum) {
-        waypointZIndex = waypointZIndex + waypointNum;
-        if (
-            waypointNum === jaiaGlobal.getSelectedWaypoint().waypointNum &&
-            mission.getMissionID() === missionSet.getMissionIDInEditMode()
-        ) {
-            waypointZIndex = waypointZIndex + 100;
-        }
+        tier = 1;
     }
 
-    return waypointZIndex;
+    if (waypointNum === undefined) {
+        return tier * Z_INDEX_TIER + stackID;
+    }
+
+    if (tier === 2 && waypointNum === jaiaGlobal.getSelectedWaypoint().waypointNum) {
+        tier = 3;
+    }
+    return tier * Z_INDEX_TIER + Z_INDEX_WAYPOINTS + stackID * 100 + waypointNum;
 }
 
 /**

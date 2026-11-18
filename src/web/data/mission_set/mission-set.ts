@@ -8,7 +8,7 @@ import { Speeds } from "@proto/jaiabot/messages/mission";
 // exported to files, update whenever the class or supporting
 // classes are updated
 // At the next bump, also drop the unused GhostParameters.repeats from saved missions
-export const MISSION_SET_VERSION = "2.1";
+export const MISSION_SET_VERSION = "2.2";
 
 export interface MissionSetSnapshot {
     missions: [number, Mission][];

@@ -27,6 +27,10 @@ WEB_APPS = {
 }
 
 
+MISSION_START_US = 1_700_000_000 * 1_000_000
+DIVE_SPACING_US = 180 * 1_000_000
+
+
 class FakeBot:
     def __init__(self, bot_id, lat, lon, goals, dives_to_run, depth_error=0.0,
                  idle_until_activated=False):
@@ -52,10 +56,11 @@ class FakeBot:
             self.underway.extend(['IN_MISSION__UNDERWAY__MOVEMENT__TRANSIT'] * len(goals))
         for _ in range(self.dives_to_run if depth is not None else 0):
             self.underway.extend(['IN_MISSION__UNDERWAY__MOVEMENT__TRANSIT'])
+            start_time = MISSION_START_US + len(self.packets) * DIVE_SPACING_US
             self.underway.extend(checks.DIVE_STATES)
             achieved = depth - self.depth_error
             self.packets.append({
-                'bot_id': self.bot_id, 'type': 'DIVE',
+                'bot_id': self.bot_id, 'type': 'DIVE', 'start_time': start_time,
                 'dive': {'depth_achieved': achieved, 'dive_rate': 0.5,
                          'reached_min_depth': True,
                          'measurement': [{'mean_depth': d, 'mean_temperature': 12.0,

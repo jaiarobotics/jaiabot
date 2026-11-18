@@ -26,13 +26,13 @@ export const JoinType = { Round: 0, Miter: 1, Square: 2 };
 export const EndType = { Polygon: 0, Joined: 1, Butt: 2, Square: 3, Round: 4 };
 
 export const Clipper = {
-    union(subject: Paths, _clip: Paths, _fillRule: number): Paths {
+    unionD(subject: Paths, _fillRule: number): Paths {
         return subject;
     },
-    inflatePaths(paths: Paths, margin: number, _joinType: number, _endType: number): Paths {
+    inflatePathsD(paths: Paths, margin: number, _joinType: number, _endType: number): Paths {
         return paths.map((path) => scaleOutward(path, margin));
     },
-    ramerDouglasPeuckerPaths(paths: Paths, _epsilon: number): Paths {
+    ramerDouglasPeuckerPathsD(paths: Paths, _epsilon: number): Paths {
         return paths;
     },
 };

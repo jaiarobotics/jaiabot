@@ -93,17 +93,4 @@ describe("ghostMissionFromPlan", () => {
             constant_heading_speed: 2,
         });
     });
-
-    test("marks the router's bypass waypoints", () => {
-        const plan: MissionPlan = {
-            goal: [
-                { location: { lat: 41.66, lon: -71.27 } },
-                { location: { lat: 41.67, lon: -71.27 }, name: "route_bypass" },
-            ],
-        };
-
-        const waypoints = ghostMissionFromPlan(1, plan).getWaypoints();
-
-        expect(waypoints.map((waypoint) => waypoint.getIsBypass())).toEqual([false, true]);
-    });
 });

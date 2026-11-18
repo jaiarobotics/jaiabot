@@ -1,8 +1,7 @@
 import Bot from "../data/bots/bot";
 import Mission from "../data/mission_set/mission";
 import Task from "../data/tasks/task";
-import Waypoint from "../data/waypoints/waypoint";
-import { MissionPlan, MissionPlan_Goal, MissionTask } from "@proto/jaiabot/messages/mission";
+import { MissionPlan, MissionTask } from "@proto/jaiabot/messages/mission";
 
 /**
  * Builds a ghost mission for each bot that has been sent a mission with waypoints
@@ -30,7 +29,10 @@ export function buildGhostMissions(bots: Map<number, Bot>) {
  */
 export function ghostMissionFromPlan(botID: number, plan: MissionPlan) {
     const mission = new Mission();
-    mission.setWaypoints((plan.goal ?? []).map(waypointFromGoal));
+    for (const goal of plan.goal ?? []) {
+        mission.addWaypoint(goal.location);
+        mission.setWaypointTask(mission.getWaypoints().length, taskFromMissionTask(goal.task));
+    }
     mission.setRepeats(plan.repeats ?? 1);
     mission.setGhostParameters({
         hasStarted: true,
@@ -39,14 +41,6 @@ export function ghostMissionFromPlan(botID: number, plan: MissionPlan) {
         isGhost: true,
     });
     return mission;
-}
-
-function waypointFromGoal(goal: MissionPlan_Goal) {
-    const waypoint = new Waypoint();
-    waypoint.setLocation(goal.location);
-    waypoint.setTask(taskFromMissionTask(goal.task));
-    waypoint.setIsBypass(goal.name === "route_bypass");
-    return waypoint;
 }
 
 function taskFromMissionTask(missionTask: MissionTask | undefined) {
