@@ -4,6 +4,7 @@ export enum DialogWarningType {
     CLEAR_MISSIONS,
     OLD_FORMAT,
     INVALID_FORMAT,
+    UNKNOWN_FORMAT,
 }
 
 interface DialogProps {
@@ -45,6 +46,8 @@ export function ImportMissionSetDialog(props: DialogProps) {
                 return "This mission set was saved in an older format and has been migrated. Please export to update to the latest version.";
             case DialogWarningType.INVALID_FORMAT:
                 return "The file could not be imported, it is an invalid format.";
+            case DialogWarningType.UNKNOWN_FORMAT:
+                return "The file could not be imported. It was saved in an unknown format, possibly by a newer version of JCC.";
         }
     };
 
