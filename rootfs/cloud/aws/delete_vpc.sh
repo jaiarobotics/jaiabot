@@ -140,24 +140,24 @@ TAG_FILTER="Name=tag:jaia_fleet,Values=$FLEET_TAG_VALUE"
 
 echo "Finding resources with jaia_fleet=$FLEET_TAG_VALUE..."
 
+# Looked up whether or not there is an instance: a create stopped before launching one still leaves its address
+if lookup ALLOC_IDS "Elastic IPs" aws ec2 describe-addresses --filters "$TAG_FILTER" --query "Addresses[].AllocationId" --output text \
+        && [ -n "$ALLOC_IDS" ]; then
+    echo "Disassociating and releasing Elastic IPs: $ALLOC_IDS"
+
+    for ALLOC_ID in $ALLOC_IDS; do
+        lookup ASSOC_ID "the association of Elastic IP $ALLOC_ID" aws ec2 describe-addresses --allocation-ids "$ALLOC_ID" --query "Addresses[].AssociationId" --output text || continue
+        if [ -n "$ASSOC_ID" ]; then
+            attempt "disassociate Elastic IP $ALLOC_ID" aws ec2 disassociate-address --association-id "$ASSOC_ID"
+        fi
+        attempt "release Elastic IP $ALLOC_ID" aws ec2 release-address --allocation-id "$ALLOC_ID"
+    done
+fi
+
 if ! lookup INSTANCE_IDS "instances" aws ec2 describe-instances --filters "$TAG_FILTER" "Name=instance-state-name,Values=pending,running,stopping,stopped" --query "Reservations[].Instances[].InstanceId" --output text; then
     :
 elif [ -n "$INSTANCE_IDS" ]; then
     echo "Found instances: $INSTANCE_IDS"
-
-    # Get and disassociate Elastic IPs
-    if lookup ALLOC_IDS "Elastic IPs" aws ec2 describe-addresses --filters "$TAG_FILTER" --query "Addresses[].AllocationId" --output text \
-            && [ -n "$ALLOC_IDS" ]; then
-        echo "Disassociating and releasing Elastic IPs: $ALLOC_IDS"
-
-        for ALLOC_ID in $ALLOC_IDS; do
-            lookup ASSOC_ID "the association of Elastic IP $ALLOC_ID" aws ec2 describe-addresses --allocation-ids "$ALLOC_ID" --query "Addresses[].AssociationId" --output text || continue
-            if [ -n "$ASSOC_ID" ]; then
-                attempt "disassociate Elastic IP $ALLOC_ID" aws ec2 disassociate-address --association-id "$ASSOC_ID"
-            fi
-            attempt "release Elastic IP $ALLOC_ID" aws ec2 release-address --allocation-id "$ALLOC_ID"
-        done
-    fi
 
     # Terminate instances
     echo "Terminating instances: $INSTANCE_IDS"
@@ -225,6 +225,16 @@ for VPC_ID in $VPC_IDS; do
     echo "Deleting VPC $VPC_ID..."
     attempt "delete VPC $VPC_ID" aws ec2 delete-vpc --vpc-id "$VPC_ID"
 done
+
+# A gateway is attached only after it is created, so one from a stopped create has no VPC to be found through
+if lookup IGW_IDS "unattached internet gateways" aws ec2 describe-internet-gateways --filters "$TAG_FILTER" \
+        --query 'InternetGateways[?length(Attachments)==`0`].InternetGatewayId' --output text \
+        && [ -n "$IGW_IDS" ]; then
+    echo "Deleting unattached internet gateways: $IGW_IDS"
+    for IGW_ID in $IGW_IDS; do
+        attempt "delete internet gateway $IGW_ID" aws ec2 delete-internet-gateway --internet-gateway-id "$IGW_ID"
+    done
+fi
 
 if [ "$KEEP_IAM" = "false" ]; then
     role_name="JaiaCloudHubFleet${FLEET_TAG_VALUE}__Role"
