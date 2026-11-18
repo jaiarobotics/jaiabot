@@ -120,6 +120,7 @@ export const actionConfigs: Map<JaiaActions, ActionConfig> = new Map([
     [JaiaActions.ADD_WAYPOINT, { handler: handleAddWaypoint, tracked: true }],
     [JaiaActions.DELETE_WAYPOINT, { handler: handleDeleteWaypoint, tracked: true }],
     [JaiaActions.MOVE_WAYPOINT, { handler: handleMoveWaypoint, tracked: true }],
+    [JaiaActions.PREVIEW_WAYPOINT_MOVE, { handler: handleMoveWaypoint, tracked: false }],
     [JaiaActions.SELECT_TASK, { handler: handleSelectTask, tracked: true }],
     [JaiaActions.CHANGE_TASK_PARAMETER, { handler: handleChangeTaskParameter, tracked: true }],
     [JaiaActions.TOGGLE_BOTTOM_DIVE, { handler: handleToggleBottomDive, tracked: true }],

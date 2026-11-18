@@ -208,6 +208,7 @@ segment tests against the zones.
 | Operator event                                 | Action                                    | Handler                          | Undo entry           |
 | ---------------------------------------------- | ----------------------------------------- | -------------------------------- | -------------------- |
 | Add or move a waypoint                         | `ADD_WAYPOINT`, `MOVE_WAYPOINT`           | `waypoint-handlers.ts`           | yes                  |
+| … typed as lat/lon, each keystroke             | `PREVIEW_WAYPOINT_MOVE`                   | `waypoint-handlers.ts`           | no                   |
 | … inside a zone, cancelled                     | none: checked before dispatch             | none                             | no                   |
 | Place a rally point or survey corner in a zone | as usual, once confirmed                  | as usual                         | as usual             |
 | Draw, edit, delete or load zones               | the zone actions                          | `exclusion-zone-handlers.ts`     | yes                  |
@@ -216,6 +217,12 @@ segment tests against the zones.
 | Reroute, or Reroute all                        | `REROUTE_MISSIONS` with the mission IDs   | `handleRerouteMissions`          | one for all missions |
 | Restore original waypoints, or Restore all     | `RESTORE_ORIGINAL_WAYPOINTS` with the IDs | `handleRestoreOriginalWaypoints` | one for all missions |
 | Run or Run all                                 | `SENT_COMMAND`, after the start dialog    | `handleSentCommand`              | no                   |
+
+A waypoint's typed lat/lon moves it on each keystroke, unchecked and untracked; Enter, or
+focus leaving both fields, checks the location and dispatches `MOVE_WAYPOINT`, so the whole
+edit is one undo entry. A cancelled check moves the waypoint back where typing started. The
+panel's Done commits a typed location the same way and closes once it is placed; its Cancel
+discards it without asking.
 
 Zone edits change only the zone set; they redraw the mission layer so the red waypoints follow
 the zones, and status is recomputed at render. Loading a mission set or a zone set loads it as

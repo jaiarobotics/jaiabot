@@ -1,5 +1,15 @@
 import cloneDeep from "lodash/cloneDeep";
-import { ChangeEvent, FocusEvent, KeyboardEvent, useContext, useEffect, useState } from "react";
+import {
+    ChangeEvent,
+    FocusEvent,
+    KeyboardEvent,
+    Ref,
+    useContext,
+    useEffect,
+    useImperativeHandle,
+    useRef,
+    useState,
+} from "react";
 
 import TaskParameters from "./TaskParameters/TaskParameters";
 
@@ -40,6 +50,13 @@ interface Props {
     isDisabled?: boolean;
     visibleSection?: WaypointSections;
     coordinateSystem?: CoordinateSystem;
+    locationEditorRef?: Ref<LocationEditor>;
+}
+
+/** Lets Done commit a typed location before the panel closes */
+interface LocationEditor {
+    /** Commits any typed location, then calls `onCommitted` unless the operator cancels */
+    commit: (onCommitted: () => void) => void;
 }
 
 // At 5 decimal points we see slight variation between OL and MGRS coordinate calculations
@@ -68,6 +85,7 @@ export default function WaypointPanel() {
 
     // Use state to initalize to null on first render + prevent unnecessary updates
     const [originalWaypoint, setOriginalWaypoint] = useState(null);
+    const locationEditorRef = useRef<LocationEditor>(null);
     const isDisabled =
         jaiaContext.missionSet.getMissionIDInEditMode() !==
         jaiaContext.jaiaGlobal.getSelectedWaypoint().missionID;
@@ -185,6 +203,20 @@ export default function WaypointPanel() {
         }
     };
 
+    /**
+     * Commits a typed location, then closes the panel once it is placed
+     *
+     * @returns {void}
+     */
+    const handleDoneClick = () => {
+        const close = () => handleClosePanelClick(PanelActions.DONE);
+        if (locationEditorRef.current) {
+            locationEditorRef.current.commit(close);
+        } else {
+            close();
+        }
+    };
+
     return (
         <div className="waypoint-panel-container">
             <div className="waypoint-id-container">
@@ -232,10 +264,12 @@ export default function WaypointPanel() {
                 isDisabled={isDisabled}
                 visibleSection={jaiaContext.visibleWaypointSection}
                 coordinateSystem={jaiaContext.jaiaGlobal.getCoordinateSystem()}
+                locationEditorRef={locationEditorRef}
             />
-            <div className="button-row">
+            {/* Keeps focus in a location field, so its blur can't commit before the click */}
+            <div className="button-row" onMouseDown={(evt) => evt.preventDefault()}>
                 <button onClick={() => handleClosePanelClick(PanelActions.CANCEL)}>Cancel</button>
-                <button onClick={() => handleClosePanelClick(PanelActions.DONE)}>Done</button>
+                <button onClick={() => handleDoneClick()}>Done</button>
             </div>
         </div>
     );
@@ -250,7 +284,13 @@ function VisibleSection(props: Props) {
             if (props.coordinateSystem === CoordinateSystem.MGRS) {
                 return <MGRSDisplay waypoint={props.waypoint} isDisabled={props.isDisabled} />;
             }
-            return <LatLonDisplay waypoint={props.waypoint} isDisabled={props.isDisabled} />;
+            return (
+                <LatLonDisplay
+                    waypoint={props.waypoint}
+                    isDisabled={props.isDisabled}
+                    locationEditorRef={props.locationEditorRef}
+                />
+            );
         case WaypointSections.TASK:
             return <TaskSelection waypoint={props.waypoint} isDisabled={props.isDisabled} />;
         default:
@@ -316,12 +356,38 @@ function TaskSelection(props: Props) {
 }
 
 /**
+ * Converts typed latitude and longitude to a location, clamped to the valid range
+ *
+ * @param {string} lat Typed latitude
+ * @param {string} lon Typed longitude
+ * @returns {GeographicCoordinate | null} The location, or null unless both are numbers
+ */
+function parseCoordinate(lat: string, lon: string): GeographicCoordinate | null {
+    const isNumber = (value: string) => value.trim() !== "" && !isNaN(Number(value));
+    if (!isNumber(lat) || !isNumber(lon)) return null;
+    const [validLat, validLon] = validateCoordinate(lat, lon);
+    return { lat: Number(validLat), lon: Number(validLon) };
+}
+
+/**
+ * Compares two locations exactly
+ *
+ * @param {GeographicCoordinate} a A location
+ * @param {GeographicCoordinate} b Another location
+ * @returns {boolean} True if both are the same point
+ */
+function isSameLocation(a: GeographicCoordinate, b: GeographicCoordinate) {
+    return a.lat === b.lat && a.lon === b.lon;
+}
+
+/**
  * Displays the waypoint location in lat/lon format. Allows the operator to edit these values.
  *
  * @notes
  * Typed values are held as strings, to allow negative signs and decimal points while typing.
- * They take effect on Enter, or when focus leaves both fields, so a partly typed coordinate
- * never moves the waypoint.
+ * The waypoint follows each typed value that is a number, with no zone check and no undo entry.
+ * Enter, or focus leaving both fields, checks the final location and records one undo entry.
+ * A cancelled or non-numeric entry puts the waypoint back where it was before typing.
  */
 function LatLonDisplay(props: Props) {
     const jaiaDispatch = useContext(JaiaDispatchContext);
@@ -330,62 +396,82 @@ function LatLonDisplay(props: Props) {
         lat: string;
         lon: string;
         waypoint: Waypoint;
-        from: GeographicCoordinate;
+        /** Where the waypoint was before typing */
+        start: GeographicCoordinate;
+        /** Where typing has moved the waypoint to */
+        at: GeographicCoordinate;
     } | null>(null);
 
     const location = props.waypoint.getLocation();
-    // A draft started on another waypoint, or before the waypoint moved, no longer applies
+    // A draft started on another waypoint, or before the waypoint was moved some other way,
+    // no longer applies
     const current =
-        draft?.waypoint === props.waypoint &&
-        draft.from.lat === location.lat &&
-        draft.from.lon === location.lon
-            ? draft
-            : null;
+        draft?.waypoint === props.waypoint && isSameLocation(draft.at, location) ? draft : null;
     const shown = current ?? { lat: location.lat.toString(), lon: location.lon.toString() };
 
     /**
-     * Keeps the typed value without moving the waypoint
+     * Keeps the typed value, and moves the waypoint to it if it is a coordinate
      *
      * @param {ChangeEvent} evt Contains the coord type + value
      * @returns {void}
      */
     const handleCoordinateChange = (evt: ChangeEvent<HTMLInputElement>) => {
-        const typed = {
+        let typed = {
             ...shown,
             [evt.target.name === CoordinateTypes.LAT ? "lat" : "lon"]: evt.target.value,
         };
-        setDraft({ ...typed, waypoint: props.waypoint, from: location });
+        let at = location;
+        const target = parseCoordinate(typed.lat, typed.lon);
+        if (target) {
+            const [lat, lon] = validateCoordinate(typed.lat, typed.lon);
+            typed = { lat, lon };
+            if (!isSameLocation(target, location)) {
+                jaiaDispatch({ type: JaiaActions.PREVIEW_WAYPOINT_MOVE, location: target });
+                at = target;
+            }
+        }
+        setDraft({ ...typed, waypoint: props.waypoint, start: current?.start ?? location, at });
     };
 
     /**
-     * Moves the waypoint to the typed coordinate, asking first if it is inside a zone. An
-     * empty or non-numeric value, or a cancelled move, puts the waypoint's location back.
+     * Records the move to the typed coordinate, asking first if it is inside a zone. An empty or
+     * non-numeric value, or a cancelled move, puts the waypoint back where it was before typing.
      *
+     * @param {Function} [onCommitted] Called once committed, unless the operator cancels
      * @returns {void}
      */
-    const commitDraft = () => {
-        if (!current || isPrompting) return;
-        const isNumber = (value: string) => value.trim() !== "" && !isNaN(Number(value));
-        if (!isNumber(current.lat) || !isNumber(current.lon)) {
-            setDraft(null);
+    const commitDraft = (onCommitted?: () => void) => {
+        if (isPrompting) return;
+        if (!current) {
+            onCommitted?.();
             return;
         }
-        const [lat, lon] = validateCoordinate(current.lat, current.lon);
-        const typed = { lat: Number(lat), lon: Number(lon) };
-        if (typed.lat === location.lat && typed.lon === location.lon) {
+        const { start, at } = current;
+        const putBack = () => {
             setDraft(null);
+            if (!isSameLocation(at, start)) {
+                jaiaDispatch({ type: JaiaActions.PREVIEW_WAYPOINT_MOVE, location: start });
+            }
+        };
+        const target = parseCoordinate(current.lat, current.lon);
+        if (!target || isSameLocation(target, start)) {
+            putBack();
+            onCommitted?.();
             return;
         }
         checkAndPlace(
-            typed,
+            target,
             "waypoint",
             () => {
                 setDraft(null);
-                jaiaDispatch({ type: JaiaActions.MOVE_WAYPOINT, location: typed });
+                jaiaDispatch({ type: JaiaActions.MOVE_WAYPOINT, location: target });
+                onCommitted?.();
             },
-            { onCancel: () => setDraft(null) },
+            { onCancel: putBack },
         );
     };
+
+    useImperativeHandle(props.locationEditorRef, () => ({ commit: commitDraft }));
 
     /**
      * Commits the typed coordinate when the operator presses Enter
