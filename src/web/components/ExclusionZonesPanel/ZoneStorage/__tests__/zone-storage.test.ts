@@ -1,12 +1,15 @@
 import {
-    exclusionZoneSet,
     ExclusionZoneSetSnapshot,
+    EXCLUSION_ZONE_SET_VERSION,
+    exclusionZoneSet,
 } from "../../../../data/exclusion_zones/exclusion-zone-set";
 import {
     listSavedZoneSetsFromHub,
     saveToHub,
     loadSnapshotFromHub,
     deleteFromHub,
+    importZonesFromFile,
+    ZoneLoadResultType,
 } from "../zone-storage";
 
 jest.mock("../../../../utils/jaia-rest-api", () => ({
@@ -52,26 +55,94 @@ describe("Zone hub storage", () => {
         const query = mockRequest.mock.calls[0][0].record_query;
         expect(query.type).toBe(RecordQuery_RecordType.EXCLUSION_ZONE);
         expect(query.save_name).toBe("my-zones");
-        expect(JSON.parse(query.save_content).zones.length).toBe(1);
+        const saved = JSON.parse(query.save_content);
+        expect(saved.zones.length).toBe(1);
+        expect(saved.version).toBe(EXCLUSION_ZONE_SET_VERSION);
     });
 
-    test("loadSnapshotFromHub returns a snapshot from the hub", async () => {
-        const fakeSnapshot: ExclusionZoneSetSnapshot = { zones: [], nextZoneID: 1 };
+    test("saveToHub stores the set under the name the snapshot carries", async () => {
+        exclusionZoneSet.setName("old-name");
+        mockRequest.mockResolvedValue({});
+
+        await saveToHub("new-name");
+
+        const query = mockRequest.mock.calls[0][0].record_query;
+        expect(query.save_name).toBe("new-name");
+        expect(JSON.parse(query.save_content).name).toBe("new-name");
+        expect(exclusionZoneSet.getName()).toBe("old-name");
+    });
+
+    test("saveToHub leaves the name as it was when the save fails", async () => {
+        exclusionZoneSet.setName("old-name");
+        mockRequest.mockRejectedValue(new Error("hub unreachable"));
+
+        await expect(saveToHub("new-name")).rejects.toThrow("hub unreachable");
+
+        expect(exclusionZoneSet.getName()).toBe("old-name");
+    });
+
+    test("loadSnapshotFromHub falls back to the requested name for an entry saved without one", async () => {
         mockRequest.mockResolvedValue({
-            record_query_response: { content: JSON.stringify(fakeSnapshot) },
+            record_query_response: { content: JSON.stringify({ zones: [], nextZoneID: 1 }) },
         });
 
         const result = await loadSnapshotFromHub("my-zones");
-        expect(result).toEqual(fakeSnapshot);
+
+        expect(result.snapshot!.name).toBe("my-zones");
+    });
+
+    test("loadSnapshotFromHub returns a snapshot from the hub", async () => {
+        const fakeSnapshot: ExclusionZoneSetSnapshot = {
+            zones: [],
+            nextZoneID: 1,
+            name: "my-zones",
+        };
+        mockRequest.mockResolvedValue({
+            record_query_response: {
+                content: JSON.stringify({ ...fakeSnapshot, version: EXCLUSION_ZONE_SET_VERSION }),
+            },
+        });
+
+        const result = await loadSnapshotFromHub("my-zones");
+        expect(result).toEqual({ snapshot: fakeSnapshot, resultType: ZoneLoadResultType.SUCCESS });
         expect(mockRequest.mock.calls[0][0].record_query.get_name).toBe("my-zones");
     });
 
-    test("loadSnapshotFromHub returns null when the hub has no entry", async () => {
+    test("loadSnapshotFromHub reads an entry saved without a version as 1.0", async () => {
+        mockRequest.mockResolvedValue({
+            record_query_response: {
+                content: JSON.stringify({ zones: [], nextZoneID: 1, name: "a" }),
+            },
+        });
+
+        const result = await loadSnapshotFromHub("a");
+
+        expect(result.resultType).toBe(ZoneLoadResultType.SUCCESS);
+    });
+
+    test("loadSnapshotFromHub refuses a version it does not know", async () => {
+        mockRequest.mockResolvedValue({
+            record_query_response: {
+                content: JSON.stringify({
+                    zones: [],
+                    nextZoneID: 1,
+                    name: "newer",
+                    version: "9.9",
+                }),
+            },
+        });
+
+        const result = await loadSnapshotFromHub("newer");
+
+        expect(result).toEqual({ snapshot: null, resultType: ZoneLoadResultType.UNKNOWN_FORMAT });
+    });
+
+    test("loadSnapshotFromHub reports nothing loaded when the hub has no entry", async () => {
         mockRequest.mockRejectedValue(
             new JaiaRESTAPIError(APIErrorCode.API_ERROR__RECORD_NOT_FOUND, "Record not found"),
         );
         const result = await loadSnapshotFromHub("nonexistent");
-        expect(result).toBeNull();
+        expect(result.snapshot).toBeNull();
     });
 
     test("loadSnapshotFromHub passes on other API errors", async () => {
@@ -90,5 +161,40 @@ describe("Zone hub storage", () => {
         mockRequest.mockResolvedValue({});
         await deleteFromHub("my-zones");
         expect(mockRequest.mock.calls[0][0].record_query.delete_name).toBe("my-zones");
+    });
+});
+
+describe("Zone file import", () => {
+    /** Feeds a JSON file to importZonesFromFile through a mocked file input. */
+    async function importFile(content: object) {
+        const fileContent = JSON.stringify(content);
+        const file = new File([fileContent], "zones.json", { type: "application/json" });
+        (file as any).text = () => Promise.resolve(fileContent);
+        const mockInput = document.createElement("input");
+        jest.spyOn(document, "createElement").mockReturnValueOnce(mockInput);
+        const resultPromise = importZonesFromFile();
+        Object.defineProperty(mockInput, "files", { value: [file] });
+        mockInput.dispatchEvent(new Event("change"));
+        return resultPromise;
+    }
+
+    const snapshot: ExclusionZoneSetSnapshot = { zones: [], nextZoneID: 1, name: "zones" };
+
+    test("imports a file of the current version", async () => {
+        const result = await importFile({ version: EXCLUSION_ZONE_SET_VERSION, snapshot });
+
+        expect(result).toEqual({ snapshot, resultType: ZoneLoadResultType.SUCCESS });
+    });
+
+    test("refuses a file with a version it does not know", async () => {
+        const result = await importFile({ version: "9.9", snapshot });
+
+        expect(result).toEqual({ snapshot: null, resultType: ZoneLoadResultType.UNKNOWN_FORMAT });
+    });
+
+    test("reports a file without a version as an invalid format", async () => {
+        const result = await importFile({ snapshot });
+
+        expect(result.resultType).toBe(ZoneLoadResultType.INVALID_FORMAT);
     });
 });

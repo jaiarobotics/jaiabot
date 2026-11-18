@@ -4,7 +4,7 @@
 
 FILES=$(git diff --cached --name-only --diff-filter=ACMR | sed 's| |\\ |g')
 
-INCLUDE="web"
+INCLUDE="^src/web/"
 FILES=$(echo "$FILES" | grep -E "$INCLUDE")
 [ -z "$FILES" ] && exit 0
 

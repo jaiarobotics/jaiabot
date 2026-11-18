@@ -2,7 +2,7 @@ import { useContext, useState } from "react";
 import { JaiaDispatchContext } from "../../../../context/JaiaContext";
 import { JaiaActions } from "../../../../context/jaia-actions";
 import { DialogActions } from "../../../../types/context-types";
-import { importZonesFromFile, ImportZoneResultType } from "../zone-storage";
+import { importZonesFromFile, ZoneLoadResultType } from "../zone-storage";
 import { ImportZoneDialog, DialogWarningType } from "./ImportZoneDialog";
 
 interface Props {
@@ -42,14 +42,17 @@ export default function ImportZoneButton(props: Props) {
         setIsDialogVisible(false);
         if (dialogAction === DialogActions.CONFIRMED) {
             const result = await importZonesFromFile();
-            if (result.resultType === ImportZoneResultType.SUCCESS && result.snapshot) {
+            if (result.resultType === ZoneLoadResultType.SUCCESS && result.snapshot) {
                 jaiaDispatch({
-                    type: JaiaActions.RESTORE_EXCLUSION_ZONE_SNAPSHOT,
-                    exclusionZoneSnapshot: result.snapshot,
+                    type: JaiaActions.LOAD_EXCLUSION_ZONE_SET,
+                    exclusionZoneSetSnapshot: result.snapshot,
                 });
                 props.onClose();
-            } else if (result.resultType === ImportZoneResultType.INVALID_FORMAT) {
+            } else if (result.resultType === ZoneLoadResultType.INVALID_FORMAT) {
                 setDialogWarningType(DialogWarningType.INVALID_FORMAT);
+                setIsDialogVisible(true);
+            } else if (result.resultType === ZoneLoadResultType.UNKNOWN_FORMAT) {
+                setDialogWarningType(DialogWarningType.UNKNOWN_FORMAT);
                 setIsDialogVisible(true);
             }
             // CANCELLED: user closed the file picker, do nothing

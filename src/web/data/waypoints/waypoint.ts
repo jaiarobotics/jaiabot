@@ -1,7 +1,7 @@
 import * as mgrs from "mgrs";
 import Task from "../tasks/task";
 import { GeographicCoordinate } from "@proto/jaiabot/messages/geographic_coordinate";
-import { MissionPlan_Goal } from "@proto/jaiabot/messages/mission";
+import { MissionPlan_Goal, MissionPlan_Segment } from "@proto/jaiabot/messages/mission";
 import { MGRS } from "../../types/jaia-system-types";
 import { validateCoordinate } from "../../utils/input";
 import { MGRS_PLACEHOLDER } from "../../utils/constants";
@@ -13,12 +13,34 @@ const defaultMGRS: MGRS = {
     northing: MGRS_PLACEHOLDER,
 };
 
-export default class Waypoint {
+/** A segment's settings, without the goal indices that are computed when a mission is sent. */
+export type SegmentParams = Omit<
+    MissionPlan_Segment,
+    "start_goal_index" | "lane_start_goal_indices"
+>;
+
+/** A mission's waypoint as code outside Mission sees it: read-only. Only Mission changes waypoints. */
+export default interface Waypoint {
+    getLocation(): GeographicCoordinate;
+    getTask(): Task;
+    getIsDetour(): boolean;
+    getIsSuppressed(): boolean;
+    packageWaypointForHub(): MissionPlan_Goal;
+    latLonToMGRS(): MGRS;
+}
+
+/** The waypoint a Mission stores. Used only by Mission. */
+export class MissionWaypoint implements Waypoint {
     private location: GeographicCoordinate;
     private task: Task;
-    private isBypass: boolean = false;
+    private isDetour: boolean = false;
+    private isSuppressed: boolean = false;
+    /** Settings of the segment this waypoint starts; never set on a mission's first segment. */
+    private segmentStart?: SegmentParams;
+    private isLaneStart: boolean = false;
 
-    constructor() {
+    constructor(location: GeographicCoordinate) {
+        this.location = location;
         this.task = new Task();
     }
 
@@ -38,25 +60,43 @@ export default class Waypoint {
         this.task = task;
     }
 
-    setIsBypass(isBypass: boolean) {
-        this.isBypass = isBypass;
+    setIsDetour(isDetour: boolean) {
+        this.isDetour = isDetour;
     }
 
-    getIsBypass() {
-        return this.isBypass;
+    getIsDetour() {
+        return this.isDetour;
     }
 
-    packageWaypointForHub() {
-        const goal: MissionPlan_Goal = {
+    setIsSuppressed(isSuppressed: boolean) {
+        this.isSuppressed = isSuppressed;
+    }
+
+    getIsSuppressed() {
+        return this.isSuppressed;
+    }
+
+    setSegmentStart(segmentStart: SegmentParams | undefined) {
+        this.segmentStart = segmentStart;
+    }
+
+    getSegmentStart() {
+        return this.segmentStart;
+    }
+
+    setIsLaneStart(isLaneStart: boolean) {
+        this.isLaneStart = isLaneStart;
+    }
+
+    getIsLaneStart() {
+        return this.isLaneStart;
+    }
+
+    packageWaypointForHub(): MissionPlan_Goal {
+        return {
             location: this.location,
             task: this.task.packageTaskForHub(),
         };
-
-        if (this.isBypass) {
-            goal.name = "route_bypass";
-        }
-
-        return goal;
     }
 
     /**
@@ -64,7 +104,7 @@ export default class Waypoint {
      *
      * @returns {MGRS} MGRS components for waypoints current location
      */
-    latLonToMGRS() {
+    latLonToMGRS(): MGRS {
         const [lat, lon] = validateCoordinate(
             this.location.lat?.toString(),
             this.location.lon?.toString(),
@@ -97,21 +137,5 @@ export default class Waypoint {
             northing: digits.slice(half),
         };
         return mgrsComponents;
-    }
-
-    /**
-     * Converts an MGRS string to lat/lon coordinate
-     *
-     * @param {string} mgrsStr Location to convert
-     * @returns {number[]} Coordinates [lon, lat]
-     */
-    mgrsToLonLat(mgrsStr: string) {
-        try {
-            const [lon, lat] = mgrs.toPoint(mgrsStr);
-            return [lon, lat];
-        } catch (err) {
-            console.error("Failed to convert MGRS to lon/lat", err);
-            return [NaN, NaN];
-        }
     }
 }
