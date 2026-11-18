@@ -41,16 +41,20 @@ if [ "${2:-}" = --cloudhub-address ]; then
     exit 0
 fi
 
+# Iridium connects over IPv4 and the CloudHubs over their IPv6 VPN; a plain TCP-LISTEN
+# takes IPv4 only
+LISTEN_OPTIONS=ipv6only=0,reuseaddr,fork
+
 # Iridium DirectIP (MetOcean)
 ## MO Tunnel
-(set -x; socat TCP-LISTEN:$((FLEET+${JAIA_IRIDIUM_MO_PORT_BASE})),reuseaddr,fork TCP:[${CLOUDHUB_ADDRESS}]:${CLOUDHUB_IRIDIUM_MO_PORT})&
+(set -x; socat TCP6-LISTEN:$((FLEET+${JAIA_IRIDIUM_MO_PORT_BASE})),${LISTEN_OPTIONS} TCP:[${CLOUDHUB_ADDRESS}]:${CLOUDHUB_IRIDIUM_MO_PORT})&
 
 ## MT Tunnel
-(set -x; socat TCP-LISTEN:$((FLEET+${JAIA_IRIDIUM_MT_PORT_BASE})),reuseaddr,fork TCP:directip.sbd.iridium.com:${IRIDIUM_MT_PORT})&
+(set -x; socat TCP6-LISTEN:$((FLEET+${JAIA_IRIDIUM_MT_PORT_BASE})),${LISTEN_OPTIONS} TCP:directip.sbd.iridium.com:${IRIDIUM_MT_PORT})&
 
 # RockBLOCK
 
 ## MO Tunnel
-(set -x; socat TCP-LISTEN:$((FLEET+${JAIA_ROCKBLOCK_MO_PORT_BASE})),reuseaddr,fork TCP:[${CLOUDHUB_ADDRESS}]:${CLOUDHUB_ROCKBLOCK_MO_PORT})&
+(set -x; socat TCP6-LISTEN:$((FLEET+${JAIA_ROCKBLOCK_MO_PORT_BASE})),${LISTEN_OPTIONS} TCP:[${CLOUDHUB_ADDRESS}]:${CLOUDHUB_ROCKBLOCK_MO_PORT})&
 
 wait

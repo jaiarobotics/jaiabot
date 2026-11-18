@@ -5,6 +5,7 @@ import { DialogActions } from "../../../types/context-types";
 interface DialogProps {
     isVisible: boolean;
     disabledCode: DisabledCodes;
+    routeWarnings: string[];
     onClose: (dialogAction: DialogActions) => void;
 }
 
@@ -43,6 +44,9 @@ export function StartMissionDialog(props: DialogProps) {
             <div className={getClassName()}>
                 <Title disabledCode={props.disabledCode} />
                 <p>{messages.get(props.disabledCode)}</p>
+                {props.routeWarnings.map((warning) => (
+                    <p key={warning}>{warning}</p>
+                ))}
                 <ButtonRow
                     disabledCode={props.disabledCode}
                     onClose={(dialogAction: DialogActions) => {

@@ -28,9 +28,8 @@ export function handleClickedUndo(mutableState: JaiaContextType) {
     // Restore snapshot into mutableState and update data model
     mutableState = restoreSnapshot(mutableState, snapshot);
 
-    // Pending dialogs reference pre-undo missions/zones — clear them.
-    mutableState.pendingReroute = null;
-    mutableState.pendingWaypointRemoval = null;
+    // The reroute report belongs to the state being undone.
+    mutableState.rerouteReport = null;
 
     // Reset the map mode
     handleMapModeChange(jaiaGlobal.getMapMode());

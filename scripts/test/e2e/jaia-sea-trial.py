@@ -23,6 +23,34 @@ ACTIVATABLE = ('PRE_DEPLOYMENT__IDLE', 'PRE_DEPLOYMENT__FAILED',
                'PRE_DEPLOYMENT__WAIT_FOR_MISSION_PLAN', 'PRE_DEPLOYMENT__READY')
 WAIT_FOR_PLAN = 'PRE_DEPLOYMENT__WAIT_FOR_MISSION_PLAN'
 
+DAY_US = 86_400 * 1_000_000
+# DCCL rounds a radio copy's time to the second
+SAME_PACKET_US = 2_000_000
+
+
+def packet_key(packet):
+    return packet.get('bot_id'), packet.get('start_time')
+
+
+def distinct_packets(packets):
+    """One copy of each task packet. A copy sent over the radio carries only its time of
+    day (dccl.time), dated by whichever hub received it, while an offloaded copy keeps
+    the bot's own (possibly warped) date, so copies are matched on time of day."""
+    kept = []
+    for packet in packets:
+        if 'start_time' not in packet:
+            kept.append(packet)
+            continue
+        tod = int(packet['start_time']) % DAY_US
+        def same(other):
+            if other.get('bot_id') != packet.get('bot_id') or 'start_time' not in other:
+                return False
+            apart = abs(int(other['start_time']) % DAY_US - tod)
+            return min(apart, DAY_US - apart) <= SAME_PACKET_US
+        if not any(same(other) for other in kept):
+            kept.append(packet)
+    return kept
+
 
 class TrialFailure(Exception):
     pass
@@ -49,6 +77,7 @@ class SeaTrial:
         self.last_statuses = {}
         self.goals_by_bot = {}
         self.started_at = None
+        self.preexisting_packets = set()
         self.last_status = None
         # where each bot's commands, and the fleet-wide ones, go once the hubs hear each other
         self.bot_hubs = {}
@@ -286,6 +315,9 @@ class SeaTrial:
         return start
 
     def send_missions(self, bots):
+        # packet times are in the simulator's warped clock, or only a time of day, so
+        # what predates this run is told apart by what the hubs already held, not by time
+        self.preexisting_packets = {packet_key(p) for p in self.hub_task_packets('all')}
         starts = {bot_id: self.activate(bot_id) for bot_id in bots}
         first = starts[bots[0]]['location']
         reference = (first['lat'], first['lon'])
@@ -369,12 +401,19 @@ class SeaTrial:
                 f.write(data)
             log(f'wrote {path} ({len(data)} bytes)')
 
+    def hub_task_packets(self, target):
+        # an offload lands on whichever hub finishes it first, so no one hub holds them all
+        packets = []
+        for hub in self.hubs.values():
+            packets += hub.task_packets(target) or []
+        return packets
+
     def collect(self, bots):
         packets = {}
         for bot_id in bots:
-            got = self.hub.task_packets(f'b{bot_id}', start_time=self.started_at and
-                                        int(self.started_at * 1e6))
-            packets[bot_id] = got or []
+            fresh = [p for p in self.hub_task_packets(f'b{bot_id}')
+                     if packet_key(p) not in self.preexisting_packets]
+            packets[bot_id] = distinct_packets(fresh)
             log(f'bot {bot_id}: {len(packets[bot_id])} task packets')
         return packets
 
