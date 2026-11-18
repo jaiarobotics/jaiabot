@@ -279,6 +279,9 @@ elif common.app == 'goby_coroner':
                                      interprocess_block = interprocess_common))
 elif common.app == 'jaiabot_health':
     ignore_powerstate_changes=is_simulation() and not common.is_vfleet
+    iridium_block=''
+    if jaia_iridium_enabled:
+        iridium_block='iridium { link_modem_id: ' + str(common.comms.modem_id("iridium",node_id)) + ' }'
     print(config.template_substitute(templates_dir+'/bot/jaiabot_health.pb.cfg.in',
                                      bot_id=bot_id,
                                      fleet_id=fleet_id,
@@ -292,7 +295,8 @@ elif common.app == 'jaiabot_health':
                                      pam_enabled=str(pam_enabled).lower(),
                                      motor_harness_type=jaia_motor_harness_type,
                                      jaia_tail_serial_number=jaia_tail_serial_number,
-                                     jaia_bot_vin=jaia_bot_vin))
+                                     jaia_bot_vin=jaia_bot_vin,
+                                     iridium_block=iridium_block))
 elif common.app == 'goby_logger':    
     print(config.template_substitute(templates_dir+'/goby_logger.pb.cfg.in',
                                      app_block=app_common,
