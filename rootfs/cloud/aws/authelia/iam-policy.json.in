@@ -1,0 +1,11 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "ReadSmtpCredentials",
+            "Effect": "Allow",
+            "Action": "ssm:GetParameter",
+            "Resource": "{{SMTP_CREDENTIALS_PARAMETER_ARN}}"
+        }
+    ]
+}

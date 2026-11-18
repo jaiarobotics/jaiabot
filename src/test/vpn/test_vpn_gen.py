@@ -56,7 +56,7 @@ case "$*" in
     *) echo "fd0f:77ac:4fdf:7::1e" ;;
 esac
 """,
-    "jaia_bounds": 'echo 250\n',
+    "jaia_bounds": 'case "$1" in --cloudhub_id) echo 30 ;; --iridium_id) echo 25 ;; *) echo 250 ;; esac\n',
 }
 
 

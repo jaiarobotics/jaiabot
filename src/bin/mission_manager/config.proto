@@ -77,7 +77,7 @@ message MissionManager
 
     // number of times to check the gps hdop and pdop
     // while in transit to go into reacquiring gps state
-    optional uint32 total_gps_degraded_fix_checks = 35 [default = 2];
+    optional uint32 total_gps_degraded_fix_checks = 35 [default = 50];
 
     // The hdop value to check against to determine gps fix
     optional double gps_hdop_fix = 36 [default = 1.3];

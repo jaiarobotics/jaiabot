@@ -1,9 +1,9 @@
 #cloud-config
 
-hostname: jaia-authelia
+hostname: jaia-auth
 
 ssh_pwauth: false
-  
+
 users:
   - name: jaia
     groups: users,adm,dialout,audio,netdev,video,plugdev,cdrom,games,input,gpio,spi,i2c,render,sudo
@@ -12,6 +12,10 @@ users:
     lock_passwd: true
 
 write_files:
+  # deploy.sh and migrate-from.sh change only a server that has this
+  - path: /etc/jaiabot/auth-server-built
+    content: |
+      Built by create_specialty_server.sh as an auth server
   - path: /etc/ssh/sshd_config.d/jaia_sshd.conf
     content: |
       AuthorizedKeysFile .ssh/authorized_keys /etc/jaiabot/ssh/root_authorized_keys /etc/jaiabot/ssh/tmp_authorized_keys
@@ -42,14 +46,7 @@ apt:
       
 packages:
   - zile
-  - ca-certificates
-  - curl
-  - gnupg
-  - wireguard
-  - docker-compose
-  - yq
-  - netcat-openbsd
-  - jaiabot-apps
+  - jaiabot-web-thirdparty
 
 runcmd:
   - ln -s /usr/bin/zile /usr/local/bin/emacs

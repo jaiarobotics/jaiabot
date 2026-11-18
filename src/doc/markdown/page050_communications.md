@@ -186,7 +186,7 @@ Some more terminology:
 
 ### Message routing and multiplexing
 
-For security (by not directly exposing ports on Cloudhub) and as Iridium charges for each IP address provisioned to send MT messages, we have chosen to multiplex our SBD messages through a separate AWS server (iridium.jaia.tech / 44.233.97.88).
+For security (by not directly exposing ports on Cloudhub) and as Iridium charges for each IP address provisioned to send MT messages, we have chosen to multiplex our SBD messages through a separate AWS server (iridium.jaia.tech / 182.30.43.121, in AWS GovCloud).
 
 The figure below diagrams the flow for messages between the bots and hubs using this intermediate server, as well as Iridium's servers.
 

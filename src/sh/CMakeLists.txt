@@ -15,6 +15,9 @@ install(PROGRAMS ${project_SH_DIR}/system/75-jaiabot-status DESTINATION ${CMAKE_
 # Sourced at runtime for the versions of third-party packages
 install(FILES ${CMAKE_SOURCE_DIR}/scripts/common-versions.env DESTINATION share/jaiabot)
 
+# Sourced by jaia_configure_authelia.sh, and copied to the auth.cloud.jaia.tech server
+install(FILES ${project_SH_DIR}/system/jaia-authelia-common.sh DESTINATION share/jaiabot)
+
 set(scripts_to_install
   # data offload
   data-offload/jaiahub-dataoffload.sh
@@ -43,6 +46,7 @@ set(scripts_to_install
   system/jaia-update-network.sh
   system/jaia-update-dns.sh
   system/jaia-iridium-tunnel.sh
+  system/jaia-iridium-enroll.sh
   system/jaia_configure_authelia.sh
   system/jaia-caddy-dns-ready.sh
   system/jaia-dns-lookup.py

@@ -40,9 +40,17 @@ const botStatusMock3: PortalBotStatus = {
     },
 };
 
+const botStatusMock4: PortalBotStatus = {
+    bot_status: {
+        bot_id: 4,
+        mission_state: MissionState.POST_DEPLOYMENT__FAILED,
+    },
+};
+
 bots.setBot(botStatusMock1);
 bots.setBot(botStatusMock2);
 bots.setBot(botStatusMock3);
+bots.setBot(botStatusMock4);
 
 test("Click activate button in disabled state due to mission state", async () => {
     render(<ActivateButton bot={bots.getBot(1)} />);
@@ -68,5 +76,13 @@ test("Click activate button in enabled state", async () => {
     await userEvent.click(button);
     expect(screen.getByText("Confirm")).toBeInTheDocument();
     expect(screen.getByText("Cancel")).toBeInTheDocument();
+    expect(screen.getByText("Activate")).toBeInTheDocument();
+});
+
+test("Click activate button after a failed post-deployment data offload", async () => {
+    render(<ActivateButton bot={bots.getBot(4)} />);
+    const button = screen.getByRole("button", { name: "activate-individual-bot" });
+    await userEvent.click(button);
+    expect(screen.getByText("Confirm")).toBeInTheDocument();
     expect(screen.getByText("Activate")).toBeInTheDocument();
 });

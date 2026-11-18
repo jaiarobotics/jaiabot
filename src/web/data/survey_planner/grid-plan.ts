@@ -1,5 +1,6 @@
 import cloneDeep from "lodash/cloneDeep";
 import Task from "../tasks/task";
+import SafetyReturnTask from "../tasks/safety-return-task";
 import Mission from "../mission_set/mission";
 import { UNASSIGNED_ID, MAX_WAYPOINTS, MAX_LANES_PER_BOT } from "../../utils/constants";
 import { GeographicCoordinate } from "@proto/jaiabot/messages/geographic_coordinate";
@@ -51,7 +52,7 @@ export class GridPlan {
     private surveyTask: Task;
     private startTask: Task;
     private endTask: Task;
-    private srpTask: Task;
+    private srpTask: SafetyReturnTask;
     private state: GridPlanningStates;
     private missions: Map<number, Mission>;
     private maxWaypointsPerLane: number;
@@ -65,7 +66,7 @@ export class GridPlan {
         this.surveyTask = new Task(true);
         this.startTask = new Task(true);
         this.endTask = new Task(true);
-        this.srpTask = new Task(true);
+        this.srpTask = new SafetyReturnTask();
         this.missions = new Map<number, Mission>();
         this.maxWaypointsPerLane = MAX_WAYPOINTS;
     }
@@ -75,7 +76,7 @@ export class GridPlan {
         this.surveyTask = new Task(true);
         this.startTask = new Task(true);
         this.endTask = new Task(true);
-        this.srpTask = new Task(true);
+        this.srpTask = new SafetyReturnTask();
         this.missions = new Map<number, Mission>();
     }
 
@@ -167,7 +168,7 @@ export class GridPlan {
         return this.srpTask;
     }
 
-    setSRPTask(srpTask: Task) {
+    setSRPTask(srpTask: SafetyReturnTask) {
         this.srpTask = srpTask;
     }
 
@@ -205,12 +206,14 @@ export class GridPlan {
     }
 
     /**
-     * Sets the max waypoints per lane based on the number of lanes per Bot
+     * Sets the max waypoints per lane based on the number of lanes per Bot. With fewer than
+     * one Bot, each lane is its own mission.
      *
      * @returns {void}
      */
     calculateMaxPointsPerLane() {
-        const lanesPerBot = Math.ceil(this.getNumOfLanes() / this.getNumOfBots());
+        const lanesPerBot =
+            this.numOfBots < 1 ? 1 : Math.ceil(this.getNumOfLanes() / this.getNumOfBots());
         this.maxWaypointsPerLane = Math.floor(MAX_WAYPOINTS / lanesPerBot) - ENDPOINTS;
     }
 
@@ -218,11 +221,15 @@ export class GridPlan {
      * When the number of lanes exceeds the number of Bots, the extra lanes
      * will be shared among the Bots. Bots can be assigned multiple adjacent lanes.
      * Each additional lane does not require the Bot to transit to the
-     * mission start + end points.
+     * mission start + end points. With fewer than one Bot, each lane stays its own mission.
      *
      * @returns {void}
      */
     fitLanesToBots() {
+        if (this.numOfBots < 1) {
+            return;
+        }
+
         const lanesPerBot = Math.floor(this.numOfLanes / this.numOfBots);
         let extraLanes = this.numOfLanes % this.numOfBots;
         let lanesCovered = 0;

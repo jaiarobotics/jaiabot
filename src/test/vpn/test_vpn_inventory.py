@@ -70,6 +70,18 @@ class InventoryTest(unittest.TestCase):
             self.enroll("bot", bot)
         self.assertEqual(self.hosts()[:3], ["bot1-fleet7", "bot2-fleet7", "bot10-fleet7"])
 
+    def test_iridium_is_a_peer_but_not_a_fleet_node(self):
+        env = dict(self.env.env, SSH_ORIGINAL_COMMAND="iridium " + NODE_PUBKEY)
+        result = subprocess.run(["bash", str(ENROLL)], capture_output=True, text=True, env=env)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.enroll("bot", 3)
+        self.assertEqual(self.hosts(), ["bot3-fleet7", "hub30-fleet7"])
+
+    def test_iridium_enrolled_as_a_plain_hub_is_left_out_too(self):
+        self.enroll("hub", 25)
+        self.enroll("hub", 1)
+        self.assertEqual(self.hosts(), ["hub1-fleet7", "hub30-fleet7"])
+
     def test_other_peers_are_not_fleet_nodes(self):
         """The workstation's client peer is on the same interface."""
         os.makedirs(os.path.join(self.env.wg_dir, "wg_cloudhub.peers.d"), exist_ok=True)

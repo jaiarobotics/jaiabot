@@ -7,7 +7,10 @@
 set -u -e
 
 CLOUD_ENV="${JAIA_CLOUD_ENV:-/etc/jaiabot/cloud.env}"
-OUT_DIR="${JAIA_VPN_OUT_DIR:-/tmp}"
+# Its own directory for each enrollment: one left in /tmp by an earlier run as another
+# user would stop the reply being written after the peer had already been replaced
+OUT_DIR=$(mktemp -d "${JAIA_VPN_OUT_DIR:-/tmp}/jaia-vpn-enroll.XXXXXX")
+trap 'rm -rf "${OUT_DIR}"' EXIT
 SERVER_IFACE=wg_cloudhub
 
 fail()
@@ -17,11 +20,21 @@ fail()
 }
 
 read -r -a request <<<"${SSH_ORIGINAL_COMMAND:-}"
-[ ${#request[@]} -eq 3 ] || fail "expected 'bot|hub <node id> <wireguard public key>'"
+usage="expected 'bot|hub <node id> <wireguard public key>' or 'iridium <wireguard public key>'"
 
-node_type=${request[0]}
-node_id=${request[1]}
-pubkey=${request[2]}
+iridium=false
+if [ ${#request[@]} -eq 2 ] && [ "${request[0]}" = iridium ]; then
+    # iridium.jaia.tech relays the fleet's Iridium messages, always as the same hub id
+    iridium=true
+    node_type=hub
+    node_id=$(jaia_bounds --iridium_id)
+    pubkey=${request[1]}
+else
+    [ ${#request[@]} -eq 3 ] || fail "${usage}"
+    node_type=${request[0]}
+    node_id=${request[1]}
+    pubkey=${request[2]}
+fi
 
 case "$node_type" in
     bot | hub) ;;
@@ -36,7 +49,7 @@ esac
 sudo jaia-vpn-peers.sh remove "${SERVER_IFACE}" "${node_type}${node_id}" >/dev/null 2>&1 || true
 
 # Nothing but the config may reach stdout: that is the channel the node reads.
-jaia-vpn-gen.sh cloudhub_vpn "${node_type}" "${node_id}" "${pubkey}" >&2
+JAIA_VPN_OUT_DIR="${OUT_DIR}" jaia-vpn-gen.sh cloudhub_vpn "${node_type}" "${node_id}" "${pubkey}" >&2
 
 # The CloudHub's JCU acts on the nodes in its inventory, and enrolment is the only
 # time it learns of one. A stale inventory must not cost the node its pairing.
@@ -44,6 +57,9 @@ sudo jaia-vpn-inventory.sh >&2 || echo "WARNING: could not update the CloudHub's
 
 set -a; source "${CLOUD_ENV}"; set +a
 cat "${OUT_DIR}/${node_type}${node_id}/wg_jaia_ch${jaia_fleet_id}.conf"
+
+# iridium.jaia.tech never lets the CloudHub in, so it is not sent the CloudHub's key
+[ "${iridium}" = false ] || exit 0
 
 # The node lets the CloudHub in for fleet actions by this key, restricted to the
 # CloudHub's own VPN address as its fleet config does. A rebuilt CloudHub has a new

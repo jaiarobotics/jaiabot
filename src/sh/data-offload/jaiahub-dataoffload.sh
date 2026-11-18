@@ -47,5 +47,7 @@ else
     if [[ "${host}" == *:* ]]; then
         host="[${host}]"
     fi
-    nice -n 10 rsync -aP --info=progress2 --no-inc-recursive --timeout=15 jaia@${host}:${staging_dir}/ ${offload_dir}
+    nice -n 10 rsync -aP --info=progress2 --no-inc-recursive --timeout=15 \
+        -e "ssh -o ServerAliveInterval=5 -o ServerAliveCountMax=3 -o ConnectTimeout=10" \
+        jaia@${host}:${staging_dir}/ ${offload_dir}
 fi

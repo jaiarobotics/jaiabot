@@ -46,12 +46,21 @@ class Sensor:
             else ms5837.MS5837_30BA()
         self._oversampling = oversampling
         self._pressure_0 = None
-        if not self._sensor.init():
-            raise RuntimeError('cannot initialize the Blue Robotics pressure-temperature sensor')
+        self._initialized = False
 
     def read(self):
-        if not self._sensor.read(oversampling=self._oversampling):
-            raise RuntimeError('sensor read failed')
+        # retried on every read, so a sensor that isn't answering at boot is picked up when it does
+        if not self._initialized:
+            if not self._sensor.init():
+                raise RuntimeError('cannot initialize the Blue Robotics pressure-temperature sensor')
+            self._initialized = True
+
+        try:
+            if not self._sensor.read(oversampling=self._oversampling):
+                raise RuntimeError('sensor read failed')
+        except Exception:
+            self._initialized = False
+            raise
 
         # the first reading is the surface reference every later one is relative to
         if self._pressure_0 is None:
@@ -81,8 +90,9 @@ class JaiabotDriverPressure(SingleThreadApplication):
         try:
             pressure_mbar, temperature_celsius = self._sensor.read()
         except Exception as e:
+            if self._responding:
+                log.warning(f'sensor not responding: {e}')
             self._responding = False
-            log.warning(f'sensor read failed: {e}')
             return
 
         self._responding = True
@@ -101,6 +111,8 @@ class JaiabotDriverPressure(SingleThreadApplication):
 
         if not self._responding:
             health.state = coroner_pb2.HEALTH__FAILED
+            health.Extensions[health_pb2.jaiabot_thread].error.append(
+                health_pb2.ERROR__NOT_RESPONDING__JAIABOT_BLUEROBOTICS_PRESSURE_SENSOR_DRIVER)
         elif goby.time.now() - self._last_published > self.cfg.data_timeout_seconds:
             # reading without error but publishing nothing looks healthy from the outside
             health.state = coroner_pb2.HEALTH__DEGRADED

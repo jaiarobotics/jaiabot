@@ -33,10 +33,15 @@ class Sensor:
     def __init__(self, i2c_address):
         import atlas_oem
         self._device = atlas_oem.AtlasOEM(address=i2c_address)
-        self._device.setActiveHibernate(1)
+        self._active = False
         log.info(f'salinity sensor I2C address: 0x{i2c_address:02x}')
 
     def read(self):
+        # retried on every read, so a board that isn't answering at boot is picked up when it does
+        if not self._active:
+            self._device.setActiveHibernate(1)
+            self._active = True
+
         if not self._device.newReadingAvailable():
             return None
         return SalinityData(conductivity_raw=self._device.EC(),
@@ -62,8 +67,9 @@ class JaiabotDriverSalinity(SingleThreadApplication):
         try:
             data = self._sensor.read()
         except Exception as e:
+            if self._responding:
+                log.warning(f'sensor not responding: {e}')
             self._responding = False
-            log.warning(f'sensor read failed: {e}')
             return
 
         self._responding = True
@@ -78,10 +84,9 @@ class JaiabotDriverSalinity(SingleThreadApplication):
         from goby.middleware.protobuf import coroner_pb2
         from jaiabot.messages import health_pb2
 
-        if not self._responding:
-            health.state = coroner_pb2.HEALTH__FAILED
-        elif goby.time.now() - self._last_published > self.cfg.data_timeout_seconds:
-            # reading without error but publishing nothing looks healthy from the outside
+        # reading without error but publishing nothing looks healthy from the outside
+        stale = goby.time.now() - self._last_published > self.cfg.data_timeout_seconds
+        if not self._responding or stale:
             health.state = coroner_pb2.HEALTH__DEGRADED
             health.Extensions[health_pb2.jaiabot_thread].warning.append(
                 health_pb2.WARNING__NOT_RESPONDING__JAIABOT_ATLAS_SCIENTIFIC_EZO_EC_DRIVER)

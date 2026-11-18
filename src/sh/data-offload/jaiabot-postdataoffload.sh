@@ -49,4 +49,5 @@ fi
 echo "Removing old log files..."
 # remove all logs older than 7 days from both archive (offloaded logs) and log dir (debug logs)
 find "${archive_dir}" -type f -mtime +7 -name '*' -execdir rm -v -f -- {} \;   
-find "${log_dir}" -type f -mtime +7 -name '*' -execdir rm -v -f -- {} \;   
+# storm_outbox holds TaskPackets not yet acknowledged over Iridium, so it stays on the bot
+find "${log_dir}" -path '*/storm_outbox' -prune -o -type f -mtime +7 -name '*' -execdir rm -v -f -- {} \;   

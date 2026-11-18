@@ -27,6 +27,7 @@
 
 #include "config.pb.h"
 #include "jaiabot/groups.h"
+#include "jaiabot/health/health.h"
 #include "jaiabot/messages/arduino.pb.h"
 #include "jaiabot/messages/engineering.pb.h"
 #include "jaiabot/messages/jaia_dccl.pb.h"
@@ -70,8 +71,9 @@ class Health : public ApplicationBase
 
     void restart_services()
     {
-        // Restart jaiabot applications and apache which is hosting JCC
-        system("systemctl restart apache2 jaiabot");
+        // Restart jaiabot applications and apache which is hosting JCC. reset-failed restarts
+        // nothing itself: it lets a driver that used up its start limit start with the rest.
+        system("systemctl reset-failed 'jaiabot*'; systemctl restart apache2 jaiabot");
     }
     void restart_imu_py() { system("systemctl restart jaiabot_driver_imu_py"); }
     void restart_pam_py() { system("systemctl restart jaiabot_driver_pam_py"); }
@@ -388,7 +390,8 @@ void jaiabot::apps::Health::collect_reported_errors(
 void jaiabot::apps::Health::process_coroner_report(
     const goby::middleware::protobuf::VehicleHealth& vehicle_health)
 {
-    if (vehicle_health.state() != goby::middleware::protobuf::HEALTH__FAILED)
+    if (jaiabot::health::vehicle_health_state(vehicle_health) !=
+        goby::middleware::protobuf::HEALTH__FAILED)
     {
         // increase next check time every time we get an report where it's not FAILED
         next_check_time_ += goby::time::convert_duration<goby::time::SteadyClock::duration>(
@@ -398,13 +401,24 @@ void jaiabot::apps::Health::process_coroner_report(
     last_health_.Clear();
 
     for (auto error : failed_services_)
-        last_health_.MutableExtension(jaiabot::protobuf::jaiabot_thread)->add_error(error);
+    {
+        auto optional = jaiabot::health::optional_app_failures().find(error);
+        if (optional != jaiabot::health::optional_app_failures().end())
+            last_health_.MutableExtension(jaiabot::protobuf::jaiabot_thread)
+                ->add_warning(optional->second);
+        else
+            last_health_.MutableExtension(jaiabot::protobuf::jaiabot_thread)->add_error(error);
+    }
 
     for (const auto& proc : vehicle_health.process())
     {
         if (proc.main().has_error() &&
             proc.main().error() == goby::middleware::protobuf::ERROR__PROCESS_DIED)
         {
+            // populate_status_from_health warns about these instead
+            if (jaiabot::health::optional_apps().count(proc.name()))
+                continue;
+
             auto it =
                 process_to_not_responding_error_.find(boost::to_lower_copy(proc.main().name()));
             if (it != process_to_not_responding_error_.end())

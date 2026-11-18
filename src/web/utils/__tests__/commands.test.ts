@@ -70,6 +70,37 @@ describe("sendBotCommand", () => {
     });
 });
 
+test.each([
+    [
+        "sendBotCommand",
+        () => sendBotCommand({ bot_id: 1, type: Command_CommandType.STOP }),
+        "STOP to Bot 1",
+    ],
+    [
+        "sendHubCommand",
+        () => sendHubCommand({ hub_id: 1, type: CommandForHub_HubCommandType.SCAN_FOR_BOTS }),
+        "SCAN_FOR_BOTS to Hub 1",
+    ],
+    [
+        "sendEngineeringCommand",
+        () => sendEngineeringCommand({ bot_id: 2, query_bot_status: true }),
+        "engineering command to Bot 2",
+    ],
+])(
+    "%s resolves with an error and tells the operator when the API did not send the command",
+    async (_, send, description) => {
+        request.mockResolvedValue({ command_result: { command_sent: false } });
+
+        const res = await send();
+
+        expect(request).toHaveBeenCalledTimes(1);
+        expect(res.error?.details).toBe("no Hub is connected to send it through");
+        expect(errorMessages()).toEqual([
+            `Could not send ${description}: no Hub is connected to send it through`,
+        ]);
+    },
+);
+
 test("sendHubCommand resolves with an error instead of rejecting", async () => {
     request.mockRejectedValue(new TypeError("Failed to fetch"));
 

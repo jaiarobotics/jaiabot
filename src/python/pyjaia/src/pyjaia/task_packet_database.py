@@ -128,24 +128,45 @@ class TaskPacketDatabase:
             return
 
         processed_path = self.database_path + '/processed/'
-        os.makedirs(processed_path, exist_ok=True)
+        unreadable_path = self.database_path + '/unreadable/'
 
         for taskpacket_fullpath in taskpacket_fullpaths:
             l.info(f'Loading modified taskpacket file: {taskpacket_fullpath}')
-            for line in open(taskpacket_fullpath):
+            try:
+                with open(taskpacket_fullpath, encoding='utf-8') as taskpacket_file:
+                    lines = taskpacket_file.readlines()
+            except Exception as e:
+                l.warning(f'Moving unreadable taskpacket file {taskpacket_fullpath} to {unreadable_path}: {e}')
+                self._move_taskpacket_file(taskpacket_fullpath, unreadable_path)
+                continue
+
+            for line in lines:
                 try:
                     taskPacket: Dict = json.loads(line)
                     self._add_task_packet(taskPacket)
-                except json.JSONDecodeError as e:
-                    l.warning(f"Error decoding JSON line: {line} because {e}")
+                except Exception as e:
+                    l.warning(f"Skipping line in taskpacket file {taskpacket_fullpath}: {line.rstrip()} because {e!r}")
 
             # Move file to prevent us from finding it again next time (speeds things up significantly)
-            taskpacket_filename = os.path.basename(taskpacket_fullpath)
-            shutil.move(taskpacket_fullpath, processed_path + taskpacket_filename)
+            self._move_taskpacket_file(taskpacket_fullpath, processed_path)
             self.task_packets_version += 1
         
         self.db.commit()
     
+
+    def _move_taskpacket_file(self, taskpacket_fullpath: str, destination_path: str):
+        """Moves a taskpacket file out of the offload directory.  THREAD UNSAFE.
+
+        Args:
+            taskpacket_fullpath (str): The taskpacket file to move.
+            destination_path (str): The directory to move it into.
+        """
+        try:
+            os.makedirs(destination_path, exist_ok=True)
+            shutil.move(taskpacket_fullpath, destination_path + os.path.basename(taskpacket_fullpath))
+        except OSError as e:
+            l.warning(f'Failed to move taskpacket file {taskpacket_fullpath} to {destination_path}: {e}')
+
 
     def add_mission_command(self, mission_name: str, bot_id: int, mission_command_time: int):
         """Adds a mission command to the database.  Thread safe.

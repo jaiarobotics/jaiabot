@@ -3,7 +3,8 @@ import h5py
 from pyjaia.series import Series
 from google.protobuf.message import Message
 from google.protobuf.descriptor import FieldDescriptor, Descriptor
-from typing import Callable, Set, Any, TypeVar, List
+import pyjaia.monkey_patches.protobuf
+from typing import Callable, Dict, Set, Any, TypeVar, List
 import re
 import logging
 import numpy as np
@@ -12,6 +13,9 @@ import numpy as np
 l = logging.getLogger(__name__)
 
 T = TypeVar('T')
+
+# Regular expression to match bot_id prefixes in paths
+PATH_BOTID_PREFIX_RE = re.compile(r';\d+')
 
 
 def color_text(self: str, color: str) -> str:
@@ -73,7 +77,7 @@ def paths_match(path1: str, path2: str) -> bool:
     Returns:
         bool: True if the paths match disregarding bot_id-related components, False otherwise.
     """
-    return re.sub(r';\d+', '', path1) == re.sub(r';\d+', '', path2)
+    return PATH_BOTID_PREFIX_RE.sub('', path1) == PATH_BOTID_PREFIX_RE.sub('', path2)
 
 
 def get_data_by_index(dataset: h5py.Dataset, indices: tuple[int]) -> Any:
@@ -171,7 +175,11 @@ class JaiaLogH5:
     log: h5py.File
     log_path: str
 
+    # Cache for paths with bot_id prefixes removed
+    _path_without_botid_prefix_cache: Dict[str, str]
+
     def __init__(self, log_or_path: h5py.File | str | pathlib.Path):
+        self._path_without_botid_prefix_cache = {}
         if isinstance(log_or_path, h5py.File):
             self.log = log_or_path
             self.log_path = log_or_path.filename
@@ -191,11 +199,20 @@ class JaiaLogH5:
         Returns:
             str: The path to the dataset in the log file.
         """
+        # If this path is in the log verbatim, then just return it
+        if path in self.log:
+            return path
+
+        # If we've already cached the path without the bot_id prefix, return it
+        if path in self._path_without_botid_prefix_cache:
+            return self._path_without_botid_prefix_cache[path]
+
         matched_path = self.log.visit(lambda name: name if paths_match(name, path) else None)
         if matched_path is None:
             raise KeyError(color_text(f'Could not find path {path} in file {self.log.filename}', 'red'))
         else:
             l.info(color_text(f'Using matched path {matched_path} in file {self.log.filename}', 'green'))
+            self._path_without_botid_prefix_cache[path] = matched_path
             return matched_path
 
 
@@ -342,13 +359,13 @@ class JaiaLogH5:
                     if index >= len(objects):
                         objects.append(ProtobufMessage())
                     if value is not None:
-                        if field.label == FieldDescriptor.LABEL_REPEATED:
+                        if field.is_repeated:
                             getattr(objects[index], field.name).extend(filter(lambda x: x is not None, value))
                         else:
                             setattr(objects[index], field.name, value)
 
             elif field.type == FieldDescriptor.TYPE_MESSAGE:
-                if field.label == FieldDescriptor.LABEL_REPEATED:
+                if field.is_repeated:
                     l.warning(color_text(f'Field {field.name} is a repeated message field.  This is not supported yet.', 'red'))
                     continue
 

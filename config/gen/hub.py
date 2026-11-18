@@ -137,8 +137,7 @@ if common.app == 'goby_intervehicle_portal':
                 iridium_mt_server_address='127.0.0.1'
                 iridium_mt_server_port=10800
             else:
-                # By convention, we assign hub25 to iridium.jaia.tech on the CloudHub VPN
-                iridium_jaia_tech_hub_id=25
+                iridium_jaia_tech_hub_id=subprocess.run(['jaia_bounds', '--iridium_id'], stdout=subprocess.PIPE, check=True).stdout.decode().strip()
                 result = subprocess.run(['jaia_ip', f'h{iridium_jaia_tech_hub_id}cf{fleet_id}'], stdout=subprocess.PIPE, check=True)
                 iridium_mt_server_address=result.stdout.decode().strip()
                 iridium_mt_server_port=10800+fleet_id

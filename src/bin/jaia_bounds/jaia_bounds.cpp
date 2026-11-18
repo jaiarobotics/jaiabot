@@ -56,6 +56,7 @@ const char* const usage_msg =
     "  --bot_id, --hub_id, --fleet_id, --desktop_id, --gateway_id, --rpicam_id\n"
     "                 report only the given id(s); all of them if none is given\n"
     "  --cloudhub_id  the hub id the CloudHub always uses: one id, not a range\n"
+    "  --iridium_id   the hub id iridium.jaia.tech uses on every CloudHub VPN: one id\n"
     "  --ipv4_fleet_id\n"
     "                 the fleet ids addressed with IPv4 on the fleet WLAN and fleet VPN; the\n"
     "                 rest of --fleet_id is addressed with IPv6 on every network\n"
@@ -69,6 +70,7 @@ const char* const usage_msg =
     "    jaia_bounds                  every range, e.g. \"bot id: [0 150]\"\n"
     "    jaia_bounds --bot_id --max   the highest bot id, e.g. \"150\"\n"
     "    jaia_bounds --cloudhub_id    the CloudHub's hub id, e.g. \"30\"\n"
+    "    jaia_bounds --iridium_id     iridium.jaia.tech's hub id, e.g. \"25\"\n"
     "    jaia_bounds --format json    every range as a JSON object\n";
 
 [[noreturn]] void die(const std::string& msg)
@@ -94,7 +96,8 @@ std::vector<Bound> all_bounds()
             {"desktop_id", "desktop id", desktop.first, desktop.second, false},
             {"gateway_id", "gateway id", gateway.first, gateway.second, false},
             {"rpicam_id", "rpicam id", rpicam.first, rpicam.second, false},
-            {"cloudhub_id", "cloudhub id", cloudhub_id, cloudhub_id, false, true}};
+            {"cloudhub_id", "cloudhub id", cloudhub_id, cloudhub_id, false, true},
+            {"iridium_id", "iridium id", iridium_id, iridium_id, false, true}};
 }
 } // namespace
 

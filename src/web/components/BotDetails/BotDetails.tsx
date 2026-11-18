@@ -53,9 +53,7 @@ export default function BotDetails() {
     const jaiaContext: JaiaContextType = useContext(JaiaContext);
     const jaiaDispatch: React.Dispatch<JaiaAction> = useContext(JaiaDispatchContext);
 
-    useEffect(() => {
-        addDropdownListener("accordion-container", "bot-details-accordions-container");
-    });
+    useEffect(() => addDropdownListener("accordion-container", "bot-details-accordions-container"));
 
     const hub = jaiaContext.hubs.getHubs().values().next()?.value;
     const botID = jaiaContext.jaiaGlobal.getSelectedNode().id;

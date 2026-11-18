@@ -4,6 +4,7 @@ import { JaiaContext, JaiaDispatchContext } from "../../../context/JaiaContext";
 import { JaiaActions } from "../../../context/jaia-actions";
 
 import { MIN_SPEED, MAX_SPEED } from "../../../utils/constants";
+import { clampSpeed } from "../../../utils/input";
 
 import Slider from "@mui/material/Slider";
 import { amber } from "@mui/material/colors";
@@ -38,10 +39,10 @@ export default function MissionSpeedSliders() {
 
         switch (speedType) {
             case SpeedTypes.TRANSIT:
-                updatedSpeeds.transit = speed;
+                updatedSpeeds.transit = clampSpeed(speed);
                 break;
             case SpeedTypes.STATION_KEEP:
-                updatedSpeeds.stationkeep_outer = speed;
+                updatedSpeeds.stationkeep_outer = clampSpeed(speed);
                 break;
         }
 
@@ -59,7 +60,7 @@ export default function MissionSpeedSliders() {
                 <Slider
                     aria-label="Transit Speed"
                     value={jaiaContext.missionSet.getMissionSpeeds().transit}
-                    step={0.5}
+                    step={1}
                     marks
                     min={MIN_SPEED}
                     max={MAX_SPEED}
@@ -73,7 +74,7 @@ export default function MissionSpeedSliders() {
                 <Slider
                     aria-label="Station Keep Speed"
                     value={jaiaContext.missionSet.getMissionSpeeds().stationkeep_outer}
-                    step={0.5}
+                    step={1}
                     marks
                     min={MIN_SPEED}
                     max={MAX_SPEED}

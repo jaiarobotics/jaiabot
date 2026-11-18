@@ -29,8 +29,23 @@ export class JaiaRESTAPI {
         };
     }
 
-    async request(api_request: APIRequest): Promise<APIResponse> {
-        return this.fetch_request(api_request)
+    /**
+     * Sends a request to the REST API
+     *
+     * @param {APIRequest} api_request Request to send
+     * @param {number} [timeout_ms] Abort the request if the whole response hasn't arrived by then
+     * @returns {Promise<APIResponse>} The API's response
+     *
+     * @notes
+     * Browsers set no deadline of their own, so without one a request the hub never answers can
+     * stay pending indefinitely.
+     */
+    async request(api_request: APIRequest, timeout_ms?: number): Promise<APIResponse> {
+        const controller = new AbortController();
+        const timer =
+            timeout_ms === undefined ? undefined : setTimeout(() => controller.abort(), timeout_ms);
+
+        return this.fetch_request(api_request, controller.signal)
             .then((response) => {
                 return response.json() as APIResponse;
             })
@@ -43,7 +58,8 @@ export class JaiaRESTAPI {
             .catch((error) => {
                 console.error("API Request Error:", error);
                 throw error;
-            });
+            })
+            .finally(() => clearTimeout(timer));
     }
 
     async geojson_request(api_request: APIRequest): Promise<FeatureCollection<Geometry>> {
@@ -57,12 +73,13 @@ export class JaiaRESTAPI {
             });
     }
 
-    async fetch_request(api_request: APIRequest): Promise<Response> {
+    async fetch_request(api_request: APIRequest, signal?: AbortSignal): Promise<Response> {
         const response = await fetch(this.base_url.href, {
             method: "POST",
             headers: this.headers,
             body: JSON.stringify(api_request),
             redirect: "manual",
+            signal,
         });
         // CloudHub redirects to sign in once the session expires; reloading takes the operator there and back
         if (response.type === "opaqueredirect") {

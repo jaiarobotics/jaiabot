@@ -59,7 +59,7 @@ export function angleToXY(angle: number): XYCoordinate {
  *
  * @param {string} className Used to identify dropdown elements
  * @param {string} parentID Used to identify outer container
- * @returns {void}
+ * @returns {() => void} Removes the listeners this call added
  *
  * @notes
  * parentContainerId needs to have the property max-height set in css
@@ -68,12 +68,17 @@ export function addDropdownListener(className: string, parentID: string) {
     const dropdowns = Array.from(
         document.getElementsByClassName(className) as HTMLCollectionOf<HTMLElement>,
     );
+    const onClick = (event: Event) => handleDropdownClick(className, parentID, event);
 
     for (const dropdown of dropdowns) {
-        dropdown.addEventListener("click", (event: Event) =>
-            handleDropdownClick(className, parentID, event),
-        );
+        dropdown.addEventListener("click", onClick);
     }
+
+    return () => {
+        for (const dropdown of dropdowns) {
+            dropdown.removeEventListener("click", onClick);
+        }
+    };
 }
 
 /**

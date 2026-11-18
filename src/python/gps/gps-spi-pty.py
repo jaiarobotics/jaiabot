@@ -26,7 +26,8 @@ Configuration order (all on quiet bus, CFG-RATE last):
     3. CFG-NAV5 - set dynamic model
     4. CFG-MSG  - disable NMEA
     5. CFG-MSG  - enable UBX messages
-    6. CFG-RATE - start NAV stream (last, so nothing competes with config ACKs)
+    6. MGA-INI / MGA-DBD - inject stored aiding data (see ubx_aiding.py)
+    7. CFG-RATE - start NAV stream (last, so nothing competes with config ACKs)
 
 References:
     * https://content.u-blox.com/sites/default/files/products/documents/u-blox8-M8_ReceiverDescrProtSpec_UBX-13003221.pdf
@@ -51,28 +52,10 @@ import io
 import spidev
 import systemd.daemon
 
+from ubx_aiding import (AidingRecorder, AidingStore, mga_dbd_poll,
+                        mga_ini_pos_llh, ubx_packet, verify_checksum)
+
 # ------------- UBX helpers -------------
-
-def ubx_packet(cls: int, msgid: int, payload: bytes = b"") -> bytes:
-    ln = len(payload)
-    hdr = bytes([cls, msgid, ln & 0xFF, (ln >> 8) & 0xFF])
-    ck_a = 0
-    ck_b = 0
-    for b in hdr + payload:
-        ck_a = (ck_a + b) & 0xFF
-        ck_b = (ck_b + ck_a) & 0xFF
-    return b"\xB5\x62" + hdr + payload + bytes([ck_a, ck_b])
-
-def verify_checksum(packet: bytes) -> bool:
-    """Verify UBX checksum."""
-    if len(packet) < 8:
-        return False
-    ck_a = 0
-    ck_b = 0
-    for b in packet[2:-2]:
-        ck_a = (ck_a + b) & 0xFF
-        ck_b = (ck_b + ck_a) & 0xFF
-    return packet[-2] == ck_a and packet[-1] == ck_b
 
 def read_spi_response(spi, timeout_ms: int = 500) -> Optional[bytes]:
     """
@@ -395,6 +378,27 @@ def _configure_messages(spi, is_f9p: bool) -> None:
         if not send_ubx_command_with_retry(spi, cfg_msg_rate_spi(msg.class_, msg.id, msg.freq_hz)):
             print(f"  Warning: {msg.name} not acknowledged after retries - message will NOT be output.")
 
+# ------------- Aiding -------------
+
+def _inject_aiding(spi, store: Optional[AidingStore]) -> bool:
+    """Send stored position and navigation database. Returns True if anything was sent."""
+    if store is None:
+        return False
+    fix = store.load_fix()
+    navdb = store.load_navdb()
+    if fix is None and not navdb:
+        print("  No stored aiding data; cold start.")
+        return False
+
+    packets = ([mga_ini_pos_llh(fix)] if fix is not None else []) + navdb
+    # Paced writes instead of aiding ACKs, which are configured differently on M9N vs F9P
+    for pkt in packets:
+        spi.xfer2(list(pkt))
+        time.sleep(0.010)
+    drain_spi_buffer(spi, drain_time_ms=150)
+    print(f"  Injected {'position + ' if fix is not None else ''}{len(navdb)} MGA-DBD packets.")
+    return True
+
 # ------------- PTY helpers -------------
 
 def setup_pty(symlink_path: str) -> Tuple[int, int, io.BufferedWriter, str]:
@@ -423,7 +427,8 @@ def setup_udp(host: str, port: int) -> Tuple[socket.socket, Tuple[str, int]]:
 
 # ------------- SPI setup -------------
 
-def connect_spi(bus: int, dev: int, max_hz: int, meas_ms: int) -> spidev.SpiDev:
+def connect_spi(bus: int, dev: int, max_hz: int, meas_ms: int,
+                store: Optional[AidingStore]) -> Tuple[spidev.SpiDev, bool]:
     spi = spidev.SpiDev()
     spi.open(bus, dev)
     spi.max_speed_hz = max_hz
@@ -459,13 +464,16 @@ def connect_spi(bus: int, dev: int, max_hz: int, meas_ms: int) -> spidev.SpiDev:
     print("Enabling UBX messages...")
     _configure_messages(spi, is_f9p)
 
+    print("Injecting stored aiding data...")
+    aided = _inject_aiding(spi, store)
+
     # CFG-RATE last - starts the NAV message stream.
     print("Setting CFG-RATE...")
     if not send_ubx_command_with_retry(spi, cfg_rate(meas_ms)):
         print("  Warning: CFG-RATE not acknowledged after retries")
 
     print("Configuration complete!")
-    return spi
+    return spi, aided
 
 # ------------- main loop -------------
 
@@ -474,7 +482,7 @@ def handle_ctrl_c(signum, frame):
 
 def run(pty_path: str, udp_host: str, udp_port: int, bus: int, dev: int,
         max_hz: int, meas_ms: int, read_size: int, tick_ms: int,
-        notify_ready: bool):
+        notify_ready: bool, aiding_dir: str):
     master_fd, slave_fd, out, slave_name = setup_pty(pty_path)
     sock, udp_addr = setup_udp(udp_host, udp_port)
 
@@ -484,7 +492,15 @@ def run(pty_path: str, udp_host: str, udp_port: int, bus: int, dev: int,
         except Exception:
             pass
 
-    spi = connect_spi(bus, dev, max_hz, meas_ms)
+    store = None
+    if aiding_dir:
+        try:
+            store = AidingStore(aiding_dir)
+        except Exception as e:
+            print(f"Warning: aiding storage unavailable ({e}); continuing without it.")
+
+    spi, aided = connect_spi(bus, dev, max_hz, meas_ms, store)
+    recorder = AidingRecorder(store, time.monotonic(), aided) if store else None
 
     period = max(tick_ms, 1) / 1000.0
     last = time.monotonic()
@@ -497,19 +513,35 @@ def run(pty_path: str, udp_host: str, udp_port: int, bus: int, dev: int,
                 time.sleep(wait)
             last = time.monotonic()
 
-            try:
-                raw_bytes = spi.xfer2([0xFF] * read_size)
-            except Exception:
-                raw_bytes = []
+            # SPI is full duplex: the DBD poll write also clocks in receiver data
+            tx = [0xFF] * read_size
+            if recorder and recorder.should_poll(last):
+                poll = list(mga_dbd_poll())
+                tx = poll + [0xFF] * max(read_size - len(poll), 0)
+                recorder.start_collecting(last)
 
-            if raw_bytes:
+            # Read until idle while collecting, so the DBD dump doesn't overrun the receiver
+            reads = 8 if recorder and recorder.collecting else 1
+            for _ in range(reads):
+                try:
+                    raw_bytes = spi.xfer2(tx)
+                except Exception:
+                    raw_bytes = []
+                tx = [0xFF] * read_size
+
                 data = bytes(raw_bytes).rstrip(b'\xFF')
-                if data:
-                    sock.sendto(data, udp_addr)
-                    try:
-                        out.write(data)
-                    except BlockingIOError:
-                        pass
+                if not data:
+                    break
+                sock.sendto(data, udp_addr)
+                try:
+                    out.write(data)
+                except BlockingIOError:
+                    pass
+                if recorder:
+                    recorder.on_bytes(data, time.monotonic())
+
+            if recorder:
+                recorder.poll_finished(time.monotonic())
     finally:
         try:
             spi.close()
@@ -536,9 +568,14 @@ def main():
     parser.add_argument("--meas-ms",   type=int, default=200,       help="Measurement period in ms; 200 -> 5 Hz")
     parser.add_argument("--read-size", type=int, default=512,       help="Bytes to read per tick")
     parser.add_argument("--tick-ms",   type=int, default=50,        help="Read period in ms")
+    parser.add_argument("--aiding-dir", default="/var/lib/jaiabot/gnss",
+                        help="Directory for stored GNSS aiding data; empty string disables")
 
     args = parser.parse_args()
     signal.signal(signal.SIGINT, handle_ctrl_c)
+
+    # flush each line to the journal; stdout is block-buffered under systemd
+    sys.stdout.reconfigure(line_buffering=True)
 
     run(
         pty_path=args.pty_path,
@@ -551,6 +588,7 @@ def main():
         read_size=args.read_size,
         tick_ms=args.tick_ms,
         notify_ready=True,
+        aiding_dir=args.aiding_dir,
     )
 
 if __name__ == "__main__":
