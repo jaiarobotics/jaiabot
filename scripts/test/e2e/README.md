@@ -77,6 +77,13 @@ them. Without `--offload-dir` the tier falls back to the terminal state alone; w
 not being able to read any of the directories fails the tier rather than quietly
 weakening it.
 
+The content tier reads the task packets from every hub, for the same reason. It counts
+each packet once. A copy sent over the radio carries only its time of day (`dccl.time`),
+dated by the hub that received it, while an offloaded copy keeps the bot's own date
+(years ahead under warp). So copies are matched on time of day, and a run's packets are
+told from older ones by what the hubs already held before the missions went out, not by
+time.
+
 ## More hubs
 
 `--peer-hub ID=URL` adds another hub's REST API that hears `--hub-url` over hub-to-hub,
