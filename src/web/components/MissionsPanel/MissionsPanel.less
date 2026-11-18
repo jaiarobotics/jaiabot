@@ -18,9 +18,10 @@
     justify-content: center;
     min-height: @status-icon-size;
 
+    // Centred over the missions' compact status icons
     .mission-status-icon {
         position: absolute;
-        right: @status-icon-inset;
+        right: @status-icon-inset - ((@status-icon-size - @status-icon-compact-size) / 2);
     }
 }
 

@@ -21,11 +21,13 @@ turn, plus GPS error. Draw each zone with the margin the site needs built in.
   or last waypoint also removes the detours left at that end.
 - **Status is shown, not stored.** Each mission header has a routing-status icon: red when the
   route crosses a zone, amber when suppressed waypoints are clear again so a reroute would bring
-  them back, white otherwise. The "Mission Set" title has one for the whole set. On the map, a
-  waypoint inside a zone is drawn red, unless its mission is being edited (gold) or it is a
-  running bot's target. All of it is recomputed from the missions and zones as they are now.
-- **The status icons are buttons.** Unlike most status indicators in the JCC, each icon is
-  styled as a button and tapping it opens the routing panel in place of the Missions panel: a
+  them back, and unfilled otherwise, so a mission that needs attention is the only filled icon in
+  the list. The "Mission Set" title has a full-size one for the whole set, white when clear and
+  centred over the missions' icons. On the map, a waypoint inside a zone is drawn red, unless its
+  mission is being edited (gold) or it is a running bot's target. All of it is recomputed from
+  the missions and zones as they are now.
+- **The status icons are buttons.** Unlike most status indicators in the JCC, tapping an icon
+  opens the routing panel in place of the Missions panel: a
   mission's icon opens it for that mission, and the set's icon for the whole set. The routing
   panel is the only way into Reroute and Restore; there are no separate Reroute or Restore
   buttons. Every mission shows its icon, even when the route is clear, and it is disabled while

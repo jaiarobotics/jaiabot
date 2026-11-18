@@ -49,6 +49,7 @@ export default function MissionRoutingButton(props: Props) {
                 })
             }
             disabled={routingLevel === undefined}
+            compact
         />
     );
 }

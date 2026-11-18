@@ -18,6 +18,29 @@ describe("MissionStatusIcon", () => {
         expect(screen.getByRole("button", { name: "Test status" })).toHaveClass("warning");
     });
 
+    test("is full size unless compact", () => {
+        render(
+            <>
+                <MissionStatusIcon
+                    level="normal"
+                    iconPath={mdiMapMarkerPath}
+                    label="Full"
+                    onClick={jest.fn()}
+                />
+                <MissionStatusIcon
+                    level="normal"
+                    iconPath={mdiMapMarkerPath}
+                    label="Compact"
+                    onClick={jest.fn()}
+                    compact
+                />
+            </>,
+        );
+
+        expect(screen.getByRole("button", { name: "Full" })).not.toHaveClass("compact");
+        expect(screen.getByRole("button", { name: "Compact" })).toHaveClass("compact");
+    });
+
     test("a tap calls its handler", async () => {
         const onClick = jest.fn();
         render(
