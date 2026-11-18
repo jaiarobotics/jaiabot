@@ -53,11 +53,13 @@ task_packet_buffer {
     }
 }
 
+# Sized for a Run All of 80-waypoint missions to 10 bots (8 fragments each) plus
+# the status relays that queue while it drains; a full queue drops each new message.
 hub2hub_buffer
 {
     ack_required: true
     blackout_time: 0
-    max_queue: 40
+    max_queue: 160
     newest_first: false
     ttl: 600
     value_base: 1
@@ -66,11 +68,12 @@ hub2hub_buffer
 # Active mission summaries, and the missions another hub's summary shows it
 # lacks. Half the priority of hub2hub_buffer (value_base / ttl), and a copy
 # that can't go out within a minute expires before the next summary asks again.
+# Sized for catching up 80-waypoint missions for 10 bots.
 hub2hub_active_mission_buffer
 {
     ack_required: true
     blackout_time: 0
-    max_queue: 64
+    max_queue: 96
     newest_first: false
     ttl: 60
     value_base: 0.05
