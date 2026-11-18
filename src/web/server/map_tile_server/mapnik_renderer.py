@@ -7,6 +7,7 @@ import mapnik
 import flask
 from string import Template
 import logging
+import tempfile
 from threading import Lock
 
 
@@ -59,7 +60,7 @@ class MapnikTileRenderer(TileRenderer):
         self.tiles_path = os.path.join(cache_dir, f"{self.map_name}")
         os.makedirs(self.tiles_path, exist_ok=True)
 
-        self._cached_tile_count = sum(1 for _ in os.scandir(self.tiles_path))
+        self._cached_tile_count = len(self._cached_tiles())
         self.base_path = os.path.dirname(xml_template)
         self.max_cached_tiles = max_cached_tiles
 
@@ -78,50 +79,57 @@ class MapnikTileRenderer(TileRenderer):
 
         output = f"{self.tiles_path}/tile_{z}_{x}_{y}.png"
 
+        try:
+            with open(output, 'rb') as tile:
+                return tile.read()
+        except FileNotFoundError:
+            pass
+
+        if self.stylesheet_template is None:
+            return None
+
+        # Rendering runs outside the lock: mapnik releases the GIL, so tiles render in parallel.
+        m = mapnik.Map(256, 256)
+        mapnik.load_map_from_string(m, self.stylesheet_template.substitute(z=z), False, self.base_path)
+
+        tile_side = WEB_MERCATOR_SIZE / (2 ** z)
+
+        tile_bbox = mapnik.Box2d(
+            WEB_MERCATOR_MIN + tile_side * x,
+            WEB_MERCATOR_MAX - tile_side * y,
+            WEB_MERCATOR_MIN + tile_side * (x + 1),
+            WEB_MERCATOR_MAX - tile_side * (y + 1),
+        )
+
+        m.zoom_to_box(tile_bbox)
+        image = mapnik.Image(256, 256)
+        mapnik.render(m, image, 2.0)
+        tile_data = image.to_string("png")
+
+        # Rename into place so a concurrent request never reads a partly written tile.
+        fd, staging_path = tempfile.mkstemp(dir=self.tiles_path, suffix=".tmp")
+        with os.fdopen(fd, 'wb') as staging:
+            staging.write(tile_data)
+        os.replace(staging_path, output)
+
         with self._lock:
-            if os.path.exists(output):
-                return open(output, 'rb').read()
-
-            if self.stylesheet_template is None:
-                return None
-
-            m = mapnik.Map(256, 256)
-
-            # True makes relative paths resolve from the XML file's directory.
-            mapnik.load_map_from_string(m, self.stylesheet_template.substitute(z=z), False, self.base_path)
-
-            tile_side = WEB_MERCATOR_SIZE / (2 ** z)
-
-            tile_bbox = mapnik.Box2d(
-                WEB_MERCATOR_MIN + tile_side * x,
-                WEB_MERCATOR_MAX - tile_side * y,
-                WEB_MERCATOR_MIN + tile_side * (x + 1),
-                WEB_MERCATOR_MAX - tile_side * (y + 1),
-            )
-
-            m.zoom_to_box(tile_bbox)
-            mapnik.render_to_file(m, output, "png", 2.0)
-
             self._cached_tile_count += 1
 
             # Remove the oldest (earliest access time) half of the tile cache if we have too many cached tiles.
             if self._cached_tile_count > self.max_cached_tiles:
-                tiles = sorted(
-                    os.scandir(self.tiles_path), key=lambda entry: entry.stat().st_atime
-                )
-
+                tiles = sorted(self._cached_tiles(), key=lambda entry: entry.stat().st_atime)
                 tiles_to_remove = len(tiles) // 2
 
-                for tile_index, tile in enumerate(tiles):
-                    if tile_index >= tiles_to_remove:
-                        break
-
+                for tile in tiles[:tiles_to_remove]:
                     os.remove(tile.path)
-                    self._cached_tile_count -= 1
 
                 self._cached_tile_count = len(tiles) - tiles_to_remove
 
-            return open(output, 'rb').read()
+        return tile_data
+
+
+    def _cached_tiles(self) -> list[os.DirEntry]:
+        return [entry for entry in os.scandir(self.tiles_path) if entry.name.endswith(".png")]
 
 
     def clear_cache(self) -> None:
