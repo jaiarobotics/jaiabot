@@ -23,8 +23,8 @@ turn, plus GPS error. Draw each zone with the margin the site needs built in.
   route crosses a zone, amber when suppressed waypoints are clear again so a reroute would bring
   them back, and unfilled otherwise, so a mission that needs attention is the only filled icon in
   the list. The "Mission Set" title has a full-size one for the whole set, white when clear and
-  centred over the missions' icons. On the map, a waypoint inside a zone is drawn red, unless its
-  mission is being edited (gold) or it is a running bot's target. All of it is recomputed from
+  centred over the missions' icons. On the map, a waypoint inside a zone is drawn red, in the
+  mission being edited too, unless it is a running bot's target. All of it is recomputed from
   the missions and zones as they are now.
 - **The status icons are buttons.** Unlike most status indicators in the JCC, tapping an icon
   opens the routing panel in place of the Missions panel: a
@@ -40,8 +40,10 @@ turn, plus GPS error. Draw each zone with the margin the site needs built in.
   brings the suppressed waypoints back. Each action is one undo entry, even for the whole set,
   and the panel reports what it did. The set's report is one line that counts the missions
   that could not be rerouted; a mission's own Reroute says why.
-- **Placing a point inside a zone asks first.** Adding or moving a waypoint, a rally point or a
-  survey corner inside a zone asks the operator to confirm; Cancel dispatches nothing. Appending
+- **Adding a point inside a zone asks first; moving a waypoint there does not.** Adding a
+  waypoint, a rally point or a survey corner inside a zone asks the operator to confirm; Cancel
+  dispatches nothing. A waypoint moved into a zone, by tap to move or the waypoint panel, just
+  turns red, as does its mission's status icon, and Run warns before it is sent. Appending
   past the waypoint limit is refused. The limit counts detours, which are sent, and suppressed
   waypoints, which Restore brings back.
 - **Run and Run all warn, and never block,** when a route crosses a zone, when a repeating
@@ -54,7 +56,7 @@ These decisions shape the code. They are deliberate; changing one is a design ch
 
 **Waypoints change only through an operator action:** a direct edit, a reroute, or restoring the
 original waypoints. A zone edit never adds, moves, deletes or flags a waypoint, and no edit opens
-an avoidance dialog, apart from the confirmation when a point is placed inside a zone.
+an avoidance dialog, apart from the confirmation when a point is added inside a zone.
 
 **Only `Mission` sets the flags and markers, and only `Mission` changes its waypoint list.**
 Accessors return `readonly Waypoint[]`, and `Waypoint` has no setters, so the compiler enforces
@@ -161,7 +163,7 @@ flowchart TD
     subgraph UI["Components"]
         ICON["Status icons<br/>MissionRoutingButton, MissionSetRoutingButton"]
         DLG["Routing panel<br/>Reroute, Restore and report"]
-        PLACE["usePlacementCheck<br/>Map.tsx, waypoint panel"]
+        PLACE["usePlacementCheck<br/>Map.tsx"]
         RUN["Run and Run all<br/>start dialogs"]
     end
 
@@ -199,7 +201,7 @@ segment tests against the zones.
 | `components/MissionsPanel/MissionsList/MissionRoutingButton/`                          | A mission's icon, which opens the routing panel for the mission.                                                                                                                                         |
 | `components/MissionsPanel/MissionSetRoutingButton/`                                    | The set's icon, which opens the routing panel for the set.                                                                                                                                               |
 | `components/RoutingPanel/`                                                             | The routing panel: a mission view and a set view, the wording (`routing-text.ts`), the action hook with its spinner, the action button.                                                                  |
-| `components/PlacementDialog/PlacementDialog.tsx`                                       | The confirm and refuse dialog, and `usePlacementCheck`, which every placement uses.                                                                                                                      |
+| `components/PlacementDialog/PlacementDialog.tsx`                                       | The confirm and refuse dialog, and `usePlacementCheck`, which adding a waypoint, rally point or survey corner uses.                                                                                      |
 | `components/__buttons__/Start*Button/`                                                 | The Run warnings, computed when the start dialog opens.                                                                                                                                                  |
 | `openlayers/layers/vector/mission-layer.ts`, `openlayers/features/waypoint-feature.ts` | Red blocked waypoints and numbered detours. The ghost layer is never coloured.                                                                                                                           |
 
@@ -209,7 +211,7 @@ segment tests against the zones.
 | ---------------------------------------------- | ----------------------------------------- | -------------------------------- | -------------------- |
 | Add or move a waypoint                         | `ADD_WAYPOINT`, `MOVE_WAYPOINT`           | `waypoint-handlers.ts`           | yes                  |
 | … typed as lat/lon, each keystroke             | `PREVIEW_WAYPOINT_MOVE`                   | `waypoint-handlers.ts`           | no                   |
-| … inside a zone, cancelled                     | none: checked before dispatch             | none                             | no                   |
+| … added inside a zone, cancelled               | none: checked before dispatch             | none                             | no                   |
 | Place a rally point or survey corner in a zone | as usual, once confirmed                  | as usual                         | as usual             |
 | Draw, edit, delete or load zones               | the zone actions                          | `exclusion-zone-handlers.ts`     | yes                  |
 | Tap a status icon                              | `CLICKED_BUTTON` with `ROUTING_PANEL`     | `handleClickedButton`            | no                   |
@@ -218,11 +220,10 @@ segment tests against the zones.
 | Restore original waypoints, or Restore all     | `RESTORE_ORIGINAL_WAYPOINTS` with the IDs | `handleRestoreOriginalWaypoints` | one for all missions |
 | Run or Run all                                 | `SENT_COMMAND`, after the start dialog    | `handleSentCommand`              | no                   |
 
-A waypoint's typed lat/lon moves it on each keystroke, unchecked and untracked; Enter, or
-focus leaving both fields, checks the location and dispatches `MOVE_WAYPOINT`, so the whole
-edit is one undo entry. A cancelled check moves the waypoint back where typing started. The
-panel's Done commits a typed location the same way and closes once it is placed; its Cancel
-discards it without asking.
+A waypoint's typed lat/lon moves it on each keystroke, untracked; Enter, or focus leaving both
+fields, dispatches `MOVE_WAYPOINT`, so the whole edit is one undo entry. A value that is not a
+number moves the waypoint back where typing started. The panel's Done commits a typed location
+the same way before it closes; its Cancel discards it.
 
 Zone edits change only the zone set; they redraw the mission layer so the red waypoints follow
 the zones, and status is recomputed at render. Loading a mission set or a zone set loads it as
@@ -248,7 +249,7 @@ routing all test against a zone that is no longer there.
 routing all use the shapes `buildZoneGeometry` builds, in the projection the map draws zones in.
 Lengths in metres (the A\* cell, the grid padding, clearances) are converted at the local
 latitude. _If ignored:_ a test that projects on its own disagrees with the drawn outline near its
-edge, so a point can be red on the map but placed without confirmation, or the reverse.
+edge, so a point can be red on the map but added without confirmation, or the reverse.
 
 **The planning clearance is inflated, then simplified, with the distance kept.** The A\* search
 first plans 2.5 m clear of each zone. Clipper2's decimal functions inflate by the clearance plus

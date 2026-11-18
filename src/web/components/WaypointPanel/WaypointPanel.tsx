@@ -26,7 +26,6 @@ import { MGRS_PLACEHOLDER } from "../../utils/constants";
 import { snakeCaseToTitleCase, validateCoordinate } from "../../utils/input";
 import { mgrsToLonLat } from "../../utils/conversions";
 import { compareSelectedWaypoints } from "./waypoint-panel";
-import { usePlacementCheck } from "../PlacementDialog/PlacementDialog";
 
 import {
     CoordinateSystem,
@@ -55,8 +54,7 @@ interface Props {
 
 /** Lets Done commit a typed location before the panel closes */
 interface LocationEditor {
-    /** Commits any typed location, then calls `onCommitted` unless the operator cancels */
-    commit: (onCommitted: () => void) => void;
+    commit: () => void;
 }
 
 // At 5 decimal points we see slight variation between OL and MGRS coordinate calculations
@@ -204,17 +202,13 @@ export default function WaypointPanel() {
     };
 
     /**
-     * Commits a typed location, then closes the panel once it is placed
+     * Commits a typed location, then closes the panel
      *
      * @returns {void}
      */
     const handleDoneClick = () => {
-        const close = () => handleClosePanelClick(PanelActions.DONE);
-        if (locationEditorRef.current) {
-            locationEditorRef.current.commit(close);
-        } else {
-            close();
-        }
+        locationEditorRef.current?.commit();
+        handleClosePanelClick(PanelActions.DONE);
     };
 
     return (
@@ -266,7 +260,7 @@ export default function WaypointPanel() {
                 coordinateSystem={jaiaContext.jaiaGlobal.getCoordinateSystem()}
                 locationEditorRef={locationEditorRef}
             />
-            {/* Keeps focus in a location field, so its blur can't commit before the click */}
+            {/* Keeps focus in a location field, so Cancel discards a typed location unrecorded */}
             <div className="button-row" onMouseDown={(evt) => evt.preventDefault()}>
                 <button onClick={() => handleClosePanelClick(PanelActions.CANCEL)}>Cancel</button>
                 <button onClick={() => handleDoneClick()}>Done</button>
@@ -385,13 +379,12 @@ function isSameLocation(a: GeographicCoordinate, b: GeographicCoordinate) {
  *
  * @notes
  * Typed values are held as strings, to allow negative signs and decimal points while typing.
- * The waypoint follows each typed value that is a number, with no zone check and no undo entry.
- * Enter, or focus leaving both fields, checks the final location and records one undo entry.
- * A cancelled or non-numeric entry puts the waypoint back where it was before typing.
+ * The waypoint follows each typed value that is a number, with no undo entry. Enter, or focus
+ * leaving both fields, records the final location as one undo entry. A non-numeric entry puts
+ * the waypoint back where it was before typing.
  */
 function LatLonDisplay(props: Props) {
     const jaiaDispatch = useContext(JaiaDispatchContext);
-    const { checkAndPlace, placementDialog, isPrompting } = usePlacementCheck();
     const [draft, setDraft] = useState<{
         lat: string;
         lon: string;
@@ -434,41 +427,21 @@ function LatLonDisplay(props: Props) {
     };
 
     /**
-     * Records the move to the typed coordinate, asking first if it is inside a zone. An empty or
-     * non-numeric value, or a cancelled move, puts the waypoint back where it was before typing.
+     * Records the move to the typed coordinate as one undo entry. An empty or non-numeric value
+     * puts the waypoint back where it was before typing.
      *
-     * @param {Function} [onCommitted] Called once committed, unless the operator cancels
      * @returns {void}
      */
-    const commitDraft = (onCommitted?: () => void) => {
-        if (isPrompting) return;
-        if (!current) {
-            onCommitted?.();
-            return;
-        }
+    const commitDraft = () => {
+        if (!current) return;
         const { start, at } = current;
-        const putBack = () => {
-            setDraft(null);
-            if (!isSameLocation(at, start)) {
-                jaiaDispatch({ type: JaiaActions.PREVIEW_WAYPOINT_MOVE, location: start });
-            }
-        };
+        setDraft(null);
         const target = parseCoordinate(current.lat, current.lon);
-        if (!target || isSameLocation(target, start)) {
-            putBack();
-            onCommitted?.();
-            return;
+        if (target && !isSameLocation(target, start)) {
+            jaiaDispatch({ type: JaiaActions.MOVE_WAYPOINT, location: target });
+        } else if (!isSameLocation(at, start)) {
+            jaiaDispatch({ type: JaiaActions.PREVIEW_WAYPOINT_MOVE, location: start });
         }
-        checkAndPlace(
-            target,
-            "waypoint",
-            () => {
-                setDraft(null);
-                jaiaDispatch({ type: JaiaActions.MOVE_WAYPOINT, location: target });
-                onCommitted?.();
-            },
-            { onCancel: putBack },
-        );
     };
 
     useImperativeHandle(props.locationEditorRef, () => ({ commit: commitDraft }));
@@ -519,8 +492,6 @@ function LatLonDisplay(props: Props) {
                 onKeyDown={(evt) => handleKeyDown(evt)}
                 onBlur={(evt) => handleBlur(evt)}
             />
-
-            {placementDialog}
         </div>
     );
 }
@@ -545,29 +516,19 @@ function MGRSDisplay(props: Props) {
     const [squareID, setSquareID] = useState(currentMGRS.squareIdentifier);
     const [easting, setEasting] = useState(currentMGRS.easting);
     const [northing, setNorthing] = useState(currentMGRS.northing);
-    const { checkAndPlace, placementDialog } = usePlacementCheck();
 
     useEffect(() => {
         const locationChange = compareLocation();
         // Update MGRS values from an external change such as tap to move
         if (locationChange) {
-            showWaypointLocation();
+            const mgrs = props.waypoint.latLonToMGRS();
+            setGZD(mgrs.gridZoneDesignator);
+            setSquareID(mgrs.squareIdentifier);
+            setEasting(mgrs.easting);
+            setNorthing(mgrs.northing);
+            currentMGRS = props.waypoint.latLonToMGRS();
         }
     });
-
-    /**
-     * Sets the MGRS inputs to the waypoint's location
-     *
-     * @returns {void}
-     */
-    const showWaypointLocation = () => {
-        const mgrs = props.waypoint.latLonToMGRS();
-        setGZD(mgrs.gridZoneDesignator);
-        setSquareID(mgrs.squareIdentifier);
-        setEasting(mgrs.easting);
-        setNorthing(mgrs.northing);
-        currentMGRS = mgrs;
-    };
 
     /**
      * Updates the MGRS data in state as an operator changes the values
@@ -610,17 +571,17 @@ function MGRSDisplay(props: Props) {
             return;
         }
 
-        const move = () => {
-            currentMGRS = {
-                gridZoneDesignator: gzd,
-                squareIdentifier: squareID,
-                easting: easting,
-                northing: northing,
-            };
-            jaiaDispatch({ type: JaiaActions.MOVE_WAYPOINT, location: { lat, lon } });
+        currentMGRS = {
+            gridZoneDesignator: gzd,
+            squareIdentifier: squareID,
+            easting: easting,
+            northing: northing,
         };
 
-        checkAndPlace({ lat, lon }, "waypoint", move, { onCancel: showWaypointLocation });
+        jaiaDispatch({
+            type: JaiaActions.MOVE_WAYPOINT,
+            location: { lat, lon },
+        });
     };
 
     /**
@@ -692,8 +653,6 @@ function MGRSDisplay(props: Props) {
             <button onClick={handleSubmitMGRSCoordinates}>
                 <Icon path={mdiArrowRight} />
             </button>
-
-            {placementDialog}
         </div>
     );
 }

@@ -56,8 +56,8 @@ interface PlaceOptions {
  * A custom React hook: each component that calls it gets its own copy of the dialog state,
  * and re-renders when the dialog opens or closes.
  *
- * @returns {object} `checkAndPlace`, which places a point once it is allowed or confirmed;
- * `placementDialog`, the dialog to render, or null; and `isPrompting`, true while it is open
+ * @returns {object} `checkAndPlace`, which places a point once it is allowed or confirmed, and
+ * `placementDialog`, the dialog to render, or null
  */
 export function usePlacementCheck() {
     const [prompt, setPrompt] = useState<{
@@ -112,5 +112,5 @@ export function usePlacementCheck() {
         />
     );
 
-    return { checkAndPlace, placementDialog, isPrompting: prompt !== null };
+    return { checkAndPlace, placementDialog };
 }

@@ -117,13 +117,16 @@ describe("mission layer waypoint markers", () => {
         expect(markers()[1].color).toEqual(color(OpenLayersColors.DEFAULT));
     });
 
-    test("keep the edit-mode colour on a blocked waypoint of the mission being edited", () => {
+    test("colour a blocked waypoint red in the mission being edited too", () => {
         const mission = addMission([{ location: WEST }, { location: INSIDE }]);
         missionSet.setMissionIDInEditMode(mission.getMissionID());
 
         missionLayer.updateFeatures();
 
-        expect(markers()[1].color).toEqual(color(OpenLayersColors.EDIT));
+        expect(markers().map((marker) => marker.color)).toEqual([
+            color(OpenLayersColors.EDIT),
+            color(OpenLayersColors.BLOCKED),
+        ]);
     });
 
     test("give detours the edit-mode colour in the mission being edited", () => {

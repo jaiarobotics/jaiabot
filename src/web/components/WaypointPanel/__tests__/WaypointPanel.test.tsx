@@ -63,11 +63,6 @@ function input(name: string): HTMLInputElement {
     return document.querySelector(`input[name="${name}"]`) as HTMLInputElement;
 }
 
-/** The placement dialog, apart from the panel's own buttons. */
-function dialog(): HTMLElement {
-    return document.querySelector(".jaia-dialog") as HTMLElement;
-}
-
 function movesDispatched() {
     return dispatch.mock.calls.filter(([action]) => action.type === JaiaActions.MOVE_WAYPOINT);
 }
@@ -150,33 +145,17 @@ describe("typed latitude and longitude", () => {
         expect(input(CoordinateTypes.LAT).value).toBe(String(START.lat));
     });
 
-    test("a location inside a zone asks to confirm, and Cancel puts the waypoint back", () => {
+    test("a location inside a zone is recorded without asking", () => {
         const mission = renderPanel(CoordinateSystem.LAT_LON);
 
         type(CoordinateTypes.LAT, String(INSIDE.lat));
         fireEvent.keyDown(input(CoordinateTypes.LAT), { key: "Enter" });
 
-        expect(trackedDispatched()).toHaveLength(0);
-        expect(screen.getByText(/inside an exclusion zone/)).toBeTruthy();
-        expect(input(CoordinateTypes.LAT).value).toBe(String(INSIDE.lat));
-
-        fireEvent.click(within(dialog()).getByText("Cancel"));
-        expect(trackedDispatched()).toHaveLength(0);
         expect(screen.queryByText(/inside an exclusion zone/)).toBeNull();
-        expect(waypointLocation(mission)).toEqual(START);
-        expect(input(CoordinateTypes.LAT).value).toBe(String(START.lat));
-    });
-
-    test("a location inside a zone is moved to on Place anyway", () => {
-        renderPanel(CoordinateSystem.LAT_LON);
-
-        type(CoordinateTypes.LAT, String(INSIDE.lat));
-        fireEvent.keyDown(input(CoordinateTypes.LAT), { key: "Enter" });
-        fireEvent.click(screen.getByText("Place anyway"));
-
         expect(trackedDispatched()).toEqual([
             [{ type: JaiaActions.MOVE_WAYPOINT, location: coord(INSIDE.lat, START.lon) }],
         ]);
+        expect(waypointLocation(mission)).toEqual(coord(INSIDE.lat, START.lon));
     });
 });
 
@@ -243,13 +222,12 @@ describe("Done and Cancel with a typed location", () => {
         );
     }
 
-    test("pressing Done or Cancel keeps focus in the field, so its blur commits nothing", () => {
+    test("pressing Done or Cancel keeps focus in the field, so its blur records nothing", () => {
         renderPanel(CoordinateSystem.LAT_LON);
 
         expect(fireEvent.mouseDown(panelButton("Done"))).toBe(false);
         expect(fireEvent.mouseDown(panelButton("Cancel"))).toBe(false);
     });
-
     test("Done records the typed move, then closes", () => {
         renderPanel(CoordinateSystem.LAT_LON);
 
@@ -262,41 +240,24 @@ describe("Done and Cancel with a typed location", () => {
         ]);
     });
 
-    test("Done with a location inside a zone closes once placed anyway", () => {
+    test("Done records a location inside a zone without asking, then closes", () => {
         renderPanel(CoordinateSystem.LAT_LON);
 
         type(CoordinateTypes.LAT, String(INSIDE.lat));
         fireEvent.click(panelButton("Done"));
 
-        expect(screen.getByText(/inside an exclusion zone/)).toBeTruthy();
-        expect(closesDispatched()).toHaveLength(0);
-
-        fireEvent.click(screen.getByText("Place anyway"));
-
-        expect(trackedDispatched()).toEqual([
-            [{ type: JaiaActions.MOVE_WAYPOINT, location: coord(INSIDE.lat, START.lon) }],
+        expect(screen.queryByText(/inside an exclusion zone/)).toBeNull();
+        expect(dispatch.mock.calls.map(([action]) => action.type).slice(-2)).toEqual([
+            JaiaActions.MOVE_WAYPOINT,
+            JaiaActions.CLOSED_WAYPOINT_PANEL,
         ]);
-        expect(closesDispatched()).toHaveLength(1);
     });
-
-    test("cancelling the zone prompt after Done keeps the panel open", () => {
-        const mission = renderPanel(CoordinateSystem.LAT_LON);
-
-        type(CoordinateTypes.LAT, String(INSIDE.lat));
-        fireEvent.click(panelButton("Done"));
-        fireEvent.click(within(dialog()).getByText("Cancel"));
-
-        expect(closesDispatched()).toHaveLength(0);
-        expect(waypointLocation(mission)).toEqual(START);
-    });
-
-    test("Cancel discards the typed location without asking", () => {
+    test("Cancel discards the typed location", () => {
         renderPanel(CoordinateSystem.LAT_LON);
 
         type(CoordinateTypes.LAT, String(INSIDE.lat));
         fireEvent.click(panelButton("Cancel"));
 
-        expect(screen.queryByText(/inside an exclusion zone/)).toBeNull();
         expect(trackedDispatched()).toHaveLength(0);
         expect(closesDispatched()).toHaveLength(1);
     });
@@ -323,25 +284,11 @@ describe("typed MGRS", () => {
         return start;
     }
 
-    test("a location inside a zone asks to confirm, and Cancel puts the location back", () => {
-        const mission = renderPanel(CoordinateSystem.MGRS);
-        const start = submitInside(mission);
-
-        expect(movesDispatched()).toHaveLength(0);
-        expect(screen.getByText(/inside an exclusion zone/)).toBeTruthy();
-
-        fireEvent.click(within(dialog()).getByText("Cancel"));
-        expect(movesDispatched()).toHaveLength(0);
-        expect(input(MGRSComponents.EASTING).value).toBe(start.easting);
-        expect(input(MGRSComponents.NORTHING).value).toBe(start.northing);
-    });
-
-    test("a location inside a zone is moved to on Place anyway", () => {
+    test("a location inside a zone is moved to without asking", () => {
         const mission = renderPanel(CoordinateSystem.MGRS);
         submitInside(mission);
 
-        fireEvent.click(screen.getByText("Place anyway"));
-
+        expect(screen.queryByText(/inside an exclusion zone/)).toBeNull();
         expect(movesDispatched()).toHaveLength(1);
     });
 });

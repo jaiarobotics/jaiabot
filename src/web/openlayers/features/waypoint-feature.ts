@@ -265,15 +265,15 @@ function getWaypointColor(mission: Mission, waypointNum?: number, isBlocked = fa
         }
     }
 
+    if (isBlocked) {
+        return OpenLayersColors.BLOCKED;
+    }
+
     if (
         mission.getMissionID() === missionSet.getMissionIDInEditMode() &&
         !mission.getGhostParameters().isGhost
     ) {
         return OpenLayersColors.EDIT;
-    }
-
-    if (isBlocked) {
-        return OpenLayersColors.BLOCKED;
     }
 
     if (isAssignedToSelectedBot(mission)) {

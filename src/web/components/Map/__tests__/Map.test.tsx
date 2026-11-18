@@ -226,7 +226,7 @@ function addZoneUnderClick() {
     });
 }
 
-test("Tap to move into an exclusion zone asks to confirm before dispatch", () => {
+test("Tap to move into an exclusion zone moves without asking", () => {
     addZoneUnderClick();
     const mission = new Mission();
     mission.addWaypoint({ lat: 41.0, lon: -72.0 });
@@ -237,10 +237,7 @@ test("Tap to move into an exclusion zone asks to confirm before dispatch", () =>
         map.dispatchEvent(mapBrowserEventMock);
     });
 
-    expect(mission.getWaypoint(1)!.getLocation()).toEqual({ lat: 41.0, lon: -72.0 });
-    expect(screen.getByText(/inside an exclusion zone/)).toBeTruthy();
-
-    fireEvent.click(screen.getByText("Place anyway"));
+    expect(screen.queryByText(/inside an exclusion zone/)).toBeNull();
     expect(mission.getWaypoint(1)!.getLocation()).not.toEqual({ lat: 41.0, lon: -72.0 });
 
     jaiaGlobal.resetSelectedWaypoint();

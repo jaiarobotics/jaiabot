@@ -377,9 +377,7 @@ export default function Map() {
     const handleMoveWaypointClick = (coordinate: Coordinate) => {
         const lonLat = toLonLat(coordinate, view.getProjection());
         const location = { lon: lonLat[0], lat: lonLat[1] };
-        checkAndPlace(location, "waypoint", () =>
-            jaiaDispatch({ type: JaiaActions.MOVE_WAYPOINT, location }),
-        );
+        jaiaDispatch({ type: JaiaActions.MOVE_WAYPOINT, location });
     };
 
     /**
