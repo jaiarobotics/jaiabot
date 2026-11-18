@@ -492,9 +492,11 @@ message MissionPlan
             NONE = 0 [(jaia.ev).rest_api.presence = GUARANTEED];
             STOP_AND_BROADCAST = 1 [(jaia.ev).rest_api.presence = GUARANTEED];
             STATION_KEEP = 2 [(jaia.ev).rest_api.presence = GUARANTEED];
-            DRIVE_TO_HUB = 3 [(jaia.ev).rest_api.presence = GUARANTEED];
-            DRIVE_TO_LOCATION = 4 [(jaia.ev).rest_api.presence = GUARANTEED];
-            DRIVE_TO_END_SKIPPING_TASKS = 5 [(jaia.ev).rest_api.presence = GUARANTEED];
+
+            // TODO:  Implement these battery protocol actions:
+            // DRIVE_TO_HUB = 3 [(jaia.ev).rest_api.presence = GUARANTEED];
+            // DRIVE_TO_LOCATION = 4 [(jaia.ev).rest_api.presence = GUARANTEED];
+            // DRIVE_TO_END_SKIPPING_TASKS = 5 [(jaia.ev).rest_api.presence = GUARANTEED];
         }
 
         optional Action action = 1
