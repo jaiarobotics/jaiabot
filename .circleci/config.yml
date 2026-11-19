@@ -248,6 +248,7 @@ filter-template-debian-builds: &filter-template-debian-builds
     branches:
       only:
         - "3.y"
+        - "task/3.y/investigate-small-base-map-layer-for-world-sw-2511"
 
 # which branches to run the normal source build
 filter-template-normal-builds: &filter-template-normal-builds
@@ -273,6 +274,7 @@ filter-template-rootfs-builds: &filter-template-rootfs-builds
     branches:
       only:
         - "3.y"
+        - "task/3.y/investigate-small-base-map-layer-for-world-sw-2511"
 
 # which branches to run the AWS virtual machine conversion (must be same as or subset of filter-template-rootfs-builds)
 filter-template-aws-rootfs-builds: &filter-template-aws-rootfs-builds
@@ -291,6 +293,7 @@ filter-template-docker-sim-builds: &filter-template-docker-sim-builds
     branches:
       only:
         - "3.y"
+        - "task/3.y/investigate-small-base-map-layer-for-world-sw-2511"
 
 ## Begin actual config
 version: 2.1
