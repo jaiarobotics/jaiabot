@@ -9,7 +9,7 @@ from rasterio.warp import transform
 from . import mime_types
 from . import geotiff
 from .utils import *
-
+from .mapnik_renderer import TileRenderer, MapnikTileRenderer
 
 logging.basicConfig()
 l = logging.getLogger(__name__)
@@ -95,12 +95,14 @@ class MapTileServer:
     maps_directory: str
     tiles_directory: str
     geotiffs_directory: str
+    natural_earth_renderer: TileRenderer
 
-    def __init__(self, maps_directory: str):
-        """Create a MapTileServer
+    def __init__(self, maps_directory: str, natural_earth_renderer: TileRenderer=None):
+        """Create a MapTileServer instance.
 
         Args:
             maps_directory (str): Location of the directory where the tilesets, uploaded GeoTIFF files, etc. will be placed.
+            natural_earth_renderer (TileRenderer, optional): Renderer for the natural earth map layer. Defaults to None.
         """
         self.maps_directory = os.path.expanduser(maps_directory)
 
@@ -111,6 +113,9 @@ class MapTileServer:
         os.makedirs(self.geotiffs_directory, exist_ok=True)
 
         geotiff.watch_directory_and_convert_to_tiles(self.geotiffs_directory, self.tiles_directory)
+
+        self.natural_earth_renderer = natural_earth_renderer or MapnikTileRenderer(
+            os.path.join(self.maps_directory, 'natural_earth', 'stylesheet.xml.template'))
 
 
     def get_maps(self):
@@ -134,7 +139,7 @@ class MapTileServer:
         return maps_directory.json()
 
 
-    def get_tile(self, map_name: str, z: int, x: int, y: int):
+    def get_tile(self, map_name: str, z: int, x: int, y: int) -> bytes | None:
         """Get an offline map layer tile.
 
         Args:
@@ -146,11 +151,15 @@ class MapTileServer:
         Returns:
             bytes or None: Binary image data in png format, if the image exists.
         """
-        tile_path = f'{self.tiles_directory}/{map_name}/{z}/{x}/{y}.png'
-        if not os.path.isfile(tile_path):
-            return None
+        if map_name == 'natural-earth':
+            return self.natural_earth_renderer.render_tile(z, x, y)
         else:
-            return open(tile_path, 'rb').read()
+            tile_path = f'{self.tiles_directory}/{map_name}/{z}/{x}/{y}.png'
+
+            try:
+                return open(tile_path, 'rb').read()
+            except FileNotFoundError:
+                return None
 
 
     def tile_exists(self, map_name:str, z: int, x: int, y: int):

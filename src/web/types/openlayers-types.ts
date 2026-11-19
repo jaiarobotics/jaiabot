@@ -1,6 +1,7 @@
 export enum LayerTitles {
     // Empty string needed for MUI Select default
     NONE = "",
+    NATURAL_EARTH_LAYER = "natural-earth-layer",
     OSM_LAYER = "open-street-maps-layer",
     ARC_GIS_SATELLITE_LAYER = "arg-gis-satellite-layer",
     NOAA_ENC_LAYER = "noaa-enc-layer",
@@ -42,6 +43,7 @@ export enum MapModes {
     CONSTANT_HEADING_SELECT = "CONSTANT_HEADING_SELECT",
     HUB_LOCATION_SELECT = "HUB_LOCATION_SELECT",
     EXCLUSION_ZONE_DRAWING = "EXCLUSION_ZONE_DRAWING",
+    ROUTING = "ROUTING",
 }
 
 export enum SurveyEndpoints {

@@ -10,6 +10,7 @@ update_freq: 10
 add_home_tab: false
 add_scope_tab: false
 add_commander_tab: false
+add_map_tab: false
 
 upper_right_logo: "/jdv/favicon.png"
 upper_right_logo_link: "https://www.jaia.tech/"
@@ -95,6 +96,7 @@ upper_right_logo_link: "https://www.jaia.tech/"
             display_name: "Current JaiaBot Version"
         }
         $limit
+        causes_hub_reboot: true
     }
     ansible_playbook {
         file: "upgrade-all.yml" 

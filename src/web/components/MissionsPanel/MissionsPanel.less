@@ -1,3 +1,5 @@
+@import "../../style/stylesheets/vars.less";
+
 .missions-panel {
     display: flex;
     flex-direction: column;
@@ -6,6 +8,20 @@
 
     .jaia-button-row {
         column-gap: 6px;
+    }
+}
+
+.missions-panel-title {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: @status-icon-size;
+
+    // Centred over the missions' compact status icons
+    .mission-status-icon {
+        position: absolute;
+        right: @status-icon-inset - ((@status-icon-size - @status-icon-compact-size) / 2);
     }
 }
 

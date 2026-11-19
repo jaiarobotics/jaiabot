@@ -106,9 +106,10 @@ endif
 	$(THIRDPARTY_DIR)/fetch.sh $(DEB_HOST_ARCH) $(THIRDPARTY_STAGE)
 
 # jaiabot-web-thirdparty's units are enabled by jaia_configure_authelia.sh once they
-# have something to serve
+# have something to serve, and keep running through an upgrade: they serve the JCU
+# page running it, and stopping Authelia signs everyone out
 override_dh_installsystemd:
-	dh_installsystemd -pjaiabot-web-thirdparty --no-enable --no-start
+	dh_installsystemd -pjaiabot-web-thirdparty --no-enable --no-start --no-stop-on-upgrade
 	dh_installsystemd --remaining-packages
 
 override_dh_strip:

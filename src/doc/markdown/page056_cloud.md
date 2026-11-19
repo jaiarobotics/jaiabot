@@ -442,6 +442,10 @@ To upgrade an existing server, the following set of steps is recommended:
 6. Power down (stop) the old server.
 7. After some period (e.g., 1-2 weeks or so) of the new server functioning correctly,  disable termination protection for the old server and enable termination protection for the new server (if not already set) under (in the AWS console) `Actions->Instance Settings->Change termination protection`. Terminate (delete) the old instance.
 
+*This section written by Claude*
+
+`cutover_specialty_server.sh server.conf` does step 4 for any server type: it moves `CUTOVER_ELASTIC_IP_ALLOCATION_ID` and `CUTOVER_IPV6_ADDRESS` from `CUTOVER_FROM_INSTANCE_ID` to the one other running server named `SERVER_NAME`, and `--rollback` moves them back. Leave `ELASTIC_IP_ALLOCATION_ID` and `IPV6_ADDRESS` empty in that conf so the new server starts on temporary addresses. The docs server's steps are in `rootfs/cloud/aws/docs/README.md`.
+
 ## Cloud Login server (auth.fleetN.jaia.tech / auth.custom_domain)
 
 *This section written by Claude*

@@ -233,6 +233,10 @@ Examples:
 - `git tag 1.0.0` built on Ubuntu 20.04 "focal" becomes Debian version `1.0.0-0~ubuntu20.04.1`
 - git hash 8f9b675, which is 5 commits after `git tag 1.0.0_alpha1` built on Ubuntu 18.04 "xenial" becomes Debian version `1.0.0~alpha1+5+g8f9b675-0~ubuntu18.04.1`
 
+*This section written by Claude*
+
+`jaiabot-offline-base-map`, the Natural Earth data behind the JCC's base map, is the exception. It is built from `offline_base_map/debian` with its own version, `<Natural Earth version>+<commits that changed offline_base_map/>+<distro>` (e.g. `5.1.2+3+ubuntu26.04`), so hubs only download it when the map changes. Each package build uploads it only if the repository doesn't have that version yet. Only hubs install it, and the offline update `.iso` carries it too. See `offline_base_map/README.md`.
+
 This scheme ensures that continuous packages are considered to always be newer versions (by the rules of `apt`) than the last (beta or regular) release. This also ensures that each version can be tracked back to the git tag or git hash from which it was built. 
 
 ## Creation of packages.jaia.tech
