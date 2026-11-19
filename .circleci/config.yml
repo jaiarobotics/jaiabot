@@ -344,130 +344,135 @@ workflows:
           <<: *filter-template-debian-builds
           requires:
             - get-orig-source
+      - offline-base-map-deb-build:
+          <<: *filter-template-debian-builds
 
       # runs in parallel with the deb builds; validated separately so it doesn't block upload
       - amd64-python-venv-build:
           <<: *filter-template-debian-builds
 
-      # always do the upload if we did the deb builds
-      - upload:
-          filters:
-            tags:
-              only: /.*/
-            branches:
-              only: /.*/
+      # Each 3.y push replaces the previous version in the continuous repo, so a pipeline
+      # must finish everything that reads its packages back before the next one uploads.
+      - publish-and-test:
+          <<: *filter-template-debian-builds
+          serial-group: << pipeline.project.slug >>/publish-<< pipeline.git.branch >><< pipeline.git.tag >>
           requires:
             - amd64-resolute-deb-build
             - arm64-resolute-deb-build
+            - offline-base-map-deb-build
 
-      # rootfs jobs
-      - arm64-raspi-image-create-resolute:
-          <<: *filter-template-rootfs-builds
-          requires:
-            - upload
-
-      - amd64-virtualbox-image-create-resolute:
-          <<: *filter-template-rootfs-builds
-          requires:
-            - upload
-        
       - raspi0-rpicam-image-create-trixie:
           <<: *filter-template-pi0-rootfs-builds
 
-      # bundle after each package upload and rootfs
-      - arm64-bundle-resolute:
-          filters:
-            tags:
-              only: /.*/
-            branches:
-              only: /.*/
-          requires:
-            - arm64-raspi-image-create-resolute
+job-groups:
+  publish-and-test:
+    jobs:
+    - upload
 
-      - amd64-bundle-resolute:
-          filters:
-            tags:
-              only: /.*/
-            branches:
-              only: /.*/
-          requires:
-            - amd64-virtualbox-image-create-resolute
-            
-      - aws-sync:
-          requires:
-            - arm64-raspi-image-create-resolute
-            - amd64-virtualbox-image-create-resolute
-            - amd64-bundle-resolute
-            - arm64-bundle-resolute
-          <<: *filter-template-aws-rootfs-builds
+    # rootfs jobs
+    - arm64-raspi-image-create-resolute:
+        <<: *filter-template-rootfs-builds
+        requires:
+          - upload
 
-      - aws-sync-govcloud:
-          requires:
-            - arm64-raspi-image-create-resolute
-            - amd64-virtualbox-image-create-resolute
-            - amd64-bundle-resolute
-            - arm64-bundle-resolute
-          <<: *filter-template-aws-rootfs-builds
+    - amd64-virtualbox-image-create-resolute:
+        <<: *filter-template-rootfs-builds
+        requires:
+          - upload
+      
+    # bundle after each package upload and rootfs
+    - arm64-bundle-resolute:
+        filters:
+          tags:
+            only: /.*/
+          branches:
+            only: /.*/
+        requires:
+          - arm64-raspi-image-create-resolute
 
+    - amd64-bundle-resolute:
+        filters:
+          tags:
+            only: /.*/
+          branches:
+            only: /.*/
+        requires:
+          - amd64-virtualbox-image-create-resolute
           
-      # docker creation jobs
-      - arm64-docker-sim:
-          <<: *filter-template-docker-sim-builds
-          requires:
-            - upload
-      - amd64-docker-sim:
-          <<: *filter-template-docker-sim-builds
-          requires:
-            - upload
-      - docker-sim-manifest:
-          <<: *filter-template-docker-sim-builds
-          requires:
-            - arm64-docker-sim
-            - amd64-docker-sim
+    - aws-sync:
+        requires:
+          - arm64-raspi-image-create-resolute
+          - amd64-virtualbox-image-create-resolute
+          - amd64-bundle-resolute
+          - arm64-bundle-resolute
+        <<: *filter-template-aws-rootfs-builds
 
-      # fast feedback on the mission driver itself, on every commit that builds the sim,
-      # with each link on its own
-      - docker-sim-e2e:
-          name: docker-sim-e2e-wifi
-          comms: w
-          <<: *filter-template-docker-sim-builds
-          requires:
-            - amd64-docker-sim
-      - docker-sim-e2e:
-          name: docker-sim-e2e-xbee
-          comms: x
-          <<: *filter-template-docker-sim-builds
-          requires:
-            - amd64-docker-sim
-      # through the Goby Iridium drivers and the 9602 simulator
-      - docker-sim-e2e:
-          name: docker-sim-e2e-iridium
-          comms: i
-          <<: *filter-template-docker-sim-builds
-          requires:
-            - amd64-docker-sim
-      # two hubs that hear each other over hub-to-hub: each must hold every bot's mission,
-      # 12 goals so they are relayed in fragments, and hub 2 must catch them up after
-      # losing them; no dives, as the single-hub jobs cover those
-      - docker-sim-e2e:
-          name: docker-sim-e2e-hub2hub
-          comms: w
-          hubs: 2
-          bots: 2
-          goals: 12
-          trial-args: >-
-            --peer-hub 2=http://localhost:9093
-            --reset-hub-missions "2=docker exec -i jaia-sim bash -s 2 < scripts/test/e2e/sim-forget-active-missions.sh"
-            --task NONE
-          <<: *filter-template-docker-sim-builds
-          requires:
-            - amd64-docker-sim
+    - aws-sync-govcloud:
+        requires:
+          - arm64-raspi-image-create-resolute
+          - amd64-virtualbox-image-create-resolute
+          - amd64-bundle-resolute
+          - arm64-bundle-resolute
+        <<: *filter-template-aws-rootfs-builds
 
-      # every image that reaches an AMI gets trialled, on the same filter that built it
-      - sea-trial-virtualfleet:
-          <<: *filter-template-aws-rootfs-builds
-          requires:
-            - aws-sync
+    # docker creation jobs
+    - arm64-docker-sim:
+        <<: *filter-template-docker-sim-builds
+        requires:
+          - upload
+    - amd64-docker-sim:
+        <<: *filter-template-docker-sim-builds
+        requires:
+          - upload
+    - docker-sim-manifest:
+        <<: *filter-template-docker-sim-builds
+        requires:
+          - arm64-docker-sim
+          - amd64-docker-sim
+
+    # fast feedback on the mission driver itself, on every commit that builds the sim,
+    # with each link on its own
+    - docker-sim-e2e:
+        name: docker-sim-e2e-wifi
+        comms: w
+        <<: *filter-template-docker-sim-builds
+        requires:
+          - amd64-docker-sim
+    - docker-sim-e2e:
+        name: docker-sim-e2e-xbee
+        comms: x
+        <<: *filter-template-docker-sim-builds
+        requires:
+          - amd64-docker-sim
+    # through the Goby Iridium drivers and the 9602 simulator
+    - docker-sim-e2e:
+        name: docker-sim-e2e-iridium
+        comms: i
+        <<: *filter-template-docker-sim-builds
+        requires:
+          - amd64-docker-sim
+    # two hubs that hear each other over hub-to-hub: each must hold every bot's mission,
+    # 12 goals so they are relayed in fragments, and hub 2 must catch them up after
+    # losing them; no dives, as the single-hub jobs cover those
+    - docker-sim-e2e:
+        name: docker-sim-e2e-hub2hub
+        comms: w
+        hubs: 2
+        bots: 2
+        goals: 12
+        trial-args: >-
+          --peer-hub 2=http://localhost:9093
+          --reset-hub-missions "2=docker exec -i jaia-sim bash -s 2 < scripts/test/e2e/sim-forget-active-missions.sh"
+          --task NONE
+        <<: *filter-template-docker-sim-builds
+        requires:
+          - amd64-docker-sim
+
+    # every image that reaches an AMI gets trialled, on the same filter that built it
+    - sea-trial-virtualfleet:
+        <<: *filter-template-aws-rootfs-builds
+        requires:
+          - aws-sync
 
 commands:
   aws-sync-command:
@@ -873,6 +878,45 @@ jobs:
             unset CC CXX
             ./build_venv.sh /tmp/jaiabot-python-test
 
+  # jaiabot-offline-base-map has its own version so hubs only download it when the map
+  # changes; most pipelines find the repo already has it and stop after the first steps
+  offline-base-map-deb-build:
+    docker: *docker-base-light
+    resource_class: small
+    working_directory: /root/jaiabot
+    environment:
+      <<: *environment-template-common
+      <<: *environment-template-resolute
+      <<: *environment-template-amd64
+    steps:
+      - checkout
+      - run: *run-set-deb-rep-and-version
+      - run:
+          name: Stop if the apt repo already has this version
+          command: |
+            version=$(offline_base_map/ci.py version)
+            echo "export OFFLINE_BASE_MAP_VERSION=${version}" >> $BASH_ENV
+            if offline_base_map/ci.py published "${version}"; then
+              echo "${JAIABOT_APT_REPO}/${JAIABOT_APT_VERSION} already has jaiabot-offline-base-map ${version}"
+              circleci-agent step halt
+            fi
+      - run: *run-import-gpg
+      - run:
+          name: Build the offline base map Debian package
+          command: |
+            apt-get update && apt-get install -y debhelper devscripts python3-gdal curl ca-certificates
+            cd offline_base_map
+            dch --newversion="${OFFLINE_BASE_MAP_VERSION}" -D "${DISTRO_RELEASE_CODENAME}" --force-distribution "Autobuild for version ${OFFLINE_BASE_MAP_VERSION}"
+            dpkg-buildpackage -kB90BE706B6A6724592B53B90954A004CD5D8CF32 -b
+            mkdir -p /root/deb /tmp/deb
+            cp ../jaiabot-offline-base-map_* /root/deb
+            cp ../jaiabot-offline-base-map_* /tmp/deb
+      - store_artifacts: *store
+      - persist_to_workspace:
+          root: /root/deb
+          paths:
+            - "jaiabot-offline-base-map_*"
+
   upload:
     <<: *job-template-upload
     environment:
@@ -899,7 +943,14 @@ jobs:
             echo 'trusted-key 954A004CD5D8CF32' >> ~/.gnupg/gpg.conf
             echo '|1|pdeN5jVicoT8qgAbw7Wd10DSjtA=|Lbu1IC80DrCY9/cnDZSmG9upweM= ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIG89ZqxUp9T8j4wOV77EmFH/+OpKAxIHLohhHj5L5z1l' >> ~/.ssh/known_hosts
             for change_file in /root/deb/*.changes;
-            do dput -c ${CIRCLE_WORKING_DIRECTORY}/.circleci/dput.cf jaiabot-${JAIABOT_APT_REPO}-${JAIABOT_APT_VERSION} $change_file;
+            do
+              # a pipeline running at the same time may have uploaded this version already
+              if [[ "$(basename $change_file)" == jaiabot-offline-base-map_* ]] &&
+                 ${CIRCLE_WORKING_DIRECTORY}/offline_base_map/ci.py published "$(sed -n 's/^Version: //p' $change_file)"; then
+                echo "Skipping $change_file: the repo already has it"
+                continue
+              fi
+              dput -c ${CIRCLE_WORKING_DIRECTORY}/.circleci/dput.cf jaiabot-${JAIABOT_APT_REPO}-${JAIABOT_APT_VERSION} $change_file;
             done
 
   # rootfs jobs

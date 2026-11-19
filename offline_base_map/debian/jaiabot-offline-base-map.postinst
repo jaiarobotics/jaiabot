@@ -1,0 +1,20 @@
+#!/bin/sh
+set -e
+
+if [ "$1" = "configure" ]; then
+    # dpkg creates missing directories as root, but the JCC creates its own folders in maps/
+    chown --reference=/var/log/jaiabot /var/log/jaiabot/lib /var/log/jaiabot/lib/maps
+
+    if [ -d /var/log/jaiabot/cache/mapnik_tiles ]; then
+        find /var/log/jaiabot/cache/mapnik_tiles -type f -delete
+    fi
+
+    # The JCC reads the stylesheet when it starts
+    if systemctl is-active --quiet apache2 2>/dev/null; then
+        systemctl reload apache2
+    fi
+fi
+
+#DEBHELPER#
+
+exit 0

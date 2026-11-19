@@ -31,6 +31,12 @@
       ]
     },
     {
+      "matchPackageNames": ["nvkelso/natural-earth-vector"],
+      "prBodyNotes": [
+        "Before merging, run `offline_base_map/fetch.sh --update-checksums`, commit `offline_base_map/natural-earth.sha256` and check the base map in the JCC; the package build refuses files whose checksum does not match."
+      ]
+    },
+    {
       "matchPackageNames": ["npm", "webpack", "webpack-cli", "node"],
       "groupName": "web build tools",
       "commitMessageTopic": "web build tools"

@@ -1,3 +1,5 @@
+# jaiabot-offline-base-map is built from offline_base_map/debian instead, with its own
+# version, so hubs only download it when the map data changes
 Source: jaiabot
 Priority: extra
 Maintainer: Toby Schneider <toby@gobysoft.org>
