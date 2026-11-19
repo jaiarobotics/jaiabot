@@ -17,6 +17,9 @@ echo "Creating /etc/jaiabot directory"
 sudo install -d -m 0755 -o $USER /etc/jaiabot
 echo "Creating /var/log/jaiabot directory"
 sudo install -d -m 0755 -o $USER /var/log/jaiabot
+# a development machine has no binary jaiabot packages, so not jaiabot-offline-base-map either
+echo "Installing the JCC's Natural Earth base map"
+${script_dir}/../../offline_base_map/fetch.sh /var/log/jaiabot/lib/maps/natural_earth
 echo "Creating /var/log"
 
 echo "updating PATH in ~/.bashrc if not already present"

@@ -42,3 +42,6 @@ src/stm32/.settings/language.settings.xml
 id_ecdsa
 id_ed25519
 id_rsa
+
+# offline_base_map local package builds
+/jaiabot-offline-base-map_*
