@@ -80,29 +80,12 @@
   set_fact:
     is_raspberry_pi: "{{ device_tree_model.stat.exists and 'Raspberry Pi' in (model_contents.content | b64decode) }}"
 
-# Only a fallback for reading the bootloader version below, so a node that cannot install it
-# is not held back when the device tree already gives the version
-- name: Install rpi-eeprom package
-  apt:
-    name: rpi-eeprom
-    state: present
-  ignore_errors: yes
-  register: rpi_eeprom_install_result
-  when: is_raspberry_pi
-
 - name: Check Raspberry Pi 4 EEPROM version
   shell: |
     min_version=1669373653
-    # The firmware publishes the bootloader build time in the device tree on both the Pi 4B and
-    # the CM4. rpi-eeprom-update refuses to run on a CM4 unless flashrom is set up, and vcgencmd
-    # is not installed on every node, so they are only fallbacks.
+    # Works on the CM4, unlike rpi-eeprom-update
     ts=/proc/device-tree/chosen/bootloader/build-timestamp
     current_version=$([ -r "${ts}" ] && od -An -tu4 --endian=big "${ts}" | tr -d ' ')
-    [ -n "${current_version}" ] || current_version=$(vcgencmd bootloader_version 2>/dev/null | awk '/timestamp/ {print $2}')
-    if [ -z "${current_version}" ]; then
-      json=$(rpi-eeprom-update -j -m /dev/stderr 2>&1 >/dev/null)
-      current_version=$(echo "${json}" | python3 -c "import sys,json; print(json.load(sys.stdin)['BOOTLOADER_CURRENT'])" 2>/dev/null)
-    fi
     if [ -z "${current_version}" ]; then
       echo "Could not determine EEPROM version"
       return 1
