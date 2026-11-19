@@ -272,6 +272,10 @@ for ep in cfg.streaming_endpoint:
     streaming_thread[ep.hub_id] = threading.Thread(target=streaming_client.start_streaming, args=(ep.hub_id, (ep.hostname, ep.port)))
     streaming_thread[ep.hub_id].start()
 
+# Imported up front so that preloading the app also covers these slow imports (scipy, matplotlib)
+for version in valid_versions:
+    importlib.import_module(f"v{version}.api")
+
 def main():
     app.run(host='0.0.0.0', port=cfg.flask_bind_port, debug=False)
     
