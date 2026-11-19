@@ -12,6 +12,10 @@ users:
     lock_passwd: true
 
 write_files:
+  # migrate-from.sh changes only a server that has this
+  - path: /etc/jaiabot/docs-server-built
+    content: |
+      Built by create_specialty_server.sh as a docs server
   - path: /etc/ssh/sshd_config.d/jaia_sshd.conf
     content: |
       AuthorizedKeysFile .ssh/authorized_keys /etc/jaiabot/ssh/root_authorized_keys /etc/jaiabot/ssh/tmp_authorized_keys
@@ -28,7 +32,7 @@ ${INDENTED_ROOT_PUBKEYS}
     content: |
       #!/bin/bash
       apt-get update
-      apt-get install jaiabot-apps jaiabot-doc -y
+      apt-get install jaiabot-doc -y
   - path: /etc/apt/apt.conf.d/50unattended-upgrades
     content: |
       Unattended-Upgrade::Allowed-Origins {
@@ -39,8 +43,8 @@ ${INDENTED_ROOT_PUBKEYS}
   - path: /etc/apache2/sites-available/001-jaia-docs.conf
     content: |
       <VirtualHost *:80>
-        ServerName docs.jaia.tech    
-        ServerAlias whatsupdoc.jaia.tech    
+        ServerName docs.jaia.tech
+        ServerAlias whatsupdoc.jaia.tech
         ServerAdmin info@jaia.tech
         DocumentRoot /var/www/html
         Alias "/figures" "/var/www/figures"
@@ -60,7 +64,6 @@ apt:
 
 packages:
   - zile
-  - jaiabot-apps
   - jaiabot-doc
   - certbot
   - apache2
@@ -71,5 +74,5 @@ runcmd:
   - a2enmod rewrite
   - a2dissite 000-default
   - a2ensite 001-jaia-docs
-  
-# run certbot manually
+
+# migrate-from.sh brings the Let's Encrypt certificate across from the server this one replaces
