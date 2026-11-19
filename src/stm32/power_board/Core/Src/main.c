@@ -72,7 +72,9 @@ static volatile uint8_t reed_wake_flag = 0;
 /* LSI ~32 kHz, LPTIM prescaler /128 -> 250 Hz. */
 #define LPTIM_TICK_HZ 250U
 #define DEFAULT_SLEEP_INTERVAL_MS 10000U
-#define LPTIM_MAX_CHUNK_MS 10000U
+// Each wake costs current, so chunks are as long as the IWDG allows with margin.
+// LPTIM and IWDG both run from LSI, so LSI drift doesn't eat into that margin.
+#define LPTIM_MAX_CHUNK_MS 25000U
 
 // 6S2P pack: lock out at 3.1 V/cell. Only measured while external power is on.
 // The lockout lasts until the board loses power, which also re-arms the reed switch.
@@ -94,6 +96,7 @@ enum power_board_state current_state = REED_WAIT_STATE;
 static volatile uint32_t sleep_interval_ms = DEFAULT_SLEEP_INTERVAL_MS;
 static volatile uint32_t requested_low_power_ms = 0U;
 static bool adc_calibration_failed = false;
+static uint8_t reed_active_samples = 0U;
 
 // Motor tach on PHASE_A (TIM15_CH1), 2 pulses per revolution.
 // RPM is computed from the time between edges, averaged over one revolution.
@@ -303,8 +306,19 @@ static uint64_t lptim_counts_from_ms(uint32_t duration_ms)
     return (counts == 0U) ? 1U : counts;
 }
 
-static void gpio_sleep_analog(void)
+// Unused pins go analog; power enables stay driven off, since an analog pin
+// left on an unpulled gate or enable holds its last level.
+static void gpio_sleep_config(void)
 {
+    HAL_GPIO_WritePin(VS_OP_EN_GPIO_Port, VS_OP_EN_Pin,
+                      GPIO_PIN_SET); // active-low: op-amp rail off
+    HAL_GPIO_WritePin(UVOV_EN_GPIO_Port, UVOV_EN_Pin, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(VS_VBATT_EN_GPIO_Port, VS_VBATT_EN_Pin, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(EN_5V_REG_GPIO_Port, EN_5V_REG_Pin, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(EN_12V_REG_GPIO_Port, EN_12V_REG_Pin, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(EN_3V3_REG_GPIO_Port, EN_3V3_REG_Pin, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(CTRL_ACTS_GPIO_Port, CTRL_ACTS_Pin, GPIO_PIN_RESET);
+
     GPIO_InitTypeDef analog_cfg = {0};
     analog_cfg.Mode = GPIO_MODE_ANALOG;
     analog_cfg.Pull = GPIO_NOPULL;
@@ -313,14 +327,17 @@ static void gpio_sleep_analog(void)
     HAL_GPIO_Init(GPIOA, &analog_cfg); // keep SWDIO/SWCLK
     analog_cfg.Pin = GPIO_PIN_All;
     HAL_GPIO_Init(GPIOB, &analog_cfg);
-    analog_cfg.Pin = GPIO_PIN_All & ~GPIO_PIN_13;
+    analog_cfg.Pin = GPIO_PIN_All & ~(GPIO_PIN_13 | CTRL_ACTS_Pin);
     HAL_GPIO_Init(GPIOC, &analog_cfg); // keep reed EXTI (PC13)
-    analog_cfg.Pin = GPIO_PIN_All & ~BLE_RSTn_Pin;
+    analog_cfg.Pin = GPIO_PIN_All & ~(BLE_RSTn_Pin | EN_12V_REG_Pin | EN_3V3_REG_Pin);
     HAL_GPIO_Init(GPIOD, &analog_cfg); // keep NINA in reset
-    analog_cfg.Pin = GPIO_PIN_All & ~(RS232_EN_Pin | RS232_FOFF_Pin);
+    analog_cfg.Pin = GPIO_PIN_All & ~(RS232_EN_Pin | RS232_FOFF_Pin | VS_OP_EN_Pin | UVOV_EN_Pin |
+                                      VS_VBATT_EN_Pin | EN_5V_REG_Pin);
     HAL_GPIO_Init(GPIOE, &analog_cfg); // keep RS232 forced off
 }
 
+// Returns on MSI with pins still in their sleep config; call restore_after_sleep()
+// only when leaving sleep for good, as MX_GPIO_Init() on every wake adds ~0.23 mA.
 static void stop2_sleep(uint32_t duration_ms, bool wake_on_reed)
 {
     const uint64_t max_chunk_counts = lptim_counts_from_ms(LPTIM_MAX_CHUNK_MS);
@@ -328,7 +345,7 @@ static void stop2_sleep(uint32_t duration_ms, bool wake_on_reed)
     reed_wake_flag = 0U;
 
     HAL_SuspendTick();
-    gpio_sleep_analog(); // drop driven-pin leakage during the sleep
+    gpio_sleep_config();
     while (remaining_counts > 0U && !(wake_on_reed && reed_wake_flag != 0U))
     {
         const uint64_t chunk_counts =
@@ -343,15 +360,19 @@ static void stop2_sleep(uint32_t duration_ms, bool wake_on_reed)
         while (lptim_wake_flag == 0U && !(wake_on_reed && reed_wake_flag != 0U))
         {
             HAL_PWREx_EnterSTOP2Mode(PWR_STOPENTRY_WFI);
-            SystemClock_Config();
         }
 
         HAL_LPTIM_Counter_Stop_IT(&hlptim1);
         HAL_IWDG_Refresh(&hiwdg);
         remaining_counts -= chunk_counts;
     }
-    MX_GPIO_Init(); // restore pin config after wake
     HAL_ResumeTick();
+}
+
+static void restore_after_sleep(void)
+{
+    SystemClock_Config(); // also rescales the SysTick for HAL_Delay()
+    MX_GPIO_Init();
 }
 
 static void power_board_disable_external_power(void)
@@ -529,6 +550,7 @@ static void power_board_sleep_between_missions(uint32_t duration_ms)
     power_board_deinit_runtime_peripherals();
 
     stop2_sleep(duration_ms, false);
+    restore_after_sleep();
 
     power_board_init_runtime_peripherals();
     power_board_enable_external_power();
@@ -613,14 +635,18 @@ int main(void)
         {
             case REED_WAIT_STATE:
             {
-                static uint8_t reed_active_samples = 0U;
-
                 if (HAL_GPIO_ReadPin(REED_WAKE_GPIO_Port, REED_WAKE_Pin) == REED_WAKE_ACTIVE_STATE)
                 {
+                    if (reed_active_samples == 0U)
+                    {
+                        // full-speed clock so the debounce HAL_Delay() is timed correctly
+                        SystemClock_Config();
+                    }
                     ++reed_active_samples;
                     if (reed_active_samples >= 3U)
                     {
                         reed_active_samples = 0U;
+                        MX_GPIO_Init();
                         // a lockout survives resets, so don't power the host back on
                         if (!lockout_flag_get())
                         {
@@ -637,7 +663,7 @@ int main(void)
                 else
                 {
                     reed_active_samples = 0U;
-                    stop2_sleep(DEFAULT_SLEEP_INTERVAL_MS, true);
+                    stop2_sleep(LPTIM_MAX_CHUNK_MS, true);
                 }
             }
             break;
@@ -709,13 +735,20 @@ int main(void)
 
             case LOW_BATTERY_LOCKOUT_STATE:
                 // Stays powered down until the board loses power.
-                stop2_sleep(DEFAULT_SLEEP_INTERVAL_MS, false);
+                stop2_sleep(LPTIM_MAX_CHUNK_MS, false);
                 break;
 
             default: current_state = INIT_STATE;
         }
 
-        HAL_Delay(50);
+        // Skipped while idle-sleeping so each wake is as short as possible.
+        // Still spaces the reed samples apart while the switch reads active.
+        bool idle_sleeping = (current_state == REED_WAIT_STATE && reed_active_samples == 0U) ||
+                             current_state == LOW_BATTERY_LOCKOUT_STATE;
+        if (!idle_sleeping)
+        {
+            HAL_Delay(50);
+        }
     }
     /* USER CODE END 3 */
 }
