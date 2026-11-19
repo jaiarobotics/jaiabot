@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
-"""The jaiabot-offline-base-map version for this commit, and whether the apt repo this
-CircleCI pipeline uploads to already has it. Reads the variables the CircleCI jobs set.
+"""The jaiabot-offline-base-map version for this commit, whether the apt repo this
+CircleCI pipeline uploads to already has it, and the debian/changelog a build needs.
+Reads the variables the CircleCI jobs set.
 
   ci.py version             e.g. 5.1.2+3+ubuntu26.04
   ci.py published VERSION   exits 0 if the repo has jaiabot-offline-base-map VERSION
+  ci.py changelog [VERSION] writes debian/changelog for VERSION (default 0, a local build)
 """
 
+import email.utils
 import os
 import subprocess
 import sys
@@ -53,11 +56,27 @@ def published(package_version):
     return False
 
 
+def changelog(package_version):
+    # dpkg-buildpackage reads the version from debian/changelog; the history itself is in git
+    control = (HERE / "debian" / "control").read_text()
+    maintainer = next(line.split(":", 1)[1].strip() for line in control.splitlines()
+                      if line.startswith("Maintainer:"))
+    commit = subprocess.run(["git", "rev-parse", "--short", "HEAD"],
+                            cwd=HERE, check=True, capture_output=True, text=True).stdout.strip()
+    distribution = os.environ.get("DISTRO_RELEASE_CODENAME", "UNRELEASED")
+    (HERE / "debian" / "changelog").write_text(
+        f"{PACKAGE} ({package_version}) {distribution}; urgency=medium\n\n"
+        f"  * Built from jaiabot commit {commit}.\n\n"
+        f" -- {maintainer}  {email.utils.formatdate(localtime=True)}\n")
+
+
 def main():
     if sys.argv[1:] == ["version"]:
         print(version())
     elif len(sys.argv) == 3 and sys.argv[1] == "published":
         sys.exit(0 if published(sys.argv[2]) else 1)
+    elif len(sys.argv) in (2, 3) and sys.argv[1] == "changelog":
+        changelog(sys.argv[2] if len(sys.argv) == 3 else "0")
     else:
         sys.exit(__doc__)
 

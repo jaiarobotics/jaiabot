@@ -1,7 +1,7 @@
 Source: jaiabot-offline-base-map
 Section: misc
 Priority: optional
-Maintainer: Toby Schneider <toby@gobysoft.org>
+Maintainer: Matt Ferro <matt.ferro@jaia.tech>
 Build-Depends: debhelper-compat (= 13),
                python3,
                python3-gdal,

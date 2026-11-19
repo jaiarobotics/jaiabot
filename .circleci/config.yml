@@ -863,9 +863,9 @@ jobs:
       - run:
           name: Build the offline base map Debian package
           command: |
-            apt-get update && apt-get install -y debhelper devscripts python3-gdal curl ca-certificates
+            apt-get update && apt-get install -y debhelper python3-gdal curl ca-certificates
             cd offline_base_map
-            dch --newversion="${OFFLINE_BASE_MAP_VERSION}" -D "${DISTRO_RELEASE_CODENAME}" --force-distribution "Autobuild for version ${OFFLINE_BASE_MAP_VERSION}"
+            ./ci.py changelog "${OFFLINE_BASE_MAP_VERSION}"
             dpkg-buildpackage -kB90BE706B6A6724592B53B90954A004CD5D8CF32 -b
             mkdir -p /root/deb /tmp/deb
             cp ../jaiabot-offline-base-map_* /root/deb
