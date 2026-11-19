@@ -1,0 +1,10 @@
+#!/usr/bin/make -f
+
+%:
+	dh $@
+
+override_dh_auto_build:
+	./fetch.sh debian/natural_earth
+
+override_dh_auto_clean:
+	rm -rf debian/natural_earth

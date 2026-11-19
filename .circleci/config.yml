@@ -343,6 +343,8 @@ workflows:
           <<: *filter-template-debian-builds
           requires:
             - get-orig-source
+      - offline-base-map-deb-build:
+          <<: *filter-template-debian-builds
 
       # runs in parallel with the deb builds; validated separately so it doesn't block upload
       - amd64-python-venv-build:
@@ -356,6 +358,7 @@ workflows:
           requires:
             - amd64-resolute-deb-build
             - arm64-resolute-deb-build
+            - offline-base-map-deb-build
 
       - raspi0-rpicam-image-create-trixie:
           <<: *filter-template-pi0-rootfs-builds
@@ -836,6 +839,45 @@ jobs:
             unset CC CXX
             ./build_venv.sh /tmp/jaiabot-python-test
 
+  # jaiabot-offline-base-map has its own version so hubs only download it when the map
+  # changes; most pipelines find the repo already has it and stop after the first steps
+  offline-base-map-deb-build:
+    docker: *docker-base-light
+    resource_class: small
+    working_directory: /root/jaiabot
+    environment:
+      <<: *environment-template-common
+      <<: *environment-template-resolute
+      <<: *environment-template-amd64
+    steps:
+      - checkout
+      - run: *run-set-deb-rep-and-version
+      - run:
+          name: Stop if the apt repo already has this version
+          command: |
+            version=$(offline_base_map/ci.py version)
+            echo "export OFFLINE_BASE_MAP_VERSION=${version}" >> $BASH_ENV
+            if offline_base_map/ci.py published "${version}"; then
+              echo "${JAIABOT_APT_REPO}/${JAIABOT_APT_VERSION} already has jaiabot-offline-base-map ${version}"
+              circleci-agent step halt
+            fi
+      - run: *run-import-gpg
+      - run:
+          name: Build the offline base map Debian package
+          command: |
+            apt-get update && apt-get install -y debhelper devscripts python3-gdal curl ca-certificates
+            cd offline_base_map
+            dch --newversion="${OFFLINE_BASE_MAP_VERSION}" -D "${DISTRO_RELEASE_CODENAME}" --force-distribution "Autobuild for version ${OFFLINE_BASE_MAP_VERSION}"
+            dpkg-buildpackage -kB90BE706B6A6724592B53B90954A004CD5D8CF32 -b
+            mkdir -p /root/deb /tmp/deb
+            cp ../jaiabot-offline-base-map_* /root/deb
+            cp ../jaiabot-offline-base-map_* /tmp/deb
+      - store_artifacts: *store
+      - persist_to_workspace:
+          root: /root/deb
+          paths:
+            - "jaiabot-offline-base-map_*"
+
   upload:
     <<: *job-template-upload
     environment:
@@ -862,7 +904,14 @@ jobs:
             echo 'trusted-key 954A004CD5D8CF32' >> ~/.gnupg/gpg.conf
             echo '|1|pdeN5jVicoT8qgAbw7Wd10DSjtA=|Lbu1IC80DrCY9/cnDZSmG9upweM= ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIG89ZqxUp9T8j4wOV77EmFH/+OpKAxIHLohhHj5L5z1l' >> ~/.ssh/known_hosts
             for change_file in /root/deb/*.changes;
-            do dput -c ${CIRCLE_WORKING_DIRECTORY}/.circleci/dput.cf jaiabot-${JAIABOT_APT_REPO}-${JAIABOT_APT_VERSION} $change_file;
+            do
+              # a pipeline running at the same time may have uploaded this version already
+              if [[ "$(basename $change_file)" == jaiabot-offline-base-map_* ]] &&
+                 ${CIRCLE_WORKING_DIRECTORY}/offline_base_map/ci.py published "$(sed -n 's/^Version: //p' $change_file)"; then
+                echo "Skipping $change_file: the repo already has it"
+                continue
+              fi
+              dput -c ${CIRCLE_WORKING_DIRECTORY}/.circleci/dput.cf jaiabot-${JAIABOT_APT_REPO}-${JAIABOT_APT_VERSION} $change_file;
             done
 
   # rootfs jobs

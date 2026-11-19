@@ -1,6 +1,6 @@
 #!/bin/sh  
 
-echo "Download jaiabot-embedded"
+echo "Download jaiabot-embedded and jaiabot-offline-base-map"
 cd /opt
-apt-get download jaiabot-embedded
+apt-get download jaiabot-embedded jaiabot-offline-base-map
 
