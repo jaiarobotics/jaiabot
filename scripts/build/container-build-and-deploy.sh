@@ -63,9 +63,10 @@ docker_run -t ${image_name} ./scripts/build/container-build.sh "${build_dir}"
 echo "🟢 Cleaning old library files"
 docker_run -t ${image_name} ./scripts/build/clean-lib-directory.py
 
-# The targets must have the same goby and dccl versions as the image the binaries were built against
+# The targets must have the same goby and dccl versions as the image the binaries were built against.
+# The image can hold a package for both the build and the target architecture.
 image_package_version() {
-    docker_run ${image_name} dpkg-query -W -f='${Version}' "$1" | sed 's/~.*//'
+    docker_run ${image_name} dpkg-query -W -f='${Version}' "$1:${arch}" | sed 's/~.*//'
 }
 docker_libgoby_version=$(image_package_version libgoby3)
 docker_libdccl_version=$(image_package_version libdccl5)
