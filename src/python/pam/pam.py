@@ -61,6 +61,8 @@ class PamStackType(Enum):
 # over USB, or on /dev/pam-stack over UART.
 EAR_INTERFACES = ('DBV_EAR_STREAM', 'DBV_EAR_CMD')
 EAR_REPLY_TIMEOUT_SEC = 2.0
+# A recorder that is unplugged or resets says nothing, so its state is asked for again this often
+EAR_STATE_REFRESH_SEC = 5.0
 LEGACY_USB_PORT = '/dev/ttyACM0'
 LEGACY_UART_PORT = '/dev/pam-stack'
 SERIAL_BAUD = 115200
@@ -277,9 +279,14 @@ class EpPam(PamCommon):
             log.warning('EP recorder CMD port not present, will retry')
         return port
 
+    def __init__(self):
+        super().__init__()
+        self._state_read_at = None
+
     def getState(self) -> int | None:
-        if self.is_setup and self.pam_state is None:
-            # EP recorders drop off USB when they reset; keep asking until one answers
+        stale = (self._state_read_at is None
+                 or time.monotonic() - self._state_read_at >= EAR_STATE_REFRESH_SEC)
+        if self.is_setup and (self.pam_state is None or stale):
             self.getStatus()
         return super().getState()
 
@@ -329,6 +336,7 @@ class EpPam(PamCommon):
     def _readStatus(self) -> None:
         """EP STATUS values don't match PamState (an idle EP recorder reports 5,
         legacy READY is 6), so derive the legacy state from RECORD and STORAGE."""
+        self._state_read_at = time.monotonic()
         try:
             record = self.sendCMD(EarCommands.CMD_RECORD)
             if record is None:
