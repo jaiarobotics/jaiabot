@@ -2,4 +2,4 @@ jaiabot-offline-base-map (0) resolute; urgency=medium
 
   * Initial release. CI builds set the version: see offline_base_map/ci.py.
 
- -- JaiaRobotics CircleCI <toby@gobysoft.org>  Thu, 19 Nov 2026 12:00:00 +0000
+ -- Matt Ferro <matt.ferro@jaia.tech>  Thu, 19 Nov 2026 12:00:00 +0000

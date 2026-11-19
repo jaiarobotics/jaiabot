@@ -2,7 +2,7 @@
 
 The data behind the JCC's Natural Earth base map, packaged as `jaiabot-offline-base-map`. Hubs install it to `/var/log/jaiabot/lib/maps/natural_earth/`, on the data partition; bots don't install it.
 
-It has its own `debian/` folder so it can have its own version: hubs only download it (about 22 MB) when the map changes, not on every jaiabot upgrade.
+It has its own `debian/` folder so it can have its own version: hubs only download it (about 25 MB) when the map changes, not on every jaiabot upgrade.
 
 - `stylesheet.xml.template`: the Mapnik stylesheet `src/web/server/map_tile_server` renders tiles from.
 - `fetch.sh`: downloads the Natural Earth layers pinned in `scripts/common-versions.env`, checks them against `natural-earth.sha256` and runs `split_land_layers.py`.
