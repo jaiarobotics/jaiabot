@@ -956,7 +956,7 @@ def goby_app_name(exe: str) -> str:
 
 for app in jaiabot_apps:
     if is_app_run(app):
-        if app['template'] == 'goby-app.service.in':
+        if app['template'] in ('goby-app.service.in', 'health-app.service.in'):
             all_goby_apps.append(app['exe'])
         elif app['template'] == 'goby-py-app.service.in':
             all_goby_apps.append(goby_app_name(app['exe']))
