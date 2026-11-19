@@ -15,7 +15,9 @@ import argparse
 import asyncio
 import logging
 import os
+import re
 import socket
+import sys
 import struct
 import time
 from collections import deque
@@ -29,6 +31,11 @@ from jaiabot.messages.icas_pb2 import ICASData, ICASAdcData, ICASStatus, ICASMet
 lg = logging.getLogger(__name__)
 
 DEFAULT_DEVICE_NAME = 'C6-EnvNode'
+ICAS_MODEL = 'C6-EnvNode'
+
+# every ICAS advertises the same name, so each bot only connects to the address paired here
+DEFAULT_ADDRESS_FILE = '/etc/jaiabot/icas_address'
+ADDRESS_RE = re.compile(r'^([0-9A-F]{2}:){5}[0-9A-F]{2}$')
 
 # Device Information Service (standard)
 DIS_MANUFACTURER_UUID = '00002a29-0000-1000-8000-00805f9b34fb'
@@ -250,30 +257,70 @@ async def read_metadata(client: BleakClient) -> ICASMetadata:
     return metadata
 
 
-class ICASNotFoundError(BleakError):
+class ICASUnavailableError(BleakError):
     pass
 
 
-async def find_device(name: str, address: str, timeout: float):
-    if address:
-        return address
+class ICASNotPairedError(ICASUnavailableError):
+    pass
 
-    lg.info('Scanning for ICAS peripheral advertised as "%s"...', name)
-    device = await BleakScanner.find_device_by_name(name, timeout=timeout)
+
+class ICASNotFoundError(ICASUnavailableError):
+    pass
+
+
+class ICASWrongDeviceError(ICASUnavailableError):
+    pass
+
+
+def normalize_address(text: str):
+    address = text.strip().upper()
+    return address if ADDRESS_RE.match(address) else None
+
+
+def paired_address(args) -> str:
+    if args.address:
+        return args.address
+
+    try:
+        with open(args.address_file) as f:
+            content = f.read()
+    except FileNotFoundError:
+        raise ICASNotPairedError(f'No ICAS paired with this bot ({args.address_file} does not '
+                                 'exist; run jaiabot-icas-pair)')
+
+    address = normalize_address(content)
+    if address is None:
+        raise ICASNotPairedError(f'{args.address_file} does not contain a valid BLE address '
+                                 f'({content.strip()!r}); run jaiabot-icas-pair')
+    return address
+
+
+async def find_device(address: str, timeout: float):
+    lg.info('Scanning for paired ICAS peripheral %s...', address)
+    device = await BleakScanner.find_device_by_address(address, timeout=timeout)
     if device is None:
-        raise ICASNotFoundError(f'Could not find a BLE device advertising as "{name}"')
-    return device.address
+        raise ICASNotFoundError(f'Could not find the paired ICAS peripheral {address}')
+    return device
+
+
+def check_model(metadata: ICASMetadata, address: str):
+    if metadata.model != ICAS_MODEL:
+        raise ICASWrongDeviceError(f'{address} reports model "{metadata.model}", not '
+                                   f'"{ICAS_MODEL}"; check the paired address')
 
 
 async def run_session(args, publisher: ICASUdpPublisher, tracker: SampleTracker):
-    address = await find_device(args.name, args.address, args.scan_timeout)
+    address = paired_address(args)
+    device = await find_device(address, args.scan_timeout)
     lg.info('Connecting to ICAS peripheral at %s...', address)
 
-    async with BleakClient(address, timeout=args.connect_timeout) as client:
+    async with BleakClient(device, timeout=args.connect_timeout) as client:
         lg.info('Connected to ICAS peripheral at %s', address)
 
         metadata = await read_metadata(client)
         lg.info('ICAS peripheral metadata: %s', metadata)
+        check_model(metadata, address)
         publisher.send_metadata(metadata)
 
         def on_data(_characteristic, payload: bytearray):
@@ -317,6 +364,9 @@ async def run_session(args, publisher: ICASUdpPublisher, tracker: SampleTracker)
             if air_descent_complete(args):
                 lg.info('Air descent complete, disconnecting from ICAS peripheral')
                 return
+            if paired_address(args) != address:
+                lg.warning('Paired ICAS address changed, disconnecting from %s', address)
+                return
             tracker.flush_if_stale()
             await asyncio.sleep(1)
 
@@ -340,16 +390,16 @@ async def main_loop(args):
     # persists across reconnects so ring buffer replays are de-duplicated
     tracker = SampleTracker(publisher.send_data)
 
-    # not every STORM bot carries an ICAS, so only warn once until it is found
-    not_found_logged = False
+    # not every STORM bot carries an ICAS, so only warn once per distinct reason
+    last_unavailable = None
 
     while not air_descent_complete(args):
         try:
             await run_session(args, publisher, tracker)
-            not_found_logged = False
-        except ICASNotFoundError as e:
-            (lg.debug if not_found_logged else lg.warning)('%s; will keep scanning', e)
-            not_found_logged = True
+            last_unavailable = None
+        except ICASUnavailableError as e:
+            (lg.debug if str(e) == last_unavailable else lg.warning)('%s; will keep trying', e)
+            last_unavailable = str(e)
         except BleakError as e:
             lg.warning('BLE error: %s', e)
         except asyncio.TimeoutError:
@@ -365,6 +415,51 @@ async def main_loop(args):
     lg.warning('ICAS air descent complete (%s exists); stopping BLE scanning', args.complete_marker)
 
 
+def write_address_file(path: str, address: str):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    tmp_path = path + '.tmp'
+    with open(tmp_path, 'w') as f:
+        f.write(address + '\n')
+    os.chmod(tmp_path, 0o644)
+    os.replace(tmp_path, path)
+
+
+async def pair(args) -> int:
+    print(f'Scanning {args.scan_timeout:g} s for ICAS peripherals advertising as "{args.name}"...')
+    found = await BleakScanner.discover(timeout=args.scan_timeout, return_adv=True)
+    candidates = sorted(((device, adv) for device, adv in found.values()
+                         if (adv.local_name or device.name) == args.name),
+                        key=lambda candidate: candidate[1].rssi, reverse=True)
+
+    if not candidates:
+        print('No ICAS found. Check that its reed switch is activated and that no other bot is '
+              'connected to it.', file=sys.stderr)
+        return 1
+
+    if len(candidates) > 1:
+        print(f'Found {len(candidates)} ICAS peripherals, so cannot tell which belongs to this '
+              'bot. Power off all but this bot\'s ICAS and try again:', file=sys.stderr)
+        for device, adv in candidates:
+            print(f'  {device.address}  RSSI {adv.rssi} dBm', file=sys.stderr)
+        return 1
+
+    device, adv = candidates[0]
+    address = device.address.upper()
+    async with BleakClient(device, timeout=args.connect_timeout) as client:
+        metadata = await read_metadata(client)
+
+    try:
+        check_model(metadata, address)
+    except ICASWrongDeviceError as e:
+        print(e, file=sys.stderr)
+        return 1
+
+    write_address_file(args.address_file, address)
+    print(f'Paired ICAS {address} (serial {metadata.serial_num or "unknown"}, firmware '
+          f'{metadata.firmware_rev or "unknown"}, RSSI {adv.rssi} dBm); wrote {args.address_file}')
+    return 0
+
+
 def main():
     parser = argparse.ArgumentParser(
         description='Connect to the JAIA-ICAS parachute BLE sensor peripheral and publish its '
@@ -372,11 +467,18 @@ def main():
     parser.add_argument('-p', '--port', dest='port', default=20000, type=int,
                         help='The UDP Gateway port to send ICAS data to (default: 20000)')
     parser.add_argument('-n', '--name', dest='name', default=DEFAULT_DEVICE_NAME,
-                        help=f'BLE advertised name of the ICAS peripheral (default: {DEFAULT_DEVICE_NAME})')
+                        help='BLE advertised name to scan for with --pair '
+                             f'(default: {DEFAULT_DEVICE_NAME})')
     parser.add_argument('-a', '--address', dest='address', default=None,
-                        help='BLE MAC address of the ICAS peripheral (skips name-based scanning if set)')
+                        help='BLE MAC address of the ICAS peripheral (overrides --address_file)')
+    parser.add_argument('--address_file', default=DEFAULT_ADDRESS_FILE,
+                        help='File holding the BLE MAC address of the ICAS paired with this bot '
+                             f'(default: {DEFAULT_ADDRESS_FILE})')
+    parser.add_argument('--pair', action='store_true',
+                        help='Find the single ICAS in range, write its address to --address_file '
+                             'and exit')
     parser.add_argument('--scan_timeout', type=float, default=10.0,
-                        help='Seconds to scan for the peripheral by name (default: 10)')
+                        help='Seconds to scan for the peripheral (default: 10)')
     parser.add_argument('--connect_timeout', type=float, default=10.0,
                         help='Seconds to wait for a GATT connection (default: 10)')
     parser.add_argument('--adc_enabled', action='store_true',
@@ -389,7 +491,16 @@ def main():
                         choices=['DEBUG', 'INFO', 'WARNING', 'ERROR'])
     args = parser.parse_args()
 
+    if args.address is not None:
+        address = normalize_address(args.address)
+        if address is None:
+            parser.error(f'--address "{args.address}" is not a BLE MAC address (AA:BB:CC:DD:EE:FF)')
+        args.address = address
+
     logging.basicConfig(format='%(asctime)s %(levelname)7s %(message)s', level=args.log_level)
+
+    if args.pair:
+        sys.exit(asyncio.run(pair(args)))
 
     asyncio.run(main_loop(args))
 

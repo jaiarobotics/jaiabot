@@ -1,0 +1,6 @@
+#!/bin/bash
+# Pair this bot with its ICAS parachute sensor. Only this bot's ICAS should be powered on.
+set -e
+
+python_dir="$(dirname "$(readlink -f "$0")")/../share/jaiabot/python"
+exec sudo "${python_dir}/venv/bin/python3" "${python_dir}/icas/jaiabot_icas.py" --pair "$@"

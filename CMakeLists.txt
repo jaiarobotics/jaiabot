@@ -241,6 +241,7 @@ set(scripts_to_install
   jaia-ip.py
   jaia-doc.py
   jaia-vpn-gen.sh
+  jaiabot-icas-pair
   # System scripts
   system/jaiabot-checkloadavg.py
   system/jaia_update_ufw_rules.sh
