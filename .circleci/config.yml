@@ -350,110 +350,112 @@ workflows:
       - amd64-python-venv-build:
           <<: *filter-template-debian-builds
 
-      # always do the upload if we did the deb builds
-      - upload:
-          filters:
-            tags:
-              only: /.*/
-            branches:
-              only: /.*/
+      # Each 3.y push replaces the previous version in the continuous repo, so a pipeline
+      # must finish everything that reads its packages back before the next one uploads.
+      - publish-and-test:
+          <<: *filter-template-debian-builds
+          serial-group: << pipeline.project.slug >>/publish-<< pipeline.git.branch >><< pipeline.git.tag >>
           requires:
             - amd64-resolute-deb-build
             - arm64-resolute-deb-build
             - offline-base-map-deb-build
 
-      # rootfs jobs
-      - arm64-raspi-image-create-resolute:
-          <<: *filter-template-rootfs-builds
-          requires:
-            - upload
-
-      - amd64-virtualbox-image-create-resolute:
-          <<: *filter-template-rootfs-builds
-          requires:
-            - upload
-        
       - raspi0-rpicam-image-create-trixie:
           <<: *filter-template-pi0-rootfs-builds
 
-      # bundle after each package upload and rootfs
-      - arm64-bundle-resolute:
-          filters:
-            tags:
-              only: /.*/
-            branches:
-              only: /.*/
-          requires:
-            - arm64-raspi-image-create-resolute
+job-groups:
+  publish-and-test:
+    jobs:
+    - upload
 
-      - amd64-bundle-resolute:
-          filters:
-            tags:
-              only: /.*/
-            branches:
-              only: /.*/
-          requires:
-            - amd64-virtualbox-image-create-resolute
-            
-      - aws-sync:
-          requires:
-            - arm64-raspi-image-create-resolute
-            - amd64-virtualbox-image-create-resolute
-            - amd64-bundle-resolute
-            - arm64-bundle-resolute
-          <<: *filter-template-aws-rootfs-builds
+    # rootfs jobs
+    - arm64-raspi-image-create-resolute:
+        <<: *filter-template-rootfs-builds
+        requires:
+          - upload
 
-      - aws-sync-govcloud:
-          requires:
-            - arm64-raspi-image-create-resolute
-            - amd64-virtualbox-image-create-resolute
-            - amd64-bundle-resolute
-            - arm64-bundle-resolute
-          <<: *filter-template-aws-rootfs-builds
+    - amd64-virtualbox-image-create-resolute:
+        <<: *filter-template-rootfs-builds
+        requires:
+          - upload
+      
+    # bundle after each package upload and rootfs
+    - arm64-bundle-resolute:
+        filters:
+          tags:
+            only: /.*/
+          branches:
+            only: /.*/
+        requires:
+          - arm64-raspi-image-create-resolute
 
+    - amd64-bundle-resolute:
+        filters:
+          tags:
+            only: /.*/
+          branches:
+            only: /.*/
+        requires:
+          - amd64-virtualbox-image-create-resolute
           
-      # docker creation jobs
-      - arm64-docker-sim:
-          <<: *filter-template-docker-sim-builds
-          requires:
-            - upload
-      - amd64-docker-sim:
-          <<: *filter-template-docker-sim-builds
-          requires:
-            - upload
-      - docker-sim-manifest:
-          <<: *filter-template-docker-sim-builds
-          requires:
-            - arm64-docker-sim
-            - amd64-docker-sim
+    - aws-sync:
+        requires:
+          - arm64-raspi-image-create-resolute
+          - amd64-virtualbox-image-create-resolute
+          - amd64-bundle-resolute
+          - arm64-bundle-resolute
+        <<: *filter-template-aws-rootfs-builds
 
-      # fast feedback on the mission driver itself, on every commit that builds the sim,
-      # with each link on its own
-      - docker-sim-e2e:
-          name: docker-sim-e2e-wifi
-          comms: w
-          <<: *filter-template-docker-sim-builds
-          requires:
-            - amd64-docker-sim
-      - docker-sim-e2e:
-          name: docker-sim-e2e-xbee
-          comms: x
-          <<: *filter-template-docker-sim-builds
-          requires:
-            - amd64-docker-sim
-      # through the Goby Iridium drivers and the 9602 simulator
-      - docker-sim-e2e:
-          name: docker-sim-e2e-iridium
-          comms: i
-          <<: *filter-template-docker-sim-builds
-          requires:
-            - amd64-docker-sim
+    - aws-sync-govcloud:
+        requires:
+          - arm64-raspi-image-create-resolute
+          - amd64-virtualbox-image-create-resolute
+          - amd64-bundle-resolute
+          - arm64-bundle-resolute
+        <<: *filter-template-aws-rootfs-builds
 
-      # every image that reaches an AMI gets trialled, on the same filter that built it
-      - sea-trial-virtualfleet:
-          <<: *filter-template-aws-rootfs-builds
-          requires:
-            - aws-sync
+    # docker creation jobs
+    - arm64-docker-sim:
+        <<: *filter-template-docker-sim-builds
+        requires:
+          - upload
+    - amd64-docker-sim:
+        <<: *filter-template-docker-sim-builds
+        requires:
+          - upload
+    - docker-sim-manifest:
+        <<: *filter-template-docker-sim-builds
+        requires:
+          - arm64-docker-sim
+          - amd64-docker-sim
+
+    # fast feedback on the mission driver itself, on every commit that builds the sim,
+    # with each link on its own
+    - docker-sim-e2e:
+        name: docker-sim-e2e-wifi
+        comms: w
+        <<: *filter-template-docker-sim-builds
+        requires:
+          - amd64-docker-sim
+    - docker-sim-e2e:
+        name: docker-sim-e2e-xbee
+        comms: x
+        <<: *filter-template-docker-sim-builds
+        requires:
+          - amd64-docker-sim
+    # through the Goby Iridium drivers and the 9602 simulator
+    - docker-sim-e2e:
+        name: docker-sim-e2e-iridium
+        comms: i
+        <<: *filter-template-docker-sim-builds
+        requires:
+          - amd64-docker-sim
+
+    # every image that reaches an AMI gets trialled, on the same filter that built it
+    - sea-trial-virtualfleet:
+        <<: *filter-template-aws-rootfs-builds
+        requires:
+          - aws-sync
 
 commands:
   aws-sync-command:
