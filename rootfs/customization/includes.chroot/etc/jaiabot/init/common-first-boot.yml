@@ -38,6 +38,9 @@ runcmd:
   - /etc/jaiabot/init/setup-i2c.sh
   # Install jaiabot embedded for unprivileged jaia user
   - env USER=jaia DEBIAN_FRONTEND=noninteractive dpkg -i --force-confdef /opt/jaiabot-embedded*.deb
+  # Hubs only; it installs into /var/log, which the image build could not
+  - if grep -qx 'jaia_type=hub' /etc/jaiabot/jaia.env; then dpkg -i /opt/jaiabot-offline-base-map_*.deb; fi
+  - rm -f /opt/jaiabot-offline-base-map_*.deb
   # Append first boot date to version file
   - echo "JAIABOT_FIRST_BOOT_DATE=\"`date -u`\"" >> /etc/jaiabot/version
   # Set overlay to take effect on next boot

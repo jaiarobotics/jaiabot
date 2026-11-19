@@ -175,7 +175,7 @@ class PinsTest(unittest.TestCase):
         self.assertEqual(found["lldap/lldap"], pins["jaia_version_lldap"])
         self.assertEqual(set(found), {"authelia/authelia", "lldap/lldap", "arduino/arduino-cli",
                                       "node", "nvm-sh/nvm", "npm", "webpack", "webpack-cli",
-                                      "raspberrypi/firmware"})
+                                      "raspberrypi/firmware", "nvkelso/natural-earth-vector"})
         self.assertEqual(manager["managerFilePatterns"], ["/^scripts/common-versions\\.env$/"])
         self.assertIn("3.y", config["baseBranchPatterns"])
         self.assertEqual(config["gomod"]["managerFilePatterns"],

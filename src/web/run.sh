@@ -17,6 +17,17 @@ require_venv
 # the venv is built with --system-site-packages, so the server's imports resolve to these
 ${JAIA_DIR}/scripts/build/install-runtime-deps.sh jaiabot-python jaiabot-web
 
+# A development machine has no jaiabot-offline-base-map package, so fetch the map it carries
+natural_earth_dir=/var/log/jaiabot/lib/maps/natural_earth
+if ! (cd ${JAIA_DIR}/offline_base_map && sha256sum --check --quiet --strict ${natural_earth_dir}/source.sha256 2> /dev/null); then
+    echo 🟢 Fetching the Natural Earth base map to ${natural_earth_dir}
+    if ${JAIA_DIR}/offline_base_map/fetch.sh ${natural_earth_dir}; then
+        rm -f /var/log/jaiabot/cache/mapnik_tiles/stylesheet.xml/*.png
+    else
+        echo "🔴 Could not fetch the Natural Earth base map; the JCC runs without it"
+    fi
+fi
+
 # Source the python venv built by CMake.
 source "${JAIA_VENV_DIR}/bin/activate"
 

@@ -8,13 +8,15 @@ import {
     TASK_PACKET_POLL_TIME,
 } from "../utils/constants";
 import { pollGitHub, pollInternet, pollMetadata, pollStatus, pollTaskPackets } from "./polling";
+import { fallBackToNaturalEarthWithoutInternet } from "../openlayers/layers/tile/base-map-fallback";
 
 // Make initial calls
 pollStatus();
 pollTaskPackets();
 pollMetadata();
 pollGitHub();
-pollInternet();
+// Only after the first check: a later one that times out on a slow link mustn't change the map under the operator
+pollInternet().then(fallBackToNaturalEarthWithoutInternet);
 
 // Start intervals
 const statusInterval = setInterval(async () => pollStatus(), DATA_MODEL_POLL_TIME);

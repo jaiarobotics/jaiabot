@@ -1,0 +1,12 @@
+jaiabot-offline-base-map carries 1:10m vector layers from Natural Earth
+(https://www.naturalearthdata.com), downloaded from
+https://github.com/nvkelso/natural-earth-vector at the version that
+scripts/common-versions.env pins, and land and coastline layers derived from them.
+Natural Earth is in the public domain.
+
+The stylesheet, scripts and Debian packaging are:
+
+    Copyright (C) 2026 JaiaRobotics LLC
+
+and are licensed under the GPL version 3,
+see "/usr/share/common-licenses/GPL-3".

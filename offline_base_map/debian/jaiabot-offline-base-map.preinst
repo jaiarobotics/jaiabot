@@ -1,0 +1,13 @@
+#!/bin/sh
+set -e
+
+# /var/log is its own partition, which an image build has not mounted, so the data
+# partition would hide everything installed there at boot
+if ischroot; then
+    echo "jaiabot-offline-base-map installs into /var/log: install it on the running hub, not in a chroot" >&2
+    exit 1
+fi
+
+#DEBHELPER#
+
+exit 0
