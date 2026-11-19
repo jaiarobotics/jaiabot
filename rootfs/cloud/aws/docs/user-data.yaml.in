@@ -3,6 +3,12 @@
 hostname: jaia-docs
 
 ssh_pwauth: false
+
+# A t4g.nano's 512 MB runs out during the first boot's package install without it
+swap:
+  filename: /swapfile
+  size: 1G
+  maxsize: 1G
   
 users:
   - name: jaia
