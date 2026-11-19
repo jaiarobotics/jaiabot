@@ -15,10 +15,7 @@ It has its own `debian/` folder so it can have its own version: hubs only downlo
 
 ## Development machines and the simulator
 
-A development machine has no binary jaiabot packages, so `scripts/build/setup-tools-runtime.sh` downloads the map instead. To refresh it after the map changes:
-
-    offline_base_map/fetch.sh /var/log/jaiabot/lib/maps/natural_earth
-    rm -f /var/log/jaiabot/cache/mapnik_tiles/stylesheet.xml/*.png
+A development machine has no binary jaiabot packages, so `src/web/run.sh` fetches the map into `/var/log/jaiabot/lib/maps/natural_earth` instead: the first time, and again whenever `source.sha256` there shows one of the files it was built from has changed.
 
 The Docker simulator image installs the package.
 

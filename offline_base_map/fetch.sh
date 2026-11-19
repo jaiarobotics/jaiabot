@@ -66,6 +66,12 @@ stage() {
     done
     python3 "$here/split_land_layers.py" "$tmp/$(dirname "$land")" "$stage"
     cp "$here/stylesheet.xml.template" "$stage/"
+    (cd "$here" && sha256sum $(source_files)) > "$stage/source.sha256"
+}
+
+# What a map directory was built from: src/web/run.sh refetches when these change
+source_files() {
+    echo fetch.sh natural-earth.sha256 split_land_layers.py stylesheet.xml.template
 }
 
 case "${1:-}" in
