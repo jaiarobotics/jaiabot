@@ -51,6 +51,24 @@ else
     exit 1
 fi
 
+echo "🟢 Verifying the libraries the build links against are installed"
+missing_packages=()
+for package in ${docker_runtime_packages}; do
+    if [ "$(dpkg-query -W -f='${db:Status-Status}' "${package}" 2>/dev/null)" != "installed" ]; then
+        missing_packages+=("${package%:*}")
+    fi
+done
+
+if [ -z "${docker_runtime_packages}" ]; then
+    echo "⚠️  No package list from the build, skipping this check"
+elif (( ${#missing_packages[@]} > 0 )); then
+    echo "❌ Not installed here: ${missing_packages[*]}"
+    echo "   Run 'sudo apt update && sudo apt install ${missing_packages[*]}' here, then deploy again."
+    exit 1
+else
+    echo "✅ All installed"
+fi
+
 # generated per target by container-build-and-deploy.sh and rsynced with the build
 selections=${jaia_dir}/${build_dir}/jaiabot-embedded.selections
 

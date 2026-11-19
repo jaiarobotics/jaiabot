@@ -70,6 +70,7 @@ image_package_version() {
 }
 docker_libgoby_version=$(image_package_version libgoby3)
 docker_libdccl_version=$(image_package_version libdccl5)
+docker_runtime_packages=$(docker_run ${image_name} ./scripts/build/runtime-packages.sh "${build_dir}" "${arch}" | tr '\n' ' ')
 
 if [ $# -eq 0 ]; then
     echo "             -----------"
@@ -108,7 +109,7 @@ for remote in "$@"; do
 
     # Login to the target, and deploy the software
     ssh ${botuser}@"${remote}" \
-        "${remote_locale} jaiabot_repo=${repo} docker_libgoby_version=${docker_libgoby_version} docker_libdccl_version=${docker_libdccl_version} ./jaiabot/scripts/build/target-deploy.sh ${build_dir}"
+        "${remote_locale} jaiabot_repo=${repo} docker_libgoby_version=${docker_libgoby_version} docker_libdccl_version=${docker_libdccl_version} docker_runtime_packages='${docker_runtime_packages}' ./jaiabot/scripts/build/target-deploy.sh ${build_dir}"
 
     echo "When you're ready, ssh ${botuser}@${remote} and run 'sudo systemctl restart jaiabot'"
 done
