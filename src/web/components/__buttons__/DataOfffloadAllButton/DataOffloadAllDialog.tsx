@@ -91,9 +91,6 @@ export function DataOffloadAllDialog(props: DialogProps) {
             case DisabledCodes.MISSION_STATE:
                 subMessage += `because ${botIDs.length > 1 ? "they are not stopped or the offload already occured." : "it is not stopped or the offload already occured."}`;
                 break;
-            case DisabledCodes.WIFI_QUALITY:
-                subMessage += `because ${botIDs.length > 1 ? "they are not connected to the Hub Wi-Fi network." : "it is not connected to the Hub Wi-Fi network."}`;
-                break;
             case DisabledCodes.DOWNLOAD_QUEUE:
                 subMessage += `because ${botIDs.length > 1 ? "they are in the data offload queue." : "it is in the data offload queue."}`;
                 break;

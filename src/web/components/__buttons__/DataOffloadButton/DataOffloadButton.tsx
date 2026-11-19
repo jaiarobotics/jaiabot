@@ -62,10 +62,6 @@ export default function DataOffloadButton(props: Props) {
             return DisabledCodes.MISSION_STATE;
         }
 
-        if (!props.bot.getWifiLinkQuality()) {
-            return DisabledCodes.WIFI_QUALITY;
-        }
-
         return DisabledCodes.NONE;
     };
 

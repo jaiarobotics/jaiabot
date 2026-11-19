@@ -16,6 +16,13 @@ if [[ -z "${staging_dir}" ]]; then
     exit 1;
 fi
 
+# After repeated failed joins wpa_supplicant locks the fleet Wi-Fi out for up to 5 minutes. Reload
+# its configuration so the bot retries now, while the hub waits to start the offload.
+if wifi_status=$(wpa_cli -i wlan0 status 2> /dev/null) && ! grep -q '^wpa_state=COMPLETED' <<< "${wifi_status}"; then
+    echo "Not connected to the fleet Wi-Fi; asking wpa_supplicant to retry now"
+    wpa_cli -i wlan0 reconfigure || true
+fi
+
 # Check if the directory exists
 if [ ! -d "${staging_dir}" ]; then
   echo "Staging directory does not exist. Creating directory..."

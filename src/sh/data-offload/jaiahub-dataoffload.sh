@@ -42,6 +42,16 @@ fi
 if [[ "${bot_ip}" == "127.0.0.1" || "${bot_ip}" == "::1" ]]; then
     nice -n 10 rsync -aP --info=progress2 --no-inc-recursive --timeout=15 ${staging_dir}/ ${offload_dir}
 else
+    # A bot that was not on the Wi-Fi retries joining when it enters data offload
+    reachable_deadline=$((SECONDS + 30))
+    until ssh -o BatchMode=yes -o ConnectTimeout=5 jaia@${bot_ip} true; do
+        if (( SECONDS >= reachable_deadline )); then
+            echo "Bot ${bot_ip} is not reachable over the fleet Wi-Fi"
+            exit 1
+        fi
+        sleep 2
+    done
+
     # rsync reads the colons of an IPv6 literal as its own host/path separator unless bracketed
     host="${bot_ip}"
     if [[ "${host}" == *:* ]]; then
