@@ -60,9 +60,9 @@ class PamStackType(Enum):
 # port (replies: $RSP,KEY,VALUE). Legacy recorders take $REC on /dev/ttyACM0
 # over USB, or on /dev/pam-stack over UART.
 EAR_INTERFACES = ('DBV_EAR_STREAM', 'DBV_EAR_CMD')
-EAR_REPLY_TIMEOUT_SEC = 2.0
+REPLY_TIMEOUT_SEC = 2.0
 # A recorder that is unplugged or resets says nothing, so its state is asked for again this often
-EAR_STATE_REFRESH_SEC = 5.0
+STATE_REFRESH_SEC = 5.0
 LEGACY_USB_PORT = '/dev/ttyACM0'
 LEGACY_UART_PORT = '/dev/pam-stack'
 SERIAL_BAUD = 115200
@@ -135,6 +135,7 @@ class PamCommon:
         self.uart = None
         self.sensor = None
         self._lock = Lock()
+        self._state_read_at = None
 
     def setup(self) -> None:
         if not self.is_setup:
@@ -182,14 +183,26 @@ class PamCommon:
             return
 
         log.info("Get Status From PAM")
+        self._state_read_at = time.monotonic()
         self._readStatus()
 
     def getState(self) -> int | None:
         if not self.is_setup:
             self.setup()
+        elif (self.pam_state is None or self._state_read_at is None
+              or time.monotonic() - self._state_read_at >= STATE_REFRESH_SEC):
+            self.getStatus()
 
         log.debug(f'State: {self.pam_state}')
         return self.pam_state
+
+    def _lost(self) -> None:
+        """The recorder dropped off (unplugged or reset); set up again on next use."""
+        log.warning(f'Lost {self.PAM_STACK_TYPE.value} recorder on {self.uart}')
+        self.is_setup = False
+        self.pam_state = None
+        if self.sensor is not None:
+            self.sensor.close()
 
     def startDevice(self) -> None:
         if not self.is_setup:
@@ -221,48 +234,61 @@ class PamCommon:
             log.warning(f"Error trying to stop device {error}")
 
 class LegacyPam(PamCommon):
-    """Legacy recorder: $REC commands, write-only sends, blocking reads."""
+    """Legacy recorder: $REC commands, write-only sends; the STATUS reply ($ECHO,...,STATE)
+    is read against a deadline."""
     PAM_STACK_TYPE = PamStackType.LEGACY
     COMMANDS = PamCommands
+    SERIAL_TIMEOUT_SEC = 0.2
 
     def __init__(self, connection_type):
         self.connection_type = connection_type
         super().__init__()
 
-    def _findPort(self) -> str:
-        return LEGACY_UART_PORT if self.connection_type == 'uart' else LEGACY_USB_PORT
+    def _findPort(self) -> str | None:
+        port = LEGACY_UART_PORT if self.connection_type == 'uart' else LEGACY_USB_PORT
+        if not os.path.exists(port):
+            log.warning(f'{port} not present, will retry')
+            return None
+        return port
 
     def _send(self, command) -> None:
         """Not thread-safe; caller must hold _lock. The caller reads any reply."""
         message = command.value if isinstance(command, PamCommands) else command.encode('utf-8')
         time.sleep(0.01)
-        self.sensor.write(message)
+        try:
+            self.sensor.write(message)
+        except (serial.SerialException, OSError, termios.error):
+            self._lost()
         return None
 
     def _readStatus(self) -> None:
+        self.sendCMD(PamCommands.CMD_STATUS)
+        if not self.is_setup:
+            return
+
         try:
-            self.sendCMD(PamCommands.CMD_STATUS)
-
-            while True:
-                cc = str(self.sensor.readline().decode('utf-8').strip())
-                log.debug(cc)
-                if cc.startswith('$ECHO'):
-                    # Split the string by comma and get the last part
-                    state = cc.split(",")[-1]
-
-                    try:
-                        # Convert the last part to an integer
-                        state = int(state)
-                        log.debug(f'State: {state}')
-                        self.pam_state = state
-                        break
-                    except Exception as error:
-                        log.warning("No state")
-                if 'ERROR' in cc:
+            deadline = time.monotonic() + REPLY_TIMEOUT_SEC
+            while time.monotonic() < deadline:
+                reply = self.sensor.readline().decode('utf-8', errors='replace').strip()
+                if not reply:
+                    continue
+                log.debug(reply)
+                if 'ERROR' in reply:
+                    log.warning(f'$REC,STATUS -> {reply}')
                     self.pam_state = None
+                    return
+                if reply.startswith('$ECHO'):
+                    try:
+                        self.pam_state = int(reply.split(',')[-1])
+                        return
+                    except ValueError:
+                        log.warning(f'No state in {reply}')
+        except (serial.SerialException, OSError, termios.error):
+            self._lost()
+            return
 
-        except Exception as error:
-            log.warning(f"Error trying to get status! {error}")
+        log.warning('No reply to $REC,STATUS')
+        self.pam_state = None
 
 class EpPam(PamCommon):
     """Edge Processing recorder: $EAR commands on the DBV_EAR_CMD port, with each
@@ -278,17 +304,6 @@ class EpPam(PamCommon):
         if port is None:
             log.warning('EP recorder CMD port not present, will retry')
         return port
-
-    def __init__(self):
-        super().__init__()
-        self._state_read_at = None
-
-    def getState(self) -> int | None:
-        stale = (self._state_read_at is None
-                 or time.monotonic() - self._state_read_at >= EAR_STATE_REFRESH_SEC)
-        if self.is_setup and (self.pam_state is None or stale):
-            self.getStatus()
-        return super().getState()
 
     def _send(self, command) -> list[str] | None:
         """Not thread-safe; caller must hold _lock. For EarCommands, waits for the
@@ -310,7 +325,7 @@ class EpPam(PamCommon):
             if reply_key is None:
                 return []
 
-            deadline = time.monotonic() + EAR_REPLY_TIMEOUT_SEC
+            deadline = time.monotonic() + REPLY_TIMEOUT_SEC
             while time.monotonic() < deadline:
                 reply = self.sensor.readline().decode('utf-8', errors='replace').strip()
                 if not reply:
@@ -323,11 +338,7 @@ class EpPam(PamCommon):
                     log.warning(f'{line} -> {reply}')
                     return None
         except (serial.SerialException, OSError, termios.error):
-            # EP recorders drop off USB when they reset; set up again on next use
-            log.warning(f'Lost EP recorder on {self.uart}')
-            self.is_setup = False
-            self.pam_state = None
-            self.sensor.close()
+            self._lost()
             return None
 
         log.warning(f'No reply to {line}')
@@ -336,7 +347,6 @@ class EpPam(PamCommon):
     def _readStatus(self) -> None:
         """EP STATUS values don't match PamState (an idle EP recorder reports 5,
         legacy READY is 6), so derive the legacy state from RECORD and STORAGE."""
-        self._state_read_at = time.monotonic()
         try:
             record = self.sendCMD(EarCommands.CMD_RECORD)
             if record is None:
