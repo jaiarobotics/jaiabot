@@ -15,7 +15,10 @@ if (( $# != 1 )); then
 fi
 
 SCRIPT_PATH=$(cd "$(dirname "$0")" && pwd)
+REGION=us-west-2
+SERVER_NAME=
 set -a; source "$1"; set +a
+SERVER_NAME=${SERVER_NAME:-${SERVER_TYPE}.jaia.tech}
 export AWS_DEFAULT_REGION=$REGION
 SSH_OPTS=${SSH_OPTS:-}
 
