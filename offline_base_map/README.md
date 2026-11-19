@@ -7,11 +7,11 @@ It has its own `debian/` folder so it can have its own version: hubs only downlo
 - `stylesheet.xml.template`: the Mapnik stylesheet `src/web/server/map_tile_server` renders tiles from.
 - `fetch.sh`: downloads the Natural Earth layers pinned in `scripts/common-versions.env`, checks them against `natural-earth.sha256` and runs `split_land_layers.py`.
 - `split_land_layers.py`: cuts Natural Earth's continent-sized land polygons into small pieces, so a tile only reads the land it covers.
-- `ci.py`: the package version, whether the apt repo already has it, and the `debian/changelog` a build needs.
+- `ci.py`: the package version, and whether the apt repo already has it.
 
 ## Version
 
-`<Natural Earth version>+<commits that changed this folder>+<distro>`, e.g. `5.1.2+3+ubuntu26.04`. Every commit to this folder raises it. `debian/changelog`, where `dpkg-buildpackage` reads the version, isn't committed, since git has the history: `ci.py changelog` writes it before each build. CI builds and uploads the package only when the apt repo it uploads to doesn't have that version yet.
+`<Natural Earth version>+<commits that changed this folder>+<distro>`, e.g. `5.1.2+3+ubuntu26.04`. Every commit to this folder raises it, so there is no changelog to bump. CI builds and uploads the package only when the apt repo it uploads to doesn't have that version yet.
 
 ## Development machines and the simulator
 
@@ -24,7 +24,6 @@ The Docker simulator image installs the package.
 Needs `debhelper`, `python3-gdal` and `curl`.
 
     cd offline_base_map
-    ./ci.py changelog
     dpkg-buildpackage -us -uc -b
 
 A local build is version 0, so the next package from the apt repo replaces it.
