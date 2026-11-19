@@ -1,0 +1,20 @@
+Source: jaiabot-offline-base-map
+Section: misc
+Priority: optional
+Maintainer: Toby Schneider <toby@gobysoft.org>
+Build-Depends: debhelper-compat (= 13),
+               python3,
+               python3-gdal,
+               curl,
+               ca-certificates
+Standards-Version: 4.6.2
+Rules-Requires-Root: no
+Homepage: https://github.com/jaiarobotics/jaiabot
+
+Package: jaiabot-offline-base-map
+Architecture: all
+Depends: ${misc:Depends}
+Description: Natural Earth base map for the JaiaBot Command & Control
+ The Natural Earth land, coastline, lake, river, urban area and port layers, and
+ the Mapnik stylesheet the JCC renders its offline base map from. Hubs install it
+ to /var/log/jaiabot/lib/maps/natural_earth.

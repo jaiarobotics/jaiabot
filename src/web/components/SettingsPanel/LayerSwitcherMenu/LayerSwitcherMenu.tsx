@@ -27,6 +27,7 @@ const BASE_MAPS = [
     LayerTitles.OSM_LAYER,
     LayerTitles.ARC_GIS_SATELLITE_LAYER,
     LayerTitles.NOAA_ENC_LAYER,
+    LayerTitles.NATURAL_EARTH_LAYER,
 ];
 
 /**
@@ -175,6 +176,15 @@ export default function LayerSwitcherMenu() {
                                 data-testid={`${LayerTitles.NOAA_ENC_LAYER}-radio`}
                             />
                             <p>NOAA Navigational Charts</p>
+                        </div>
+                        <div className="layer-container">
+                            <Radio
+                                onClick={() => handleBaseMapClick(LayerTitles.NATURAL_EARTH_LAYER)}
+                                checked={LayerTitles.NATURAL_EARTH_LAYER === checkedBaseMap}
+                                sx={getCheckboxStyle()}
+                                data-testid={`${LayerTitles.NATURAL_EARTH_LAYER}-radio`}
+                            />
+                            <p>Natural Earth</p>
                         </div>
                     </AccordionDetails>
                 </Accordion>

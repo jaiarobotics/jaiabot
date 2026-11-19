@@ -7,7 +7,7 @@
 
 set -e -u
 
-DESIRED_PACKAGES="jaiabot-embedded"
+DESIRED_PACKAGES="jaiabot-embedded jaiabot-offline-base-map"
 DISTRO="$1"
 REPO="$2"
 VERSION="$3"

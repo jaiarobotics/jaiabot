@@ -18,6 +18,13 @@
 
 - include_tasks: get-version.yml
 
+# Only the JCC on hubs draws the base map, so this is not in jaiabot_packages
+- name: Upgrade the offline base map (hub only)
+  apt:
+    name: jaiabot-offline-base-map
+    state: latest
+  when: jaiabot_embedded_type == "hub"
+
 - name: Check if this machine is a CloudHub
   ansible.builtin.stat:
     path: /etc/jaiabot/cloud.env
