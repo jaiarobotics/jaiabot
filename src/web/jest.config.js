@@ -183,7 +183,7 @@ const config = {
 
     // A map from regular expressions to paths to transformers
     transform: {
-        "^.+\\.(ts|tsx)?$": ["ts-jest", { tsconfig: "tsconfig.test.json" }],
+        "^.+\\.(ts|tsx)?$": ["ts-jest", { tsconfig: "tsconfig.json" }],
         "^.+\\.(js|jsx)$": "babel-jest",
     },
 
