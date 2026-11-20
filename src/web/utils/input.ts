@@ -14,6 +14,7 @@ import {
     SRP_MAX_TIME_CONSTRAINT,
     SRP_MIN_SAFETY_DEPTH_CONSTRAINT,
     SRP_MAX_SAFETY_DEPTH_CONSTRAINT,
+    MAX_MISSION_SET_NAME_BYTES,
 } from "./constants";
 import { TaskParameterKeys } from "../types/jaia-system-types";
 
@@ -185,4 +186,30 @@ export function snakeCaseToTitleCase(text: string) {
         .split("_")
         .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
         .join(" ");
+}
+
+/**
+ * Cuts a mission set name to at most MAX_MISSION_SET_NAME_BYTES bytes of UTF-8, between characters
+ *
+ * @param {string | undefined} name Mission set name
+ * @returns {string} The name's longest leading part that fits
+ */
+export function fitMissionSetName(name: string | undefined) {
+    let fitted = "";
+    let byteCount = 0;
+    for (const character of name ?? "") {
+        byteCount += utf8ByteCount(character.codePointAt(0));
+        if (byteCount > MAX_MISSION_SET_NAME_BYTES) {
+            break;
+        }
+        fitted += character;
+    }
+    return fitted;
+}
+
+function utf8ByteCount(codePoint: number) {
+    if (codePoint < 0x80) return 1;
+    if (codePoint < 0x800) return 2;
+    if (codePoint < 0x10000) return 3;
+    return 4;
 }

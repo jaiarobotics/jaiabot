@@ -55,9 +55,12 @@ export function generateWaypointFeature(
     });
 
     const isDetour = mission.getWaypoint(waypointNum).getIsDetour();
-    feature.set("type", MapFeatureTypes.WAYPOINT);
+    // A click on a ghost waypoint falls through to whatever is below it
+    if (!mission.getGhostParameters().isGhost) {
+        feature.set("type", MapFeatureTypes.WAYPOINT);
+        feature.set("missionID", mission.getMissionID());
+    }
     feature.set("waypointNum", waypointNum);
-    feature.set("missionID", mission.getMissionID());
     feature.set("isDetour", isDetour);
     feature.setStyle(generateWaypointStyle(waypointNum, mission, isBlocked));
     return feature;
@@ -213,7 +216,7 @@ function generateMissionFlagStyle(mission: Mission) {
             anchor: taskType === MissionTask_TaskType.NONE ? [0.21, 1.62] : [0.21, 1.92],
         }),
         text: new Text({
-            text: `M${mission.getMissionID()}`,
+            text: getMissionFlagLabel(mission),
             font: "12pt sans-serif",
             fill: new Fill({ color: "black" }),
             offsetY: taskType === MissionTask_TaskType.NONE ? -61.2175 : -76.75,
@@ -221,6 +224,17 @@ function generateMissionFlagStyle(mission: Mission) {
         }),
         zIndex: getWaypointZIndex(mission),
     });
+}
+
+/**
+ * Labels a mission's flag with its mission number, or a ghost's with its bot ID
+ *
+ * @param {Mission} mission Mission or ghost mission the flag belongs to
+ * @returns {string} Flag label, such as "M3" or "B3"
+ */
+function getMissionFlagLabel(mission: Mission) {
+    const ghostParameters = mission.getGhostParameters();
+    return ghostParameters.isGhost ? `B${ghostParameters.botID}` : `M${mission.getMissionID()}`;
 }
 
 /**
@@ -305,22 +319,24 @@ const Z_INDEX_WAYPOINTS = 1000;
  * Less than 100 waypoints per mission
  */
 function getWaypointZIndex(mission: Mission, waypointNum?: number) {
-    const missionID = mission.getMissionID();
+    const ghostParameters = mission.getGhostParameters();
+    // A ghost has no mission ID, so it stacks by its bot ID
+    const stackID = ghostParameters.isGhost ? ghostParameters.botID : mission.getMissionID();
     let tier = 0;
-    if (missionID === missionSet.getMissionIDInEditMode()) {
+    if (!ghostParameters.isGhost && stackID === missionSet.getMissionIDInEditMode()) {
         tier = 2;
     } else if (isAssignedToSelectedBot(mission)) {
         tier = 1;
     }
 
     if (waypointNum === undefined) {
-        return tier * Z_INDEX_TIER + missionID;
+        return tier * Z_INDEX_TIER + stackID;
     }
 
     if (tier === 2 && waypointNum === jaiaGlobal.getSelectedWaypoint().waypointNum) {
         tier = 3;
     }
-    return tier * Z_INDEX_TIER + Z_INDEX_WAYPOINTS + missionID * 100 + waypointNum;
+    return tier * Z_INDEX_TIER + Z_INDEX_WAYPOINTS + stackID * 100 + waypointNum;
 }
 
 /**

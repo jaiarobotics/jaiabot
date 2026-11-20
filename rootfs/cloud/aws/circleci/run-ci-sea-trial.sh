@@ -68,10 +68,15 @@ for (( hub_id = 2; hub_id <= HUBS; hub_id++ )); do
     PEERS+=" --peer-hub ${hub_id}=http://hub${hub_id}-virtualfleet${FLEET}"
 done
 
+# Mid-trial the CloudHub's hub manager restarts, losing its active missions, and must
+# catch them up from the VirtualHubs
+RESET_CLOUDHUB="sudo systemctl restart jaiabot_hub_manager"
+
 ssh -o StrictHostKeyChecking=no "jaia@${CLOUDHUB}" \
     "python3 /tmp/e2e/jaia-sea-trial.py \
        --hub-url http://hub1-virtualfleet${FLEET} ${PEERS} \
        --bots ${BOTS} --goals ${GOALS} --warp ${WARP} \
+       --reset-hub-missions '${CLOUDHUB_ID}=${RESET_CLOUDHUB}' \
       ${OFFLOAD_HOSTS} \
        --offload-dir /var/log/jaiabot/bot_offload \
        --output-dir ${OUTPUT_DIR}"

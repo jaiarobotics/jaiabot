@@ -8,5 +8,5 @@ cd /usr/share/jaiabot/web/server
 cd /usr/share/jaiabot/web/jdv/server
 python3 jaiabot_data_vision.py -d /var/log/jaiabot/bot_offload -a /usr/share/jaiabot/web/jdv/client/dist/ -p 40011 &
 cd /usr/share/jaiabot/config/launch/simulation
-./generate_all_launch.sh $JAIA_SIM_BOTS $JAIA_SIM_WARP ${JAIA_SIM_COMMS:-w}
+./generate_all_launch.sh $JAIA_SIM_BOTS $JAIA_SIM_WARP ${JAIA_SIM_COMMS:-w} ${JAIA_SIM_HUBS:-1}
 ./all.launch 

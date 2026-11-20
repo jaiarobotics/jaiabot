@@ -167,3 +167,9 @@ def bot_faults(bot):
 
 def bot_ids(status):
     return sorted(bot['bot_id'] for bot in bot_statuses(status) if 'bot_id' in bot)
+
+
+def active_mission_plans(status):
+    """The last mission plan the hub knows was sent to each bot, by bot ID."""
+    return {entry['bot_id']: entry.get('mission_plan', {})
+            for entry in (status or {}).get('active_mission_plans', []) if 'bot_id' in entry}

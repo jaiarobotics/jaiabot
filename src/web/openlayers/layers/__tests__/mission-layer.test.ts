@@ -5,6 +5,7 @@ import { Icon, Style } from "ol/style";
 import { ghostMissionLayer, missionLayer } from "../vector/mission-layer";
 import Mission from "../../../data/mission_set/mission";
 import { missionSet } from "../../../data/mission_set/mission-set";
+import { bots } from "../../../data/bots/bots";
 import { exclusionZoneSet } from "../../../data/exclusion_zones/exclusion-zone-set";
 import { OpenLayersColors } from "../../../style/openlayers/colors";
 import { MapFeatureTypes } from "../../../types/openlayers-types";
@@ -36,7 +37,7 @@ function markers(layer = missionLayer) {
         .getVectorLayer()
         .getSource()
         .getFeatures()
-        .filter((feature: Feature) => feature.get("type") === MapFeatureTypes.WAYPOINT)
+        .filter((feature: Feature) => feature.get("waypointNum") !== undefined)
         .sort((a: Feature, b: Feature) => a.get("waypointNum") - b.get("waypointNum"))
         .map((feature: Feature) => {
             const style = feature.getStyle() as Style;
@@ -73,7 +74,7 @@ function zIndexes() {
 
 beforeEach(() => {
     resetHandlerSingletons();
-    missionSet.deleteAllGhostMissions();
+    bots.getBots().clear();
     exclusionZoneSet.addZone(squareZone(41.0, -72.0));
 });
 
@@ -143,8 +144,10 @@ describe("mission layer waypoint markers", () => {
     });
 
     test("leave ghost missions uncoloured", () => {
-        const mission = addMission([{ location: WEST }, { location: INSIDE }]);
-        missionSet.addGhostMission(mission.getMissionID());
+        bots.setBot({
+            bot_status: { bot_id: 1 },
+            active_mission_plan: { goal: [{ location: WEST }, { location: INSIDE }] },
+        });
 
         ghostMissionLayer.updateFeatures();
 

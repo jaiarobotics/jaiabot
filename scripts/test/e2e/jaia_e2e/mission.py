@@ -1,13 +1,13 @@
-"""Dive missions for the sea trial."""
+"""Missions for the sea trial."""
 
 import copy
 import math
 
 EARTH_RADIUS_M = 6371000.0
 
-# MissionPlan.goal carries (dccl.field).max_repeat = 10, so a plan holds ten goals and
-# no more; more dives per run means more bots, not more goals
-MAX_GOALS = 10
+# MissionPlan.goal carries (dccl.field).max_repeat = 10, and the hub splits a longer plan
+# into fragments, at most 8 (MissionPlan.expected_fragments), so a plan holds 80 goals
+MAX_GOALS = 80
 
 
 def offset_latlon(origin, north_m, east_m):
@@ -48,12 +48,14 @@ def dive_task(max_depth, depth_interval, hold_time, drift_time):
     }
 
 
-def dive_mission_plan(goals, task, mission_name, transit_speed=None,
-                      stationkeep_speed=None, start='START_IMMEDIATELY'):
+def mission_plan(goals, task, mission_name, transit_speed=None,
+                 stationkeep_speed=None, start='START_IMMEDIATELY'):
+    """A plan whose goals each carry a copy of `task`, or no task when it is None."""
     plan = {
         'start': start,
         'movement': 'TRANSIT',
-        'goal': [{'location': {'lat': lat, 'lon': lon}, 'task': copy.deepcopy(task)}
+        'goal': [{'location': {'lat': lat, 'lon': lon},
+                  **({'task': copy.deepcopy(task)} if task is not None else {})}
                  for lat, lon in goals],
         'recovery': {'recover_at_final_goal': True},
         'mission_name': mission_name,

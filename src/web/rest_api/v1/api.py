@@ -2,7 +2,8 @@ import google.protobuf.json_format
 import jaiabot.messages.rest_api_pb2 as rest_api
 from jaiabot.messages.rest_api_pb2 import TaskPacketQuery, APIRequest, APIResponse, RecordQuery
 import jaiabot.messages.portal_pb2
-from jaiabot.messages.jaia_dccl_pb2 import Command
+from jaiabot.messages.jaia_dccl_pb2 import Command, Hub2HubData
+import dccl.option_extensions_pb2
 
 from pyjaia.kmz import getKMZ
 from pyjaia.csv import task_packets_to_csv
@@ -59,6 +60,15 @@ def send_client_to_portal_message(endpoint, msg):
 
     # queue.Queue is threadsafe
     common.shared_data.get_queue(endpoint).put(msg)
+
+
+MISSION_NAME_MAX_BYTES = Hub2HubData.DESCRIPTOR.fields_by_name['mission_name'].GetOptions().Extensions[
+    dccl.option_extensions_pb2.field].max_length
+
+
+def fit_mission_name(name):
+    """The name's longest leading part that fits Hub2HubData.mission_name, cut between UTF-8 characters."""
+    return name.encode('utf-8')[:MISSION_NAME_MAX_BYTES].decode('utf-8', errors='ignore')
 
 
 def requesting_client_id():
@@ -249,6 +259,9 @@ def command(jaia_request: APIRequest) -> APIResponse:
 
         command = jaia_request.command
         command.time = utc_now_microseconds()
+        # the hubs cut the name the same way, so task packets from both sources match
+        if command.plan.HasField('mission_name'):
+            command.plan.mission_name = fit_mission_name(command.plan.mission_name)
 
         for bot_id in bots:
             jaia_response.target.bots.append(bot_id)

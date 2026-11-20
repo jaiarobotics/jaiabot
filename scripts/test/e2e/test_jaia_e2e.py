@@ -85,15 +85,20 @@ class MissionPlanTest(unittest.TestCase):
     def test_plan_shape(self):
         goals = mission.lawnmower((41.66, -71.27), 10, 100)
         task = mission.dive_task(8, 1, 5, 45)
-        plan = mission.dive_mission_plan(goals, task, 'unit-test')['plan']
+        plan = mission.mission_plan(goals, task, 'unit-test')['plan']
         self.assertEqual(len(plan['goal']), 10)
         self.assertTrue(plan['recovery']['recover_at_final_goal'])
         self.assertEqual(plan['goal'][0]['task']['dive']['max_depth'], 8)
         self.assertEqual(plan['goal'][0]['task']['surface_drift']['drift_time'], 45)
 
+    def test_a_plan_without_a_task_has_bare_goals(self):
+        goals = mission.lawnmower((41.66, -71.27), 3, 100)
+        plan = mission.mission_plan(goals, None, 'x')['plan']
+        self.assertEqual(plan['goal'][0], {'location': {'lat': goals[0][0], 'lon': goals[0][1]}})
+
     def test_each_goal_gets_its_own_task_copy(self):
         goals = mission.lawnmower((41.66, -71.27), 3, 100)
-        plan = mission.dive_mission_plan(goals, mission.dive_task(8, 1, 5, 45), 'x')['plan']
+        plan = mission.mission_plan(goals, mission.dive_task(8, 1, 5, 45), 'x')['plan']
         plan['goal'][0]['task']['dive']['max_depth'] = 99
         self.assertEqual(plan['goal'][1]['task']['dive']['max_depth'], 8)
 
@@ -206,6 +211,10 @@ class OffloadQueueTest(unittest.TestCase):
         self.assertEqual(observations.hub_offload_gaps[1], 1)
         self.assertEqual(observations.hub_offloaded_bots[1], {1, 2})
 
+    def test_a_queue_that_drains_between_polls_is_not_a_gap(self):
+        observations = self.queue({'bot_id': 1, 'bots_pending': [2]}, None, None)
+        self.assertEqual(observations.hub_offload_gaps[1], 0)
+
     def test_a_queue_that_empties_after_its_last_bot_is_not_a_gap(self):
         observations = self.queue({'bot_id': 1, 'bots_pending': [2]}, {'bot_id': 2}, None)
         self.assertEqual(observations.hub_offload_gaps[1], 0)
@@ -243,6 +252,58 @@ class Hub2HubCheckTest(unittest.TestCase):
         observations.ingest({'hubs': [{'hub_id': 30, 'bot_offload': {'bot_id': 2}}]})
         self.assertFalse(checks.relay_only_offload_checks(observations, 30)[0].passed)
         self.assertTrue(checks.relay_only_offload_checks(checks.Observations(), 30)[0].passed)
+
+
+class ActiveMissionCheckTest(unittest.TestCase):
+    GOALS = [(41.66, -71.27), (41.661, -71.27)]
+
+    def plan(self, goals=None, name='sea-trial'):
+        return {'goal': [{'location': {'lat': lat, 'lon': lon}}
+                         for lat, lon in (goals or self.GOALS)],
+                'mission_name': name}
+
+    def test_a_matching_mission_is_held(self):
+        self.assertIsNone(checks.active_mission_mismatch(self.plan(), self.GOALS, 'sea-trial'))
+
+    def test_dccl_rounding_of_a_waypoint_still_matches(self):
+        rounded = [(41.66000001, -71.27000001), (41.661, -71.27)]
+        self.assertIsNone(
+            checks.active_mission_mismatch(self.plan(rounded), self.GOALS, 'sea-trial'))
+
+    def test_no_mission_is_a_mismatch(self):
+        self.assertEqual(checks.active_mission_mismatch(None, self.GOALS, 'sea-trial'),
+                         'holds no mission')
+
+    def test_missing_waypoints_are_a_mismatch(self):
+        self.assertEqual(checks.active_mission_mismatch(self.plan(self.GOALS[:1]), self.GOALS,
+                                                        'sea-trial'),
+                         'holds 1 waypoints, 2 were sent')
+
+    def test_a_moved_waypoint_is_a_mismatch(self):
+        moved = [(41.66, -71.27), (41.662, -71.27)]
+        self.assertEqual(checks.active_mission_mismatch(self.plan(moved), self.GOALS, 'sea-trial'),
+                         'waypoints [2] are not where they were sent')
+
+    def test_another_name_is_a_mismatch(self):
+        self.assertIn("named 'other'", checks.active_mission_mismatch(
+            self.plan(name='other'), self.GOALS, 'sea-trial'))
+
+    def test_each_hub_and_bot_gets_a_check(self):
+        status = {'active_mission_plans': [{'bot_id': 1, 'mission_plan': self.plan()}]}
+        results = checks.active_mission_checks({1: status, 30: {}}, {1: self.GOALS},
+                                               'sea-trial', 'once sent')
+        self.assertEqual([(c.name, c.passed) for c in results],
+                         [("hub 1 holds bot 1's mission once sent", True),
+                          ("hub 30 holds bot 1's mission once sent", False)])
+
+    def test_a_hub_that_never_named_a_bots_mission_fails(self):
+        named, unnamed = checks.Observations(), checks.Observations()
+        named.ingest({'bots': [{'bot_id': 1, 'mission_name': 'sea-trial'}]})
+        unnamed.ingest({'bots': [{'bot_id': 1}]})
+        results = checks.mission_name_checks({1: named, 2: unnamed}, [1], 'sea-trial')
+        self.assertEqual([(c.name, c.passed) for c in results],
+                         [("hub 1 names bot 1's mission", True),
+                          ("hub 2 names bot 1's mission", False)])
 
 
 class CheckTest(unittest.TestCase):

@@ -22,6 +22,11 @@ from jaia_e2e import api, checks, junit, mission, wait
 ACTIVATABLE = ('PRE_DEPLOYMENT__IDLE', 'PRE_DEPLOYMENT__FAILED',
                'PRE_DEPLOYMENT__WAIT_FOR_MISSION_PLAN', 'PRE_DEPLOYMENT__READY')
 WAIT_FOR_PLAN = 'PRE_DEPLOYMENT__WAIT_FOR_MISSION_PLAN'
+DIVE = 'DIVE'
+# only the MissionTask.TaskType values this driver can build and check
+TASK_TYPES = ('NONE', DIVE)
+# a reset hub can catch up within seconds, so the check looks for its empty store this often
+RESET_POLL_INTERVAL = 1.0
 
 DAY_US = 86_400 * 1_000_000
 # DCCL rounds a radio copy's time to the second
@@ -174,6 +179,114 @@ class SeaTrial:
                 self.hub2hub_results.append(checks.relayed_command_for_hub_check(
                     via_id, target_id, response, via.last_error_code, via.last_error))
 
+    def bots_with_sent_missions(self, hub_id):
+        plans = api.active_mission_plans(self.last_statuses.get(hub_id))
+        return {bot_id for bot_id, goals in self.goals_by_bot.items()
+                if checks.active_mission_mismatch(plans.get(bot_id), goals,
+                                                  self.args.mission_name) is None}
+
+    def holds_sent_missions(self, hub_id):
+        return self.bots_with_sent_missions(hub_id) == set(self.goals_by_bot)
+
+    def names_sent_missions(self, hub_id):
+        status = self.last_statuses.get(hub_id)
+        return all((api.bot_status(status, bot_id) or {}).get('mission_name')
+                   == self.args.mission_name for bot_id in self.goals_by_bot)
+
+    def describe_missions(self, hub_ids):
+        def describe(hub_id, bot_id, goals):
+            plan = api.active_mission_plans(self.last_statuses.get(hub_id)).get(bot_id)
+            mismatch = checks.active_mission_mismatch(plan, goals, self.args.mission_name)
+            return f'hub {hub_id} bot {bot_id}: {mismatch or "held"}'
+
+        return '; '.join(describe(h, b, goals)
+                         for h in hub_ids for b, goals in sorted(self.goals_by_bot.items()))
+
+    def check_active_missions(self, when, while_underway=False):
+        """Every hub holds the mission sent to every bot, which each JCC on it draws as the
+        bot's ghost. While the bots are underway, each hub also names their missions."""
+        if not self.joined:
+            return
+        hub_ids = sorted(self.hubs)
+
+        def held():
+            for hub_id in hub_ids:
+                self.poll_hub(hub_id)
+            return all(self.holds_sent_missions(h)
+                       and (not while_underway or self.names_sent_missions(h))
+                       for h in hub_ids)
+
+        try:
+            wait_for(held, self.args.hub2hub_timeout,
+                     f"every hub to hold every bot's mission {when}", self.args.poll_interval,
+                     progress=lambda: self.describe_missions(hub_ids))
+        except TrialFailure:
+            pass
+        self.hub2hub_results += checks.active_mission_checks(
+            {h: self.last_statuses.get(h) for h in hub_ids}, self.goals_by_bot,
+            self.args.mission_name, when)
+
+    def check_catch_up(self):
+        """A hub that has lost its missions, as a restarted one has, gets them back from the
+        others."""
+        for hub_id, command in self.args.reset_hub_missions:
+            name = f'hub {hub_id} forgets its missions when told'
+            if not self.joined or hub_id not in self.hubs:
+                self.hub2hub_results.append(checks.Check(
+                    checks.HUB2HUB, name, False, f'hub {hub_id} is not one this trial joined'))
+                continue
+            log(f'making hub {hub_id} forget its missions: {command}')
+            try:
+                result = subprocess.run(command, shell=True, capture_output=True, text=True,
+                                        timeout=self.args.api_timeout)
+                forgot = result.returncode == 0
+                detail = f'exit {result.returncode}: {(result.stderr or result.stdout)[-300:]}'
+            except subprocess.TimeoutExpired:
+                forgot, detail = False, f'still running after {self.args.api_timeout} s'
+
+            def poll_reset_hub():
+                # the bots are still underway, so the trace keeps going while this waits
+                self.poll()
+                return self.poll_hub(hub_id)
+
+            # a bot's mission can come back before another's goes, so no one poll may show all gone
+            bots_seen_without_missions = set()
+
+            def lost():
+                if poll_reset_hub() is None:
+                    return False
+                bots_seen_without_missions.update(
+                    set(self.goals_by_bot) - self.bots_with_sent_missions(hub_id))
+                return bots_seen_without_missions == set(self.goals_by_bot)
+
+            # the REST API keeps serving the missions until the restarted hub manager publishes
+            if forgot:
+                try:
+                    wait_for(lost, self.args.catch_up_timeout,
+                             f"hub {hub_id} to lose every bot's mission", RESET_POLL_INTERVAL,
+                             report_every=self.args.poll_interval,
+                             progress=lambda: self.describe_missions([hub_id]))
+                    detail = 'held none of the sent missions'
+                except TrialFailure as e:
+                    forgot, detail = False, str(e)
+            self.hub2hub_results.append(checks.Check(checks.HUB2HUB, name, forgot, detail))
+            if not forgot:
+                continue
+
+            def caught_up():
+                poll_reset_hub()
+                return self.holds_sent_missions(hub_id)
+
+            try:
+                wait_for(caught_up, self.args.catch_up_timeout,
+                         f"hub {hub_id} to catch up every bot's mission", self.args.poll_interval,
+                         progress=lambda: self.describe_missions([hub_id]))
+            except TrialFailure:
+                pass
+            self.hub2hub_results += checks.active_mission_checks(
+                {hub_id: self.last_statuses.get(hub_id)}, self.goals_by_bot,
+                self.args.mission_name, 'after losing its missions')
+
     def check_control(self):
         """An operator's command on one hub shows every client of the others that it is no
         longer in control, until one of them takes control back."""
@@ -321,17 +434,18 @@ class SeaTrial:
         starts = {bot_id: self.activate(bot_id) for bot_id in bots}
         first = starts[bots[0]]['location']
         reference = (first['lat'], first['lon'])
-        task = mission.dive_task(self.args.dive_depth, self.args.depth_interval,
-                                 self.args.hold_time, self.args.drift_time)
+        task = (mission.dive_task(self.args.dive_depth, self.args.depth_interval,
+                                  self.args.hold_time, self.args.drift_time)
+                if self.args.task == DIVE else None)
 
         for index, bot_id in enumerate(bots):
             origin = mission.offset_latlon(reference, -index * self.args.bot_separation,
                                            self.args.goal_spacing)
             goals = mission.lawnmower(origin, self.args.goals, self.args.goal_spacing)
             self.goals_by_bot[bot_id] = goals
-            log(f'bot {bot_id}: {len(goals)} dive goals from '
+            log(f'bot {bot_id}: {len(goals)} {self.args.task} goals from '
                 f'{goals[0][0]:.6f},{goals[0][1]:.6f}')
-            self.command(bot_id, mission.dive_mission_plan(
+            self.command(bot_id, mission.mission_plan(
                 goals, task, self.args.mission_name,
                 transit_speed=self.args.transit_speed,
                 stationkeep_speed=self.args.stationkeep_speed))
@@ -346,7 +460,8 @@ class SeaTrial:
     def mission_progress(self, bots):
         return '; '.join(
             f'bot {b} {(api.bot_status(self.last_status, b) or {}).get("mission_state", "?")}'
-            f' [{self.observations.dive_cycles(b)} dives]' for b in bots)
+            + (f' [{self.observations.dive_cycles(b)} dives]' if self.args.task == DIVE else '')
+            for b in bots)
 
     def run_mission(self, bots):
         def recovered():
@@ -490,6 +605,8 @@ class SeaTrial:
                 results.append(checks.Check(
                     checks.HUB2HUB, f'commands for {what} went through hub {hub_id}',
                     not error, error or 'every command sent'))
+            results += checks.mission_name_checks(self.hub_observations, bots,
+                                                  self.args.mission_name)
             for hub_id in self.args.relay_only_hub:
                 if hub_id in self.hub_observations:
                     results += checks.relay_only_offload_checks(self.hub_observations[hub_id],
@@ -502,9 +619,10 @@ class SeaTrial:
         for hub_id, observations in self.hub_observations.items():
             if hub_id != self.args.hub_id:
                 results += checks.offload_queue_checks(observations)
-        results += checks.content_checks(packets, bots, self.args.goals, self.args.dive_depth,
-                                         self.args.depth_tolerance, self.args.drift_time,
-                                         self.args.drift_tolerance)
+        if self.args.task == DIVE:
+            results += checks.content_checks(packets, bots, self.args.goals,
+                                             self.args.dive_depth, self.args.depth_tolerance,
+                                             self.args.drift_time, self.args.drift_tolerance)
         return results
 
 
@@ -513,6 +631,13 @@ def parse_peer_hub(value):
     if not hub_id.isdigit() or not url:
         raise argparse.ArgumentTypeError(f'expected ID=URL, got {value!r}')
     return int(hub_id), url
+
+
+def parse_hub_command(value):
+    hub_id, _, command = value.partition('=')
+    if not hub_id.isdigit() or not command:
+        raise argparse.ArgumentTypeError(f'expected ID=COMMAND, got {value!r}')
+    return int(hub_id), command
 
 
 def parse_args(argv):
@@ -536,9 +661,20 @@ def parse_args(argv):
                         help='how long the two hubs have to start hearing each other')
     parser.add_argument('--control-timeout', type=float, default=60.0, metavar='S',
                         help='how long a command on one hub has to move control on the other')
+    parser.add_argument('--reset-hub-missions', action='append', type=parse_hub_command,
+                        default=[], metavar='ID=COMMAND',
+                        help='a shell command that makes hub ID lose its stored missions, '
+                             'for example by restarting its hub manager; run once the bots '
+                             'are underway, after which the hub must catch up every bot\'s '
+                             'mission from the others')
+    parser.add_argument('--catch-up-timeout', type=float, default=300.0, metavar='S',
+                        help='how long a reset hub has to lose its missions, and then to get '
+                             'them back; not divided by --warp, as catch-up runs on wall-clock '
+                             'resubscriptions (default: %(default)s)')
     parser.add_argument('--bots', type=int, default=2, help='number of bots to command')
-    parser.add_argument('--goals', type=int, default=mission.MAX_GOALS,
-                        help=f'dive goals per bot, at most {mission.MAX_GOALS} (default: %(default)s)')
+    parser.add_argument('--goals', type=int, default=10,
+                        help=f'goals per bot, at most {mission.MAX_GOALS}; over 10 the hub '
+                             f'sends the plan in fragments (default: %(default)s)')
     parser.add_argument('--warp', type=float, default=1.0,
                         help='simulator warp, which every timeout below is divided by')
     # the hub's position, which is where the simulator places the fleet and so where
@@ -547,6 +683,10 @@ def parse_args(argv):
     parser.add_argument('--lon', type=float, default=-71.2821)
     parser.add_argument('--goal-spacing', type=float, default=100.0, metavar='M')
     parser.add_argument('--bot-separation', type=float, default=500.0, metavar='M')
+    parser.add_argument('--task', choices=TASK_TYPES, default=DIVE,
+                        help='the task at every goal, as MissionTask.TaskType names it; NONE '
+                             'leaves out the content tier, which judges the dives '
+                             '(default: %(default)s)')
     parser.add_argument('--dive-depth', type=float, default=8.0, metavar='M')
     parser.add_argument('--depth-interval', type=float, default=1.0, metavar='M')
     parser.add_argument('--hold-time', type=float, default=5.0, metavar='S')
@@ -607,9 +747,12 @@ def main(argv):
         trial.join_hubs(bots)
         trial.set_hub_location()
         trial.send_missions(bots)
+        trial.check_active_missions('once sent', while_underway=True)
+        trial.check_catch_up()
         trial.run_mission(bots)
         trial.offload(bots)
         trial.check_control()
+        trial.check_active_missions('after the offload')
         results = trial.evaluate(bots, trial.collect(bots))
         trial.export()
     except (TrialFailure, api.ApiError) as e:

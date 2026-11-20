@@ -9,6 +9,7 @@ import sys
 import tempfile
 import unittest
 import unittest.mock
+import xml.etree.ElementTree as ET
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -64,9 +65,9 @@ class SeaTrialAgainstFakeHub(unittest.TestCase):
     def hub2hub_failures(self, summary):
         return [f['name'] for f in summary['tiers'].get(checks.HUB2HUB, {}).get('failures', [])]
 
-    def ci_fleet(self):
+    def ci_fleet(self, dives=10):
         """Two VirtualHubs and a CloudHub that hears the bots only through them, as CI runs."""
-        hub = fake_hub.FakeHub(bots=2, dives_to_run=10)
+        hub = fake_hub.FakeHub(bots=2, dives_to_run=dives)
         return hub, fake_hub.FakePeerHub(hub, 2), fake_hub.FakePeerHub(hub, 30)
 
     def test_a_joined_run_passes_every_tier_including_hub2hub(self):
@@ -480,7 +481,164 @@ class SeaTrialAgainstFakeHub(unittest.TestCase):
 
     def test_too_many_goals_is_refused(self):
         with self.assertRaises(SystemExit):
-            sea_trial.parse_args(['--goals', '11'])
+            sea_trial.parse_args(['--goals', '81'])
+
+    def test_more_than_ten_goals_are_accepted(self):
+        self.assertEqual(sea_trial.parse_args(['--goals', '12']).goals, 12)
+
+    def test_the_task_is_a_dive_unless_told_otherwise(self):
+        self.assertEqual(sea_trial.parse_args([]).task, 'DIVE')
+        self.assertEqual(sea_trial.parse_args(['--task', 'NONE']).task, 'NONE')
+        with self.assertRaises(SystemExit):
+            sea_trial.parse_args(['--task', 'STATION_KEEP'])
+
+    def test_a_run_without_tasks_sends_bare_goals_and_skips_the_content_tier(self):
+        hub = fake_hub.FakeHub(bots=2, dives_to_run=10)
+        code, summary, _ = self.run_trial(hub, ['--task', 'NONE'])
+        self.assertEqual(code, 0, summary['tiers'])
+        self.assertEqual(set(summary['tiers']),
+                         {checks.LIVENESS, checks.EXECUTION, checks.OFFLOAD})
+        plan = next(c for c in hub.commands if c.get('type') == 'MISSION_PLAN')['plan']
+        self.assertEqual(len(plan['goal']), 10)
+        self.assertFalse([goal for goal in plan['goal'] if 'task' in goal])
+
+    # over ten, so the hub relays the missions in fragments
+    TWELVE_GOALS = ['--goals', '12']
+
+    def passed_checks(self, directory):
+        root = ET.parse(os.path.join(directory, 'junit.xml')).getroot()
+        return {case.get('name') for case in root.iter('testcase')
+                if case.find('failure') is None}
+
+    def forget_command(self, hub):
+        hub.forget_missions_file = os.path.join(tempfile.mkdtemp(), 'forget')
+        return f'{hub.hub_id}=touch {hub.forget_missions_file}'
+
+    def test_every_hub_holds_and_names_every_mission_over_ten_waypoints(self):
+        hub, second, cloudhub = self.ci_fleet(dives=12)
+        code, summary, directory = self.run_joined_trial(
+            hub, [second, cloudhub], relay_only=[30], extra=self.TWELVE_GOALS)
+        self.assertEqual(code, 0, summary['tiers'])
+        passed = self.passed_checks(directory)
+        for hub_id in (1, 2, 30):
+            for bot_id in (1, 2):
+                self.assertIn(f"hub {hub_id} holds bot {bot_id}'s mission once sent", passed)
+                self.assertIn(f"hub {hub_id} holds bot {bot_id}'s mission after the offload",
+                              passed)
+                self.assertIn(f"hub {hub_id} names bot {bot_id}'s mission", passed)
+
+    def test_a_joined_run_without_tasks_holds_every_mission_over_ten_waypoints(self):
+        hub, second, cloudhub = self.ci_fleet()
+        code, summary, directory = self.run_joined_trial(
+            hub, [second, cloudhub], relay_only=[30],
+            extra=[*self.TWELVE_GOALS, '--task', 'NONE'])
+        self.assertEqual(code, 0, summary['tiers'])
+        self.assertNotIn(checks.CONTENT, summary['tiers'])
+        passed = self.passed_checks(directory)
+        for hub_id in (1, 2, 30):
+            for bot_id in (1, 2):
+                self.assertIn(f"hub {hub_id} holds bot {bot_id}'s mission after the offload",
+                              passed)
+
+    def test_a_hub_that_truncates_relayed_missions_fails_hub2hub(self):
+        hub, second, cloudhub = self.ci_fleet(dives=12)
+        cloudhub.truncates_relayed_missions = True
+        code, summary, _ = self.run_joined_trial(
+            hub, [second, cloudhub], relay_only=[30],
+            extra=[*self.TWELVE_GOALS, '--hub2hub-timeout', '1'])
+        self.assertEqual(code, 1)
+        failures = summary['tiers'][checks.HUB2HUB]['failures']
+        self.assertIn({'name': "hub 30 holds bot 1's mission once sent",
+                       'detail': 'holds 10 waypoints, 12 were sent'}, failures)
+        self.assertEqual(summary['tiers'][checks.EXECUTION]['failed'], 0)
+
+    def test_a_hub_that_drops_mission_names_fails_hub2hub(self):
+        hub, second, cloudhub = self.ci_fleet(dives=12)
+        second.drops_mission_names = True
+        _, summary, _ = self.run_joined_trial(
+            hub, [second, cloudhub], relay_only=[30],
+            extra=[*self.TWELVE_GOALS, '--hub2hub-timeout', '1'])
+        failures = self.hub2hub_failures(summary)
+        # bot 1 was commanded through hub 1, so hub 2 only had its mission relayed
+        self.assertIn("hub 2 holds bot 1's mission once sent", failures)
+        self.assertIn("hub 2 names bot 1's mission", failures)
+        self.assertNotIn("hub 2 names bot 2's mission", failures)
+
+    def test_a_hub_that_loses_its_missions_catches_up(self):
+        hub, second, cloudhub = self.ci_fleet(dives=12)
+        code, summary, directory = self.run_joined_trial(
+            hub, [second, cloudhub], relay_only=[30],
+            extra=[*self.TWELVE_GOALS, '--reset-hub-missions', self.forget_command(cloudhub)])
+        self.assertEqual(code, 0, summary['tiers'])
+        self.assertFalse(os.path.exists(cloudhub.forget_missions_file))
+        passed = self.passed_checks(directory)
+        self.assertIn('hub 30 forgets its missions when told', passed)
+        self.assertIn("hub 30 holds bot 1's mission after losing its missions", passed)
+        self.assertIn("hub 30 holds bot 2's mission after losing its missions", passed)
+
+    def test_a_hub_that_never_catches_up_fails_hub2hub(self):
+        hub, second, cloudhub = self.ci_fleet(dives=12)
+        cloudhub.catch_up_after_polls = None
+        code, summary, _ = self.run_joined_trial(
+            hub, [second, cloudhub], relay_only=[30],
+            extra=[*self.TWELVE_GOALS, '--reset-hub-missions', self.forget_command(cloudhub),
+                   '--catch-up-timeout', '1', '--hub2hub-timeout', '1'])
+        self.assertEqual(code, 1)
+        self.assertEqual(
+            [f for f in self.hub2hub_failures(summary) if 'losing' in f],
+            ["hub 30 holds bot 1's mission after losing its missions",
+             "hub 30 holds bot 2's mission after losing its missions"])
+
+    def test_a_hub_that_keeps_its_missions_when_reset_fails_hub2hub(self):
+        hub, second, cloudhub = self.ci_fleet(dives=12)
+        cloudhub.forgets_missions_when_reset = False
+        code, summary, _ = self.run_joined_trial(
+            hub, [second, cloudhub], relay_only=[30],
+            extra=[*self.TWELVE_GOALS, '--reset-hub-missions', self.forget_command(cloudhub),
+                   '--catch-up-timeout', '1'])
+        self.assertEqual(code, 1)
+        failures = summary['tiers'][checks.HUB2HUB]['failures']
+        self.assertEqual([f['name'] for f in failures], ['hub 30 forgets its missions when told'])
+        self.assertIn("waiting for hub 30 to lose every bot's mission", failures[0]['detail'])
+
+    def test_a_hub_that_loses_and_recovers_one_bot_at_a_time_catches_up(self):
+        hub, second, cloudhub = self.ci_fleet(dives=12)
+        cloudhub.forgets_bots_in_turn = True
+        code, summary, directory = self.run_joined_trial(
+            hub, [second, cloudhub], relay_only=[30],
+            extra=[*self.TWELVE_GOALS, '--reset-hub-missions', self.forget_command(cloudhub)])
+        self.assertEqual(code, 0, summary['tiers'])
+        self.assertIn('hub 30 forgets its missions when told', self.passed_checks(directory))
+
+    def test_a_failed_poll_after_the_reset_is_not_a_hub_without_missions(self):
+        hub, second, cloudhub = self.ci_fleet(dives=12)
+        cloudhub.forgets_missions_when_reset = False
+        cloudhub.failed_polls_after_reset = 1
+        _, summary, _ = self.run_joined_trial(
+            hub, [second, cloudhub], relay_only=[30],
+            extra=[*self.TWELVE_GOALS, '--reset-hub-missions', self.forget_command(cloudhub),
+                   '--catch-up-timeout', '1'])
+        self.assertIn('hub 30 forgets its missions when told', self.hub2hub_failures(summary))
+
+    def test_a_reset_command_that_fails_fails_hub2hub(self):
+        hub, second, cloudhub = self.ci_fleet(dives=12)
+        code, summary, _ = self.run_joined_trial(
+            hub, [second, cloudhub], relay_only=[30],
+            extra=[*self.TWELVE_GOALS, '--reset-hub-missions', '30=exit 3'])
+        self.assertEqual(code, 1)
+        failures = summary['tiers'][checks.HUB2HUB]['failures']
+        self.assertEqual([f['name'] for f in failures], ['hub 30 forgets its missions when told'])
+        self.assertIn('exit 3', failures[0]['detail'])
+
+    def test_missions_cleared_by_the_offload_fail_hub2hub(self):
+        hub, second, cloudhub = self.ci_fleet(dives=12)
+        cloudhub.clears_missions_on_recovery = True
+        _, summary, _ = self.run_joined_trial(
+            hub, [second, cloudhub], relay_only=[30],
+            extra=[*self.TWELVE_GOALS, '--hub2hub-timeout', '1'])
+        self.assertEqual(self.hub2hub_failures(summary),
+                         ["hub 30 holds bot 1's mission after the offload",
+                          "hub 30 holds bot 2's mission after the offload"])
 
 
 if __name__ == '__main__':

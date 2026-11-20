@@ -31,6 +31,8 @@ POST_IDLE = 'POST_DEPLOYMENT__IDLE'
 POST_FAILED = 'POST_DEPLOYMENT__FAILED'
 ABORT = 'IN_MISSION__UNDERWAY__ABORT'
 OFFLOAD_FAILED_WARNING = 'WARNING__MISSION__DATA_OFFLOAD_FAILED'
+# hub-to-hub carries a waypoint with DCCL's rounding, well within a metre
+WAYPOINT_MATCH_TOLERANCE_M = 2.0
 
 
 class Check:
@@ -63,10 +65,15 @@ class Observations:
         # bots each hub was seen offloading, from the hub's own status: a hub heard over
         # hub-to-hub never carries bot_offload, as it is not in that link's encoding
         self.hub_offloaded_bots = collections.defaultdict(set)
-        # polls on which a hub's queue went missing although its last one still had bots
-        # waiting, which JCC shows as the queue emptying and filling again
+        # times a hub's queue went missing while bots still waited and then came back,
+        # which JCC shows as the queue emptying and filling again
         self.hub_offload_gaps = collections.defaultdict(int)
         self._last_bot_offload = {}
+        # a queue that drains between two polls also goes missing with bots waiting, so
+        # a dropout is only a gap once the queue comes back
+        self._hubs_with_dropped_queue = set()
+        # the mission names the hub gave each bot's status
+        self.mission_names = collections.defaultdict(set)
 
     def ingest(self, status):
         for bot in api.bot_statuses(status):
@@ -84,6 +91,8 @@ class Observations:
                     self.recovery_location[bot_id] = self.last_location[bot_id]
             if bot.get('health_state'):
                 self.health[bot_id].add(bot['health_state'])
+            if bot.get('mission_name'):
+                self.mission_names[bot_id].add(bot['mission_name'])
             errors, warnings = api.bot_faults(bot)
             self.errors[bot_id].update(errors)
             self.warnings[bot_id].update(warnings)
@@ -98,8 +107,11 @@ class Observations:
                 self.hub_offload_percentage[hub_id] = percentage
             if bot_offload and 'bot_id' in bot_offload:
                 self.hub_offloaded_bots[hub_id].add(bot_offload['bot_id'])
-            if not bot_offload and (self._last_bot_offload.get(hub_id) or {}).get('bots_pending'):
+            if bot_offload and hub_id in self._hubs_with_dropped_queue:
+                self._hubs_with_dropped_queue.discard(hub_id)
                 self.hub_offload_gaps[hub_id] += 1
+            elif not bot_offload and (self._last_bot_offload.get(hub_id) or {}).get('bots_pending'):
+                self._hubs_with_dropped_queue.add(hub_id)
             self._last_bot_offload[hub_id] = bot_offload
 
     def saw(self, bot_id, state):
@@ -215,7 +227,8 @@ def offload_queue_checks(observations):
         gaps = observations.hub_offload_gaps[hub_id]
         checks.append(Check(OFFLOAD, f'hub {hub_id} kept its offload queue between bots',
                             not gaps,
-                            f'the queue went missing on {gaps} poll(s) with bots still waiting'
+                            f'the queue went missing with bots still waiting and came back '
+                            f'{gaps} time(s)'
                             if gaps else 'never missing while bots waited'))
     return checks
 
@@ -252,6 +265,48 @@ def relayed_command_for_hub_check(via_id, target_id, response, error_code, error
         detail = f'sent, so it would run on hub {via_id}'
     return Check(HUB2HUB, f'hub {via_id} refuses a command for hub {target_id} as JSON',
                  refused, detail)
+
+
+def active_mission_mismatch(plan, goals, mission_name):
+    """How a hub's stored mission differs from the one sent, or None when it matches."""
+    if plan is None:
+        return 'holds no mission'
+    held = [(goal['location']['lat'], goal['location']['lon']) for goal in plan.get('goal', [])]
+    if len(held) != len(goals):
+        return f'holds {len(held)} waypoints, {len(goals)} were sent'
+    misplaced = [number for number, (a, b) in enumerate(zip(held, goals), 1)
+                 if mission.distance_m(a, b) > WAYPOINT_MATCH_TOLERANCE_M]
+    if misplaced:
+        return f'waypoints {misplaced} are not where they were sent'
+    if plan.get('mission_name', '') != mission_name:
+        return f'named {plan.get("mission_name", "")!r}, sent as {mission_name!r}'
+    return None
+
+
+def active_mission_checks(statuses, goals_by_bot, mission_name, when):
+    """Whether each hub holds the mission sent to each bot, which every JCC on it draws as
+    that bot's ghost. statuses maps each hub to the status its own REST API last reported."""
+    checks = []
+    for hub_id, status in sorted(statuses.items()):
+        plans = api.active_mission_plans(status)
+        for bot_id, goals in sorted(goals_by_bot.items()):
+            mismatch = active_mission_mismatch(plans.get(bot_id), goals, mission_name)
+            checks.append(Check(HUB2HUB, f"hub {hub_id} holds bot {bot_id}'s mission {when}",
+                                mismatch is None,
+                                mismatch or f'{len(goals)} waypoints, named {mission_name!r}'))
+    return checks
+
+
+def mission_name_checks(observations_by_hub, expected_bots, mission_name):
+    """Whether each hub named each bot's status after the mission it was sent."""
+    checks = []
+    for hub_id, observations in sorted(observations_by_hub.items()):
+        for bot_id in expected_bots:
+            names = sorted(observations.mission_names[bot_id])
+            checks.append(Check(HUB2HUB, f"hub {hub_id} names bot {bot_id}'s mission",
+                                mission_name in names,
+                                f'named {names}' if names else 'never named it'))
+    return checks
 
 
 def relay_only_offload_checks(observations, hub_id):

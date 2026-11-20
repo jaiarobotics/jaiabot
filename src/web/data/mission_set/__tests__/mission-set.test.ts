@@ -1,3 +1,4 @@
+import { MAX_MISSION_SET_NAME_BYTES } from "../../../utils/constants";
 import { missionSet } from "../mission-set";
 import {
     missionA,
@@ -88,5 +89,12 @@ describe("Operator adding and deleting multiple missions at once", () => {
 
         // Reset missions singleton to clean state
         missionSet.deleteAllMissions();
+    });
+});
+
+describe("Mission set name", () => {
+    test("is cut to the bytes hubs can share, between characters", () => {
+        missionSet.setName("n".repeat(MAX_MISSION_SET_NAME_BYTES - 1) + "é");
+        expect(missionSet.getName()).toBe("n".repeat(MAX_MISSION_SET_NAME_BYTES - 1));
     });
 });

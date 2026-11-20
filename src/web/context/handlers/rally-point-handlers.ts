@@ -48,8 +48,6 @@ export function handleDeleteRallyPoint(mutableState: JaiaContextType) {
  */
 export function handleSendRallyMission(mutableState: JaiaContextType) {
     missionsManager.unassignAll();
-    missionSet.deleteAllGhostMissions();
-
     for (const mission of missionSet.getMissions().values()) {
         mission.resetGhostParameters();
     }

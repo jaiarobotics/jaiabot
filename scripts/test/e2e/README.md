@@ -24,8 +24,14 @@ to work through them and stop at recovery, then commands `STOP` and `RECOVERED` 
 is what moves a bot into data offload — and waits for offload to settle before reading
 the task packets back.
 
-A mission plan holds at most ten goals: `MissionPlan.goal` carries
-`(dccl.field).max_repeat = 10`. More dives per run means more bots, not more goals.
+`--goals` is 10 by default and at most 80. One command holds ten goals
+(`MissionPlan.goal` carries `(dccl.field).max_repeat = 10`), so the hub sends a longer
+mission in fragments, up to 8 (`MissionPlan.expected_fragments`), and relays them to the
+other hubs the same way. CI runs 12 goals so that path is exercised.
+
+`--task` sets the task at every goal, by its `MissionTask.TaskType` name: `DIVE` (the
+default) or `NONE`. With `NONE` the bots only transit their goals, and the `content`
+tier, which judges the dives, is left out.
 
 `--warp` divides the mission and offload timeouts, so the same invocation works at any
 warp without hand-tuning seconds.
@@ -123,6 +129,19 @@ The tier also checks:
   Within `--control-timeout`, every other hub must report `controlling_client_id` as
   `hub<N>` for the hub that sent it. Each must then refuse its own client's engineering
   command with `API_ERROR__NOT_IN_CONTROL`, until that client takes control back.
+- **Every hub holds every bot's mission.** Once the bots are underway, and again after
+  the offload, each hub's `active_mission_plans` must hold the mission sent to each bot:
+  the same waypoints, all of them, and its name. That is what each JCC draws as the bot's
+  ghost. While the bots are underway, each hub must also name their missions in their
+  statuses.
+- **A hub that loses its missions catches up.** `--reset-hub-missions ID=COMMAND` runs a
+  shell command once the bots are underway that makes hub ID lose its stored missions,
+  for example by restarting its hub manager. Within `--catch-up-timeout` (300 s by
+  default, wall clock rather than warped) the hub must first be seen without each bot's
+  mission, though not necessarily all in one poll, since its REST API keeps serving them
+  until the restarted hub manager publishes, and then hold every bot's mission again,
+  which it can only get from the other hubs. A poll the hub doesn't answer counts as
+  neither.
 
 Each hub is sent a `clientId` header, `sea-trial-hub<N>`, as JCC sends its own.
 

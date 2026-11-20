@@ -1,10 +1,12 @@
 import JaiaVectorLayer from "./jaia-vector-layer";
 import Mission from "../../../data/mission_set/mission";
+import { bots } from "../../../data/bots/bots";
 import { missionSet } from "../../../data/mission_set/mission-set";
 import { MissionTask_TaskType } from "@proto/jaiabot/messages/mission";
 import { exclusionZoneSet } from "../../../data/exclusion_zones/exclusion-zone-set";
 import { LayerTitles, LineType } from "../../../types/openlayers-types";
 import { constantHeadingParamsToLocation } from "../../../utils/conversions";
+import { buildGhostMissions } from "../../../utils/ghost-missions";
 import { buildZoneGeometry, isLocationBlocked, ZoneGeometry } from "../../../utils/routing/router";
 import { layersZIndexes } from "../zindex";
 import {
@@ -89,17 +91,10 @@ class MissionLayer extends JaiaVectorLayer {
 
         const layerTitle = this.getVectorLayer().getProperties()["title"];
 
-        if (
-            layerTitle === LayerTitles.GHOST_MISSION_LAYER &&
-            missionSet.getGhostMissions().size === 0
-        ) {
-            return;
-        }
-
         let missions = missionSet.getMissions();
         let geometry: ZoneGeometry | undefined;
         if (layerTitle === LayerTitles.GHOST_MISSION_LAYER) {
-            missions = missionSet.getGhostMissions();
+            missions = buildGhostMissions(bots.getBots());
         } else {
             geometry = buildZoneGeometry(exclusionZoneSet.getZones());
         }

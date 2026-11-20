@@ -306,9 +306,10 @@ parameters:
   sea-trial-hubs:
     type: integer
     default: 2
+  # over 10, so each mission is relayed between hubs in fragments
   sea-trial-goals:
     type: integer
-    default: 10
+    default: 12
   sea-trial-warp:
     type: integer
     default: 5
@@ -450,6 +451,22 @@ job-groups:
         <<: *filter-template-docker-sim-builds
         requires:
           - amd64-docker-sim
+    # two hubs that hear each other over hub-to-hub: each must hold every bot's mission,
+    # 12 goals so they are relayed in fragments, and hub 2 must catch them up after
+    # losing them; no dives, as the single-hub jobs cover those
+    - docker-sim-e2e:
+        name: docker-sim-e2e-hub2hub
+        comms: w
+        hubs: 2
+        bots: 2
+        goals: 12
+        trial-args: >-
+          --peer-hub 2=http://localhost:9093
+          --reset-hub-missions "2=docker exec -i jaia-sim bash -s 2 < scripts/test/e2e/sim-forget-active-missions.sh"
+          --task NONE
+        <<: *filter-template-docker-sim-builds
+        requires:
+          - amd64-docker-sim
 
     # every image that reaches an AMI gets trialled, on the same filter that built it
     - sea-trial-virtualfleet:
@@ -573,6 +590,20 @@ jobs:
       comms:
         type: string
         default: w
+      # hub N's REST API answers on port 9091 + N
+      hubs:
+        type: integer
+        default: 1
+      bots:
+        type: integer
+        default: 1
+      goals:
+        type: integer
+        default: 2
+      # more jaia-sea-trial.py arguments, such as the other hubs' REST APIs
+      trial-args:
+        type: string
+        default: ""
     machine:
       image: ubuntu-2604:current
     resource_class: medium
@@ -597,15 +628,19 @@ jobs:
               TAG="${JAIABOT_APT_VERSION}-${JAIABOT_APT_REPO}"
             fi
             echo $DOCKERHUB_PASSWORD | docker login -u $DOCKERHUB_USERNAME --password-stdin
-            docker run -d --name jaia-sim -p 9092:9092 \
-              -e JAIA_SIM_BOTS=1 -e JAIA_SIM_WARP=10 -e JAIA_SIM_FLEET=30 -e JAIA_SIM_COMMS=<< parameters.comms >> \
+            # hub-to-hub runs over the container's IPv6 loopback
+            docker run -d --name jaia-sim -p 9092:9092 -p 9093:9093 \
+              --sysctl net.ipv6.conf.all.disable_ipv6=0 \
+              -e JAIA_SIM_BOTS=<< parameters.bots >> -e JAIA_SIM_HUBS=<< parameters.hubs >> \
+              -e JAIA_SIM_WARP=10 -e JAIA_SIM_FLEET=30 -e JAIA_SIM_COMMS=<< parameters.comms >> \
               gobysoft/jaiabot-sim:${TAG}-amd64
       - run:
           name: Run a short dive mission against the simulator
           command: |
             scripts/test/e2e/jaia-sea-trial.py \
               --hub-url http://localhost:9092 \
-              --bots 1 --goals 2 --warp 10 \
+              --bots << parameters.bots >> --goals << parameters.goals >> --warp 10 \
+              << parameters.trial-args >> \
               --output-dir /tmp/sea-trial-sim
       - run:
           # docker logs carries only goby_launch's supervisor output; every app writes
@@ -629,6 +664,10 @@ jobs:
               --format 'OOMKilled={{.State.OOMKilled}} ExitCode={{.State.ExitCode}}' || true
             free -m || true
             sudo dmesg 2>/dev/null | grep -iE 'killed process|out of memory' | tail -20 || true
+            # a starved machine slows the sim enough to miss the trial's timeouts
+            nproc || true
+            uptime || true
+            top -bn1 -o %CPU | head -25 || true
       - store_test_results:
           path: /tmp/sea-trial-sim
       - store_artifacts:

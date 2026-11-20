@@ -42,6 +42,12 @@ def motor_py_udp_port(bot_id):
         return 20005 + bot_id
     return 20005 
 
+def rest_api_port(hub_id):
+    if is_simulation() and common.jaia_sim_type == common.SimType.SINGLE_HOST:
+        return 9091 + hub_id
+    else:
+        return 9092
+
 def web_portal_udp_port(hub_id):
     if is_simulation() and common.jaia_sim_type == common.SimType.SINGLE_HOST:
         return 40001 - hub_id

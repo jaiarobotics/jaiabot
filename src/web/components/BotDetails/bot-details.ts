@@ -3,7 +3,6 @@ import { MissionState } from "@proto/jaiabot/messages/mission";
 import { MissionStatus } from "../../types/jaia-system-types";
 import { convertMicrosecondsToSeconds } from "../../shared/Utilities";
 
-import { missionSet } from "../../data/mission_set/mission-set";
 import Hub from "../../data/hubs/hub";
 import GPS from "../../data/sensors/gps";
 
@@ -76,18 +75,15 @@ export function getBotOffloadPercent(botID: number, hubs: Iterable<Hub>) {
 /**
  * Formats repeat progress text
  *
- * @param {number} repeats Total number of times a mission will play itself back
+ * @param {number | undefined} repeats Total number of times the mission plays itself back
  * @param {MissionStatus} missionStatus Contains the in progress data of the mission from the Bot
- * @returns {string} "N/A" if repeats not set or "x of y" if mission includes repeats
+ * @returns {string} "x of y", or "N/A" when the bot reports no repeat or the repeats are unknown
  */
-export function getRepeatProgress(repeats: number, missionStatus: MissionStatus) {
-    let repeatProgress = "N/A";
-
-    if (missionStatus?.repeatIndex) {
-        repeatProgress = `${missionStatus.repeatIndex + 1} of ${repeats}`;
+export function getRepeatProgress(repeats: number | undefined, missionStatus: MissionStatus) {
+    if (missionStatus?.repeatIndex === undefined || repeats === undefined) {
+        return "N/A";
     }
-
-    return repeatProgress;
+    return `${missionStatus.repeatIndex + 1} of ${repeats}`;
 }
 
 /**
@@ -122,18 +118,4 @@ export function getDistToWaypoint(missionStatus: MissionStatus) {
         return missionStatus.distanceToTargetWaypoint + " m";
     }
     return "Distance To Goal > 1000";
-}
-
-/**
- * Loops through the ghost missions to check if a Bot is carrying out a mission
- *
- * @param {number} botID Bot of interest
- * @returns {Mission} Mission the Bot is currently running even if deleted from user interface
- */
-export function searchGhostMissions(botID: number) {
-    for (const ghostMission of missionSet.getGhostMissions().values()) {
-        if (ghostMission.getGhostParameters().botID === botID) {
-            return ghostMission;
-        }
-    }
 }
