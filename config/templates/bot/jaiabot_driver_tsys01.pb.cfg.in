@@ -3,4 +3,3 @@ $interprocess_block
 
 simulate: $simulate
 sample_frequency: $sample_frequency
-i2c_bus: $i2c_bus

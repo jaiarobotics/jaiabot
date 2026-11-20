@@ -339,7 +339,6 @@ kernel=vmlinuz
 enable_uart=1
 dtparam=audio=on
 dtparam=i2c_arm=on
-dtparam=i2c_vc=on
 dtparam=spi=on
 cmdline=cmdline.txt
 

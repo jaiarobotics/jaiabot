@@ -332,8 +332,7 @@ elif common.app == 'jaiabot_driver_tsys01':
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
                                      simulate=str(is_simulation()).lower(),
-                                     sample_frequency=10,
-                                     i2c_bus=0 if jaia_iridium_enabled else 1))
+                                     sample_frequency=10))
 elif common.app == 'jaiabot_driver_salinity':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_driver_salinity.pb.cfg.in',
                                      app_block=app_common,

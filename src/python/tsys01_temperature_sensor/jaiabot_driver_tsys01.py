@@ -41,7 +41,7 @@ class JaiabotDriverTSYS01(SingleThreadApplication):
                                           self._sensor.update)
         else:
             import tsys01
-            self._sensor = tsys01.TSYS01(bus=self.cfg.i2c_bus)
+            self._sensor = tsys01.TSYS01()
 
         self._last_published = goby.time.now()
         self._responding = self._sensor.init()

@@ -18,9 +18,6 @@ message TSYS01Driver
 
     optional double sample_frequency = 10 [default = 10];
 
-    // v1.1 of the Iridium card moves the TSYS01 to I2C bus 0.
-    optional int32 i2c_bus = 11 [default = 1];
-
     // How long the driver may go without publishing a reading before it reports itself
     // degraded; jaiabot_health has no separate watchdog for these sensors.
     optional int32 data_timeout_seconds = 90 [default = 40];

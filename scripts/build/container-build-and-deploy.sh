@@ -63,14 +63,12 @@ docker_run -t ${image_name} ./scripts/build/container-build.sh "${build_dir}"
 echo "🟢 Cleaning old library files"
 docker_run -t ${image_name} ./scripts/build/clean-lib-directory.py
 
-# The targets must have the same goby and dccl versions as the image the binaries were built against.
-# The image can hold a package for both the build and the target architecture.
+# The targets must have the same goby and dccl versions as the image the binaries were built against
 image_package_version() {
-    docker_run ${image_name} dpkg-query -W -f='${Version}' "$1:${arch}" | sed 's/~.*//'
+    docker_run ${image_name} dpkg-query -W -f='${Version}' "$1" | sed 's/~.*//'
 }
 docker_libgoby_version=$(image_package_version libgoby3)
 docker_libdccl_version=$(image_package_version libdccl5)
-docker_runtime_packages=$(docker_run ${image_name} ./scripts/build/runtime-packages.sh "${build_dir}" "${arch}" | tr '\n' ' ')
 
 if [ $# -eq 0 ]; then
     echo "             -----------"
@@ -109,7 +107,7 @@ for remote in "$@"; do
 
     # Login to the target, and deploy the software
     ssh ${botuser}@"${remote}" \
-        "${remote_locale} jaiabot_repo=${repo} docker_libgoby_version=${docker_libgoby_version} docker_libdccl_version=${docker_libdccl_version} docker_runtime_packages='${docker_runtime_packages}' ./jaiabot/scripts/build/target-deploy.sh ${build_dir}"
+        "${remote_locale} jaiabot_repo=${repo} docker_libgoby_version=${docker_libgoby_version} docker_libdccl_version=${docker_libdccl_version} ./jaiabot/scripts/build/target-deploy.sh ${build_dir}"
 
     echo "When you're ready, ssh ${botuser}@${remote} and run 'sudo systemctl restart jaiabot'"
 done
