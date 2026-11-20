@@ -177,24 +177,26 @@ jaiabot::apps::Health::Health()
         {
             if (power_rf.has_rf_disable_options())
             {
+                // Don't take down the Wi-Fi of the computer running the simulation
+                if (cfg().is_in_sim())
+                    return;
+
                 if (power_rf.rf_disable_options().has_rf_disable())
                 {
                     if (power_rf.rf_disable_options().rf_disable())
                     {
                         glog.is_verbose() && glog << "Commanded to disable your Wi-Fi. "
                                                   << std::endl;
-                        /*
-                        *  ifdown wlan0 prevents the OS from initiating any TX/RX operation on the interface. 
-                        *  The RPi shouldn't be transmitting anything at this point, and you won't be able to 
-                        *  scan for wireless networks until you bring the interface up again.
-                        */
-                        system("ifdown wlan0");
+                        // A down interface neither transmits nor scans until it is brought up again
+                        if (system("ip link set wlan0 down") != 0)
+                            glog.is_warn() && glog << "Failed to bring wlan0 down" << std::endl;
                     }
                     else
                     {
                         glog.is_verbose() && glog << "Commanded to enable your Wi-Fi. "
                                                   << std::endl;
-                        system("ifup wlan0");
+                        if (system("ip link set wlan0 up") != 0)
+                            glog.is_warn() && glog << "Failed to bring wlan0 up" << std::endl;
                     }
                 }
             }
