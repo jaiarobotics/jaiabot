@@ -10,6 +10,9 @@
     WSGIDaemonProcess jcc user=jaia group=jaia threads=5 \
         python-home=$jaiabot_share_dir/jaiabot/python/venv \
         home=$jaiabot_share_dir/jaiabot/web/server
+    # Loaded when Apache starts, so the REST API is already collecting bot statuses when the first JCC opens
+    WSGIImportScript $jaiabot_share_dir/jaiabot/web/rest_api/app.wsgi process-group=rest_api application-group=%{GLOBAL}
+    WSGIImportScript $jaiabot_share_dir/jaiabot/web/server/app.wsgi process-group=jcc application-group=%{GLOBAL}
     WSGIScriptAlias /jaia $jaiabot_share_dir/jaiabot/web/rest_api/app.wsgi/jaia process-group=rest_api
     WSGIScriptAlias / $jaiabot_share_dir/jaiabot/web/server/app.wsgi process-group=jcc
 

@@ -271,12 +271,20 @@ void jaiabot::apps::SimulatorTranslation::process_nav(const CMOOSMsg& msg)
         quantity<si::velocity>(moos_buffer["NAV_SPEED"].GetDouble() * si::meter_per_second);
     auto course_over_ground = moos_buffer["NAV_HEADING_OVER_GROUND"].GetDouble() * degree::degree;
 
+    // uSimMarine doesn't publish every attitude variable, and a missing one reads as CMOOSMsg's
+    // default of -1
+    auto attitude_or_level = [&moos_buffer](const std::string& var)
+    {
+        auto it = moos_buffer.find(var);
+        return (it != moos_buffer.end() ? it->second.GetDouble() : 0.0) * si::radians;
+    };
+
     auto heading = moos_buffer["NAV_HEADING"].GetDouble() * degree::degrees;
-    auto pitch = moos_buffer["NAV_PITCH"].GetDouble() * si::radians;
+    auto pitch = attitude_or_level("NAV_PITCH");
     if (!making_forward_progress_)
         pitch = sim_cfg_.pitch_at_rest_with_units<decltype(pitch)>();
 
-    auto roll = moos_buffer["NAV_ROLL"].GetDouble() * si::radians;
+    auto roll = attitude_or_level("NAV_ROLL");
     auto nav = std::make_shared<SimNav>(
         SimNav({x, y, speed_over_ground, course_over_ground, depth, heading, pitch, roll}));
 
