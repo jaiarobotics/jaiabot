@@ -16,6 +16,8 @@
 
 #define Schmidt 168
 
+// WMM2025 main field (gh1) and secular variation (gh2), from WMM.COF (11/13/2024) in
+// NOAA NCEI's WMM2025COF.zip: https://www.ncei.noaa.gov/products/world-magnetic-model
 const double wmm25gh1[Schmidt] = {
 -29351.8,  -1410.8,   4545.4,  -2556.6,   2951.1,  -3133.6,   1649.3,   -815.1,   1361.0,  -2404.1, 
    -56.6,   1243.8,    237.5,    453.6,   -549.5,    895.0,    799.5,    278.6,     55.7,   -133.9, 
