@@ -447,6 +447,9 @@ job-groups:
     - docker-sim-e2e:
         name: docker-sim-e2e-iridium
         comms: i
+        # Iridium reports are 1-2 sim minutes apart, so the only one in recovery can
+        # predate the bot's drive back from the ~27 m its last dive drifted on the current
+        position-tolerance: 50
         <<: *filter-template-docker-sim-builds
         requires:
           - amd64-docker-sim
@@ -573,6 +576,9 @@ jobs:
       comms:
         type: string
         default: w
+      position-tolerance:
+        type: integer
+        default: 25
     machine:
       image: ubuntu-2604:current
     resource_class: medium
@@ -606,6 +612,7 @@ jobs:
             scripts/test/e2e/jaia-sea-trial.py \
               --hub-url http://localhost:9092 \
               --bots 1 --goals 2 --warp 10 \
+              --position-tolerance << parameters.position-tolerance >> \
               --output-dir /tmp/sea-trial-sim
       - run:
           # docker logs carries only goby_launch's supervisor output; every app writes
