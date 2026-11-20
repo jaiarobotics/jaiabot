@@ -1,7 +1,7 @@
 /*
  * ABSTRACT
  *
- *    The purpose of WMM Subroutine Library is to support the World Magnetic Model (WMM) 2010-2015.
+ *    The purpose of WMM Subroutine Library is to support the World Magnetic Model (WMM) 2025-2030.
  *
  *
  *
@@ -407,8 +407,8 @@ void WMM::WMM_readMagneticModel()
 	}
 	else
 	{
-		MagneticModel->epoch = 2010;
-		strcpy(MagneticModel->ModelName, "WMM-2010");
+		MagneticModel->epoch = 2025;
+		strcpy(MagneticModel->ModelName, "WMM-2025");
 
 		int j;
 		for (int i = 0; i < Schmidt; i++)
@@ -416,14 +416,14 @@ void WMM::WMM_readMagneticModel()
 			j = (int)sqrt((float)i);
 			if ((i + j) % 2)
 			{
-				MagneticModel->Main_Field_Coeff_H[(i + j)/2 + 1] = wmm10gh1[i];
-				MagneticModel->Secular_Var_Coeff_H[(i + j)/2 + 1] = wmm10gh2[i];
+				MagneticModel->Main_Field_Coeff_H[(i + j)/2 + 1] = wmm25gh1[i];
+				MagneticModel->Secular_Var_Coeff_H[(i + j)/2 + 1] = wmm25gh2[i];
 			}
 			else
 			{
 				{
-				MagneticModel->Main_Field_Coeff_G[(i + j)/2 + 1] = wmm10gh1[i];
-				MagneticModel->Secular_Var_Coeff_G[(i + j)/2 + 1] = wmm10gh2[i];
+				MagneticModel->Main_Field_Coeff_G[(i + j)/2 + 1] = wmm25gh1[i];
+				MagneticModel->Secular_Var_Coeff_G[(i + j)/2 + 1] = wmm25gh2[i];
 				}
 			}
 		}

@@ -241,24 +241,8 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
 
             if (att.has_heading())
             {
-                // The mean solar year, in seconds
-                const double SECONDS_PER_YEAR = 365.24219 * 24 * 60 * 60;
-                const double UNIX_EPOCH_YEAR = 1970;
-
-                double seconds_since_unix_epoch = double(time(NULL));
-                double years_since_unix_epoch = seconds_since_unix_epoch / SECONDS_PER_YEAR;
-                double year = UNIX_EPOCH_YEAR + years_since_unix_epoch;
-
-                auto magneticDeclination =
-                    wmm.magneticDeclination(latest_node_status_.global_fix().lon(),
-                                            latest_node_status_.global_fix().lat(), year);
-                glog.is_debug2() &&
-                    glog << "Location: " << latest_node_status_.global_fix().ShortDebugString()
-                         << "  Magnetic declination: " << magneticDeclination
-                         << "  Year: " << std::setprecision(10) << year << endl;
-                auto heading = att.heading_with_units() + magneticDeclination * degrees;
-
-                heading = corrected_heading(heading);
+                // gpsd's heading is already true heading, so no magnetic declination applies
+                auto heading = corrected_heading(att.heading_with_units());
 
                 latest_node_status_.mutable_pose()->set_heading_with_units(heading);
                 latest_bot_status_.mutable_attitude()->set_heading_with_units(heading);
@@ -292,13 +276,19 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
                     // Creating temp heading variable
                     auto heading = euler_angles.heading_with_units();
 
+                    // The mean solar year, in seconds
+                    const double SECONDS_PER_YEAR = 365.24219 * 24 * 60 * 60;
+                    const double UNIX_EPOCH_YEAR = 1970;
+                    double year = UNIX_EPOCH_YEAR + double(time(NULL)) / SECONDS_PER_YEAR;
+
                     // Apply magnetic declination
                     auto magneticDeclination =
                         wmm.magneticDeclination(latest_node_status_.global_fix().lon(),
-                                                latest_node_status_.global_fix().lat());
+                                                latest_node_status_.global_fix().lat(), year);
                     glog.is_debug2() &&
                         glog << "Location: " << latest_node_status_.global_fix().ShortDebugString()
-                             << "  Magnetic declination: " << magneticDeclination << endl;
+                             << "  Magnetic declination: " << magneticDeclination
+                             << "  Year: " << std::setprecision(10) << year << endl;
                     heading = heading + magneticDeclination * degrees;
 
                     heading = corrected_heading(heading);

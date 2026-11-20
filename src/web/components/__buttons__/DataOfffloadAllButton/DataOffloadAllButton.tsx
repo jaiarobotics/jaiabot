@@ -57,8 +57,6 @@ export default function DataOffloadAllButton(props: Props) {
                 )
             )) {
                 updatedBotReadyStates.get(DisabledCodes.MISSION_STATE).push(botID);
-            } else if (!bot.getWifiLinkQuality()) {
-                updatedBotReadyStates.get(DisabledCodes.WIFI_QUALITY).push(botID);
             } else {
                 updatedBotReadyStates.get(DisabledCodes.NONE).push(botID);
             }
@@ -146,7 +144,6 @@ function initBotReadyStates() {
         [DisabledCodes.NONE, []],
         [DisabledCodes.NO_COMMS, []],
         [DisabledCodes.MISSION_STATE, []],
-        [DisabledCodes.WIFI_QUALITY, []],
         [DisabledCodes.DOWNLOAD_QUEUE, []],
     ];
     return botReadyStates;
