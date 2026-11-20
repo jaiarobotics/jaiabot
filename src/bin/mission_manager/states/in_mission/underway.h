@@ -41,7 +41,8 @@ struct Underway : boost::statechart::state<Underway, InMission, underway::Moveme
         boost::statechart::transition<EvReturnToHome, underway::Recovery>,
         boost::statechart::transition<EvRCSetpoint, underway::movement::remote_control::Setpoint>,
         boost::statechart::transition<EvPause, pause::Manual>,
-        boost::statechart::transition<EvNoForwardProgress, pause::ResolveNoForwardProgress>>;
+        boost::statechart::transition<EvNoForwardProgress, pause::ResolveNoForwardProgress>,
+        boost::statechart::transition<EvCheckMotorTemperature, pause::CheckMotorTemperature>>;
 };
 #endif
 

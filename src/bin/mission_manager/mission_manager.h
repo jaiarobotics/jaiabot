@@ -77,6 +77,7 @@ class MissionManager : public goby::zeromq::MultiThreadApplication<config::Missi
     void intervehicle_subscribe(const jaiabot::protobuf::IntervehicleSubscribeRequest& req);
 
     void check_forward_progress();
+    void check_motor_temperature();
     void publish_mission_report(protobuf::MissionState state);
     void set_hub_id(int hub_id);
 
@@ -131,6 +132,9 @@ class MissionManager : public goby::zeromq::MultiThreadApplication<config::Missi
     };
 
     ForwardProgressData fwd_progress_data_;
+
+    goby::time::SteadyClock::time_point last_motor_temperature_check_loop_;
+    goby::time::SteadyClock::duration driving_since_motor_temperature_check_{0};
 
     std::set<jaiabot::protobuf::MissionState> delegated_states_;
 };

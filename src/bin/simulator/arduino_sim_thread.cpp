@@ -20,9 +20,12 @@
 // You should have received a copy of the GNU General Public License
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
+#include <cmath>
+
 #include "config.pb.h"
 #include "jaiabot/groups.h"
 #include "jaiabot/messages/arduino.pb.h"
+#include "jaiabot/messages/low_control.pb.h"
 
 #include "arduino_sim_thread.h"
 
@@ -43,6 +46,13 @@ jaiabot::apps::ArduinoSimThread::ArduinoSimThread(const jaiabot::config::Arduino
     interprocess().subscribe<groups::arduino_from_pi>(
         [this](const jaiabot::protobuf::ArduinoCommand& arduino_command)
         { handle_arduino_command(arduino_command); });
+
+    interprocess().subscribe<groups::low_control>(
+        [this](const jaiabot::protobuf::LowControl& low_control)
+        {
+            if (low_control.has_control_surfaces())
+                throttle_fraction_ = std::abs(low_control.control_surfaces().motor()) / 100.0;
+        });
 }
 
 void jaiabot::apps::ArduinoSimThread::handle_arduino_command(
@@ -58,7 +68,7 @@ void jaiabot::apps::ArduinoSimThread::handle_arduino_command(
     //   the driver without needing the physical hardware.
     jaiabot::protobuf::ArduinoResponse arduino_response;
     arduino_response.set_version(3);
-    arduino_response.set_thermistor_voltage(2.5);
+    arduino_response.set_thermistor_voltage(thermistor_voltage());
 
     if (arduino_command.has_settings())
     {
@@ -90,10 +100,12 @@ void jaiabot::apps::ArduinoSimThread::handle_arduino_command(
 // health check on a battery level it never received.
 void jaiabot::apps::ArduinoSimThread::loop()
 {
+    update_motor_temperature();
+
     jaiabot::protobuf::ArduinoResponse arduino_response;
     arduino_response.set_status_code(jaiabot::protobuf::ArduinoStatusCode::ACK);
     arduino_response.set_version(3);
-    arduino_response.set_thermistor_voltage(2.5);
+    arduino_response.set_thermistor_voltage(thermistor_voltage());
 
     update_voltage(arduino_response);
 
@@ -120,4 +132,25 @@ void jaiabot::apps::ArduinoSimThread::update_voltage(
 
     glog.is_debug1() && glog << group("arduino") << "resp: " << arduino_response.ShortDebugString()
                              << std::endl;
+}
+
+void jaiabot::apps::ArduinoSimThread::update_motor_temperature()
+{
+    auto now = goby::time::SteadyClock::now();
+    double dt = std::chrono::duration<double>(now - motor_temperature_updated_).count();
+    motor_temperature_updated_ = now;
+
+    double steady_state = cfg().motor_water_temperature() +
+                          cfg().motor_temperature_rise_at_full_throttle() * throttle_fraction_;
+    motor_temperature_ += (steady_state - motor_temperature_) *
+                          (1 - std::exp(-dt / cfg().motor_thermal_time_constant()));
+}
+
+// inverse of the divider and thermistor curve that jaiabot_health converts from
+double jaiabot::apps::ArduinoSimThread::thermistor_voltage() const
+{
+    constexpr double supply_voltage = 5, divider_ohms = 10000, r25_ohms = 10000, beta = 3950;
+    double kelvin = motor_temperature_ + 273.15;
+    double thermistor_ohms = r25_ohms * std::exp(beta * (1 / kelvin - 1 / 298.15));
+    return supply_voltage * thermistor_ohms / (divider_ohms + thermistor_ohms);
 }

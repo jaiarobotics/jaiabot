@@ -71,6 +71,7 @@ enum MissionState
         [(jaia.ev).rest_api.presence = GUARANTEED];
     IN_MISSION__PAUSE__MANUAL = 162 [(jaia.ev).rest_api.presence = GUARANTEED];
     IN_MISSION__PAUSE__RESOLVE_NO_FORWARD_PROGRESS = 163;
+    IN_MISSION__PAUSE__CHECK_MOTOR_TEMPERATURE = 164;
 
     POST_DEPLOYMENT__RECOVERED = 200 [(jaia.ev).rest_api.presence = GUARANTEED];
     POST_DEPLOYMENT__DATA_OFFLOAD = 202
@@ -179,6 +180,9 @@ message MissionReport
         [(dccl.field) = { min: 0 max: 100 precision: 0 }];
     optional int32 repeat_index = 16
         [(dccl.field) = { min: 0 max: 1000 precision: 0 }];
+    // celsius, one per motor temperature check, oldest first
+    repeated double motor_temperature = 17
+        [(dccl.field) = { max_repeat: 3 min: -50 max: 150 precision: 0 }];
     optional uint32 command_from_hub_id = 70
         [(dccl.field) = { min: 0 max: 30 }];
     optional uint64 mission_command_time = 71 [

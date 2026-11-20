@@ -27,6 +27,7 @@ import {
     getBotOffloadPercent,
     getRepeatProgress,
     getDistToWaypoint,
+    formatMotorTemperatures,
     isBotLogging,
     searchGhostMissions,
 } from "./bot-details";
@@ -179,6 +180,14 @@ export default function BotDetails() {
                                                 {bot
                                                     .getBatteryPercent()
                                                     ?.toFixed(DETAILS_DECIMALS) + "%"}
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>Motor Temperature</td>
+                                            <td>
+                                                {formatMotorTemperatures(
+                                                    bot.getMotorTemperatures(),
+                                                )}
                                             </td>
                                         </tr>
                                         <tr>

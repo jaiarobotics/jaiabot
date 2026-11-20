@@ -41,6 +41,7 @@ namespace middleware = goby::middleware;
 #include "jaiabot/messages/arduino.pb.h"
 #include "jaiabot/messages/engineering.pb.h"
 #include "jaiabot/messages/mission.pb.h"
+#include "jaiabot/messages/motor.pb.h"
 #include "jaiabot/messages/sensor/pressure_temperature.pb.h"
 #include "jaiabot/messages/sensor/salinity.pb.h"
 
@@ -57,6 +58,7 @@ void jaiabot::apps::MissionManager::initialize()
 {
     machine_.reset(new statechart::MissionManagerStateMachine(*this));
     machine_->initiate();
+    last_motor_temperature_check_loop_ = goby::time::SteadyClock::now();
 }
 
 void jaiabot::apps::MissionManager::finalize()
@@ -290,6 +292,14 @@ jaiabot::apps::MissionManager::MissionManager()
             }
         });
 
+    interprocess().subscribe<jaiabot::groups::motor_status>(
+        [this](const jaiabot::protobuf::Motor& motor)
+        {
+            if (motor.thermistor().has_temperature() &&
+                machine_->state() == protobuf::IN_MISSION__PAUSE__CHECK_MOTOR_TEMPERATURE)
+                machine_->add_motor_temperature_sample(motor.thermistor().temperature());
+        });
+
     interprocess().subscribe<jaiabot::groups::imu>(
         [this](const jaiabot::protobuf::IMUData& imu_data)
         {
@@ -406,6 +416,10 @@ jaiabot::apps::MissionManager::MissionManager()
             {
                 machine_->set_bottom_depth_safety_params(command.bottom_depth_safety_params());
             }
+            if (command.has_motor_temperature_check())
+            {
+                machine_->set_motor_temperature_check(command.motor_temperature_check());
+            }
 
             // Publish only when we get a query for status
             if (command.query_engineering_status())
@@ -437,6 +451,14 @@ jaiabot::apps::MissionManager::MissionManager()
                     machine_->bottom_depth_safety_constant_heading_speed());
                 engineering_status.mutable_bottom_depth_safety_params()->set_constant_heading_time(
                     machine_->bottom_depth_safety_constant_heading_time());
+
+                const auto& check = machine_->motor_temperature_check();
+                auto& reported_check = *engineering_status.mutable_motor_temperature_check();
+                reported_check.set_enabled(check.enabled());
+                reported_check.set_check_interval(check.check_interval());
+                reported_check.set_pause_duration(check.pause_duration());
+                reported_check.set_hot_temperature(check.hot_temperature());
+                reported_check.set_resume_temperature(check.resume_temperature());
 
                 interprocess().publish<jaiabot::groups::engineering_status>(engineering_status);
             }
@@ -710,6 +732,7 @@ void jaiabot::apps::MissionManager::loop()
     }
 
     check_forward_progress();
+    check_motor_temperature();
 
     machine_->process_event(statechart::EvLoop());
 }
@@ -728,6 +751,9 @@ void jaiabot::apps::MissionManager::publish_mission_report(protobuf::MissionStat
         report.set_command_from_hub_id(machine_->hub_id());
         report.set_mission_command_time(machine_->mission_command_time());
     }
+
+    for (double celsius : machine_->motor_temperature_results())
+        report.add_motor_temperature(celsius);
 
     // Relay the repeat_index
     if (in_mission && in_mission->goal_index() != statechart::InMission::RECOVERY_GOAL_INDEX)
@@ -1223,6 +1249,33 @@ void jaiabot::apps::MissionManager::check_forward_progress()
         // otherwise bump forward the timeout
         glog.is_debug2() && glog << "Forward progress timeout reset" << std::endl;
         fwd_progress_data_.no_forward_progress_timeout = now + trigger_seconds;
+    }
+}
+
+void jaiabot::apps::MissionManager::check_motor_temperature()
+{
+    auto now = goby::time::SteadyClock::now();
+    auto since_last_loop = now - last_motor_temperature_check_loop_;
+    last_motor_temperature_check_loop_ = now;
+
+    const auto& check = machine_->motor_temperature_check();
+    if (!check.enabled())
+    {
+        driving_since_motor_temperature_check_ = goby::time::SteadyClock::duration::zero();
+        return;
+    }
+
+    bool is_driving =
+        machine_->setpoint_type() == protobuf::SETPOINT_IVP_HELM &&
+        fwd_progress_data_.latest_desired_speed > 0 * boost::units::si::meters_per_second;
+    if (!is_driving)
+        return;
+
+    driving_since_motor_temperature_check_ += since_last_loop;
+    if (driving_since_motor_temperature_check_ >= std::chrono::seconds(check.check_interval()))
+    {
+        driving_since_motor_temperature_check_ = goby::time::SteadyClock::duration::zero();
+        machine_->process_event(statechart::EvCheckMotorTemperature());
     }
 }
 
