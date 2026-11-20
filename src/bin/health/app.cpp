@@ -80,7 +80,6 @@ class Health : public ApplicationBase
     void reboot_bno085_imu() { system("systemctl start jaia_firm_bno085_reset_gpio_pin_py"); }
     void reboot_pam() { system("systemctl start jaia_firm_pam_reset_gpio_pin_py"); }
     void process_coroner_report(const goby::middleware::protobuf::VehicleHealth& vehicle_health);
-    void collect_reported_errors(const goby::middleware::protobuf::ThreadHealth& thread_health);
     void flash_arduino();
 
   private:
@@ -375,23 +374,6 @@ jaiabot::apps::Health::Health()
     }
 }
 
-// An app's errors and warnings arrive nested: the process reports its own, and a
-// MultiThreadApplication reports each of its threads as a child.
-void jaiabot::apps::Health::collect_reported_errors(
-    const goby::middleware::protobuf::ThreadHealth& thread_health)
-{
-    if (thread_health.HasExtension(jaiabot::protobuf::jaiabot_thread))
-    {
-        const auto& reported = thread_health.GetExtension(jaiabot::protobuf::jaiabot_thread);
-        auto* ours = last_health_.MutableExtension(jaiabot::protobuf::jaiabot_thread);
-        for (auto error : reported.error()) ours->add_error(static_cast<protobuf::Error>(error));
-        for (auto warning : reported.warning())
-            ours->add_warning(static_cast<protobuf::Warning>(warning));
-    }
-
-    for (const auto& child : thread_health.child()) collect_reported_errors(child);
-}
-
 void jaiabot::apps::Health::process_coroner_report(
     const goby::middleware::protobuf::VehicleHealth& vehicle_health)
 {
@@ -443,12 +425,6 @@ void jaiabot::apps::Health::process_coroner_report(
                 last_health_.MutableExtension(jaiabot::protobuf::jaiabot_thread)
                     ->add_error(protobuf::ERROR__NOT_RESPONDING__UNKNOWN_APP);
             }
-        }
-        else
-        {
-            // An app that is running but unwell reports what is wrong with it in its own
-            // health(), which is the only place a driver's device failure is visible.
-            collect_reported_errors(proc.main());
         }
     }
 }
