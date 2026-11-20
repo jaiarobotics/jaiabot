@@ -1,0 +1,162 @@
+# Troubleshooting a new fleet
+
+Each entry was seen building real fleets. Find the symptom, confirm the cause with the
+check given, then do the fix — and record both.
+
+## preflight / `cloudhub create`
+
+**"session has expired. Please reauthenticate using 'aws login'"** — the technician
+runs `aws login` (and `aws login --profile <p>` if a profile is used). Nothing was
+created; start the step again.
+
+**`cloudhub delete`/`create` say "unrecognized arguments"** — an older `jaia` is first
+on `PATH` (e.g. a stale build in another checkout). `command -v jaia` and `jaia version`;
+use the release's.
+
+**"fleet N already has a VPC"** — that fleet id is in use in the region. Pick another,
+or, if it is a fleet being rebuilt and the technician confirms, `jaia admin fleet
+cloudhub delete N --region <r> --customer <c> -y` first. `delete` releases every Elastic
+IP tagged with the fleet, so keep any address that must survive untagged.
+
+## DNS
+
+**`check_dns.sh` passes on public resolvers but the workstation can't reach the site** —
+a router or local resolver cached the earlier "no such name". It clears within the
+record's TTL (often 30 min). Harmless; the CloudHub and the fleet use public DNS.
+
+**Apex right, `run.`/`auth.` wrong** — the wildcard is missing, or points at a name with
+no address (a typo in the CNAME target). It must be `*.<name>  CNAME  <base uri>.`
+
+**The provider shows the record but the zone's name servers don't** — still being
+published, or added to the wrong zone (e.g. under a different domain at the same
+registrar). `dig @<zone name server> <base uri>`.
+
+## Certificates
+
+**Some or all sites have no certificate, and DNS is right** — Let's Encrypt allows 50
+new certificates per registered domain per week, and each CloudHub takes about six.
+Many CloudHubs under one domain in a week (testing) hits it. On the CloudHub
+(`check_cloudhub.sh --ssh` under a support grant, or `journalctl -u caddy`): "429
+rateLimited … retry after <time>". Nothing to do but wait for that time; Caddy retries
+by itself. Use a different domain for test fleets.
+
+## The CloudHub's sites
+
+**JCC shows "Connection to Hub Dropped" and no HUB Cloud** — the CloudHub's REST API
+isn't loading. `check_cloudhub.sh --ssh` reports it; `/var/log/apache2/error.log` says
+why. On releases before SW-2677 it was a stale `key {}` block in
+`/etc/jaiabot/rest_api.pb.cfg`: stop and report rather than editing it.
+
+**`check_cloudhub.sh --ssh` says the host key is not the one recorded** — this
+workstation has seen an earlier CloudHub under the same name. If the CloudHub was
+rebuilt, `ssh-keygen -R <base uri>` and run it again; if it wasn't, stop: something
+else is answering for the CloudHub's name.
+
+**A JCU settings playbook (e.g. Comms Links) shows no result and the JCU is 503 for a
+minute or two** — the reconfigure it runs stops the JCU's own service, which ends the
+playbook. From SW-2686 the node starts its services again by itself; check it with
+`check_node.sh` rather than running the playbook again.
+
+**"Incorrect username or password" right after a successful password reset** — three
+failed logins within two minutes ban the account for five, and while banned Authelia
+gives the same message and checks nothing, so a correct new password fails too. `sudo
+journalctl -u authelia` says `… and they are banned until <time>`. Wait it out and try
+once with the password from the latest reset; the first failures are usually an
+autofilled older password.
+
+**Sim says the VirtualFleet isn't running** — expected until one is created (part A,
+step 7).
+
+**Authelia asks for a security key (or another method) first, not the one-time
+password, even though TOTP is the default** — the browser remembers the method the
+person last chose on this `auth.<base uri>` origin (Authelia keeps it in the browser's
+local storage, which outlives a rebuilt CloudHub under the same name) and that choice
+wins over the server default. "Methods" → One-Time Password sets it right for that
+browser; a fresh browser or profile lands on the one-time password straight away.
+
+**Password-reset email doesn't arrive** — the SMTP credentials parameter is missing or
+wrong in the region (`preflight.sh` warns), or the provider hasn't verified the sender.
+
+**The reset link says "the verification token might have expired", and setting a
+password then fails** — the recipient's mailbox is Microsoft 365 with Defender Safe
+Links, which opens the link in a sandbox before the user does; Authelia's reset page
+spends the single-use token as soon as it loads (Authelia v4.39.28; upstream won't
+change it: authelia/authelia#2994, #3801). Confirm with `sudo journalctl -u authelia`:
+`"the token has already been consumed"` on `/api/reset-password/identity/finish` from
+an IP that isn't the user's (whois: Microsoft, e.g. 51.54.38.126) a few seconds after
+the email, then `"no identity verification process has been initiated"` from the user.
+When the scanner got there first nothing else is logged, so the user's error may be the
+only sign. Fix, by the customer's Microsoft 365 admin: add `*.jaia.tech/*` (or the
+customer's domain) to the Safe Links policy's "Do not rewrite the following URLs" — it
+must match the host in the link, `auth.<base uri>`; `auth.jaia.tech/*` does not, and a
+Tenant Allow/Block List URL entry alone may not either. Then request a new reset
+email (older ones were already scanned) and check no Microsoft-IP `/identity/finish`
+precedes the user's. Not yet confirmed on a fleet. A bootstrap address outside Microsoft
+365 avoids it for the commissioning account. From SW-2708 (#1817) a reset link only
+reaches Authelia from the browser that asked for the reset (a `jaia_reset` cookie), so
+a scanner gets a static page and spends nothing. The SW-2701 Continue page did not
+stop Defender, which presses buttons (Fleet 8, 2026-10-22). On such a CloudHub, a user
+who sees "Open this link where you asked for it" opened the email on another device:
+they ask again from the device they read mail on.
+
+**The emailed one-time code is refused when registering a second factor** (WebAuthn
+says invalid, or One-Time Password spins on Verify) — before SW-2708, Defender opened
+the code email's cancel link and cancelled the code. Authelia logs `"the code challenge
+has been revoked"` for the user. From SW-2708 the cancel links work only for someone
+signed in, so a scanner cancels nothing.
+
+**"Failed to generate the One-Time Code" or "too many requests"** — Authelia's rate
+limit on sending codes or reset emails, counted per address; a whole office shares
+one. `sudo journalctl -u authelia | grep "Rate Limit Exceeded"` shows it. From SW-2708
+it is 20 per 5 minutes and 100 per hour; otherwise wait
+it out, or restart Authelia to clear it.
+
+## Nodes
+
+**A hub serves JCC but shows nothing; its JCC has no hub** — every app on it is held
+silent. Usually a configured radio that isn't fitted: the fleet config says XBee, the
+hub has none, and `goby_intervehicle_portal` never finishes starting
+(`check_node.sh` reports the timeouts). Fix the config's comms links and the node's
+setting (`jaia admin debconf set --question comms_links --value wifi`, or the JCU's
+"Comms Links"), then restart jaiabot.
+
+**A hub's JCU answers 503 after a settings change** — on releases before SW-2686, a
+debconf change stopped `jaiabot_goby_liaison_standalone` (the JCU), `jaiabot_dns` and
+`jaiabot_update_ufw_rules` without starting them again. `sudo systemctl start` them.
+
+**`jaia admin debconf set` says "could not set … unable to initialize frontend"** — on
+releases before SW-2683, over SSH without a terminal. The value was saved but not
+applied; run it again with `sudo env DEBIAN_FRONTEND=noninteractive`.
+
+**A node logs "did not accept … for pairing: is fleet pairing open on its JCU?"** at
+first boot — fleet pairing was closed, which is normal in part B. It kept its bootstrap
+key; it pairs in part C.
+
+## Pairing
+
+**"Pair Fleet to CloudHub" reports a node "Unreachable"** — the JCU reaches nodes over
+the fleet Wi-Fi (`10.23.<fleet>.x`). Is the node on it? A bench hub with its Wi-Fi down
+can't be reached even by its own JCU.
+
+**A node says "Already paired" but its tunnel doesn't reach the CloudHub** — on releases
+before SW-2684 a node paired with an earlier CloudHub of the same name couldn't pair
+again. From SW-2684 it pairs again by itself when its tunnel has gone quiet for 5
+minutes; run "Pair Fleet to CloudHub" again after waiting.
+
+**Pairing fails with an SSH host key message** — the node recorded an earlier CloudHub's
+host key under this name. From SW-2687 a re-pair replaces it; before that,
+`sudo ssh-keygen -f /root/.ssh/known_hosts -R <base uri>` on the node.
+
+**Paired, but the tunnel is down** — the fleet config answered "start by itself at
+boot?" with no. Change it with `jaia admin fleet edit`, regenerate, or start the tunnel
+from each hub's JCU ("Change CloudHub VPN State").
+
+**Hubs don't see each other / JCC on the CloudHub lacks a hub** — `check_node.sh
+--paired` on that hub; "UDP 32000 not bound" means the intervehicle portal started
+before the tunnel. Restarting jaiabot on the hub binds it.
+
+## Known and harmless
+
+A fresh CloudHub has three failed units: `grub-initrd-fallback`, `grub2-common`,
+`jaiabot_update_ufw_rules`. `create --test-keys` prints its warning twice. An unpaired
+node shows `wg-quick@wg_jaia_ch<N>` as failed until it pairs.

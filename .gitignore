@@ -9,6 +9,7 @@ __pycache__
 .$*.bkp
 
 .claude/*
+!.claude/skills/
 
 # STM32 related dirs and files that are installed/built from the stm32 build script
 # TODO: Determine which files/dirs are able to be left out. Some of these are necessary for STM32CubeIDE/MX/Prog apps to open the project effectively. 
