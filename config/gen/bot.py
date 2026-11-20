@@ -369,7 +369,7 @@ elif common.app == 'jaiabot_driver_pam':
                                      interprocess_block = interprocess_common,
                                      simulate=str(is_simulation()).lower(),
                                      status_frequency=1,
-                                     serial_device=jaia_pam_connection_type))
+                                     connection_type=jaia_pam_connection_type))
 elif common.app == 'jaiabot_fusion':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_fusion.pb.cfg.in',
                                      app_block=app_common,

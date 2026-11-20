@@ -5,7 +5,8 @@ import sys
 import goby
 from jaiabot_driver_pam_goby import SingleThreadApplication, groups
 from jaiabot.messages.pam_pb2 import PamData, PamCommand
-from pam import Pam, PamSimulator
+from pam import (EpPam, LegacyPam, PamSimulator, PamStackType, PamState,
+                 PAM_DETECT_TIMEOUT_SEC, detect_pam_stack_type)
 
 log = logging.getLogger('jaiabot_driver_pam')
 
@@ -15,10 +16,23 @@ class JaiabotDriverPam(SingleThreadApplication):
         super().__init__(loop_frequency_hertz=self.cfg.status_frequency)
         goby.glog.install()
 
-        self._pam = PamSimulator() if self.cfg.simulate else Pam(self.cfg.serial_device)
+        self._pam = PamSimulator() if self.cfg.simulate else self._detect_pam()
         self._responding = True
 
         self.interprocess().subscribe(groups.pam, PamCommand, self._on_command)
+
+    def _detect_pam(self):
+        connection_type = self.cfg.connection_type
+        log.info(f'Waiting up to {PAM_DETECT_TIMEOUT_SEC}s to detect the PAM stack type')
+        pam_stack_type = detect_pam_stack_type(connection_type)
+        if pam_stack_type is None:
+            log.error('No PAM recorder enumerated over USB')
+            sys.exit(1)
+
+        log.info(f'Detected {pam_stack_type.value} PAM stack')
+        if pam_stack_type == PamStackType.EP:
+            return EpPam()
+        return LegacyPam(connection_type)
 
     def _on_command(self, command: PamCommand) -> None:
         log.debug(f'received command: {command}')
@@ -42,7 +56,10 @@ class JaiabotDriverPam(SingleThreadApplication):
             log.warning('PAM state is None')
             return
 
-        self._responding = True
+        # Still published, but the recorder can't record without a usable SD card
+        self._responding = pam_state != PamState.SD_MOUNT.value
+        if not self._responding:
+            log.warning('PAM recorder has no usable SD card')
         log.debug(f'state: {pam_state}')
         self.interprocess().publish(groups.pam, PamData(pam_state=pam_state))
 

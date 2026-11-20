@@ -3,4 +3,4 @@ $interprocess_block
 
 simulate: $simulate
 status_frequency: $status_frequency
-serial_device: "$serial_device"
+connection_type: "$connection_type"
