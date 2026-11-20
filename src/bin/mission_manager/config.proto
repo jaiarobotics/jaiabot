@@ -8,6 +8,7 @@ import "jaiabot/messages/health.proto";
 import "jaiabot/messages/mission.proto";
 import "jaiabot/messages/node.proto";
 import "jaiabot/messages/camera_driver.proto";
+import "jaiabot/messages/engineering.proto";
 
 package jaiabot.config;
 
@@ -284,4 +285,7 @@ message MissionManager
     // again, leaving the bot stuck in SELF_TEST. 0 disables.
     optional double self_test_delegate_retry_interval = 101
         [default = 10, (dccl.field).units = { base_dimensions: "T" }];
+
+    // starting values; the engineering settings panel can change them until the next restart
+    optional jaiabot.protobuf.MotorTemperatureCheck motor_temperature_check = 103;
 }

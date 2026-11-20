@@ -153,11 +153,11 @@ message CommandForHub
 message BotStatus
 {
     /*
-    Actual maximum size of message: 48 bytes / 384 bits
+    Actual maximum size of message: 58 bytes / 464 bits
         dccl.id head...........................8
         user head..............................0
-        body.................................369
-        padding to full byte...................7
+        body.................................452
+        padding to full byte...................4
     Allowed maximum size of message: 250 bytes / 2000 bits
     */
     option (dccl.msg) = {
@@ -382,6 +382,11 @@ message BotStatus
         },
         (jaia.field).rest_api.presence = GUARANTEED
     ];
+
+    // celsius, one per motor temperature check, oldest first. The motor
+    // thermistor can only be read with the motor stopped.
+    repeated double motor_temperature = 60
+        [(dccl.field) = { max_repeat: 3 min: -50 max: 150 precision: 0 }];
 
     optional uint64 mission_command_time = 71 [
         (dccl.field) = {

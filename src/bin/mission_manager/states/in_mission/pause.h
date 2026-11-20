@@ -43,6 +43,7 @@ struct Pause : boost::statechart::state<Pause, InMission, pause::Manual>, AppMet
 namespace pause
 {
 
+#include "pause/check_motor_temperature.h"
 #include "pause/imu_restart.h"
 #include "pause/manual.h"
 #include "pause/reacquire_gps.h"

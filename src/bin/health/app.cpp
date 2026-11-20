@@ -351,12 +351,13 @@ jaiabot::apps::Health::Health()
     {
         launch_thread<LinuxHardwareThread>(cfg().linux_hw());
         launch_thread<ChronyStatusThread>(cfg().chrony());
+    }
 
-        if (cfg().motor().motor_harness_type() != jaiabot::protobuf::MotorHarnessType::NONE)
-        {
-            launch_thread<MotorRPMUDPThread>(cfg().udp_config());
-            launch_thread<MotorStatusThread>(cfg().motor());
-        }
+    // In simulation the thermistor comes from jaiabot_simulator and the RPM from rpm.py --simulator
+    if (cfg().motor().motor_harness_type() != jaiabot::protobuf::MotorHarnessType::NONE)
+    {
+        launch_thread<MotorRPMUDPThread>(cfg().udp_config());
+        launch_thread<MotorStatusThread>(cfg().motor());
     }
 
     // Watches the sensor groups rather than the hardware, so it runs in simulation too.

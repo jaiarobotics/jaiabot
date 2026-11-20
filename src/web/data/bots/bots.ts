@@ -116,6 +116,8 @@ export class Bots {
             bot.setWifiLinkQuality(botStatus.wifi_link_quality_percentage);
         }
 
+        bot.setMotorTemperatures(botStatus.motor_temperature ?? []);
+
         if (portalBotStatus.status_age) {
             bot.setStatusAge(portalBotStatus.status_age);
         }

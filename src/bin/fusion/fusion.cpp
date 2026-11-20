@@ -514,6 +514,8 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
             {
                 latest_bot_status_.clear_repeat_index();
             }
+
+            *latest_bot_status_.mutable_motor_temperature() = report.motor_temperature();
         });
 
     interprocess().subscribe<jaiabot::groups::raw_salinity>(

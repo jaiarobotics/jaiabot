@@ -156,6 +156,8 @@ STATECHART_EVENT(EvPause)
 STATECHART_EVENT(EvResume)
 STATECHART_EVENT(EvNoForwardProgress)
 STATECHART_EVENT(EvForwardProgressResolved)
+STATECHART_EVENT(EvCheckMotorTemperature)
+STATECHART_EVENT(EvMotorTemperatureChecked)
 
 #undef STATECHART_EVENT
 

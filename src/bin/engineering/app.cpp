@@ -207,6 +207,11 @@ jaiabot::apps::JaiabotEngineering::JaiabotEngineering() : ApplicationBase(0.5 * 
                     }
                 }
 
+                if (engineering_status.has_motor_temperature_check())
+                {
+                    *latest_engineering.mutable_motor_temperature_check() =
+                        engineering_status.motor_temperature_check();
+                }
             });
     }
 

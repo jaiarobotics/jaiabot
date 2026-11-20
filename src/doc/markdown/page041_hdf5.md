@@ -199,6 +199,11 @@
   * optional int32 wifi_link_quality_percentage
   * optional uint64 received_time
 
+*This section written by Claude*
+
+  * repeated double motor_temperature
+    * Description: Measured in Celsius, one per motor temperature check, oldest first
+
 ### Group: hub_command
 
 * Command
@@ -528,6 +533,10 @@
     * IN_MISSION__PAUSE__REACQUIRE_GPS = 161
     * IN_MISSION__PAUSE__MANUAL = 162
     * IN_MISSION__PAUSE__RESOLVE_NO_FORWARD_PROGRESS = 163
+
+*This section written by Claude*
+
+    * IN_MISSION__PAUSE__CHECK_MOTOR_TEMPERATURE = 164
     * POST_DEPLOYMENT__RECOVERED = 200
     * POST_DEPLOYMENT__DATA_OFFLOAD = 202
     * POST_DEPLOYMENT__IDLE = 203
@@ -541,6 +550,11 @@
   * optional uint32 active_goal_timeout
   * optional int32 data_offload_percentage
   * optional int32 repeat_index
+
+*This section written by Claude*
+
+  * repeated double motor_temperature
+    * Description: Measured in Celsius, one per motor temperature check, oldest first
 
 ### Group: mission_ivp_behavior_update
 

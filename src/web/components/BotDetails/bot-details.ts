@@ -125,6 +125,19 @@ export function getDistToWaypoint(missionStatus: MissionStatus) {
 }
 
 /**
+ * Formats the results of the Bot's latest motor temperature checks
+ *
+ * @param {number[]} motorTemperatures Celsius, oldest first
+ * @returns {string} The temperatures, or N/A before the first check
+ */
+export function formatMotorTemperatures(motorTemperatures: number[]) {
+    if (!motorTemperatures?.length) {
+        return "N/A";
+    }
+    return motorTemperatures.map((celsius) => celsius.toFixed(0)).join(", ") + " °C";
+}
+
+/**
  * Loops through the ghost missions to check if a Bot is carrying out a mission
  *
  * @param {number} botID Bot of interest

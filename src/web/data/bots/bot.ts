@@ -23,6 +23,7 @@ export default class Bot {
     private location: GeographicCoordinate;
     private batteryPercent: number;
     private wifiLinkQuality: number;
+    private motorTemperatures: number[] = [];
     private statusAge: number;
     private link: Link;
     private activeLinks: BotStatus_ActiveLink[];
@@ -110,6 +111,15 @@ export default class Bot {
 
     setWifiLinkQuality(wifiLinkQuality: number) {
         this.wifiLinkQuality = wifiLinkQuality;
+    }
+
+    // celsius, one per motor temperature check, oldest first
+    getMotorTemperatures() {
+        return this.motorTemperatures;
+    }
+
+    setMotorTemperatures(motorTemperatures: number[]) {
+        this.motorTemperatures = motorTemperatures;
     }
 
     // microseconds

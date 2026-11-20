@@ -24,6 +24,9 @@
 
 #pragma once
 
+#include <deque>
+#include <optional>
+
 // Boost
 #include <boost/statechart/state_machine.hpp>
 
@@ -365,6 +368,57 @@ struct MissionManagerStateMachine
     }
     const std::string& data_offload_exclude() { return data_offload_exclude_; }
 
+    void set_motor_temperature_check(const protobuf::MotorTemperatureCheck& check)
+    {
+        motor_temperature_check_.MergeFrom(check);
+    }
+    const protobuf::MotorTemperatureCheck& motor_temperature_check() const
+    {
+        return motor_temperature_check_;
+    }
+
+    void add_motor_temperature_sample(double celsius)
+    {
+        auto now = goby::time::SteadyClock::now();
+        motor_temperature_samples_.push_back({now, celsius});
+        while (motor_temperature_samples_.front().first < now - motor_temperature_sample_window_)
+            motor_temperature_samples_.pop_front();
+    }
+    void clear_motor_temperature_samples() { motor_temperature_samples_.clear(); }
+    std::optional<double> mean_motor_temperature() const
+    {
+        auto oldest = goby::time::SteadyClock::now() - motor_temperature_sample_window_;
+        double sum = 0;
+        int count = 0;
+        for (const auto& [time, celsius] : motor_temperature_samples_)
+        {
+            if (time >= oldest)
+            {
+                sum += celsius;
+                ++count;
+            }
+        }
+        if (count == 0)
+            return std::nullopt;
+        return sum / count;
+    }
+
+    // one result per check, matching the max_repeat of BotStatus.motor_temperature
+    void add_motor_temperature_result(double celsius)
+    {
+        motor_temperature_results_.push_back(celsius);
+        while (motor_temperature_results_.size() > 3) motor_temperature_results_.pop_front();
+    }
+    void update_latest_motor_temperature_result(double celsius)
+    {
+        if (!motor_temperature_results_.empty())
+            motor_temperature_results_.back() = celsius;
+    }
+    const std::deque<double>& motor_temperature_results() const
+    {
+        return motor_temperature_results_;
+    }
+
   private:
     apps::MissionManager& app_;
     jaiabot::protobuf::MissionState state_{jaiabot::protobuf::PRE_DEPLOYMENT__IDLE};
@@ -407,6 +461,11 @@ struct MissionManagerStateMachine
     int32_t hub_id_{0};
     std::string data_offload_exclude_{""};
     uint64_t mission_command_time_{0};
+    protobuf::MotorTemperatureCheck motor_temperature_check_{cfg().motor_temperature_check()};
+    // averaging smooths the ADC steps, which near 140 C are about 2 C each
+    const std::chrono::seconds motor_temperature_sample_window_{5};
+    std::deque<std::pair<goby::time::SteadyClock::time_point, double>> motor_temperature_samples_;
+    std::deque<double> motor_temperature_results_;
 };
 
 } // namespace statechart

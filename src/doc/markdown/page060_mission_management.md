@@ -56,6 +56,10 @@ The goal is to keep the state machine as simple as possible while still supporti
 		* IMURestart: Bot is waiting (on the surface) for the IMU to restart.
 		* Manual: Operator has commanded the bot to pause its mission.
         * ResolveNoForwardProgress: Bot is not moving forward when it should be. Attempt to resolve this issue.
+
+*This section written by Claude*
+
+        * CheckMotorTemperature: Bot has stopped to read the motor temperature, which can only be read with the motor stopped, and stays stopped while the motor is too hot. Off unless enabled in the mission manager config or the engineering settings panel.
 - PostDeployment: To be performed after the bot is in the water. (Use Cases: "Post Mission")
 	+ Recovered: Bot has been recovered.
 	+ DataOffload: Hub is downloading data from Bot.

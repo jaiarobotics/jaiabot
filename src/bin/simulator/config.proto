@@ -100,6 +100,12 @@ message ArduinoSimThread
     optional double voltage_step_decrease = 2 [default = 0.1];
     optional double voltage_start = 3 [default = 24.0];
     optional double reset_voltage_level = 4 [default = 15.0];
+
+    // first-order motor heating model behind the simulated thermistor reading (celsius)
+    optional double motor_water_temperature = 5 [default = 15];
+    optional double motor_temperature_rise_at_full_throttle = 6 [default = 200];
+    optional double motor_thermal_time_constant = 7
+        [default = 300, (dccl.field).units = { base_dimensions: "T" }];
 }
 
 message OceanographicSimThread

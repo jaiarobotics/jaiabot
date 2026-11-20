@@ -123,14 +123,41 @@ message Pam
     optional PamState pam_state = 3 [default = BOOTING];
 }
 
+message MotorTemperatureCheck
+{
+    option (dccl.msg) = {
+        unit_system: "si"
+    };
+
+    optional bool enabled = 1 [default = false];
+
+    // driving time between checks; time spent stopped, diving or drifting doesn't count
+    optional uint32 check_interval = 2 [
+        default = 120,
+        (dccl.field) = { min: 10 max: 3600 units { base_dimensions: "T" } }
+    ];
+
+    optional uint32 pause_duration = 3 [
+        default = 10,
+        (dccl.field) = { min: 1 max: 300 units { base_dimensions: "T" } }
+    ];
+
+    // celsius: at or above hot_temperature the bot stays stopped until the reading
+    // falls to resume_temperature
+    optional double hot_temperature = 4
+        [default = 115, (dccl.field) = { min: 0 max: 150 precision: 0 }];
+    optional double resume_temperature = 5
+        [default = 100, (dccl.field) = { min: 0 max: 150 precision: 0 }];
+}
+
 message Engineering
 {
     /*
-    Actual maximum size of message: 113 bytes / 904 bits
+    Actual maximum size of message: 137 bytes / 1096 bits
         dccl.id head...........................8
         user head..............................0
-        body.................................889
-        padding to full byte...................7
+        body................................1084
+        padding to full byte...................4
     Allowed maximum size of message: 250 bytes / 2000 bits
     */
     option (dccl.msg) = {
@@ -165,6 +192,8 @@ message Engineering
     optional IMUCalibration imu_cal = 18;
 
     optional Pam pam = 19;
+
+    optional MotorTemperatureCheck motor_temperature_check = 20;
 
     // For User flagging of events
     optional uint32 flag = 100 [(dccl.field) = { min: 0 max: 1024 }];

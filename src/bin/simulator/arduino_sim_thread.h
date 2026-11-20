@@ -41,8 +41,14 @@ class ArduinoSimThread : public SimulatorThread<jaiabot::config::ArduinoSimThrea
   private:
     void loop() override;
     void update_voltage(jaiabot::protobuf::ArduinoResponse& arduino_response);
+    void update_motor_temperature();
+    double thermistor_voltage() const;
 
   private:
+    double throttle_fraction_{0};
+    double motor_temperature_{cfg().motor_water_temperature()};
+    goby::time::SteadyClock::time_point motor_temperature_updated_{goby::time::SteadyClock::now()};
+
     int voltage_period_{1};
     double voltage_step_decrease_{0.1};
     double voltage_start_{24.0};
