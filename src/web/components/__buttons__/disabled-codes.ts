@@ -3,7 +3,6 @@ export enum DisabledCodes {
     NONE__EXIT_RC = 2,
     NO_COMMS = 3,
     MISSION_STATE = 4,
-    WIFI_QUALITY = 5,
     DOWNLOAD_QUEUE = 6,
     NO_MISSION = 7,
     LOW_BATTERY = 8,

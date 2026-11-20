@@ -54,13 +54,12 @@ test("Click data offload button in disabled state due to mission state", async (
     expect(screen.getByText("Close")).toBeInTheDocument();
 });
 
-test("Click data offload button in disabled state due to no Wi-Fi connection", async () => {
+test("Click data offload button for a Bot with no Wi-Fi connection", async () => {
     render(<DataOffloadButton bot={bots.getBot(2)} />);
     const button = screen.getByRole("button", { name: "data-offload-individual-bot" });
     await userEvent.click(button);
-    expect(screen.getByText("Alert")).toBeInTheDocument();
-    expect(screen.getByText(messages.get(DisabledCodes.WIFI_QUALITY))).toBeInTheDocument();
-    expect(screen.getByText("Close")).toBeInTheDocument();
+    expect(screen.getByText("Confirm")).toBeInTheDocument();
+    expect(screen.getByText("Offload Data")).toBeInTheDocument();
 });
 
 test("Click data offload button in enabled state", async () => {
