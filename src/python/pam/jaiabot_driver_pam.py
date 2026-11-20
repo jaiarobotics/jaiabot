@@ -5,8 +5,8 @@ import sys
 import goby
 from jaiabot_driver_pam_goby import SingleThreadApplication, groups
 from jaiabot.messages.pam_pb2 import PamData, PamCommand
-from pam import (EpPam, LegacyPam, PamSimulator, PamStackType, PAM_DETECT_TIMEOUT_SEC,
-                 detect_pam_stack_type)
+from pam import (EpPam, LegacyPam, PamSimulator, PamStackType, PamState,
+                 PAM_DETECT_TIMEOUT_SEC, detect_pam_stack_type)
 
 log = logging.getLogger('jaiabot_driver_pam')
 
@@ -56,7 +56,10 @@ class JaiabotDriverPam(SingleThreadApplication):
             log.warning('PAM state is None')
             return
 
-        self._responding = True
+        # Still published, but the recorder can't record without a usable SD card
+        self._responding = pam_state != PamState.SD_MOUNT.value
+        if not self._responding:
+            log.warning('PAM recorder has no usable SD card')
         log.debug(f'state: {pam_state}')
         self.interprocess().publish(groups.pam, PamData(pam_state=pam_state))
 

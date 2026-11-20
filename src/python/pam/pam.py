@@ -151,8 +151,8 @@ class PamCommon:
                                                 timeout=self.SERIAL_TIMEOUT_SEC)
                     log.info(f"{self.PAM_STACK_TYPE.value} recorder on {self.uart}")
                 except serial.serialutil.SerialException as error:
-                    log.error(f'No physical device available: {error}')
-                    exit(1)
+                    log.warning(f'Could not open {self.uart}, will retry: {error}')
+                    return
 
                 self.is_setup = True
 
