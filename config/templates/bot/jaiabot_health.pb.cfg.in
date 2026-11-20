@@ -44,6 +44,7 @@ arduino_recovery {
 
 sensor_watchdog {
     pam_enabled: $pam_enabled
+    pam_issue_solution: REPORT_PAM
 }
 
 $iridium_block

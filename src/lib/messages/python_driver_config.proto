@@ -91,7 +91,8 @@ message PamDriver
     optional bool simulate = 3 [default = false];
 
     optional double status_frequency = 10 [default = 1];
-    optional string serial_device = 11 [default = "/dev/ttyAMA5"];
+    // "uart" or "usb"
+    optional string connection_type = 11 [default = "uart"];
 }
 
 message PPKDriver
