@@ -41,14 +41,12 @@ def getRootNode(h5_filename: str):
         components = name.split('/')
 
         currentNode = rootNode
+        currentNode.nbytes += nbytes
         for component in components:
+            if component not in currentNode.children:
+                currentNode.children[component] = SizeNode(component, 0, {})
+            currentNode = currentNode.children[component]
             currentNode.nbytes += nbytes
-
-            try:
-                currentNode = currentNode.children[component]
-            except KeyError:
-                currentNode.children[component] = SizeNode(component, nbytes, {})
-                currentNode = currentNode.children[component]
 
     h5py.File(h5_filename).visititems(addDataset)
 
