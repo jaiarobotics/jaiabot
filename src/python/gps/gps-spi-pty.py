@@ -9,8 +9,9 @@ export time for a PTY-backed device, treating it as a test harness.
 
 Default SPI device is bus 1, device 1, mode 0, 1 MHz. You can override via args.
 
-This script intentionally does not parse or add newlines. It passes bytes
-verbatim to gpsd.
+Each tick the SPI bus is read until the receiver reports idle, and only
+complete, checksum-verified UBX frames are passed on. NMEA is disabled during
+configuration, so nothing else is expected on the bus.
 
 Module detection via MON-VER:
     - NEO/ZED-F9P: L1 + L5 (GPS L1C/A + L5, Galileo E1 + E5a, GLONASS L1)
@@ -52,7 +53,7 @@ import io
 import spidev
 import systemd.daemon
 
-from ubx_aiding import (AidingRecorder, AidingStore, mga_dbd_poll,
+from ubx_aiding import (AidingRecorder, AidingStore, UbxFramer, mga_dbd_poll,
                         mga_ini_pos_llh, ubx_packet, verify_checksum)
 
 # ------------- UBX helpers -------------
@@ -481,7 +482,7 @@ def handle_ctrl_c(signum, frame):
     sys.exit(0)
 
 def run(pty_path: str, udp_host: str, udp_port: int, bus: int, dev: int,
-        max_hz: int, meas_ms: int, read_size: int, tick_ms: int,
+        max_hz: int, meas_ms: int, read_size: int, tick_ms: int, max_reads_per_tick: int,
         notify_ready: bool, aiding_dir: str):
     master_fd, slave_fd, out, slave_name = setup_pty(pty_path)
     sock, udp_addr = setup_udp(udp_host, udp_port)
@@ -504,6 +505,7 @@ def run(pty_path: str, udp_host: str, udp_port: int, bus: int, dev: int,
 
     period = max(tick_ms, 1) / 1000.0
     last = time.monotonic()
+    framer = UbxFramer()
 
     try:
         while True:
@@ -520,19 +522,25 @@ def run(pty_path: str, udp_host: str, udp_port: int, bus: int, dev: int,
                 tx = poll + [0xFF] * max(read_size - len(poll), 0)
                 recorder.start_collecting(last)
 
-            # Read until idle while collecting, so the DBD dump doesn't overrun the receiver
-            reads = 8 if recorder and recorder.collecting else 1
-            for _ in range(reads):
+            # Read until the receiver clocks out only idle fill. A fixed read per tick is slower
+            # than an F9P with RAWX enabled, so its buffer backs up and it drops messages.
+            received = bytearray()
+            for _ in range(max_reads_per_tick):
                 try:
-                    raw_bytes = spi.xfer2(tx)
+                    chunk = bytes(spi.xfer2(tx))
                 except Exception:
-                    raw_bytes = []
-                tx = [0xFF] * read_size
-
-                data = bytes(raw_bytes).rstrip(b'\xFF')
-                if not data:
                     break
-                sock.sendto(data, udp_addr)
+                tx = [0xFF] * read_size
+                received += chunk
+                if chunk.count(0xFF) == len(chunk):
+                    break
+
+            frames = list(framer.feed(received))
+            for frame in frames:
+                # One frame per datagram, so none is split across gpsd's reads
+                sock.sendto(frame, udp_addr)
+            if frames:
+                data = b"".join(frames)
                 try:
                     out.write(data)
                 except BlockingIOError:
@@ -566,8 +574,10 @@ def main():
     parser.add_argument("--dev",       type=int, default=1,         help="SPI device number (default 1)")
     parser.add_argument("--hz",        type=int, default=1_000_000, help="SPI clock Hz (default 1 MHz)")
     parser.add_argument("--meas-ms",   type=int, default=200,       help="Measurement period in ms; 200 -> 5 Hz")
-    parser.add_argument("--read-size", type=int, default=512,       help="Bytes to read per tick")
+    parser.add_argument("--read-size", type=int, default=512,       help="Bytes per SPI transfer")
     parser.add_argument("--tick-ms",   type=int, default=50,        help="Read period in ms")
+    parser.add_argument("--max-reads-per-tick", type=int, default=16,
+                        help="Most SPI transfers per tick while reading until idle (default 16)")
     parser.add_argument("--aiding-dir", default="/var/lib/jaiabot/gnss",
                         help="Directory for stored GNSS aiding data; empty string disables")
 
@@ -587,6 +597,7 @@ def main():
         meas_ms=args.meas_ms,
         read_size=args.read_size,
         tick_ms=args.tick_ms,
+        max_reads_per_tick=args.max_reads_per_tick,
         notify_ready=True,
         aiding_dir=args.aiding_dir,
     )
