@@ -23,13 +23,13 @@ if not args.simulator:
 
 
 import time
-from threading import Event
 
 # RPM Calculation Overview:
 # 2 falling edges = 1 full revolution.
 # RPM is calculated every 0.2 seconds based on edge count.
 RPM_PIN = 27
 REVOLUTION_CONSTANT = 2.0
+SAMPLE_PERIOD_SECONDS = 0.2
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 sock.bind(('', args.port))
@@ -40,31 +40,26 @@ rpm = 0
 def calculate_rpm():
     global rpm
 
-    pin = Button(27, pull_up=True)
+    pin = Button(RPM_PIN, pull_up=True)
 
-    falling_event = Event()
+    edge_count = 0
     def on_falling():
-        falling_event.set()
+        nonlocal edge_count
+        edge_count += 1
 
     pin.when_released = on_falling
 
-    state_change_count = 0
-    start_interval = time.time()
+    last_count = 0
+    last_time = time.monotonic()
 
+    # Sample on a timer rather than waiting for the next edge, so a stopped motor reads 0
     while True:
-        now = time.time()
-        # blocks here until falling_event.set() is called
-        falling_event.wait()
-        # reset the flag for the next event
-        falling_event.clear()
-
-        state_change_count += 1
-
-        if (now - start_interval >= 0.2):
-            rps = (state_change_count / REVOLUTION_CONSTANT) / 0.2
-            rpm = rps * 60
-            start_interval = now
-            state_change_count = 0
+        time.sleep(SAMPLE_PERIOD_SECONDS)
+        count = edge_count
+        now = time.monotonic()
+        rpm = (count - last_count) / REVOLUTION_CONSTANT / (now - last_time) * 60
+        last_count = count
+        last_time = now
 
 
 def simulate_rpm():
