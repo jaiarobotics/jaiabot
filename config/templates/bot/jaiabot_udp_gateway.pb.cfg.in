@@ -10,4 +10,5 @@ in_simulation: $in_simulation
 echo_enabled: $echo_enabled
 salinity_enabled: $salinity_enabled
 bar30_enabled: $bar30_enabled
+barxt_enabled: $barxt_enabled
 tsys01_enabled: $tsys01_enabled

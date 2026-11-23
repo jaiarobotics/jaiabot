@@ -64,5 +64,8 @@ message UDPGateway
     // Bar30
     optional bool bar30_enabled = 23 [default = true];
 
+    // BarXT
+    optional bool barxt_enabled = 24 [default = false];
+
     optional bool in_simulation = 11 [default = true];
 }
