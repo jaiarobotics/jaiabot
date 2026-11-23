@@ -60,6 +60,9 @@ class MapnikTileRenderer(TileRenderer):
         self.tiles_path = os.path.join(cache_dir, f"{self.map_name}")
         os.makedirs(self.tiles_path, exist_ok=True)
 
+        # Clear cache, in case there's been an update to the stylesheet
+        self.clear_cache()
+
         self._cached_tile_count = len(self._cached_tiles())
         self.base_path = os.path.dirname(xml_template)
         self.max_cached_tiles = max_cached_tiles
@@ -100,6 +103,9 @@ class MapnikTileRenderer(TileRenderer):
             WEB_MERCATOR_MIN + tile_side * (x + 1),
             WEB_MERCATOR_MAX - tile_side * (y + 1),
         )
+
+        # Consider features that may extend beyond the tile boundaries by setting a buffer size
+        m.buffer_size = 256
 
         m.zoom_to_box(tile_bbox)
         image = mapnik.Image(256, 256)
