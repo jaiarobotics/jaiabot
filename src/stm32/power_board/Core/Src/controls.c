@@ -181,11 +181,6 @@ void handle_control_surfaces(const jaiabot_protobuf_ControlSurfaces* control_sur
     {
         motor_timeout_active = false;
     }
-
-    // Keep GPIO-level control in this module as well.
-    HAL_GPIO_WritePin(LED_R_GPIO_Port, LED_R_Pin,
-                      control_surfaces->led_switch_on ? GPIO_PIN_SET : GPIO_PIN_RESET);
-
 }
 
 void controls_periodic_update(void)
