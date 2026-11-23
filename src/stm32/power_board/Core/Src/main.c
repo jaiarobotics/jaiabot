@@ -73,6 +73,15 @@ static volatile uint8_t reed_wake_flag = 0;
 #define DEFAULT_SLEEP_INTERVAL_MS 10000U
 #define LPTIM_MAX_CHUNK_MS 10000U
 
+/* IWDG: LSI ~32 kHz, prescaler /256, reload 4095 -> ~32.8 s. Must match MX_IWDG_Init(). */
+#define IWDG_TIMEOUT_MS 32768U
+
+/* IWDG keeps counting in STOP2 and is refreshed per LPTIM wake, so sleeps are chunked. */
+_Static_assert(LPTIM_MAX_CHUNK_MS < IWDG_TIMEOUT_MS,
+               "sleep chunk must be shorter than the IWDG timeout");
+_Static_assert((LPTIM_MAX_CHUNK_MS * LPTIM_TICK_HZ) / 1000U <= 65536U,
+               "sleep chunk must fit in a 16-bit LPTIM period");
+
 uint8_t bits_in_byte = 8;
 bool usb_tx_busy = false;
 enum power_board_state current_state = REED_WAIT_STATE;

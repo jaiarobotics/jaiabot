@@ -154,6 +154,7 @@ export const enum BotAccordionNames {
     GPS = "gps",
     IMU = "imu",
     SENSOR = "sensor",
+    STORM = "storm",
 }
 
 export interface BotAccordionStates {
@@ -166,6 +167,7 @@ export interface BotAccordionStates {
     gps: boolean;
     imu: boolean;
     sensor: boolean;
+    storm: boolean;
 }
 
 export const enum MapLayerAccordionNames {

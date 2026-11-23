@@ -21,6 +21,7 @@ enum PowerBoardStatusCode
     POWER_BOARD_FRAME_ERROR = 4;
     POWER_BOARD_CRC_ERROR = 5;
     POWER_BOARD_DECODE_ERROR = 6;
+    POWER_BOARD_LOW_POWER_ACK = 7;
 }
 
 message LowPowerRequest

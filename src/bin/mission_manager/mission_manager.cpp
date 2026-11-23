@@ -26,6 +26,9 @@
 #include <boost/units/systems/si/frequency.hpp>
 namespace si = boost::units::si;
 
+// C++
+#include <fstream>
+
 // Goby
 #include <goby/middleware/application/multi_thread.h>
 #include <goby/middleware/gpsd/groups.h>
@@ -994,6 +997,10 @@ void jaiabot::apps::MissionManager::handle_command(const protobuf::Command& comm
 
         case protobuf::Command::PAUSE: machine_->process_event(statechart::EvPause()); break;
         case protobuf::Command::RESUME: machine_->process_event(statechart::EvResume()); break;
+
+        case protobuf::Command::SET_MISSION_PERIOD:
+            // owned by jaiabot_storm_manager, which commands the power board sleep
+            break;
 
         case protobuf::Command::RECOVERED:
             machine_->process_event(statechart::EvRecovered());

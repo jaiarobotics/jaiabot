@@ -73,6 +73,9 @@ export function handleClickedBotAccordion(mutableState: JaiaContextType, action:
         case BotAccordionNames.SENSOR:
             botAccordionStates.sensor = !botAccordionStates.sensor;
             break;
+        case BotAccordionNames.STORM:
+            botAccordionStates.storm = !botAccordionStates.storm;
+            break;
     }
     return mutableState;
 }

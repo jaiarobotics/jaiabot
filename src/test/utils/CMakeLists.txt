@@ -3,3 +3,7 @@ add_test(NAME jaiabot_test_utils COMMAND jaiabot_test_utils)
 
 add_executable(jaiabot_test_utils_stats stats.cpp)
 add_test(NAME jaiabot_test_utils_stats COMMAND jaiabot_test_utils_stats)
+
+add_executable(jaiabot_test_utils_storm_schedule storm_schedule.cpp)
+target_link_libraries(jaiabot_test_utils_storm_schedule jaiabot_messages)
+add_test(NAME jaiabot_test_utils_storm_schedule COMMAND jaiabot_test_utils_storm_schedule)
