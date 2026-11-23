@@ -91,26 +91,33 @@ class MapnikTileRenderer(TileRenderer):
         if self.stylesheet_template is None:
             return None
 
+        TILE_SIZE_PIXELS = 256
+        # Render to a padded tile, then crop to the final size to include features extending beyond the tile boundaries.
+        TILE_PADDING_PIXELS = 64
+
         # Rendering runs outside the lock: mapnik releases the GIL, so tiles render in parallel.
-        m = mapnik.Map(256, 256)
+        m = mapnik.Map(TILE_SIZE_PIXELS + 2 * TILE_PADDING_PIXELS, 
+                       TILE_SIZE_PIXELS + 2 * TILE_PADDING_PIXELS)
         mapnik.load_map_from_string(m, self.stylesheet_template.substitute(z=z), False, self.base_path)
 
         tile_side = WEB_MERCATOR_SIZE / (2 ** z)
+        tile_padding = tile_side * TILE_PADDING_PIXELS / TILE_SIZE_PIXELS
 
         tile_bbox = mapnik.Box2d(
-            WEB_MERCATOR_MIN + tile_side * x,
-            WEB_MERCATOR_MAX - tile_side * y,
-            WEB_MERCATOR_MIN + tile_side * (x + 1),
-            WEB_MERCATOR_MAX - tile_side * (y + 1),
+            WEB_MERCATOR_MIN + tile_side * x       - tile_padding,
+            WEB_MERCATOR_MAX - tile_side * y       + tile_padding,
+            WEB_MERCATOR_MIN + tile_side * (x + 1) + tile_padding,
+            WEB_MERCATOR_MAX - tile_side * (y + 1) - tile_padding,
         )
 
-        # Consider features that may extend beyond the tile boundaries by setting a buffer size
-        m.buffer_size = 256
-
         m.zoom_to_box(tile_bbox)
-        image = mapnik.Image(256, 256)
+
+        image = mapnik.Image(m.width, m.height)
         mapnik.render(m, image, 2.0)
-        tile_data = image.to_string("png")
+
+        # Crop the image to the final tile size
+        cropped = image.view(TILE_PADDING_PIXELS, TILE_PADDING_PIXELS, TILE_SIZE_PIXELS, TILE_SIZE_PIXELS)
+        tile_data = cropped.to_string("png32")
 
         # Rename into place so a concurrent request never reads a partly written tile.
         fd, staging_path = tempfile.mkstemp(dir=self.tiles_path, suffix=".tmp")
