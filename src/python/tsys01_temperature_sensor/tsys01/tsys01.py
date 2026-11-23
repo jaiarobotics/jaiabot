@@ -24,6 +24,7 @@ class TSYS01(object):
         # Degrees C
         self._temperature = 0
         self._k = []
+        self._bus_number = bus
         
         try:
             self._bus = smbus.SMBus(bus)
@@ -38,20 +39,24 @@ class TSYS01(object):
             "No bus!"
             return False
         
-        self._bus.write_byte(self._TSYS01_ADDR, self._TSYS01_RESET)
-        
-        # Wait for reset to complete
-        sleep(0.1)
-        
-        self._k = []
+        try:
+            self._bus.write_byte(self._TSYS01_ADDR, self._TSYS01_RESET)
 
-        # Read calibration values
-        # Read one 16 bit byte word at a time
-        for prom in range(0xAA, 0xA2-2, -2):
-            k = self._bus.read_word_data(self._TSYS01_ADDR, prom)
-            k =  ((k & 0xFF) << 8) | (k >> 8) # SMBus is little-endian for word transfers, we need to swap MSB and LSB
-            self._k.append(k)
-            
+            # Wait for reset to complete
+            sleep(0.1)
+
+            self._k = []
+
+            # Read calibration values
+            # Read one 16 bit byte word at a time
+            for prom in range(0xAA, 0xA2-2, -2):
+                k = self._bus.read_word_data(self._TSYS01_ADDR, prom)
+                k =  ((k & 0xFF) << 8) | (k >> 8) # SMBus is little-endian for word transfers, we need to swap MSB and LSB
+                self._k.append(k)
+        except OSError as e:
+            print(f"TSYS01 init failed on I2C bus {self._bus_number}: {e}", flush=True)
+            return False
+
         return True
         
     def read(self):
@@ -59,13 +64,18 @@ class TSYS01(object):
             print("No bus!")
             return False
         
-        # Request conversion
-        self._bus.write_byte(self._TSYS01_ADDR, self._TSYS01_CONVERT)
-    
-        # Max conversion time = 9.04 ms
-        sleep(0.01)
-        
-        adc = self._bus.read_i2c_block_data(self._TSYS01_ADDR, self._TSYS01_READ, 3)
+        try:
+            # Request conversion
+            self._bus.write_byte(self._TSYS01_ADDR, self._TSYS01_CONVERT)
+
+            # Max conversion time = 9.04 ms
+            sleep(0.01)
+
+            adc = self._bus.read_i2c_block_data(self._TSYS01_ADDR, self._TSYS01_READ, 3)
+        except OSError as e:
+            print(f"TSYS01 read failed on I2C bus {self._bus_number}: {e}", flush=True)
+            return False
+
         adc = adc[0] << 16 | adc[1] << 8 | adc[2]
         self._calculate(adc)
         return True
