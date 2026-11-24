@@ -46,6 +46,7 @@ class MapnikTileRenderer(TileRenderer):
     map_name: str
     tiles_path: str
     stylesheet_template: Template
+    template_params: dict[str, str]
     base_path: str
     _cached_tile_count: int = 0
     max_cached_tiles: int = 2000
@@ -74,6 +75,14 @@ class MapnikTileRenderer(TileRenderer):
             l.warning(e)
             self.stylesheet_template = None
 
+        self.template_params = {
+            'water_color': '#78B5D9',
+            'land_color': '#A6C875',
+            'urban_color': '#D4CD91',
+            'label_size': '8',
+            'label_adjustment': '-2',
+        }
+
 
     def render_tile(self, z: int, x: int, y: int) -> bytes | None:
         # Validate tile coordinates
@@ -82,32 +91,66 @@ class MapnikTileRenderer(TileRenderer):
 
         output = f"{self.tiles_path}/tile_{z}_{x}_{y}.png"
 
+        # Return from cache if available
         try:
             with open(output, 'rb') as tile:
                 return tile.read()
         except FileNotFoundError:
             pass
 
+        tile_data = self._render_tile(z, x, y, output)
+
+        # Remove old cache entries
+        self.evict_cache()
+
+        return tile_data
+
+
+    def _render_tile(self, z: int, x: int, y: int, output_path: str) -> bytes | None:
+        """Render a single map tile at the given zoom level and coordinates, saving it to the specified output path.
+
+        Args:
+            z (int): Zoom level.
+            x (int): Tile x-coordinate.
+            y (int): Tile y-coordinate.
+            output_path (str): Path to save the rendered tile.
+
+        Returns:
+            bytes | None: The rendered tile data as bytes, or None if rendering failed.
+        """
+
         if self.stylesheet_template is None:
             return None
 
+        NUM_TILES = 1 << z
+
+        # Tile size and padding in pixels
         TILE_SIZE_PIXELS = 256
-        # Render to a padded tile, then crop to the final size to include features extending beyond the tile boundaries.
-        TILE_PADDING_PIXELS = 64
+        TILE_VERTICAL_PADDING_PIXELS = 64
+        TILE_LEFT_PADDING_PIXELS = 64 if x > 0 else 0
+        TILE_RIGHT_PADDING_PIXELS = 64 if x < (1 << z) - 1 else 0
 
-        # Rendering runs outside the lock: mapnik releases the GIL, so tiles render in parallel.
-        m = mapnik.Map(TILE_SIZE_PIXELS + 2 * TILE_PADDING_PIXELS, 
-                       TILE_SIZE_PIXELS + 2 * TILE_PADDING_PIXELS)
-        mapnik.load_map_from_string(m, self.stylesheet_template.substitute(z=z), False, self.base_path)
+        m = mapnik.Map(TILE_SIZE_PIXELS + TILE_LEFT_PADDING_PIXELS + TILE_RIGHT_PADDING_PIXELS, 
+                       TILE_SIZE_PIXELS + 2 * TILE_VERTICAL_PADDING_PIXELS)
+        self.template_params['z'] = z
+        mapnik.load_map_from_string(m, self.stylesheet_template.substitute(self.template_params), False, self.base_path)
 
-        tile_side = WEB_MERCATOR_SIZE / (2 ** z)
-        tile_padding = tile_side * TILE_PADDING_PIXELS / TILE_SIZE_PIXELS
+        # Tile size and padding in geographical coordinates
+        tile_side = WEB_MERCATOR_SIZE / NUM_TILES
+        vertical_padding = tile_side * TILE_VERTICAL_PADDING_PIXELS / TILE_SIZE_PIXELS
+        left_padding = tile_side * TILE_LEFT_PADDING_PIXELS / TILE_SIZE_PIXELS
+        right_padding = tile_side * TILE_RIGHT_PADDING_PIXELS / TILE_SIZE_PIXELS
+
+        tile_left   = WEB_MERCATOR_MIN + tile_side * x       - left_padding
+        tile_top    = WEB_MERCATOR_MAX - tile_side * y       + vertical_padding
+        tile_right  = WEB_MERCATOR_MIN + tile_side * (x + 1) + right_padding
+        tile_bottom = WEB_MERCATOR_MAX - tile_side * (y + 1) - vertical_padding
 
         tile_bbox = mapnik.Box2d(
-            WEB_MERCATOR_MIN + tile_side * x       - tile_padding,
-            WEB_MERCATOR_MAX - tile_side * y       + tile_padding,
-            WEB_MERCATOR_MIN + tile_side * (x + 1) + tile_padding,
-            WEB_MERCATOR_MAX - tile_side * (y + 1) - tile_padding,
+            max(tile_left, WEB_MERCATOR_MIN),
+            min(tile_top, WEB_MERCATOR_MAX),
+            min(tile_right, WEB_MERCATOR_MAX),
+            max(tile_bottom, WEB_MERCATOR_MIN),
         )
 
         m.zoom_to_box(tile_bbox)
@@ -116,14 +159,20 @@ class MapnikTileRenderer(TileRenderer):
         mapnik.render(m, image, 2.0)
 
         # Crop the image to the final tile size
-        cropped = image.view(TILE_PADDING_PIXELS, TILE_PADDING_PIXELS, TILE_SIZE_PIXELS, TILE_SIZE_PIXELS)
+        cropped = image.view(TILE_LEFT_PADDING_PIXELS, TILE_VERTICAL_PADDING_PIXELS, TILE_SIZE_PIXELS, TILE_SIZE_PIXELS)
         tile_data = cropped.to_string("png32")
 
         # Rename into place so a concurrent request never reads a partly written tile.
         fd, staging_path = tempfile.mkstemp(dir=self.tiles_path, suffix=".tmp")
         with os.fdopen(fd, 'wb') as staging:
             staging.write(tile_data)
-        os.replace(staging_path, output)
+        os.replace(staging_path, output_path)
+
+        return tile_data
+
+
+    def evict_cache(self):
+        """Evict tiles from the cache if the cache exceeds the maximum allowed number of cached tiles."""
 
         with self._lock:
             self._cached_tile_count += 1
@@ -137,8 +186,6 @@ class MapnikTileRenderer(TileRenderer):
                     os.remove(tile.path)
 
                 self._cached_tile_count = len(tiles) - tiles_to_remove
-
-        return tile_data
 
 
     def _cached_tiles(self) -> list[os.DirEntry]:

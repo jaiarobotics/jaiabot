@@ -1,303 +1,319 @@
 <?xml version="1.0" encoding="utf-8"?>
+
 <Map
     srs="EPSG:3857"
-    background-color="#aad3df"
+    background-color="${water_color}"
     buffer-size="256">
-
-    <Style name="geography-marine-polys-style">
-
-        <Rule>
-            <Filter>[scalerank] * 1.25 &lt;= ${z}</Filter>
-
-            <TextSymbolizer
-                face-name="DejaVu Sans Oblique"
-                size="10"
-                fill="black"
-                placement="interior"
-                dy="0">
-                [label]
-            </TextSymbolizer>
-        </Rule>
-    </Style>
-
-    <Style name="geography-regions-style">
-
-        <Rule>
-            <Filter>[SCALERANK] * 4 &lt;= ${z}</Filter>
-
-            <TextSymbolizer
-                face-name="DejaVu Sans Book"
-                size="10"
-                fill="black"
-                placement="interior"
-                dy="0">
-                [NAME]
-            </TextSymbolizer>
-        </Rule>
-    </Style>
 
     <!-- Land and Islands -->
 
-    <Style name="land-style">
-        <Rule>
-        <!-- <Filter>[natural] = 'coastline'</Filter> -->
-        <LineSymbolizer
-            stroke="black"
-            stroke-width="1.0"/>
-        <PolygonSymbolizer fill="#A5D6A7"/>
-        </Rule>
-    </Style>
+        <Style name="land-fill-style">
+            <Rule>
+                <PolygonSymbolizer fill="${land_color}"/>
+            </Rule>
+        </Style>
 
-    <!-- Zoom 0-2 -->
-    <Layer name="land-low"
-            srs="+proj=longlat +datum=WGS84 +no_defs"
-            minimum-scale-denominator="200000000">
+        <!-- Zoom 0-2 -->
+        <Layer name="land-low"
+                srs="+proj=longlat +datum=WGS84 +no_defs"
+                minimum-scale-denominator="200000000">
 
-        <StyleName>land-style</StyleName>
+            <StyleName>land-fill-style</StyleName>
 
-        <Datasource>
-        <Parameter name="type">shape</Parameter>
-        <Parameter name="file">land_low.shp</Parameter>
-        </Datasource>
-    </Layer>
-    <!-- Zoom 3-5 -->
-    <Layer name="coast-mid"
-            srs="+proj=longlat +datum=WGS84 +no_defs"
-            minimum-scale-denominator="25000000"
-            maximum-scale-denominator="200000000">
+            <Datasource>
+            <Parameter name="type">shape</Parameter>
+            <Parameter name="file">land_low.shp</Parameter>
+            </Datasource>
+        </Layer>
 
-        <StyleName>coast-style</StyleName>
+        <!-- Zoom 3-5 -->
+        <Layer name="land-mid"
+                srs="+proj=longlat +datum=WGS84 +no_defs"
+                minimum-scale-denominator="25000000"
+                maximum-scale-denominator="200000000">
 
-        <Datasource>
-        <Parameter name="type">shape</Parameter>
-        <Parameter name="file">coast_mid.shp</Parameter>
-        </Datasource>
-    </Layer>
-    <Layer name="land-mid"
-            srs="+proj=longlat +datum=WGS84 +no_defs"
-            minimum-scale-denominator="25000000"
-            maximum-scale-denominator="200000000">
+            <StyleName>land-fill-style</StyleName>
 
-        <StyleName>land-fill-style</StyleName>
+            <Datasource>
+            <Parameter name="type">shape</Parameter>
+            <Parameter name="file">land_mid.shp</Parameter>
+            </Datasource>
+        </Layer>
 
-        <Datasource>
-        <Parameter name="type">shape</Parameter>
-        <Parameter name="file">land_mid.shp</Parameter>
-        </Datasource>
-    </Layer>
-    <!-- Zoom 6+ -->
-    <Layer name="coast-high"
-            srs="+proj=longlat +datum=WGS84 +no_defs"
-            maximum-scale-denominator="25000000">
+        <!-- Zoom 6+ -->
+        <Layer name="land-high"
+                srs="+proj=longlat +datum=WGS84 +no_defs"
+                maximum-scale-denominator="25000000">
 
-        <StyleName>coast-style</StyleName>
+            <StyleName>land-fill-style</StyleName>
 
-        <Datasource>
-        <Parameter name="type">shape</Parameter>
-        <Parameter name="file">coast_high.shp</Parameter>
-        </Datasource>
-    </Layer>
-    <Layer name="land-high"
-            srs="+proj=longlat +datum=WGS84 +no_defs"
-            maximum-scale-denominator="25000000">
+            <Datasource>
+            <Parameter name="type">shape</Parameter>
+            <Parameter name="file">land_high.shp</Parameter>
+            </Datasource>
+        </Layer>
 
-        <StyleName>land-fill-style</StyleName>
+        <Layer name="minor-islands"
+                srs="+proj=longlat +datum=WGS84 +no_defs">
 
-        <Datasource>
-        <Parameter name="type">shape</Parameter>
-        <Parameter name="file">land_high.shp</Parameter>
-        </Datasource>
-    </Layer>
+            <StyleName>land-fill-style</StyleName>
 
-    <Layer name="minor-islands"
-            srs="+proj=longlat +datum=WGS84 +no_defs">
-
-        <StyleName>land-style</StyleName>
-
-        <Datasource>
-        <Parameter name="type">shape</Parameter>
-        <Parameter name="file">ne_10m_minor_islands.shp</Parameter>
-        </Datasource>
-    </Layer>
-
-    <Style name="land-fill-style">
-        <Rule>
-        <PolygonSymbolizer fill="#A5D6A7"/>
-        </Rule>
-    </Style>
-
-    <Style name="coast-style">
-        <Rule>
-        <LineSymbolizer
-            stroke="black"
-            stroke-width="1.0"/>
-        </Rule>
-    </Style>
+            <Datasource>
+            <Parameter name="type">shape</Parameter>
+            <Parameter name="file">ne_10m_minor_islands.shp</Parameter>
+            </Datasource>
+        </Layer>
 
     <!-- Urban Areas -->
 
-    <Style name="urban-style">
+        <Style name="urban-style">
 
-        <Rule>
-            <Filter>[scalerank] * 1.25 &lt;= ${z}</Filter>
+            <Rule>
+                <Filter>[scalerank] * 1.25 &lt;= ${z}</Filter>
 
-            <MarkersSymbolizer
-                fill="#000000"
-                width="3"
-                height="3"
-                placement="point"
-                allow-overlap="true" />
+                <PolygonSymbolizer fill="${urban_color}"/>
 
-            <LineSymbolizer
-                stroke="black"
-                stroke-width="1.0"/>
+            </Rule>
+        </Style>
 
-            <PolygonSymbolizer fill="#E8F5E9"/>
+        <Layer name="urban-areas"
+                srs="+proj=longlat +datum=WGS84 +no_defs">
 
-        </Rule>
-    </Style>
+            <StyleName>urban-style</StyleName>
 
-    <Layer name="urban-areas"
-            srs="+proj=longlat +datum=WGS84 +no_defs">
+            <Datasource>
+                <Parameter name="type">shape</Parameter>
+                <Parameter name="file">ne_10m_urban_areas.shp</Parameter>
+            </Datasource>
+        </Layer>
 
-        <StyleName>urban-style</StyleName>
+    <!-- Lakes -->
 
-        <Datasource>
-            <Parameter name="type">shape</Parameter>
-            <Parameter name="file">ne_10m_urban_areas.shp</Parameter>
-        </Datasource>
-    </Layer>
+        <Style name="lakes-style">
+            <Rule>
+                <Filter>[scalerank] * 1.25 &lt;= ${z}</Filter>
+                <PolygonSymbolizer fill="${water_color}"/>
+            </Rule>
+        </Style>
 
-    <!-- Lakes and Rivers -->
+        <Layer name="lakes"
+                srs="+proj=longlat +datum=WGS84 +no_defs">
 
-    <Style name="lakes-style">
-        <Rule>
-        <Filter>[scalerank] * 1.25 &lt;= ${z}</Filter>
-        <PolygonSymbolizer fill="#aad3df"/>
-        <LineSymbolizer
-            stroke="black"
-            stroke-width="1.0"/>
-        <TextSymbolizer
-            face-name="DejaVu Sans Oblique"
-            size="10"
-            fill="black"
-            placement="interior"
-            dy="0">
-            [label]
-        </TextSymbolizer>
-        </Rule>
-    </Style>
+            <StyleName>lakes-style</StyleName>
 
-    <Layer name="lakes"
-            srs="+proj=longlat +datum=WGS84 +no_defs">
+            <Datasource>
+                <Parameter name="type">shape</Parameter>
+                <Parameter name="file">ne_10m_lakes.shp</Parameter>
+            </Datasource>
+        </Layer>
 
-        <StyleName>lakes-style</StyleName>
+    <!-- Rivers -->
 
-        <Datasource>
-            <Parameter name="type">shape</Parameter>
-            <Parameter name="file">ne_10m_lakes.shp</Parameter>
-        </Datasource>
-    </Layer>
+        <Style name="river-style">
+            <Rule>
 
-    <Style name="river-style">
-        <Rule>
-            <Filter>[scalerank] * 1.25 &lt;= ${z}</Filter>
+                <Filter>[scalerank] &lt;= ${z} + 1</Filter>
 
-            <LineSymbolizer
-                stroke="#3d6672"
-                stroke-width="2.0"/>
-            <TextSymbolizer
-                face-name="DejaVu Sans Oblique"
-                size="10"
-                fill="#3d6672"
-                placement="line"
-                dy="-3">
-                [label]
-            </TextSymbolizer>
-        </Rule>
-    </Style>
+                <LineSymbolizer
+                    stroke="${water_color}"
+                    stroke-width="1.0"/>
+            </Rule>
+        </Style>
 
-    <Layer name="rivers"
-            srs="+proj=longlat +datum=WGS84 +no_defs">
+        <Layer name="rivers"
+                srs="+proj=longlat +datum=WGS84 +no_defs">
 
-        <StyleName>river-style</StyleName>
+            <StyleName>river-style</StyleName>
 
-        <Datasource>
-            <Parameter name="type">shape</Parameter>
-            <Parameter name="file">ne_10m_rivers_lake_centerlines.shp</Parameter>
-        </Datasource>
-    </Layer>
+            <Datasource>
+                <Parameter name="type">shape</Parameter>
+                <Parameter name="file">ne_10m_rivers_lake_centerlines.shp</Parameter>
+            </Datasource>
+        </Layer>
 
-    <Layer name="geography-regions-polys"
-            srs="+proj=longlat +datum=WGS84 +no_defs">
+    <!-- Cities / Ports -->
 
-        <StyleName>geography-regions-style</StyleName>
+        <Style name="city-style">
 
-        <Datasource>
-            <Parameter name="type">shape</Parameter>
-            <Parameter name="file">ne_10m_geography_regions_polys.shp</Parameter>
-        </Datasource>
-    </Layer>
+            <Rule>
+                <Filter>[scalerank] * 1.25 &lt;= ${z}</Filter>
 
-    <Layer name="geography-marine-polys"
-            srs="+proj=longlat +datum=WGS84 +no_defs">
+                <MarkersSymbolizer
+                    fill="black"
+                    width="3"
+                    height="3"
+                    placement="point"
+                    allow-overlap="true" />
 
-        <StyleName>geography-marine-polys-style</StyleName>
+                <LineSymbolizer
+                    stroke="black"
+                    stroke-width="1.0"/>
 
-        <Datasource>
-            <Parameter name="type">shape</Parameter>
-            <Parameter name="file">ne_10m_geography_marine_polys.shp</Parameter>
-        </Datasource>
-    </Layer>
+                <PolygonSymbolizer fill="purple"/>
 
-    <!-- Man-Made Features -->
+            </Rule>
+        </Style>
 
-    <Style name="city-style">
+        <Layer name="ports"
+                srs="+proj=longlat +datum=WGS84 +no_defs">
 
-        <Rule>
-            <Filter>[scalerank] * 1.25 &lt;= ${z}</Filter>
+            <StyleName>city-style</StyleName>
 
-            <TextSymbolizer
-                face-name="DejaVu Sans Oblique"
-                size="10"
-                fill="black"
-                placement="point"
-                placement-type="simple"
-                placements="E,W,N,S,NE,NW,SE,SW"
-                horizontal-alignment="auto"
-                vertical-alignment="auto"
-                margin="3"
-                allow-overlap="false"
-                dx="5"
-                dy="5">
-                [name]
-            </TextSymbolizer>
+            <Datasource>
+                <Parameter name="type">shape</Parameter>
+                <Parameter name="file">ne_10m_ports.shp</Parameter>
+            </Datasource>
+        </Layer>
 
-            <MarkersSymbolizer
-                fill="#000000"
-                width="3"
-                height="3"
-                placement="point"
-                allow-overlap="true" />
+    <!-- ====================> LABELS -->
 
-            <LineSymbolizer
-                stroke="black"
-                stroke-width="1.0"/>
+    <!-- Region Labels -->
 
-            <PolygonSymbolizer fill="purple"/>
+        <Style name="region-labels-style">
 
-        </Rule>
-    </Style>
+            <Rule>
+                <Filter>[SCALERANK] &lt;= ${z} + ${label_adjustment}</Filter>
 
-    <Layer name="ports"
-            srs="+proj=longlat +datum=WGS84 +no_defs">
+                <TextSymbolizer
+                    face-name="DejaVu Sans Book"
+                    size="${label_size}"
+                    fill="black"
+                    placement="interior"
+                    dy="0">
+                    [NAME]
+                </TextSymbolizer>
+            </Rule>
+        </Style>
 
-        <StyleName>city-style</StyleName>
+        <Layer name="region-labels"
+                srs="+proj=longlat +datum=WGS84 +no_defs">
 
-        <Datasource>
-            <Parameter name="type">shape</Parameter>
-            <Parameter name="file">ne_10m_ports.shp</Parameter>
-        </Datasource>
-    </Layer>
+            <StyleName>region-labels-style</StyleName>
+
+            <Datasource>
+                <Parameter name="type">shape</Parameter>
+                <Parameter name="file">ne_10m_geography_regions_polys.shp</Parameter>
+            </Datasource>
+        </Layer>
+
+    <!-- Marine Region Labels -->
+
+        <Style name="marine-region-labels-style">
+
+            <Rule>
+                <Filter>[scalerank] &lt;= ${z} + ${label_adjustment}</Filter>
+
+                <TextSymbolizer
+                    face-name="DejaVu Sans Oblique"
+                    size="${label_size}"
+                    fill="black"
+                    placement="interior"
+                    dy="0">
+                    [label]
+                </TextSymbolizer>
+            </Rule>
+        </Style>
+
+        <Layer name="marine-region-labels"
+                srs="+proj=longlat +datum=WGS84 +no_defs">
+
+            <StyleName>marine-region-labels-style</StyleName>
+
+            <Datasource>
+                <Parameter name="type">shape</Parameter>
+                <Parameter name="file">ne_10m_geography_marine_polys.shp</Parameter>
+            </Datasource>
+        </Layer>
+
+    <!-- City / Port Labels -->
+
+        <Style name="city-label-style">
+            <Rule>
+                <Filter>[scalerank] &lt;= ${z} + ${label_adjustment}</Filter>
+
+                <TextSymbolizer
+                    face-name="DejaVu Sans Oblique"
+                    size="${label_size}"
+                    fill="black"
+                    placement="point"
+                    placement-type="simple"
+                    placements="E,W,N,S,NE,NW,SE,SW"
+                    horizontal-alignment="auto"
+                    vertical-alignment="auto"
+                    margin="3"
+                    allow-overlap="false"
+                    dx="5"
+                    dy="5">
+                    [name]
+                </TextSymbolizer>
+            </Rule>
+        </Style>
+
+        <Layer name="city-labels"
+                srs="+proj=longlat +datum=WGS84 +no_defs">
+
+            <StyleName>city-label-style</StyleName>
+
+            <Datasource>
+                <Parameter name="type">shape</Parameter>
+                <Parameter name="file">ne_10m_ports.shp</Parameter>
+            </Datasource>
+        </Layer>
+
+    <!-- Lake Labels -->
+
+        <Style name="lake-labels-style">
+            <Rule>
+                <Filter>[scalerank] &lt;= ${z} + ${label_adjustment}</Filter>
+
+                <TextSymbolizer
+                    face-name="DejaVu Sans Oblique"
+                    size="${label_size}"
+                    fill="black"
+                    placement="interior"
+                    dy="0">
+                    [label]
+                </TextSymbolizer>
+            </Rule>
+        </Style>
+
+        <Layer name="lake-labels"
+        srs="+proj=longlat +datum=WGS84 +no_defs">
+
+            <StyleName>lake-labels-style</StyleName>
+
+            <Datasource>
+                <Parameter name="type">shape</Parameter>
+                <Parameter name="file">ne_10m_lakes.shp</Parameter>
+            </Datasource>
+        </Layer>
+
+    <!-- River Labels -->
+
+        <Style name="river-label-style">
+            <Rule>
+                <Filter>[scalerank] &lt;= ${z} + ${label_adjustment}</Filter>
+
+                <TextSymbolizer
+                    face-name="DejaVu Sans Oblique"
+                    size="${label_size}"
+                    fill="black"
+                    placement="line"
+                    dy="-3">
+                    [label]
+                </TextSymbolizer>
+            </Rule>
+        </Style>
+
+        <Layer name="river-labels"
+        srs="+proj=longlat +datum=WGS84 +no_defs">
+
+            <StyleName>river-label-style</StyleName>
+
+            <Datasource>
+                <Parameter name="type">shape</Parameter>
+                <Parameter name="file">ne_10m_rivers_lake_centerlines.shp</Parameter>
+            </Datasource>
+        </Layer>
 
 </Map>
