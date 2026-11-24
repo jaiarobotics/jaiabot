@@ -5,7 +5,12 @@ bot_id: $bot_id
 gps_fix_wait_timeout_seconds: 300
 mission_manager_wait_timeout_seconds: 300
 
-initial_mission { 
+rolling_stats_sample_count {
+  conductivity: 1
+  pressure: 1
+}
+
+initial_mission {
   dive { 
     max_depth: 50 
     depth_interval: inf
